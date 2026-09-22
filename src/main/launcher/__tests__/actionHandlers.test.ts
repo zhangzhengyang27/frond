@@ -16,7 +16,7 @@ function makeDeps(over: Partial<ActionHandlerDeps> = {}): ActionHandlerDeps {
     isWindowAction: (a: string) => ['left', 'right', 'top', 'bottom'].includes(a),
     launchApp: vi.fn(async () => ({ success: true })),
     openExternal: vi.fn(),
-    openPath: vi.fn(async () => true),
+    openPath: vi.fn(async () => ({ ok: true })),
     copyClipboardItem: vi.fn(() => true),
     getSnippetText: vi.fn(() => 'print(1)'),
     writeClipboardText: vi.fn(),
@@ -46,6 +46,12 @@ describe('createDispatchMainAction', () => {
     const result = await createDispatchMainAction(deps)({ type: 'file', path: '/tmp/a.txt' })
     expect(result.ok).toBe(true)
     expect(deps.openPath).toHaveBeenCalledWith('/tmp/a.txt')
+  })
+
+  it('file：openPath 的错误要带进结果，不能吞掉当成成功', async () => {
+    const deps = makeDeps({ openPath: vi.fn(async () => ({ ok: false, error: 'EPERM' })) })
+    const result = await createDispatchMainAction(deps)({ type: 'file', path: '/nope' })
+    expect(result).toEqual({ ok: false, error: 'EPERM' })
   })
 
   it('quicklink：合法 URL 打开（占位符取基础链接形态）', async () => {

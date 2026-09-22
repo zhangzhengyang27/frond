@@ -538,12 +538,11 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
 
 〔🟡 **2026-09-22 现状核对**：行级三方合并的**判据**在 `syncMerge.ts` 里已齐（19 条单测全绿；
 本轮补回三条丢掉的：内容只差 `__rev` 不产副本、等修订号打平两份都留、report 型表不拿「远端
-没这行」当删除）。但**它没接进同步链路** —— `mergeTable` 在 `src/main` 里零生产调用方，
-`dataSync.applyBundle()` 仍是「镜像覆盖 + 删掉远端没有的本地行」。
-`dataSync.test.ts` 里契约已经写好且整件跑不起来（它 import 的 `SYNC_TABLE_SPECS` 不存在），
-要求 bundle 每行带 `__rev`、「v2 直读 `__rev`，v1 回退行内列」。
-**所以 P-5① 只能算「判据完成」，不是「同步已双向」**：两台设备各自改过的东西现在仍会被
-后同步那台吃掉。这条动用户数据通路，必须带着 `dataSync` + `syncMerge` 全套单测一步步改。〕
+没这行」当删除）。接线已落地（`1b5874e`）：`SYNC_TABLE_SPECS` + bundle v2（每行带 `__rev`，子表向父行要）+
+`mergeBundle()` 单事务回写并把基线/墓碑记进 `sync_state`，`applyBundle()` 退化成薄壳；
+`syncExclusionAudit()` 钉住「每张表要么同步要么点名排除」。dataSync + syncMerge 35/35 通过。
+**仍未验的是真链路**：WebDAV 全链路要服务（CI 侧），两台实体设备各改各的再互拉这个场景
+还没跑过 —— 判据与记账都过了单测，但「同步真的不丢东西」要以真机验收为准。〕
 
 现有 `dataSync.ts` 是**后写覆盖 + 拉平前本地快照 5 份**的 LWW 轻量同步（借鉴清单批次 6，8 单测）。本期要做：范围扩到全量集合、冲突保留双副本而非静默覆盖、设备身份用本机派生密钥（**不引入必须登录**，遵守 Decision-0XX 的 How-to-apply）。端到端加密复用现有 AES-256-GCM 通道。开工前先精读 `src/main/modules/{dataSync,sync,cloudBackup}.ts` 与迁移中心 UI（`MigrationCenterView.vue:7,165-292`）。
 

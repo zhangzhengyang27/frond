@@ -34,8 +34,6 @@ describe('createPinningLookup', () => {
     lookup('example.com', {}, fn)
     await new Promise((r) => setTimeout(r, 0))
     expect(result.err).toBeNull()
-    expect(result.address).toBe('93.184.216.34')
-    expect(result.err).toBeNull()
     const rows = result.address as LookupAddress[]
     expect(rows.map((r) => r.address)).toEqual(['93.184.216.34'])
   })
@@ -47,7 +45,9 @@ describe('createPinningLookup', () => {
     lookup('evil.com', {}, fn)
     await new Promise((r) => setTimeout(r, 0))
     expect(result.err?.code).toBe('ELEAF_BLOCKED_LOCAL')
+    // 阻断时交给连接层的是空列表（无地址可连）
     expect(result.address).toEqual([])
+  })
 
   it('混合记录 → 剔除内网项，只把公网记录交给连接层', async () => {
     const resolver: DnsResolver = async () => [rec('10.0.0.5'), rec('93.184.216.34')]
@@ -90,4 +90,3 @@ describe('createPinningLookup', () => {
   })
 })
 
-})

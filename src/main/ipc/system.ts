@@ -16,7 +16,6 @@ import { log } from '../services/LogService'
 import { safeOpenablePath } from '../utils/openPathGuard'
 import { openQuicklinkUrl } from '../launcher/quicklinkOpen'
 import { enableFrontmostCache, getCachedFrontmostApp } from '../launcher/frontmostCache'
-import { enableFrontmostCache, getCachedFrontmostApp } from '../launcher/frontmostCache'
 
 export interface SystemInfo {
   userDataPath: string

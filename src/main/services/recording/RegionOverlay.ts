@@ -21,8 +21,7 @@
  *   - 跨窗口吸附 / 智能识别
  */
 
-import { BrowserWindow, screen, ipcMain, app, type Display } from 'electron'
-import { join } from 'node:path'
+import { BrowserWindow, screen, app, type Display } from 'electron'
 
 export interface RegionSelection {
   x: number
@@ -48,8 +47,6 @@ type Result =
       scaleFactor: number
     }
   | { ok: false; reason: 'canceled' }
-
-let activeWindow: BrowserWindow | null = null
 
 /**
  * 列出所有物理显示器。

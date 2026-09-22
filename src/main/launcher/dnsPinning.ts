@@ -31,6 +31,13 @@ export type PinningLookup = LookupFunction
 
 export type { LookupAddress }
 
+/** net.LookupOptions.family 允许 4/6/'IPv4'/'IPv6'/0，统一收敛成 4|6|undefined（undefined = 不限族） */
+function familyNumber(family: number | string | undefined): 4 | 6 | undefined {
+  if (family === 'IPv6' || family === 6) return 6
+  if (family === 'IPv4' || family === 4) return 4
+  return undefined
+}
+
 /** 默认解析器：系统 DNS（all + verbatim，拿全量记录逐个判定） */
 export const systemResolver: DnsResolver = async (hostname, family) => {
   const res = await dnsPromises.lookup(hostname.replace(/^\[|\]$/g, ''), {
@@ -49,22 +56,23 @@ export const systemResolver: DnsResolver = async (hostname, family) => {
  */
 export function createPinningLookup(resolver: DnsResolver = systemResolver): PinningLookup {
   return (hostname, options, callback) => {
-    resolver(hostname, options?.family)
+    const want = familyNumber(options?.family)
+    resolver(hostname, want)
       .then((records) => {
         const safe = records.filter(
-          (r) =>
-            !isLocalAddressLiteral(r.address) &&
-            (!options?.family || options.family === 0 || r.family === options.family)
+          (r) => !isLocalAddressLiteral(r.address) && (!want || r.family === want)
         )
+        // 阻断时也要给 address（net.LookupFunction 的回调签名要求）：交空数组，
+        // 连接层拿到空列表就无地址可连，不留 undefined 让下游各自解释
         if (safe.length === 0) {
           const err = new Error(`blocked: DNS 解析命中本地/内网地址（${hostname}）`) as NodeJS.ErrnoException
           err.code = 'ELEAF_BLOCKED_LOCAL'
-          callback(err)
+          callback(err, [], want ?? 4)
           return
         }
-        callback(null, safe as unknown as LookupAddress[])
+        callback(null, safe as unknown as LookupAddress[], safe[0]?.family)
       })
-      .catch((err) => callback(err as NodeJS.ErrnoException))
+      .catch((err) => callback(err as NodeJS.ErrnoException, [], want ?? 4))
   }
 }
 

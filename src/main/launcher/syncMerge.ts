@@ -83,14 +83,33 @@ function revOf(row: MergeRow | undefined): number {
   return typeof r === 'number' && Number.isFinite(r) ? r : 0
 }
 
+/**
+ * 两行的**内容**是否等价。`__rev` 是修订号，不是内容：一次「只动了元数据」的写
+ * 会把 rev 推高而内容一字不变，那种两边不该产出一行冲突副本 —— 否则每同步一次
+ * 就多一行，而且用户看到的是「我这条笔记被复制成了两条」。
+ */
+function sameContent(a: MergeRow, b: MergeRow): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+  keys.delete('__rev')
+  for (const k of keys) {
+    if (JSON.stringify(a[k] ?? null) !== JSON.stringify(b[k] ?? null)) return false
+  }
+  return true
+}
+
 /** rowKey：主键值按 pk 顺序拼，带分隔符避免 (a,bc) 与 (ab,c) 撞成同一个 */
 export function rowKeyOf(spec: SyncTableSpec, row: MergeRow): string {
   return spec.pk.map((k) => String(row[k] ?? '')).join(SEP)
 }
 
-/** 主键值数组（rowKey 的反向：删除本地行时 SQL 要按列传值） */
-export function pkValues(key: string): string[] {
-  return key.split(SEP)
+/**
+ * 主键值数组（rowKey 的反向：删除本地行时 SQL 要按列传值）。
+ * 带上 spec 有两个用处：列数是已知的（拆出几段就该是几列，多了说明值里混进了分隔符，
+ * 宁可少拆也不能拼出错行的 WHERE），而且调用方不必自己记住 pk 有几列。
+ */
+export function pkValues(spec: SyncTableSpec, key: string): string[] {
+  const parts = key.split(SEP)
+  return spec.pk.map((_, i) => parts[i] ?? '')
 }
 
 function indexRows(spec: SyncTableSpec, rows: MergeRow[]): Map<string, MergeRow> {
@@ -174,6 +193,12 @@ export function mergeTable(input: MergeInput): MergeOutput {
       }
       const lChanged = changed(l)
       const rChanged = changed(r)
+      if (lChanged && rChanged && sameContent(l, r)) {
+        // 内容一样：没有东西需要保住，取较新的修订号当基线就走
+        nextState[key] = { rev: Math.max(revOf(l), revOf(r)) }
+        continue
+      }
+      const tie = lChanged && rChanged && revOf(l) === revOf(r)
       const winner =
         lChanged && rChanged
           ? revOf(l) >= revOf(r)
@@ -205,6 +230,12 @@ export function mergeTable(input: MergeInput): MergeOutput {
       nextState[key] = { rev: revOf(winner === 'local' ? l : r) }
       // 赢家是远端且修订号确实不同才写本地；本地是赢家时本地已经是对的
       if (winner === 'remote' && revOf(r) !== revOf(l)) upsert.push(r)
+      else if (winner === 'local' && tie)
+        // 平手（同一毫秒各改一次）分不出谁更新：这一侧留本地那份、远端那份另存一行。
+        // 把赢家也写进 upsert 不是多余的 —— 对端拿到的是同一份合并输出、方向相反，
+        // 两边都「明示自己留下的是哪份」才是「两份都还在」，只写副本会让赢家的内容
+        // 在对方的 state 里对不上号。
+        upsert.push(l)
       continue
     }
 
@@ -217,6 +248,14 @@ export function mergeTable(input: MergeInput): MergeOutput {
       if (changed(l)) {
         // 远端删了，但本地在这之后又改过 → 保住本地那份，报冲突
         conflicts.push({ table: spec.table, key, kind: 'delete-edit', loser: 'remote' })
+        nextState[key] = { rev: revOf(l) }
+        continue
+      }
+      if (spec.conflict !== 'copy') {
+        // report 型表（KV 文档、追加型集合）不传播「远端没有这行」这件事：
+        // 它们的缺席只说明对面没这一格，不等于谁按了删除 —— 拿缺席当删除，
+        // 收藏会在两台设备之间来回复活/消失，而这类表连一行冲突副本都留不下。
+        // 代价说清楚：这类表上「删掉一行」目前同步不出去（要传播删除得先给它们一个墓碑列）。
         nextState[key] = { rev: revOf(l) }
         continue
       }

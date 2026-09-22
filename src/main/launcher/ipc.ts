@@ -24,6 +24,7 @@ import {
   getContextBySender,
   getActiveContext,
   popActiveView,
+  popActiveViewFromHost,
   setDeclaredList,
   setDeclaredView,
   submitPluginFormValues,
@@ -366,6 +367,11 @@ export function registerLauncherIpc(): void {
     }
   )
 
+  // 插件自己压的视图层退回一层（P-2④ 第二半）。与 closePlugin 分开：
+  // 合成一个的话，用户在插件里按返回键的结果是整个插件被弹掉。
+  ipcMain.on('launcher:popPluginView', () => {
+    popActiveViewFromHost()
+  })
   ipcMain.on('launcher:closePlugin', () => {
     const capsule = getLauncherWindow()
     if (capsule) closeActivePlugin(capsule)

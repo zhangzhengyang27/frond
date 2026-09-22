@@ -409,6 +409,8 @@ const api: API = {
       ipcRenderer.send('launcher:openPlugin', { pluginId, cmd, args }),
     /** 关闭当前打开的插件（回到搜索列表） */
     closePlugin: () => ipcRenderer.send('launcher:closePlugin'),
+    /** 退回插件自己压的那一层（P-2④ 第二半）；第一层不在这里退，那是 closePlugin */
+    popPluginView: () => ipcRenderer.send('launcher:popPluginView'),
     /** 第一方内联页（Raycast 式）：外部入口唤起胶囊窗并打开对应页 */
     openFirstParty: (page: FirstPartyPage) => ipcRenderer.send('launcher:openFirstParty', { page }),
     /**
@@ -626,8 +628,8 @@ const api: API = {
     /** 工具清单缓存 → 根搜索命令（P-4② 收尾）：纯读缓存，不 spawn */
     mcpToolCommands: () => typedInvoke('mcp:toolCommands'),
     /** 从搜索框跑一个工具（未连接时主进程先连接；参数以字符串送，类型主进程定） */
-    mcpRunTool: (id: string, tool: string, args: Record<string, string>) =>
-      typedInvoke('mcp:runTool', { id, tool, args }),
+    mcpRunTool: (payload: { id: string; tool: string; args: Record<string, string> }) =>
+      typedInvoke('mcp:runTool', payload),
     /** Automations（P-4④） */
     automationList: () => typedInvoke('automation:list'),
     automationSave: (tasks: unknown) => typedInvoke('automation:save', { tasks }),

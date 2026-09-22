@@ -757,6 +757,17 @@ export function runPluginCommandDetached(
  * 「退回上一层」与「关掉插件」是两个动作，胶囊的 ESC 三段式分开处理，
  * 混在一起的结果是插件里的返回键把整个插件弹掉。
  */
+/** 胶囊侧退当前插件的一层：活跃视图就是它自己，不需要按 sender 查 —— 查了反而拿不到 */
+export function popActiveViewFromHost(): { ok: boolean; depth: number; error?: string } {
+  if (!active) return { ok: false, depth: 0, error: 'no active plugin' }
+  const popped = popLayer(active.viewStack) as PluginViewBackLayer[] | null
+  if (!popped) return { ok: false, depth: active.viewStack.length, error: '已在插件的第一层' }
+  active.viewStack = popped
+  applyTopLayer(active)
+  notifyRenderer(getLauncherWindow())
+  return { ok: true, depth: popped.length }
+}
+
 export function popActiveView(senderId: number): { ok: boolean; depth: number; error?: string } {
   const ctx = viewsByWebContents.get(senderId)
   if (!ctx) return { ok: false, depth: 0, error: 'no plugin context' }

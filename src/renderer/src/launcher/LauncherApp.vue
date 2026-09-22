@@ -5,7 +5,7 @@
       v-model="query"
       v-model:clip-filter="clipFilter"
       :placeholder="searchPlaceholder"
-      :show-back="!!firstPartyPage"
+      :show-back="!!firstPartyPage || pluginState.canGoBack === true"
       :plugin-open="pluginState.open"
       :plugin-name="pluginState.pluginName"
       :show-filter="firstPartyPage === 'clips'"
@@ -1626,7 +1626,10 @@ function onEscape(): void {
     return
   }
   if (pluginState.value.open) {
-    void window.api.launcher.closePlugin()
+    // 插件自己压的层先退它（P-2④ 第二半）。顺序反了的后果很具体：用户在插件里
+    // 按一次返回，整个插件被弹掉 —— 而他要的只是从详情页回到列表。
+    if (pluginState.value.canGoBack) void window.api.launcher.popPluginView()
+    else void window.api.launcher.closePlugin()
   } else if (firstPartyPage.value) {
     popPage()
     searchBarRef.value?.focus()

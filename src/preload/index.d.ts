@@ -590,6 +590,8 @@ export interface API {
     /** 运行插件命令；args = 命令参数值（多参数命令，对标 Raycast launchCommand arguments） */
     openPlugin: (pluginId: string, cmd?: string, args?: Record<string, string>) => void
     closePlugin: () => void
+    /** 退插件的一层视图栈（见 launcherApi.popView 的插件侧口径） */
+    popPluginView: () => void
     /** 第一方内联页（Raycast 式）：外部入口唤起胶囊窗并打开对应页 */
     openFirstParty: (page: FirstPartyPage) => void
     /** 第一方内联页打开事件（主进程转发，胶囊渲染端订阅） */
@@ -628,6 +630,9 @@ export interface API {
       /** P-2.2：Action 命令 = headless；attached = 视图是否已挂到胶囊窗 */
       headless: boolean
       attached: boolean
+      /** P-2④ 第二半：插件自己的视图栈（含当前层）与「还有得退吗」 */
+      viewDepth?: number
+      canGoBack?: boolean
     } | null>
     /** 性能基线（M0）：胶囊唤起耗时 */
     perf: () => Promise<{ lastShowLatencyMs: number }>
@@ -804,6 +809,11 @@ export interface API {
         /** P-2.6：与 launcher:getPluginState 同形（快照是同一份数据，两处别再漂） */
         declaredLoading?: boolean
         declaredEmptyMessage?: string | null
+        headless?: boolean
+        attached?: boolean
+        /** P-2④ 第二半：插件视图栈的栈深与「可退」 */
+        viewDepth?: number
+        canGoBack?: boolean
       }) => void
     ) => () => void
     /** #11 M2：React 表单视图提交（值经 Callback 钩子回传插件 onSubmit）；
@@ -826,6 +836,11 @@ export interface API {
     /** searchable 插件提交新条目集时推送（胶囊刷新合并缓存） */
     onPluginSearchIndexUpdated: (cb: () => void) => () => void
     /** 执行声明式条目的 callback 动作（copy/open 由胶囊本地执行） */
+    /**
+     * 命令表变了（插件装/卸/启停、MCP 工具清单变化）。回调带上**是哪一路**，
+     * 渲染端只重拉那一路 —— 全量重刷会把用户的选中位反复归零。
+     */
+    onCommandTableChanged: (cb: (source: 'plugins' | 'mcp') => void) => () => void
     runPluginAction: (
       pluginId: string,
       itemIndex: number,
@@ -910,6 +925,14 @@ export interface API {
       tool: string,
       args: Record<string, unknown>
     ) => Promise<{ ok: boolean; text: string; ignoredContent: number; error?: string }>
+    // ── Automations（P-4④）：设置页读写与「现在跑一次」──
+    automationList: () => Promise<AutomationTaskView[]>
+    automationSave: (tasks: unknown) => Promise<{
+      tasks: AutomationTaskView[]
+      rejected: Array<{ index: number; reason: string }>
+    }>
+    automationRunNow: (id: string) => Promise<{ ok: boolean; error?: string }>
+    automationSetEnabled: (id: string, enabled: boolean) => Promise<AutomationTaskView[]>
     chat: (
       sessionId: string,
       messages: AIChatMessage[]

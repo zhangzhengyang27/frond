@@ -145,6 +145,8 @@ api.onAction((payload) => {
 | `open(url)` | 交给系统浏览器（需权限 `net`；协议只收 `http/https/mailto`，`file:`/自定义 scheme/`data:` 一律拒） |
 | `alert({ title, message, actions })` | 宿主原生模态框，回被按下的动作 id；**取消/Esc 回 `null`**（没声明 cancel 样式动作时宿主自己补一颗「取消」，Esc 绝不等于执行第一个动作）。同一插件同时只一条框，挤不进去的直接回 `null` |
 | `fetch(url)` | 联网请求（需权限 `net`；绕 CORS，2MB/15s 上限） |
+| `renderList(items, { push?, id? })` | 提交声明式列表；`push: true` = 进下一层（见下面「视图栈」） |
+| `popView()` | 退回插件视图栈的上一层；已在第一层返回 `ok: false`，不会关掉插件 |
 | `schedule.add({ cron, cmd, label?, arguments? })` | 排一条**本插件的**定时任务（需权限 `schedule`；详见下面「定时任务」） |
 | `schedule.list()` | 本插件已登记的任务（看不到别人的） |
 | `schedule.remove(id)` | 撤一条（只能撤自己登记的） |
@@ -328,6 +330,28 @@ Leaf 原生 SDK 侧同名导出：`showToast` / `copyToClipboard` / `getClipboar
 `getSelectedText` / `Action.SubmitForm` / `ShowHUD` / `HideHUD` / `JSB` /
 `List.searchBarPlaceholder`（胶囊占位文案由宿主控制）。
 入口需自己调 `render(<App />)`（Raycast 由宿主调 `main()`）。
+
+## 视图栈（插件内导航）
+
+声明式列表默认是**单层**的：每次 `renderList` 都是把当前那一层重画一遍。要做出
+「列表 → 详情 → 返回列表」，用这两件事：
+
+```js
+launcherApi.renderList(items, { push: true, id: 'repos:owner/x' })  // 进下一层
+launcherApi.popView()                                                // 退一层
+```
+
+- **`push: true` 才会长出一层**。不带就是重绘当前层 —— 搜索型插件每敲一个字都调
+  `renderList`，那些不该变成一摞返回栈。判反了的两种坏法都很难看：该压不压，用户按一次
+  返回直接跳回根；不该压乱压，返回键退的是上一次的搜索结果。
+- **`id` 是给宿主的稳定 key**：同一层重绘请保持同一个 id，胶囊才不会重建列表、
+  用户的输入焦点与滚动位置才留得住。
+- 退到**第一层**时 `popView()` 返回 `ok: false`（不关插件）。用户在胶囊里按 ESC 的走向是
+  「能退就退一层，退无可退才关掉插件」——这两件事分开，否则插件里的返回键会把整个插件弹掉。
+- 栈最深 **8 层**，超了丢最底下一层。不拒收新层：拒收会让插件的一次正常渲染变成空白，
+  而少一层返回只是不太好退。
+- 传统 UI 模式（自己挂 BrowserView 画界面的插件）用不到这条：那种插件里导航是你自己的事。
+  这条栈服务的是「宿主原样渲染插件数据」的声明式插件。
 
 ## 内置示例
 

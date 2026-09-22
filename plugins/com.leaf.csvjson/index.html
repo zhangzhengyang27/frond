@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>CSV ↔ JSON 转换</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      // ─── CSV 解析 ───
+      function parseCSV(text) {
+        var lines = []
+        var current = ''
+        var inQuotes = false
+        for (var i = 0; i < text.length; i++) {
+          var c = text[i]
+          if (inQuotes) {
+            if (c === '"') {
+              if (text[i + 1] === '"') {
+                current += '"'
+                i++
+              } else inQuotes = false
+            } else current += c
+          } else {
+            if (c === '"') inQuotes = true
+            else if (c === '\n') {
+              lines.push(current)
+              current = ''
+            } else if (c === '\r') {
+              /* skip */
+            } else current += c
+          }
+        }
+        if (current !== '') lines.push(current)
+
+        var rows = []
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i]
+          if (line.trim() === '') continue
+          var row = []
+          var field = ''
+          var inQ = false
+          for (var j = 0; j < line.length; j++) {
+            var ch = line[j]
+            if (inQ) {
+              if (ch === '"') {
+                if (line[j + 1] === '"') {
+                  field += '"'
+                  j++
+                } else inQ = false
+              } else field += ch
+            } else {
+              if (ch === '"') inQ = true
+              else if (ch === ',') {
+                row.push(field)
+                field = ''
+              } else field += ch
+            }
+          }
+          row.push(field)
+          rows.push(row)
+        }
+        return rows
+      }
+
+      // ─── CSV 生成 ───
+      function toCSV(rows) {
+        return rows
+          .map(function (row) {
+            return row
+              .map(function (field) {
+                var s = String(field == null ? '' : field)
+                if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                  s = '"' + s.replace(/"/g, '""') + '"'
+                }
+                return s
+              })
+              .join(',')
+          })
+          .join('\n')
+      }
+
+      // ─── JSON 数组 → CSV ───
+      function jsonToCSV(obj) {
+        if (!Array.isArray(obj)) throw new Error('JSON 必须是数组格式')
+        if (obj.length === 0) return ''
+        var headers = []
+        var seen = {}
+        for (var i = 0; i < obj.length; i++) {
+          var item = obj[i]
+          if (item !== null && typeof item === 'object' && !Array.isArray(item)) {
+            for (var key in item) {
+              if (!seen[key]) {
+                seen[key] = true
+                headers.push(key)
+              }
+            }
+          }
+        }
+        if (headers.length === 0) throw new Error('JSON 数组中的对象没有可识别的字段')
+        var rows = [headers]
+        for (var i = 0; i < obj.length; i++) {
+          var item = obj[i]
+          var row = headers.map(function (h) {
+            var val = item[h]
+            if (val === null || val === undefined) return ''
+            if (typeof val === 'object') return JSON.stringify(val)
+            return val
+          })
+          rows.push(row)
+        }
+        return toCSV(rows)
+      }
+
+      // ─── CSV → JSON ───
+      function csvToJSON(text) {
+        var rows = parseCSV(text)
+        if (rows.length === 0) throw new Error('CSV 内容为空')
+        var headers = rows[0].map(function (h) {
+          return h.trim()
+        })
+        var data = []
+        for (var i = 1; i < rows.length; i++) {
+          var row = rows[i]
+          var obj = {}
+          for (var j = 0; j < headers.length; j++) {
+            var val = row[j] !== undefined ? row[j] : ''
+            // 尝试转换数字
+            if (val !== '' && !isNaN(Number(val)) && /^-?\d+(\.\d+)?$/.test(val.trim())) {
+              val = Number(val)
+            } else if (val.toLowerCase() === 'true') {
+              val = true
+            } else if (val.toLowerCase() === 'false') {
+              val = false
+            } else if (val === '' || val.toLowerCase() === 'null') {
+              val = null
+            }
+            obj[headers[j]] = val
+          }
+          data.push(obj)
+        }
+        return data
+      }
+
+      api.onEnter(function () {
+        api.setSubInput('粘贴 CSV 或 JSON，自动识别并转换…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        api.renderList([
+          {
+            title: 'CSV ↔ JSON 转换',
+            subtitle: '粘贴 CSV 或 JSON，自动识别格式',
+            icon: 'exchange-line',
+            detail:
+              '**CSV ↔ JSON 转换**\n\n- 自动识别输入格式（CSV 或 JSON 数组）\n- CSV → JSON：首行作为表头，自动转换数字/布尔值\n- JSON → CSV：对象字段作为表头，支持嵌套对象\n\n**CSV 格式支持**：\n- 逗号分隔\n- 双引号包裹字段\n- 引号内转义（`""` 表示 `"`）\n\n回车复制转换结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function isJSON(text) {
+        var trimmed = text.trim()
+        return trimmed.startsWith('[') || trimmed.startsWith('{')
+      }
+
+      function process(text) {
+        try {
+          if (isJSON(text)) {
+            // JSON → CSV
+            var obj = JSON.parse(text)
+            if (!Array.isArray(obj)) {
+              // 如果是单个对象，包装成数组
+              obj = [obj]
+            }
+            var csv = jsonToCSV(obj)
+            showResult('JSON → CSV', csv, 'CSV', text, obj.length + ' 行数据')
+          } else {
+            // CSV → JSON
+            var data = csvToJSON(text)
+            var json = JSON.stringify(data, null, 2)
+            showResult('CSV → JSON', json, 'JSON', text, data.length + ' 条记录')
+          }
+        } catch (e) {
+          api.renderList([
+            {
+              title: '转换失败',
+              subtitle: e.message || '解析错误',
+              icon: 'error-warning-line',
+              detail:
+                '**错误信息**：' +
+                (e.message || '未知错误') +
+                '\n\n请检查输入格式是否正确。\n\n**输入预览**：\n```\n' +
+                text.slice(0, 200) +
+                (text.length > 200 ? '…' : '') +
+                '\n```',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误', type: 'copy', payload: e.message || '错误', hint: '↵' },
+                { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      function showResult(title, result, format, original, stats) {
+        var preview =
+          result.length > 500
+            ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）'
+            : result
+        api.renderList([
+          {
+            title: title + '（' + result.length + ' 字符）',
+            subtitle: stats + ' · 回车复制结果',
+            icon: 'checkbox-circle-line',
+            accessories: [format],
+            detail:
+              '**转换结果 (' +
+              format +
+              ')**\n\n```\n' +
+              preview +
+              '\n```\n\n' +
+              '- 输入格式: ' +
+              (isJSON(original) ? 'JSON' : 'CSV') +
+              '\n' +
+              '- 输出格式: ' +
+              format +
+              '\n' +
+              '- 结果长度: ' +
+              result.length +
+              ' 字符\n' +
+              '- ' +
+              stats +
+              '\n\n回车复制完整结果。',
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
+              { label: '复制原文', type: 'copy', payload: original, hint: '⌘1' }
+            ]
+          }
+        ])
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

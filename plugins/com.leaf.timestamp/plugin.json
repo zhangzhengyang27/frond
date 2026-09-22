@@ -1,0 +1,16 @@
+{
+  "id": "com.leaf.timestamp",
+  "name": "时间戳转换",
+  "version": "1.0.1",
+  "description": "Unix 时间戳与可读时间互转：支持秒/毫秒，从剪贴板读取，一键复制",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "convert",
+      "title": "时间戳转换",
+      "description": "Unix 时间戳 ↔ 可读时间互转"
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

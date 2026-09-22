@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JSON 格式化</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var currentCmd = 'format'
+
+      api.onEnter(function (data) {
+        currentCmd = (data && data.command) || 'format'
+        var placeholders = {
+          format: '粘贴或输入 JSON…',
+          minify: '粘贴或输入 JSON…',
+          escape: '粘贴或输入 JSON 字符串…'
+        }
+        api.setSubInput(placeholders[currentCmd] || '输入 JSON…')
+        // 尝试从剪贴板读取
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text)
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text)
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        var titles = { format: '格式化 JSON', minify: '压缩 JSON', escape: '转义 JSON' }
+        api.renderList([
+          {
+            title: titles[currentCmd] || 'JSON 工具',
+            subtitle: '在上方输入框粘贴 JSON，或从剪贴板自动读取',
+            icon: 'braces-line',
+            detail:
+              '支持三种操作：\n\n1. **格式化**：美化缩进，便于阅读\n2. **压缩**：去除空格换行，减小体积\n3. **转义**：转为可嵌入字符串的形式\n\n回车复制处理结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function process(text) {
+        text = text.trim()
+        var indentPref = '2'
+        try {
+          // 先尝试解析
+          var obj = JSON.parse(text)
+          var indent = indentPref === 'Tab' ? '\t' : parseInt(indentPref, 10)
+
+          if (currentCmd === 'format') {
+            var formatted = JSON.stringify(obj, null, indent)
+            showResult('格式化完成', formatted, formatted.length, '格式化')
+          } else if (currentCmd === 'minify') {
+            var minified = JSON.stringify(obj)
+            showResult('压缩完成', minified, minified.length, '压缩')
+          } else if (currentCmd === 'escape') {
+            var escaped = JSON.stringify(text)
+            showResult('转义完成', escaped, escaped.length, '转义')
+          }
+        } catch (e) {
+          // 解析失败，尝试修复常见问题
+          var fixed = tryFixJson(text)
+          if (fixed) {
+            try {
+              var obj2 = JSON.parse(fixed)
+              var indent2 = indentPref === 'Tab' ? '\t' : parseInt(indentPref, 10)
+              var result2 =
+                currentCmd === 'minify'
+                  ? JSON.stringify(obj2)
+                  : currentCmd === 'escape'
+                    ? JSON.stringify(fixed)
+                    : JSON.stringify(obj2, null, indent2)
+              showResult(
+                '已自动修复并处理',
+                result2,
+                result2.length,
+                currentCmd === 'minify' ? '压缩' : currentCmd === 'escape' ? '转义' : '格式化'
+              )
+              return
+            } catch (e2) {
+              /* fall through */
+            }
+          }
+          api.renderList([
+            {
+              title: 'JSON 解析失败',
+              subtitle: e.message,
+              icon: 'error-warning-line',
+              detail:
+                '**错误信息**：' +
+                e.message +
+                '\n\n请检查：\n- 引号是否配对\n- 逗号是否多余或缺失\n- 键名是否用双引号包裹\n- 是否有尾随逗号',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误信息', type: 'copy', payload: e.message, hint: '↵' },
+                { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      function tryFixJson(text) {
+        var fixed = text
+        // 移除尾随逗号
+        fixed = fixed.replace(/,\s*([}\]])/g, '$1')
+        // 单引号转双引号（简单处理）
+        if (fixed.indexOf("'") !== -1 && fixed.indexOf('"') === -1) {
+          fixed = fixed.replace(/'/g, '"')
+        }
+        // 无引号键名加引号（简单处理：{ key: value } → { "key": value }）
+        fixed = fixed.replace(/([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/g, '$1"$2":')
+        return fixed === text ? null : fixed
+      }
+
+      function showResult(title, result, length, actionName) {
+        var preview =
+          result.length > 500
+            ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）'
+            : result
+        api.renderList([
+          {
+            title: title + '（' + length + ' 字符）',
+            subtitle: '回车复制处理结果',
+            icon: 'checkbox-circle-line',
+            detail: '```json\n' + preview + '\n```',
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
+              { label: '复制原文', type: 'copy', payload: result, hint: '⌘1' }
+            ]
+          }
+        ])
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

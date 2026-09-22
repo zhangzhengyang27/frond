@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JSON ↔ YAML 转换</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      // ─── 简化 YAML 生成器（JSON → YAML）───
+      function toYAML(obj, indent, level) {
+        indent = indent || 2
+        level = level || 0
+        var spaces = ' '.repeat(level * indent)
+        var result = ''
+
+        if (obj === null || obj === undefined) return 'null\n'
+        if (typeof obj === 'boolean') return (obj ? 'true' : 'false') + '\n'
+        if (typeof obj === 'number') return obj + '\n'
+        if (typeof obj === 'string') {
+          if (
+            obj === '' ||
+            /[:#&*!|>'"%@`,\[\]{}]/.test(obj) ||
+            /^\s|\s$/.test(obj) ||
+            obj === 'true' ||
+            obj === 'false' ||
+            obj === 'null' ||
+            /^-?\d/.test(obj)
+          ) {
+            return '"' + obj.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"\n'
+          }
+          return obj + '\n'
+        }
+
+        if (Array.isArray(obj)) {
+          if (obj.length === 0) return '[]\n'
+          for (var i = 0; i < obj.length; i++) {
+            var item = obj[i]
+            if (item !== null && typeof item === 'object') {
+              var itemYaml = toYAML(item, indent, level + 1)
+              var lines = itemYaml.split('\n')
+              // 第一行提升到 - 后面
+              result += spaces + '- ' + lines[0] + '\n'
+              for (var j = 1; j < lines.length - 1; j++) {
+                result += spaces + '  ' + lines[j] + '\n'
+              }
+            } else {
+              result += spaces + '- ' + toYAML(item, indent, 0)
+            }
+          }
+          return result
+        }
+
+        if (typeof obj === 'object') {
+          var keys = Object.keys(obj)
+          if (keys.length === 0) return '{}\n'
+          for (var i = 0; i < keys.length; i++) {
+            var key = keys[i]
+            var val = obj[key]
+            var keyStr = /[:#&*!|>'"%@`,\[\]{}]/.test(key) || key === '' ? '"' + key + '"' : key
+            if (
+              val !== null &&
+              typeof val === 'object' &&
+              (Array.isArray(val) ? val.length > 0 : Object.keys(val).length > 0)
+            ) {
+              result += spaces + keyStr + ':\n' + toYAML(val, indent, level + 1)
+            } else {
+              result += spaces + keyStr + ': ' + toYAML(val, indent, 0)
+            }
+          }
+          return result
+        }
+        return String(obj) + '\n'
+      }
+
+      // ─── 简化 YAML 解析器（YAML → JSON）───
+      function parseYAML(text) {
+        // 去除注释和空行，保留缩进
+        var lines = text.split('\n').filter(function (l) {
+          var trimmed = l.trim()
+          return trimmed !== '' && !trimmed.startsWith('#')
+        })
+
+        if (lines.length === 0) return {}
+
+        var pos = 0
+
+        function getIndent(line) {
+          return line.length - line.trimStart().length
+        }
+
+        function parseValue(str) {
+          str = str.trim()
+          if (str === '' || str === '~' || str === 'null') return null
+          if (str === 'true') return true
+          if (str === 'false') return false
+          if (/^-?\d+$/.test(str)) return parseInt(str, 10)
+          if (/^-?\d+\.\d+$/.test(str)) return parseFloat(str)
+          // 引号字符串
+          if (
+            (str.startsWith('"') && str.endsWith('"')) ||
+            (str.startsWith("'") && str.endsWith("'"))
+          ) {
+            return str.slice(1, -1).replace(/\\"/g, '"').replace(/\\'/g, "'")
+          }
+          return str
+        }
+
+        function parseBlock(indent) {
+          if (pos >= lines.length) return null
+          var currentIndent = getIndent(lines[pos])
+          if (currentIndent < indent) return null
+
+          // 判断是数组还是对象
+          var firstContent = lines[pos].trim()
+          if (firstContent.startsWith('- ')) {
+            return parseArray(indent)
+          } else {
+            return parseObject(indent)
+          }
+        }
+
+        function parseArray(indent) {
+          var arr = []
+          while (pos < lines.length) {
+            var line = lines[pos]
+            var lineIndent = getIndent(line)
+            if (lineIndent < indent) break
+            if (lineIndent > indent) break // 不应该发生
+
+            var content = line.trim()
+            if (!content.startsWith('-')) break
+
+            var afterDash = content.slice(1).trim()
+            if (afterDash === '') {
+              // 嵌套对象/数组在下一行
+              pos++
+              if (pos < lines.length && getIndent(lines[pos]) > indent) {
+                arr.push(parseBlock(getIndent(lines[pos])))
+              } else {
+                arr.push(null)
+              }
+            } else if (
+              afterDash.includes(':') &&
+              !afterDash.startsWith('"') &&
+              !afterDash.startsWith("'")
+            ) {
+              // 内联对象的第一个 key，如 "- key: value"
+              // 构造一个虚拟行，用对象解析
+              var virtualIndent = indent + 2
+              lines[pos] = ' '.repeat(virtualIndent) + afterDash
+              var obj = parseObject(virtualIndent)
+              arr.push(obj)
+            } else {
+              arr.push(parseValue(afterDash))
+              pos++
+            }
+          }
+          return arr
+        }
+
+        function parseObject(indent) {
+          var obj = {}
+          while (pos < lines.length) {
+            var line = lines[pos]
+            var lineIndent = getIndent(line)
+            if (lineIndent < indent) break
+            if (lineIndent > indent) break // 不应该发生
+
+            var content = line.trim()
+            if (content.startsWith('- ')) break
+
+            var colonIdx = findColon(content)
+            if (colonIdx === -1) {
+              pos++
+              continue
+            }
+
+            var key = content.slice(0, colonIdx).trim()
+            if (
+              (key.startsWith('"') && key.endsWith('"')) ||
+              (key.startsWith("'") && key.endsWith("'"))
+            ) {
+              key = key.slice(1, -1)
+            }
+            var value = content.slice(colonIdx + 1).trim()
+
+            pos++
+
+            if (value === '') {
+              // 嵌套对象/数组
+              if (pos < lines.length && getIndent(lines[pos]) > indent) {
+                obj[key] = parseBlock(getIndent(lines[pos]))
+              } else {
+                obj[key] = null
+              }
+            } else {
+              obj[key] = parseValue(value)
+            }
+          }
+          return obj
+        }
+
+        function findColon(str) {
+          var inQuote = null
+          for (var i = 0; i < str.length; i++) {
+            var c = str[i]
+            if (inQuote) {
+              if (c === inQuote && str[i - 1] !== '\\') inQuote = null
+            } else {
+              if (c === '"' || c === "'") inQuote = c
+              else if (c === ':') return i
+            }
+          }
+          return -1
+        }
+
+        return parseBlock(getIndent(lines[0]))
+      }
+
+      // ─── 插件逻辑 ───
+      api.onEnter(function () {
+        api.setSubInput('粘贴 JSON 或 YAML，自动识别并转换…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        api.renderList([
+          {
+            title: 'JSON ↔ YAML 转换',
+            subtitle: '粘贴 JSON 或 YAML，自动识别格式',
+            icon: 'exchange-line',
+            detail:
+              '**JSON ↔ YAML 转换**\n\n- 自动识别输入格式（JSON 或 YAML）\n- JSON → YAML：结构化配置文件常用\n- YAML → JSON：程序处理常用\n\n**支持的 YAML 语法**：\n- 键值对、嵌套对象\n- 数组（- 列表项）\n- 字符串、数字、布尔值、null\n- 引号字符串\n\n回车复制转换结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function isJSON(text) {
+        var trimmed = text.trim()
+        return trimmed.startsWith('{') || trimmed.startsWith('[')
+      }
+
+      function process(text) {
+        try {
+          if (isJSON(text)) {
+            // JSON → YAML
+            var obj = JSON.parse(text)
+            api.preferences.get('indent').then(function (res) {
+              var indent = parseInt((res && res.ok && res.value) || '2', 10)
+              var yaml = toYAML(obj, indent)
+              showResult('JSON → YAML', yaml, 'YAML', text, obj)
+            })
+          } else {
+            // YAML → JSON
+            var parsed = parseYAML(text)
+            var json = JSON.stringify(parsed, null, 2)
+            showResult('YAML → JSON', json, 'JSON', text, parsed)
+          }
+        } catch (e) {
+          api.renderList([
+            {
+              title: '转换失败',
+              subtitle: e.message || '解析错误',
+              icon: 'error-warning-line',
+              detail:
+                '**错误信息**：' +
+                (e.message || '未知错误') +
+                '\n\n请检查输入格式是否正确。\n\n**输入预览**：\n```\n' +
+                text.slice(0, 200) +
+                (text.length > 200 ? '…' : '') +
+                '\n```',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误', type: 'copy', payload: e.message || '错误', hint: '↵' },
+                { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      function showResult(title, result, format, original, parsed) {
+        var preview =
+          result.length > 500
+            ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）'
+            : result
+        var stats = ''
+        if (parsed !== null && typeof parsed === 'object') {
+          if (Array.isArray(parsed)) stats = '数组长度: ' + parsed.length
+          else stats = '字段数: ' + Object.keys(parsed).length
+        }
+        api.renderList([
+          {
+            title: title + '（' + result.length + ' 字符）',
+            subtitle: stats + ' · 回车复制结果',
+            icon: 'checkbox-circle-line',
+            accessories: [format],
+            detail:
+              '**转换结果 (' +
+              format +
+              ')**\n\n```\n' +
+              preview +
+              '\n```\n\n' +
+              '- 输入格式: ' +
+              (isJSON(original) ? 'JSON' : 'YAML') +
+              '\n' +
+              '- 输出格式: ' +
+              format +
+              '\n' +
+              '- 结果长度: ' +
+              result.length +
+              ' 字符\n' +
+              (stats ? '- ' + stats + '\n' : '') +
+              '\n回车复制完整结果。',
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
+              { label: '复制原文', type: 'copy', payload: original, hint: '⌘1' }
+            ]
+          }
+        ])
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

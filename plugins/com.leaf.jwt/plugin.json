@@ -1,0 +1,16 @@
+{
+  "id": "com.leaf.jwt",
+  "name": "JWT 解码",
+  "version": "1.0.1",
+  "description": "解码 JWT Token：解析 Header/Payload/Signature，显示过期时间、签发者等声明，从剪贴板读取",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "decode",
+      "title": "解码 JWT",
+      "description": "解码 JWT Token，显示 Header 和 Payload"
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

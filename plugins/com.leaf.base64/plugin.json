@@ -1,0 +1,21 @@
+{
+  "id": "com.leaf.base64",
+  "name": "Base64 编解码",
+  "version": "1.0.1",
+  "description": "Base64 编码与解码：从剪贴板读取文本，一键编码/解码，支持 UTF-8",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "encode",
+      "title": "Base64 编码",
+      "description": "将文本编码为 Base64"
+    },
+    {
+      "code": "decode",
+      "title": "Base64 解码",
+      "description": "将 Base64 解码为文本"
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

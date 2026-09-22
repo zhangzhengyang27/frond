@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>进制转换</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      api.onEnter(function () {
+        api.setSubInput('输入数字（支持 0x/0b/0o 前缀）…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        api.renderList([
+          {
+            title: '进制转换',
+            subtitle: '输入数字，自动识别进制并转换',
+            icon: 'calculator-line',
+            detail:
+              '**支持的输入格式**\n\n- 十进制: `255`\n- 十六进制: `0xFF` 或 `FF`\n- 二进制: `0b11111111` 或 `11111111`\n- 八进制: `0o377` 或 `377`\n- 支持大整数（BigInt）\n\n回车复制十进制结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function parseNumber(input) {
+        var s = input.trim().toLowerCase()
+        // 去除千分位逗号
+        s = s.replace(/,/g, '')
+
+        // 带前缀的情况
+        if (s.startsWith('0x')) return { value: BigInt(s), base: 16, detected: '十六进制 (0x)' }
+        if (s.startsWith('0b')) return { value: BigInt(s), base: 2, detected: '二进制 (0b)' }
+        if (s.startsWith('0o')) return { value: BigInt(s), base: 8, detected: '八进制 (0o)' }
+
+        // 无前缀：根据字符特征判断
+        if (/^[01]+$/.test(s) && s.length > 4) {
+          // 纯 0/1 且较长，可能是二进制
+          return { value: BigInt('0b' + s), base: 2, detected: '二进制 (自动识别)' }
+        }
+        if (/^[0-7]+$/.test(s) && s.length > 3 && s.startsWith('0')) {
+          // 以 0 开头的纯 0-7，可能是八进制
+          return { value: BigInt('0o' + s), base: 8, detected: '八进制 (自动识别)' }
+        }
+        if (/^[0-9a-f]+$/.test(s) && /[a-f]/.test(s)) {
+          // 包含 a-f 的十六进制
+          return { value: BigInt('0x' + s), base: 16, detected: '十六进制 (自动识别)' }
+        }
+        // 默认十进制
+        if (/^[0-9]+$/.test(s)) {
+          return { value: BigInt(s), base: 10, detected: '十进制' }
+        }
+        throw new Error('无法解析为数字: ' + input)
+      }
+
+      function formatWithSeparators(str, groupSize) {
+        // 从右往左每 groupSize 位加一个空格
+        var result = ''
+        for (var i = str.length; i > 0; i -= groupSize) {
+          var start = Math.max(0, i - groupSize)
+          result = str.slice(start, i) + (result ? ' ' + result : '')
+        }
+        return result
+      }
+
+      function process(input) {
+        try {
+          var parsed = parseNumber(input)
+          var value = parsed.value
+
+          var bin = value.toString(2)
+          var oct = value.toString(8)
+          var dec = value.toString(10)
+          var hex = value.toString(16).toUpperCase()
+
+          var items = [
+            {
+              title: '十进制: ' + dec,
+              subtitle: '输入识别为 ' + parsed.detected,
+              icon: 'calculator-line',
+              accessories: ['DEC'],
+              detail: '**十进制 (DEC)**\n\n`' + dec + '`\n\n回车复制十进制值。',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制十进制', type: 'copy', payload: dec, hint: '↵' }]
+            },
+            {
+              title: '十六进制: 0x' + hex,
+              subtitle: formatWithSeparators(hex, 4) + ' (每4位分组)',
+              icon: 'hashtag',
+              accessories: ['HEX'],
+              detail:
+                '**十六进制 (HEX)**\n\n`0x' +
+                hex +
+                '`\n\n分组显示: `' +
+                formatWithSeparators(hex, 4) +
+                '`\n\n回车复制十六进制值。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制 HEX', type: 'copy', payload: hex, hint: '↵' },
+                { label: '复制 0xHEX', type: 'copy', payload: '0x' + hex, hint: '⌘1' }
+              ]
+            },
+            {
+              title: '二进制: 0b' + bin,
+              subtitle: formatWithSeparators(bin, 8) + ' (每8位分组)',
+              icon: 'binary',
+              accessories: ['BIN'],
+              detail:
+                '**二进制 (BIN)**\n\n`0b' +
+                bin +
+                '`\n\n分组显示: `' +
+                formatWithSeparators(bin, 8) +
+                '`\n\n位数: ' +
+                bin.length +
+                ' bit\n\n回车复制二进制值。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制 BIN', type: 'copy', payload: bin, hint: '↵' },
+                { label: '复制 0bBIN', type: 'copy', payload: '0b' + bin, hint: '⌘1' }
+              ]
+            },
+            {
+              title: '八进制: 0o' + oct,
+              subtitle: oct,
+              icon: 'numbers-line',
+              accessories: ['OCT'],
+              detail: '**八进制 (OCT)**\n\n`0o' + oct + '`\n\n回车复制八进制值。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制 OCT', type: 'copy', payload: oct, hint: '↵' },
+                { label: '复制 0oOCT', type: 'copy', payload: '0o' + oct, hint: '⌘1' }
+              ]
+            }
+          ]
+
+          api.renderList(items)
+        } catch (e) {
+          api.renderList([
+            {
+              title: '解析失败: ' + input,
+              subtitle: e.message || '输入格式不正确',
+              icon: 'error-warning-line',
+              detail:
+                '**支持的输入格式**\n\n- 十进制: `255`\n- 十六进制: `0xFF` 或 `FF`\n- 二进制: `0b11111111` 或 `11111111`\n- 八进制: `0o377` 或 `377`\n- 支持大整数（BigInt）\n\n请检查输入是否为有效的数字。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误', type: 'copy', payload: e.message || '错误', hint: '↵' },
+                { label: '复制原文', type: 'copy', payload: input, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

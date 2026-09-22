@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lorem Ipsum 生成器</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      var WORDS = [
+        'lorem',
+        'ipsum',
+        'dolor',
+        'sit',
+        'amet',
+        'consectetur',
+        'adipiscing',
+        'elit',
+        'sed',
+        'do',
+        'eiusmod',
+        'tempor',
+        'incididunt',
+        'ut',
+        'labore',
+        'et',
+        'dolore',
+        'magna',
+        'aliqua',
+        'enim',
+        'ad',
+        'minim',
+        'veniam',
+        'quis',
+        'nostrud',
+        'exercitation',
+        'ullamco',
+        'laboris',
+        'nisi',
+        'aliquip',
+        'ex',
+        'ea',
+        'commodo',
+        'consequat',
+        'duis',
+        'aute',
+        'irure',
+        'in',
+        'reprehenderit',
+        'voluptate',
+        'velit',
+        'esse',
+        'cillum',
+        'fugiat',
+        'nulla',
+        'pariatur',
+        'excepteur',
+        'sint',
+        'occaecat',
+        'cupidatat',
+        'non',
+        'proident',
+        'sunt',
+        'culpa',
+        'qui',
+        'officia',
+        'deserunt',
+        'mollit',
+        'anim',
+        'id',
+        'est',
+        'laborum',
+        'sed',
+        'ut',
+        'perspiciatis',
+        'unde',
+        'omnis',
+        'iste',
+        'natus',
+        'error',
+        'voluptatem',
+        'accusantium',
+        'doloremque',
+        'laudantium',
+        'totam',
+        'rem',
+        'aperiam',
+        'eaque',
+        'ipsa',
+        'quae',
+        'ab',
+        'illo',
+        'inventore',
+        'veritatis',
+        'quasi',
+        'architecto',
+        'beatae',
+        'vitae',
+        'dicta',
+        'sunt',
+        'explicabo',
+        'nemo',
+        'ipsam',
+        'quia',
+        'voluptas',
+        'aspernatur',
+        'aut',
+        'odit',
+        'fugit',
+        'consequuntur',
+        'magni',
+        'dolores',
+        'eos',
+        'qui',
+        'ratione',
+        'sequi',
+        'nesciunt',
+        'neque',
+        'porro',
+        'quisquam',
+        'est',
+        'dolorem',
+        'ipsum',
+        'dolor',
+        'amet',
+        'consectetur',
+        'adipisci',
+        'velit',
+        'non',
+        'numquam',
+        'eius',
+        'modi',
+        'tempora',
+        'incidunt',
+        'ut',
+        'labore',
+        'dolore',
+        'magnam',
+        'aliquam',
+        'quaerat',
+        'voluptatem',
+        'ut',
+        'enim',
+        'ad',
+        'minima',
+        'veniam',
+        'quis',
+        'nostrum',
+        'exercitationem',
+        'ullam',
+        'corporis',
+        'suscipit',
+        'laboriosam',
+        'nisi',
+        'ut',
+        'aliquid',
+        'ex',
+        'ea',
+        'commodi',
+        'consequatur',
+        'aut',
+        'perferendis',
+        'doloribus',
+        'asperiores',
+        'repellat',
+        'at',
+        'vero',
+        'eos',
+        'accusamus',
+        'iusto',
+        'odio',
+        'dignissimos',
+        'ducimus',
+        'blanditiis',
+        'praesentium',
+        'voluptatum',
+        'deleniti',
+        'atque',
+        'corrupti',
+        'quos',
+        'quas',
+        'molestias',
+        'excepturi',
+        'sint',
+        'occaecati',
+        'cupiditate',
+        'non',
+        'provident',
+        'similique',
+        'sunt',
+        'in',
+        'culpa',
+        'qui',
+        'officia',
+        'deserunt',
+        'mollitia',
+        'animi',
+        'id',
+        'est',
+        'laborum',
+        'dolorum',
+        'fuga',
+        'et',
+        'harum',
+        'quidem',
+        'rerum',
+        'facilis',
+        'est',
+        'et',
+        'expedita',
+        'distinctio',
+        'nam',
+        'libero',
+        'tempore',
+        'cum',
+        'soluta',
+        'nobis',
+        'est',
+        'eligendi',
+        'optio',
+        'cumque',
+        'nihil',
+        'impedit',
+        'quo',
+        'porro',
+        'quisquam',
+        'est',
+        'qui',
+        'minus',
+        'id',
+        'quod',
+        'maxime',
+        'placeat',
+        'facere',
+        'possimus',
+        'omnis',
+        'voluptas',
+        'assumenda',
+        'est',
+        'omnis',
+        'dolor',
+        'repellendus',
+        'temporibus',
+        'autem',
+        'quibusdam',
+        'officiis',
+        'debitis',
+        'aut',
+        'rerum',
+        'necessitatibus',
+        'saepe',
+        'eveniet',
+        'voluptates',
+        'repudiandae',
+        'sint',
+        'et',
+        'molestiae',
+        'non',
+        'recusandae',
+        'itaque',
+        'earum',
+        'rerum',
+        'hic',
+        'tenetur',
+        'a',
+        'sapiente',
+        'delectus',
+        'ut',
+        'aut',
+        'reiciendis',
+        'voluptatibus',
+        'maiores',
+        'alias',
+        'consequatur',
+        'aut',
+        'perferendis',
+        'doloribus',
+        'asperiores',
+        'repellat'
+      ]
+
+      var CLASSIC_FIRST = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit'
+
+      function randomWord() {
+        return WORDS[Math.floor(Math.random() * WORDS.length)]
+      }
+
+      function randomSentence(startWithLorem) {
+        var length = 8 + Math.floor(Math.random() * 12)
+        var words = []
+        for (var i = 0; i < length; i++) {
+          var w = randomWord()
+          if (i === 0) {
+            w = w.charAt(0).toUpperCase() + w.slice(1)
+          }
+          words.push(w)
+        }
+        var sentence = words.join(' ')
+        // 随机加逗号
+        if (length > 10 && Math.random() > 0.5) {
+          var commaPos = 4 + Math.floor(Math.random() * (length - 6))
+          words[commaPos] = words[commaPos] + ','
+          sentence = words.join(' ')
+        }
+        return sentence + '.'
+      }
+
+      function randomParagraph(startWithLorem) {
+        var sentenceCount = 3 + Math.floor(Math.random() * 4)
+        var sentences = []
+        for (var i = 0; i < sentenceCount; i++) {
+          if (i === 0 && startWithLorem) {
+            sentences.push(CLASSIC_FIRST + ', ' + randomSentence(false).toLowerCase())
+          } else {
+            sentences.push(randomSentence(false))
+          }
+        }
+        return sentences.join(' ')
+      }
+
+      function generate(unit, count, startWithLorem) {
+        var results = []
+        if (unit === 'word') {
+          for (var i = 0; i < count; i++) {
+            results.push(i === 0 && startWithLorem ? 'Lorem' : randomWord())
+          }
+          return results.join(' ')
+        }
+        if (unit === 'sentence') {
+          for (var i = 0; i < count; i++) {
+            results.push(i === 0 && startWithLorem ? CLASSIC_FIRST + '.' : randomSentence(false))
+          }
+          return results.join(' ')
+        }
+        // paragraph
+        for (var i = 0; i < count; i++) {
+          results.push(i === 0 && startWithLorem ? randomParagraph(true) : randomParagraph(false))
+        }
+        return results.join('\n\n')
+      }
+
+      api.onEnter(function () {
+        api.setSubInput('回车生成，或输入数量…')
+        generateAndShow()
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        var n = parseInt(text, 10)
+        if (!isNaN(n) && n > 0) {
+          generateAndShow(n)
+        } else if (!text.trim()) {
+          generateAndShow()
+        }
+      })
+
+      function generateAndShow(overrideCount) {
+        Promise.all([api.preferences.get('unit'), api.preferences.get('count')]).then(
+          function (results) {
+            var unit = (results[0] && results[0].ok && results[0].value) || 'paragraph'
+            var count =
+              overrideCount ||
+              parseInt((results[1] && results[1].ok && results[1].value) || '3', 10)
+            count = Math.min(Math.max(count, 1), 50)
+
+            var text = generate(unit, count, true)
+            var wordCount = text.split(/\s+/).filter(function (w) {
+              return w
+            }).length
+            var charCount = text.length
+            var unitLabels = { word: '单词', sentence: '句子', paragraph: '段落' }
+
+            var preview = text.length > 500 ? text.slice(0, 500) + '…' : text
+
+            api.renderList([
+              {
+                title: '已生成 ' + count + ' 个' + unitLabels[unit] + '（' + wordCount + ' 词）',
+                subtitle: charCount + ' 字符 · 回车复制',
+                icon: 'file-text-line',
+                accessories: [unitLabels[unit]],
+                detail:
+                  '**Lorem Ipsum 占位文本**\n\n' +
+                  (unit === 'paragraph' ? preview.replace(/\n\n/g, '\n\n') : preview) +
+                  '\n\n---\n- 单位: ' +
+                  unitLabels[unit] +
+                  '\n- 数量: ' +
+                  count +
+                  '\n- 词数: ' +
+                  wordCount +
+                  '\n- 字符数: ' +
+                  charCount +
+                  '\n\n回车复制完整文本。',
+                detailFormat: 'markdown',
+                actions: [
+                  { label: '复制文本', type: 'copy', payload: text, hint: '↵' },
+                  { label: '重新生成', type: 'callback', hint: '⌘1' }
+                ]
+              },
+              {
+                title: '重新生成',
+                subtitle: '生成新的 ' + count + ' 个' + unitLabels[unit],
+                icon: 'refresh-line',
+                actions: [{ label: '重新生成', type: 'callback', hint: '↵' }]
+              },
+              {
+                title: '切换单位',
+                subtitle: '当前: ' + unitLabels[unit] + ' · 可在偏好设置中切换 单词/句子/段落',
+                icon: 'settings-3-line',
+                detail:
+                  '**生成单位设置**\n\n在插件偏好设置中可切换：\n- **单词** - 生成指定数量的单词\n- **句子** - 生成指定数量的句子\n- **段落** - 生成指定数量的段落\n\n也可以在上方输入框直接输入数量。',
+                detailFormat: 'markdown',
+                actions: [{ label: '重新生成', type: 'callback', hint: '↵' }]
+              }
+            ])
+          }
+        )
+      }
+
+      api.onAction(function () {
+        generateAndShow()
+      })
+    </script>
+  </body>
+</html>

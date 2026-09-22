@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Base64 编解码</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var currentCmd = 'encode'
+
+      api.onEnter(function (data) {
+        currentCmd = (data && data.command) || 'encode'
+        var placeholders = {
+          encode: '粘贴或输入要编码的文本…',
+          decode: '粘贴或输入要解码的 Base64…'
+        }
+        api.setSubInput(placeholders[currentCmd] || '输入文本…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        var titles = { encode: 'Base64 编码', decode: 'Base64 解码' }
+        api.renderList([
+          {
+            title: titles[currentCmd] || 'Base64 工具',
+            subtitle: '在上方输入框粘贴文本，或从剪贴板自动读取',
+            icon: 'code-line',
+            detail:
+              '**Base64 编解码**\n\n- 编码：文本 → Base64 字符串\n- 解码：Base64 字符串 → 文本\n- 支持 UTF-8 中文\n\n回车复制处理结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function process(text) {
+        try {
+          var result = ''
+          var actionName = ''
+          if (currentCmd === 'encode') {
+            // UTF-8 安全的 Base64 编码
+            result = btoa(unescape(encodeURIComponent(text)))
+            actionName = '编码'
+          } else {
+            // Base64 解码 → UTF-8
+            result = decodeURIComponent(escape(atob(text)))
+            actionName = '解码'
+          }
+          showResult(actionName + '完成', result, result.length, actionName)
+        } catch (e) {
+          api.renderList([
+            {
+              title: currentCmd === 'encode' ? '编码失败' : '解码失败',
+              subtitle: e.message || '输入格式不正确',
+              icon: 'error-warning-line',
+              detail:
+                '**错误信息**：' +
+                (e.message || '未知错误') +
+                '\n\n' +
+                (currentCmd === 'decode'
+                  ? '请检查输入是否为有效的 Base64 字符串。'
+                  : '请检查输入文本。'),
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误信息', type: 'copy', payload: e.message || '错误', hint: '↵' },
+                { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      function showResult(title, result, length, actionName) {
+        var preview =
+          result.length > 500
+            ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）'
+            : result
+        api.renderList([
+          {
+            title: title + '（' + length + ' 字符）',
+            subtitle: '回车复制处理结果',
+            icon: 'checkbox-circle-line',
+            detail: '```\n' + preview + '\n```',
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
+              { label: '复制原文', type: 'copy', payload: result, hint: '⌘1' }
+            ]
+          }
+        ])
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "id": "com.leaf.hash",
+  "name": "哈希计算",
+  "version": "1.0.1",
+  "description": "计算文本哈希值：MD5/SHA1/SHA256/SHA384/SHA512，从剪贴板读取，一键复制",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "compute",
+      "title": "计算哈希",
+      "description": "计算文本的 MD5/SHA 哈希值"
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

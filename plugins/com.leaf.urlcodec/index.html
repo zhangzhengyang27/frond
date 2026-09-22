@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>URL 编解码</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var currentCmd = 'encode'
+
+      api.onEnter(function (data) {
+        currentCmd = (data && data.command) || 'encode'
+        var placeholders = {
+          encode: '粘贴或输入要编码的文本…',
+          decode: '粘贴或输入要解码的 URL…'
+        }
+        api.setSubInput(placeholders[currentCmd] || '输入文本…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        var titles = { encode: 'URL 编码', decode: 'URL 解码' }
+        api.renderList([
+          {
+            title: titles[currentCmd] || 'URL 工具',
+            subtitle: '在上方输入框粘贴文本，或从剪贴板自动读取',
+            icon: 'link',
+            detail:
+              '**URL 编解码**\n\n- 编码：文本 → URL 安全格式（encodeURIComponent）\n- 解码：URL 编码 → 原文（decodeURIComponent）\n- 支持中文和特殊字符\n\n回车复制处理结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function process(text) {
+        try {
+          var result = ''
+          var actionName = ''
+          if (currentCmd === 'encode') {
+            result = encodeURIComponent(text)
+            actionName = '编码'
+          } else {
+            result = decodeURIComponent(text)
+            actionName = '解码'
+          }
+          showResult(actionName + '完成', result, result.length, actionName, text)
+        } catch (e) {
+          api.renderList([
+            {
+              title: currentCmd === 'encode' ? '编码失败' : '解码失败',
+              subtitle: e.message || '输入格式不正确',
+              icon: 'error-warning-line',
+              detail:
+                '**错误信息**：' +
+                (e.message || '未知错误') +
+                '\n\n' +
+                (currentCmd === 'decode'
+                  ? '请检查输入是否为有效的 URL 编码字符串。注意：decodeURIComponent 无法解码包含 `%` 后跟非十六进制字符的字符串。'
+                  : '请检查输入文本。'),
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误信息', type: 'copy', payload: e.message || '错误', hint: '↵' },
+                { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      function showResult(title, result, length, actionName, original) {
+        var preview =
+          result.length > 500
+            ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）'
+            : result
+        api.renderList([
+          {
+            title: title + '（' + length + ' 字符）',
+            subtitle: '回车复制处理结果',
+            icon: 'checkbox-circle-line',
+            detail:
+              '**结果**\n\n```\n' +
+              preview +
+              '\n```\n\n' +
+              '- 原文长度: ' +
+              original.length +
+              ' 字符\n' +
+              '- 结果长度: ' +
+              length +
+              ' 字符\n' +
+              (actionName === '编码'
+                ? '- 膨胀率: ' + ((length / original.length) * 100 - 100).toFixed(1) + '%'
+                : '- 压缩率: ' + ((1 - length / original.length) * 100).toFixed(1) + '%'),
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
+              { label: '复制原文', type: 'copy', payload: original, hint: '⌘1' }
+            ]
+          }
+        ])
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

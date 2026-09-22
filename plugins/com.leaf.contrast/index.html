@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>颜色对比度检查</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var fgColor = '#000000'
+      var bgColor = '#FFFFFF'
+
+      api.onEnter(function () {
+        Promise.all([api.preferences.get('fgColor'), api.preferences.get('bgColor')]).then(
+          function (results) {
+            fgColor = (results[0] && results[0].ok && results[0].value) || '#000000'
+            bgColor = (results[1] && results[1].ok && results[1].value) || '#FFFFFF'
+            api.setSubInput('输入前景色和背景色（如 #000 #FFF），用空格分隔…')
+            checkContrast(fgColor, bgColor)
+          }
+        )
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (!text.trim()) {
+          checkContrast(fgColor, bgColor)
+          return
+        }
+        var parts = text.trim().split(/[\s,，]+/)
+        if (parts.length >= 2) {
+          checkContrast(parts[0], parts[1])
+        } else if (parts.length === 1) {
+          // 只输入一个颜色，作为前景色，背景色用默认
+          checkContrast(parts[0], bgColor)
+        }
+      })
+
+      function parseColor(color) {
+        color = color.trim()
+        // 支持 #RGB, #RRGGBB, rgb(), rgba()
+        if (color.startsWith('#')) {
+          var hex = color.slice(1)
+          if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+          }
+          if (hex.length === 6) {
+            return {
+              r: parseInt(hex.slice(0, 2), 16),
+              g: parseInt(hex.slice(2, 4), 16),
+              b: parseInt(hex.slice(4, 6), 16),
+              a: 1
+            }
+          }
+        }
+        var rgbMatch = color.match(
+          /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/
+        )
+        if (rgbMatch) {
+          return {
+            r: parseInt(rgbMatch[1]),
+            g: parseInt(rgbMatch[2]),
+            b: parseInt(rgbMatch[3]),
+            a: rgbMatch[4] ? parseFloat(rgbMatch[4]) : 1
+          }
+        }
+        // 支持纯十六进制（无 #）
+        if (/^[0-9a-fA-F]{6}$/.test(color)) {
+          return {
+            r: parseInt(color.slice(0, 2), 16),
+            g: parseInt(color.slice(2, 4), 16),
+            b: parseInt(color.slice(4, 6), 16),
+            a: 1
+          }
+        }
+        if (/^[0-9a-fA-F]{3}$/.test(color)) {
+          return {
+            r: parseInt(color[0] + color[0], 16),
+            g: parseInt(color[1] + color[1], 16),
+            b: parseInt(color[2] + color[2], 16),
+            a: 1
+          }
+        }
+        return null
+      }
+
+      function relativeLuminance(r, g, b) {
+        // WCAG 2.0 相对亮度
+        var rsrgb = r / 255
+        var gsrgb = g / 255
+        var bsrgb = b / 255
+        var rl = rsrgb <= 0.03928 ? rsrgb / 12.92 : Math.pow((rsrgb + 0.055) / 1.055, 2.4)
+        var gl = gsrgb <= 0.03928 ? gsrgb / 12.92 : Math.pow((gsrgb + 0.055) / 1.055, 2.4)
+        var bl = bsrgb <= 0.03928 ? bsrgb / 12.92 : Math.pow((bsrgb + 0.055) / 1.055, 2.4)
+        return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl
+      }
+
+      function contrastRatio(l1, l2) {
+        var lighter = Math.max(l1, l2)
+        var darker = Math.min(l1, l2)
+        return (lighter + 0.05) / (darker + 0.05)
+      }
+
+      function getLevel(ratio) {
+        if (ratio >= 7) return { level: 'AAA', pass: true, color: '#22C55E' }
+        if (ratio >= 4.5) return { level: 'AA', pass: true, color: '#22C55E' }
+        if (ratio >= 3) return { level: 'AA 大文本', pass: true, color: '#F59E0B' }
+        return { level: '不通过', pass: false, color: '#EF4444' }
+      }
+
+      function checkContrast(fg, bg) {
+        var fgParsed = parseColor(fg)
+        var bgParsed = parseColor(bg)
+        if (!fgParsed || !bgParsed) {
+          api.renderList([
+            {
+              title: '颜色格式错误',
+              subtitle: '前景: ' + fg + ' · 背景: ' + bg,
+              icon: 'error-warning-line',
+              detail:
+                '**支持的颜色格式**\n\n- 十六进制: `#FFF`, `#FFFFFF`, `FFF`, `FFFFFF`\n- RGB: `rgb(255, 255, 255)`\n- RGBA: `rgba(255, 255, 255, 0.5)`\n\n请在上方输入框输入两个颜色，用空格分隔。',
+              detailFormat: 'markdown',
+              actions: [{ label: '重新输入', type: 'callback', hint: '↵' }]
+            }
+          ])
+          return
+        }
+
+        var l1 = relativeLuminance(fgParsed.r, fgParsed.g, fgParsed.b)
+        var l2 = relativeLuminance(bgParsed.r, bgParsed.g, bgParsed.b)
+        var ratio = contrastRatio(l1, l2)
+        var level = getLevel(ratio)
+
+        var fgHex =
+          '#' +
+          [fgParsed.r, fgParsed.g, fgParsed.b]
+            .map(function (c) {
+              return c.toString(16).padStart(2, '0')
+            })
+            .join('')
+            .toUpperCase()
+        var bgHex =
+          '#' +
+          [bgParsed.r, bgParsed.g, bgParsed.b]
+            .map(function (c) {
+              return c.toString(16).padStart(2, '0')
+            })
+            .join('')
+            .toUpperCase()
+
+        var items = [
+          {
+            title: '对比度: ' + ratio.toFixed(2) + ':1',
+            subtitle: 'WCAG 等级: ' + level.level + (level.pass ? ' ✓' : ' ✗'),
+            icon: 'contrast-drop-line',
+            accessories: [level.level],
+            detail:
+              '**对比度检查结果**\n\n- 前景色: `' +
+              fgHex +
+              '`\n- 背景色: `' +
+              bgHex +
+              '`\n- 对比度比率: **' +
+              ratio.toFixed(2) +
+              ':1**\n- WCAG 等级: **' +
+              level.level +
+              '**\n\n' +
+              '| 标准 | 要求 | 结果 |\n|---|---|---|\n' +
+              '| AA 普通文本 | ≥ 4.5:1 | ' +
+              (ratio >= 4.5 ? '✓ 通过' : '✗ 不通过') +
+              ' |\n' +
+              '| AA 大文本 | ≥ 3:1 | ' +
+              (ratio >= 3 ? '✓ 通过' : '✗ 不通过') +
+              ' |\n' +
+              '| AAA 普通文本 | ≥ 7:1 | ' +
+              (ratio >= 7 ? '✓ 通过' : '✗ 不通过') +
+              ' |\n' +
+              '| AAA 大文本 | ≥ 4.5:1 | ' +
+              (ratio >= 4.5 ? '✓ 通过' : '✗ 不通过') +
+              ' |\n\n' +
+              (level.pass
+                ? '该颜色组合符合 WCAG ' + level.level + ' 标准。'
+                : '该颜色组合对比度不足，建议调整颜色。') +
+              '\n\n回车复制对比度结果。',
+            detailFormat: 'markdown',
+            actions: [
+              {
+                label: '复制结果',
+                type: 'copy',
+                payload: '对比度: ' + ratio.toFixed(2) + ':1 (' + level.level + ')',
+                hint: '↵'
+              },
+              { label: '复制前景色', type: 'copy', payload: fgHex, hint: '⌘1' },
+              { label: '复制背景色', type: 'copy', payload: bgHex, hint: '⌘2' }
+            ]
+          },
+          {
+            title: '前景色: ' + fgHex,
+            subtitle:
+              'RGB(' +
+              fgParsed.r +
+              ', ' +
+              fgParsed.g +
+              ', ' +
+              fgParsed.b +
+              ') · 亮度: ' +
+              l1.toFixed(4),
+            icon: 'palette-line',
+            accessories: ['前景'],
+            detail:
+              '**前景色**\n\n- HEX: `' +
+              fgHex +
+              '`\n- RGB: `rgb(' +
+              fgParsed.r +
+              ', ' +
+              fgParsed.g +
+              ', ' +
+              fgParsed.b +
+              ')`\n- 相对亮度: ' +
+              l1.toFixed(4),
+            detailFormat: 'markdown',
+            actions: [{ label: '复制 HEX', type: 'copy', payload: fgHex, hint: '↵' }]
+          },
+          {
+            title: '背景色: ' + bgHex,
+            subtitle:
+              'RGB(' +
+              bgParsed.r +
+              ', ' +
+              bgParsed.g +
+              ', ' +
+              bgParsed.b +
+              ') · 亮度: ' +
+              l2.toFixed(4),
+            icon: 'palette-fill',
+            accessories: ['背景'],
+            detail:
+              '**背景色**\n\n- HEX: `' +
+              bgHex +
+              '`\n- RGB: `rgb(' +
+              bgParsed.r +
+              ', ' +
+              bgParsed.g +
+              ', ' +
+              bgParsed.b +
+              ')`\n- 相对亮度: ' +
+              l2.toFixed(4),
+            detailFormat: 'markdown',
+            actions: [{ label: '复制 HEX', type: 'copy', payload: bgHex, hint: '↵' }]
+          }
+        ]
+
+        // 如果不通过，给出建议
+        if (!level.pass) {
+          var suggestion =
+            ratio < 3
+              ? '建议大幅增加颜色差异，例如使用深色文字配浅色背景。'
+              : ratio < 4.5
+                ? '建议微调颜色，增加约 ' + (4.5 - ratio).toFixed(1) + ' 的对比度。'
+                : '已通过 AA 大文本标准，若需 AA 普通文本标准，还需增加 ' +
+                  (4.5 - ratio).toFixed(1) +
+                  '。'
+          items.push({
+            title: '改进建议',
+            subtitle: suggestion,
+            icon: 'lightbulb-line',
+            accessories: ['建议'],
+            detail:
+              '**改进建议**\n\n' +
+              suggestion +
+              '\n\n常用高对比度组合：\n- 黑底白字: `#000000` / `#FFFFFF` (21:1)\n- 深蓝底白字: `#003366` / `#FFFFFF` (12.6:1)\n- 白底深灰字: `#FFFFFF` / `#333333` (12.6:1)',
+            detailFormat: 'markdown',
+            actions: [{ label: '复制建议', type: 'copy', payload: suggestion, hint: '↵' }]
+          })
+        }
+
+        api.renderList(items)
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

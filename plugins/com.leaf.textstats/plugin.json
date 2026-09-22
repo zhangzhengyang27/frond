@@ -1,0 +1,16 @@
+{
+  "id": "com.leaf.textstats",
+  "name": "文本统计",
+  "version": "1.0.1",
+  "description": "文本统计：字数/行数/字符数/字节数/词频，从剪贴板读取，一键复制统计结果",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "stats",
+      "title": "文本统计",
+      "description": "统计文本的字数/行数/字符数等"
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

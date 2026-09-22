@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>密码生成器</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      var UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      var LOWERCASE = 'abcdefghijklmnopqrstuvwxyz'
+      var NUMBERS = '0123456789'
+      var SYMBOLS = '!@#$%^&*()-_=+[]{}|;:,.<>?'
+
+      api.onEnter(function () {
+        api.setSubInput('回车生成密码，或输入长度…')
+        generate()
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        var n = parseInt(text, 10)
+        if (!isNaN(n) && n >= 4 && n <= 128) {
+          generate(n)
+        } else if (!text.trim()) {
+          generate()
+        }
+      })
+
+      function secureRandom(max) {
+        // 使用 crypto.getRandomValues 生成高质量随机数
+        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+          var arr = new Uint32Array(1)
+          crypto.getRandomValues(arr)
+          return arr[0] % max
+        }
+        return Math.floor(Math.random() * max)
+      }
+
+      function generatePassword(length, useUpper, useLower, useNumbers, useSymbols) {
+        var charset = ''
+        var required = []
+        if (useUpper) {
+          charset += UPPERCASE
+          required.push(UPPERCASE)
+        }
+        if (useLower) {
+          charset += LOWERCASE
+          required.push(LOWERCASE)
+        }
+        if (useNumbers) {
+          charset += NUMBERS
+          required.push(NUMBERS)
+        }
+        if (useSymbols) {
+          charset += SYMBOLS
+          required.push(SYMBOLS)
+        }
+        if (!charset) charset = LOWERCASE
+
+        var password = ''
+        // 确保每种字符至少出现一次
+        for (var i = 0; i < required.length && i < length; i++) {
+          password += required[i][secureRandom(required[i].length)]
+        }
+        // 填充剩余长度
+        for (var j = password.length; j < length; j++) {
+          password += charset[secureRandom(charset.length)]
+        }
+        // 打乱顺序
+        return password
+          .split('')
+          .sort(function () {
+            return secureRandom(3) - 1
+          })
+          .join('')
+      }
+
+      function calculateStrength(password) {
+        var score = 0
+        if (password.length >= 8) score++
+        if (password.length >= 12) score++
+        if (password.length >= 16) score++
+        if (/[a-z]/.test(password)) score++
+        if (/[A-Z]/.test(password)) score++
+        if (/[0-9]/.test(password)) score++
+        if (/[^a-zA-Z0-9]/.test(password)) score++
+        if (score <= 2) return { label: '弱', color: '#EF4444' }
+        if (score <= 4) return { label: '中等', color: '#F59E0B' }
+        if (score <= 5) return { label: '强', color: '#22C55E' }
+        return { label: '非常强', color: '#10B981' }
+      }
+
+      function generate(overrideLength) {
+        Promise.all([
+          api.preferences.get('length'),
+          api.preferences.get('uppercase'),
+          api.preferences.get('lowercase'),
+          api.preferences.get('numbers'),
+          api.preferences.get('symbols'),
+          api.preferences.get('count')
+        ]).then(function (results) {
+          var length =
+            overrideLength ||
+            parseInt((results[0] && results[0].ok && results[0].value) || '16', 10)
+          var useUpper = results[1] ? results[1].value !== false : true
+          var useLower = results[2] ? results[2].value !== false : true
+          var useNumbers = results[3] ? results[3].value !== false : true
+          var useSymbols = results[4] ? results[4].value !== false : true
+          var count = parseInt((results[5] && results[5].ok && results[5].value) || '1', 10)
+
+          length = Math.min(Math.max(length, 4), 128)
+          count = Math.min(Math.max(count, 1), 20)
+
+          var passwords = []
+          for (var i = 0; i < count; i++) {
+            passwords.push(generatePassword(length, useUpper, useLower, useNumbers, useSymbols))
+          }
+
+          var items = passwords.map(function (pwd, idx) {
+            var strength = calculateStrength(pwd)
+            return {
+              title: pwd,
+              subtitle:
+                count > 1
+                  ? '第 ' + (idx + 1) + ' 个 · 强度: ' + strength.label
+                  : '长度 ' + length + ' · 强度: ' + strength.label,
+              icon: 'lock-password-line',
+              accessories: [strength.label],
+              detail:
+                '**密码**\n\n`' +
+                pwd +
+                '`\n\n- 长度: ' +
+                length +
+                '\n- 强度: **' +
+                strength.label +
+                '**\n- 包含: ' +
+                [
+                  useUpper ? '大写' : '',
+                  useLower ? '小写' : '',
+                  useNumbers ? '数字' : '',
+                  useSymbols ? '符号' : ''
+                ]
+                  .filter(Boolean)
+                  .join(' / ') +
+                '\n\n回车复制密码。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制密码', type: 'copy', payload: pwd, hint: '↵' },
+                count > 1
+                  ? { label: '复制全部', type: 'copy', payload: passwords.join('\n'), hint: '⌘1' }
+                  : { label: '重新生成', type: 'callback', hint: '⌘1' }
+              ]
+            }
+          })
+
+          items.push({
+            title: '重新生成',
+            subtitle: '生成新的 ' + count + ' 个密码（长度 ' + length + '）',
+            icon: 'refresh-line',
+            actions: [{ label: '重新生成', type: 'callback', hint: '↵' }]
+          })
+
+          api.renderList(items)
+        })
+      }
+
+      api.onAction(function () {
+        generate()
+      })
+    </script>
+  </body>
+</html>

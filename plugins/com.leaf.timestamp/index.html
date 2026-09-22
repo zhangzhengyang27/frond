@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>时间戳转换</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      api.onEnter(function () {
+        api.setSubInput('输入时间戳或时间，或留空显示当前时间…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              process(text.trim())
+            } else {
+              showCurrent()
+            }
+          })
+          .catch(function () {
+            showCurrent()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showCurrent()
+        }
+      })
+
+      function showCurrent() {
+        var now = Date.now()
+        var sec = Math.floor(now / 1000)
+        var date = new Date(now)
+        var items = [
+          {
+            title: '当前时间戳（秒）: ' + sec,
+            subtitle: formatDateTime(date),
+            icon: 'time-line',
+            accessories: ['秒'],
+            detail:
+              '**当前时间**\n\n- 时间戳（秒）: `' +
+              sec +
+              '`\n- 时间戳（毫秒）: `' +
+              now +
+              '`\n- 本地时间: ' +
+              formatDateTime(date) +
+              '\n- UTC 时间: ' +
+              formatDateTimeUTC(date) +
+              '\n\n回车复制秒级时间戳。',
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制秒', type: 'copy', payload: String(sec), hint: '↵' },
+              { label: '复制毫秒', type: 'copy', payload: String(now), hint: '⌘1' },
+              { label: '复制时间', type: 'copy', payload: formatDateTime(date), hint: '⌘2' }
+            ]
+          }
+        ]
+        api.renderList(items)
+      }
+
+      function process(input) {
+        // 判断是时间戳还是时间字符串
+        var num = Number(input)
+        if (!isNaN(num) && isFinite(num) && input.match(/^\d+$/)) {
+          // 时间戳：判断是秒还是毫秒
+          var isMs = num > 1e12 // 2001年以后的毫秒级时间戳 > 1e12
+          var ts = isMs ? num : num * 1000
+          var date = new Date(ts)
+          if (isNaN(date.getTime())) {
+            showError('无效的时间戳: ' + input)
+            return
+          }
+          var items = [
+            {
+              title: (isMs ? '毫秒' : '秒') + '时间戳: ' + input,
+              subtitle: formatDateTime(date),
+              icon: 'time-line',
+              accessories: [isMs ? '毫秒' : '秒'],
+              detail:
+                '**时间戳转换结果**\n\n- 输入: `' +
+                input +
+                '` (' +
+                (isMs ? '毫秒' : '秒') +
+                ')\n- 本地时间: ' +
+                formatDateTime(date) +
+                '\n- UTC 时间: ' +
+                formatDateTimeUTC(date) +
+                '\n- ISO 格式: `' +
+                date.toISOString() +
+                '`\n- 相对时间: ' +
+                relativeTime(date) +
+                '\n\n回车复制可读时间。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制时间', type: 'copy', payload: formatDateTime(date), hint: '↵' },
+                { label: '复制 ISO', type: 'copy', payload: date.toISOString(), hint: '⌘1' },
+                {
+                  label: '复制秒级时间戳',
+                  type: 'copy',
+                  payload: String(Math.floor(ts / 1000)),
+                  hint: '⌘2'
+                }
+              ]
+            }
+          ]
+          api.renderList(items)
+        } else {
+          // 尝试解析为时间字符串
+          var date = new Date(input)
+          if (isNaN(date.getTime())) {
+            // 尝试中文格式
+            var cnMatch = input.match(
+              /(\d{4})年(\d{1,2})月(\d{1,2})日\s*(\d{1,2})?[:：]?(\d{1,2})?/
+            )
+            if (cnMatch) {
+              date = new Date(
+                parseInt(cnMatch[1]),
+                parseInt(cnMatch[2]) - 1,
+                parseInt(cnMatch[3]),
+                parseInt(cnMatch[4] || 0),
+                parseInt(cnMatch[5] || 0)
+              )
+            }
+          }
+          if (isNaN(date.getTime())) {
+            showError('无法解析时间: ' + input)
+            return
+          }
+          var sec = Math.floor(date.getTime() / 1000)
+          var items = [
+            {
+              title: '时间: ' + formatDateTime(date),
+              subtitle: '时间戳（秒）: ' + sec,
+              icon: 'time-line',
+              accessories: ['秒'],
+              detail:
+                '**时间转换结果**\n\n- 输入: `' +
+                input +
+                '`\n- 本地时间: ' +
+                formatDateTime(date) +
+                '\n- UTC 时间: ' +
+                formatDateTimeUTC(date) +
+                '\n- 时间戳（秒）: `' +
+                sec +
+                '`\n- 时间戳（毫秒）: `' +
+                date.getTime() +
+                '`\n- ISO 格式: `' +
+                date.toISOString() +
+                '`\n\n回车复制秒级时间戳。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制秒', type: 'copy', payload: String(sec), hint: '↵' },
+                { label: '复制毫秒', type: 'copy', payload: String(date.getTime()), hint: '⌘1' },
+                { label: '复制时间', type: 'copy', payload: formatDateTime(date), hint: '⌘2' }
+              ]
+            }
+          ]
+          api.renderList(items)
+        }
+      }
+
+      function showError(msg) {
+        api.renderList([
+          {
+            title: msg,
+            subtitle: '支持的格式：10位时间戳 / 13位时间戳 / 2024-01-01 12:00 / 2024年1月1日',
+            icon: 'error-warning-line',
+            detail:
+              '**支持的输入格式**\n\n- 10位时间戳（秒）: `1704067200`\n- 13位时间戳（毫秒）: `1704067200000`\n- ISO 格式: `2024-01-01T12:00:00Z`\n- 日期时间: `2024-01-01 12:00:00`\n- 中文格式: `2024年1月1日 12:00`',
+            detailFormat: 'markdown',
+            actions: [{ label: '重新输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function formatDateTime(date) {
+        var y = date.getFullYear()
+        var m = String(date.getMonth() + 1).padStart(2, '0')
+        var d = String(date.getDate()).padStart(2, '0')
+        var h = String(date.getHours()).padStart(2, '0')
+        var min = String(date.getMinutes()).padStart(2, '0')
+        var s = String(date.getSeconds()).padStart(2, '0')
+        return y + '-' + m + '-' + d + ' ' + h + ':' + min + ':' + s
+      }
+
+      function formatDateTimeUTC(date) {
+        var y = date.getUTCFullYear()
+        var m = String(date.getUTCMonth() + 1).padStart(2, '0')
+        var d = String(date.getUTCDate()).padStart(2, '0')
+        var h = String(date.getUTCHours()).padStart(2, '0')
+        var min = String(date.getUTCMinutes()).padStart(2, '0')
+        var s = String(date.getUTCSeconds()).padStart(2, '0')
+        return y + '-' + m + '-' + d + ' ' + h + ':' + min + ':' + s + ' UTC'
+      }
+
+      function relativeTime(date) {
+        var diff = Date.now() - date.getTime()
+        var abs = Math.abs(diff)
+        var future = diff < 0
+        var units = [
+          { label: '年', ms: 365 * 24 * 60 * 60 * 1000 },
+          { label: '月', ms: 30 * 24 * 60 * 60 * 1000 },
+          { label: '天', ms: 24 * 60 * 60 * 1000 },
+          { label: '小时', ms: 60 * 60 * 1000 },
+          { label: '分钟', ms: 60 * 1000 },
+          { label: '秒', ms: 1000 }
+        ]
+        for (var i = 0; i < units.length; i++) {
+          if (abs >= units[i].ms) {
+            var n = Math.floor(abs / units[i].ms)
+            return future ? n + ' ' + units[i].label + '后' : n + ' ' + units[i].label + '前'
+          }
+        }
+        return '刚刚'
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+{
+  "id": "com.leaf.jsonfmt",
+  "name": "JSON 格式化",
+  "version": "1.0.1",
+  "description": "JSON 格式化与压缩：从剪贴板读取 JSON，格式化/压缩/转义，一键复制结果",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "format",
+      "title": "格式化 JSON",
+      "description": "从剪贴板读取 JSON，美化缩进后复制"
+    },
+    {
+      "code": "minify",
+      "title": "压缩 JSON",
+      "description": "从剪贴板读取 JSON，去除空格换行后复制"
+    },
+    {
+      "code": "escape",
+      "title": "JSON 转义",
+      "description": "将 JSON 字符串转义为可嵌入字符串的形式"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "indent",
+      "label": "缩进空格数",
+      "type": "select",
+      "default": "2",
+      "options": ["2", "4", "Tab"]
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

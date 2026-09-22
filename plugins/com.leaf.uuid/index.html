@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>UUID 生成器</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      api.onEnter(function () {
+        api.setSubInput('回车生成 UUID，或输入数量…')
+        generate()
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        var n = parseInt(text, 10)
+        if (!isNaN(n) && n > 0) {
+          generate(n)
+        } else {
+          generate()
+        }
+      })
+
+      function uuidv4() {
+        // 使用 crypto.getRandomValues 生成高质量随机 UUID
+        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+          var bytes = new Uint8Array(16)
+          crypto.getRandomValues(bytes)
+          bytes[6] = (bytes[6] & 0x0f) | 0x40
+          bytes[8] = (bytes[8] & 0x3f) | 0x80
+          var hex = []
+          for (var i = 0; i < 16; i++) {
+            hex.push(bytes[i].toString(16).padStart(2, '0'))
+          }
+          return (
+            hex[0] +
+            hex[1] +
+            hex[2] +
+            hex[3] +
+            '-' +
+            hex[4] +
+            hex[5] +
+            '-' +
+            hex[6] +
+            hex[7] +
+            '-' +
+            hex[8] +
+            hex[9] +
+            '-' +
+            hex[10] +
+            hex[11] +
+            hex[12] +
+            hex[13] +
+            hex[14] +
+            hex[15]
+          )
+        }
+        // 降级：Math.random
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+          var r = (Math.random() * 16) | 0
+          var v = c === 'x' ? r : (r & 0x3) | 0x8
+          return v.toString(16)
+        })
+      }
+
+      function formatUuid(uuid, format) {
+        if (format === 'uppercase') return uuid.toUpperCase()
+        if (format === 'nohyphen') return uuid.replace(/-/g, '')
+        return uuid
+      }
+
+      function generate(overrideCount) {
+        Promise.all([api.preferences.get('count'), api.preferences.get('format')]).then(
+          function (results) {
+            var countPref = results[0] && results[0].ok && results[0].value ? results[0].value : '1'
+            var formatPref =
+              results[1] && results[1].ok && results[1].value ? results[1].value : 'lowercase'
+            var count = overrideCount || parseInt(countPref, 10) || 1
+            count = Math.min(Math.max(count, 1), 50)
+
+            var uuids = []
+            for (var i = 0; i < count; i++) {
+              uuids.push(formatUuid(uuidv4(), formatPref))
+            }
+
+            var items = uuids.map(function (uuid, idx) {
+              return {
+                title: uuid,
+                subtitle: count > 1 ? '第 ' + (idx + 1) + ' 个' : 'UUID v4',
+                icon: 'fingerprint-line',
+                accessories: [formatPref],
+                detail:
+                  '**' + uuid + '**\n\n- 版本: UUID v4\n- 格式: ' + formatPref + '\n- 回车复制',
+                detailFormat: 'markdown',
+                actions: [
+                  { label: '复制', type: 'copy', payload: uuid, hint: '↵' },
+                  count > 1
+                    ? { label: '复制全部', type: 'copy', payload: uuids.join('\n'), hint: '⌘1' }
+                    : { label: '重新生成', type: 'callback', hint: '⌘1' }
+                ]
+              }
+            })
+
+            // 添加"重新生成"条目
+            items.push({
+              title: '重新生成',
+              subtitle: '生成新的 ' + count + ' 个 UUID',
+              icon: 'refresh-line',
+              actions: [{ label: '重新生成', type: 'callback', hint: '↵' }]
+            })
+
+            api.renderList(items)
+          }
+        )
+      }
+
+      api.onAction(function () {
+        generate()
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "id": "com.leaf.colorpicker",
+  "name": "颜色选择器",
+  "version": "1.0.1",
+  "description": "颜色格式转换与选择：HEX / RGB / HSL 互转，从剪贴板读取颜色，一键复制",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "convert",
+      "title": "颜色转换",
+      "description": "输入 HEX/RGB/HSL 颜色，查看所有格式并一键复制"
+    },
+    {
+      "code": "palette",
+      "title": "常用色板",
+      "description": "浏览常用颜色集合，一键复制 HEX 值"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "defaultFormat",
+      "label": "默认复制格式",
+      "type": "select",
+      "default": "HEX",
+      "options": ["HEX", "RGB", "HSL"]
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

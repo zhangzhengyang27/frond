@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>HTML 实体编解码</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var currentCmd = 'encode'
+
+      // 常用 HTML 命名实体映射
+      var NAMED_ENTITIES = {
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+        ' ': '&nbsp;', '¡': '&iexcl;', '¢': '&cent;', '£': '&pound;', '¤': '&curren;',
+        '¥': '&yen;', '¦': '&brvbar;', '§': '&sect;', '¨': '&uml;', '©': '&copy;',
+        'ª': '&ordf;', '«': '&laquo;', '¬': '&not;', '­': '&shy;', '®': '&reg;',
+        '¯': '&macr;', '°': '&deg;', '±': '&plusmn;', '²': '&sup2;', '³': '&sup3;',
+        '´': '&acute;', 'µ': '&micro;', '¶': '&para;', '·': '&middot;', '¸': '&cedil;',
+        '¹': '&sup1;', 'º': '&ordm;', '»': '&raquo;', '¼': '&frac14;', '½': '&frac12;',
+        '¾': '&frac34;', '¿': '&iquest;', 'À': '&Agrave;', 'Á': '&Aacute;', 'Â': '&Acirc;',
+        'Ã': '&Atilde;', 'Ä': '&Auml;', 'Å': '&Aring;', 'Æ': '&AElig;', 'Ç': '&Ccedil;',
+        'È': '&Egrave;', 'É': '&Eacute;', 'Ê': '&Ecirc;', 'Ë': '&Euml;', 'Ì': '&Igrave;',
+        'Í': '&Iacute;', 'Î': '&Icirc;', 'Ï': '&Iuml;', 'Ð': '&ETH;', 'Ñ': '&Ntilde;',
+        'Ò': '&Ograve;', 'Ó': '&Oacute;', 'Ô': '&Ocirc;', 'Õ': '&Otilde;', 'Ö': '&Ouml;',
+        '×': '&times;', 'Ø': '&Oslash;', 'Ù': '&Ugrave;', 'Ú': '&Uacute;', 'Û': '&Ucirc;',
+        'Ü': '&Uuml;', 'Ý': '&Yacute;', 'Þ': '&THORN;', 'ß': '&szlig;', 'à': '&agrave;',
+        'á': '&aacute;', 'â': '&acirc;', 'ã': '&atilde;', 'ä': '&auml;', 'å': '&aring;',
+        'æ': '&aelig;', 'ç': '&ccedil;', 'è': '&egrave;', 'é': '&eacute;', 'ê': '&ecirc;',
+        'ë': '&euml;', 'ì': '&igrave;', 'í': '&iacute;', 'î': '&icirc;', 'ï': '&iuml;',
+        'ð': '&eth;', 'ñ': '&ntilde;', 'ò': '&ograve;', 'ó': '&oacute;', 'ô': '&ocirc;',
+        'õ': '&otilde;', 'ö': '&ouml;', '÷': '&divide;', 'ø': '&oslash;', 'ù': '&ugrave;',
+        'ú': '&uacute;', 'û': '&ucirc;', 'ü': '&uuml;', 'ý': '&yacute;', 'þ': '&thorn;',
+        'ÿ': '&yuml;', '€': '&euro;', '…': '&hellip;', '—': '&mdash;', '–': '&ndash;',
+        '"': '&ldquo;', '"': '&rdquo;', ''': '&lsquo;', ''': '&rsquo;', '•': '&bull;',
+        '†': '&dagger;', '‡': '&Dagger;', '‰': '&permil;', '′': '&prime;', '″': '&Prime;',
+        '‹': '&lsaquo;', '›': '&rsaquo;', '‾': '&oline;', '⁄': '&frasl;', '€': '&euro;',
+        '™': '&trade;', '∞': '&infin;', '√': '&radic;', '∑': '&sum;', '∏': '&prod;',
+        '∂': '&part;', '∫': '&int;', '≈': '&asymp;', '≠': '&ne;', '≡': '&equiv;',
+        '≤': '&le;', '≥': '&ge;', '⊂': '&sub;', '⊃': '&sup;', '∪': '&cup;',
+        '∩': '&cap;', '∅': '&empty;', '∈': '&isin;', '∉': '&notin;', '∋': '&ni;',
+        '∧': '&and;', '∨': '&or;', '¬': '&not;', '⊕': '&oplus;', '⊗': '&otimes;',
+        '⇐': '&lArr;', '⇒': '&rArr;', '⇑': '&uArr;', '⇓': '&dArr;', '⇔': '&hArr;',
+        '←': '&larr;', '→': '&rarr;', '↑': '&uarr;', '↓': '&darr;', '↔': '&harr;',
+        '▲': '#9650;', '▼': '&#9660;', '◀': '&#9664;', '▶': '&#9654;', '★': '&starf;',
+        '☆': '&star;', '♥': '&hearts;', '♦': '&diams;', '♣': '&clubs;', '♠': '&spades;',
+        '♪': '&sung;', '♫': '&music;', '☀': '&sun;', '☁': '&cloud;', '☂': '&umbrella;',
+        '☃': '&snowman;', '✓': '&check;', '✗': '&cross;', '✈': '&plane;', '☎': '&phone;'
+      }
+
+      // 反向映射：实体名 → 字符
+      var ENTITY_TO_CHAR = {}
+      for (var char in NAMED_ENTITIES) {
+        var entity = NAMED_ENTITIES[char]
+        var name = entity.replace(/^&/, '').replace(/;$/, '')
+        ENTITY_TO_CHAR[name] = char
+      }
+
+      api.onEnter(function (data) {
+        currentCmd = (data && data.command) || 'encode'
+        var placeholders = {
+          encode: '粘贴或输入要编码的 HTML 文本…',
+          decode: '粘贴或输入要解码的 HTML 实体…'
+        }
+        api.setSubInput(placeholders[currentCmd] || '输入文本…')
+        api.readText().then(function(res) {
+          var text = res || ''
+          if (text && text.trim()) {
+            process(text.trim())
+          } else {
+            showEmpty()
+          }
+        }).catch(function() { showEmpty() })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          process(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        var titles = { encode: 'HTML 编码', decode: 'HTML 解码' }
+        api.renderList([{
+          title: titles[currentCmd] || 'HTML 实体工具',
+          subtitle: '在上方输入框粘贴文本，或从剪贴板自动读取',
+          icon: 'code-line',
+          detail: '**HTML 实体编解码**\n\n- 编码：特殊字符 → HTML 实体（如 `<` → `&lt;`）\n- 解码：HTML 实体 → 原始字符（如 `&lt;` → `<`）\n- 支持命名实体（`&amp;`）和数字实体（`&#38;` / `&#x26;`）\n\n回车复制处理结果。',
+          detailFormat: 'markdown',
+          actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+        }])
+      }
+
+      function encodeHTML(text, useNamed) {
+        var result = ''
+        for (var i = 0; i < text.length; i++) {
+          var c = text[i]
+          if (useNamed && NAMED_ENTITIES[c]) {
+            result += NAMED_ENTITIES[c]
+          } else if (c.charCodeAt(0) > 127 || c === '&' || c === '<' || c === '>' || c === '"' || c === "'") {
+            result += '&#' + c.charCodeAt(0) + ';'
+          } else {
+            result += c
+          }
+        }
+        return result
+      }
+
+      function decodeHTML(text) {
+        return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, function(match, entity) {
+          // 数字实体
+          if (entity.startsWith('#x') || entity.startsWith('#X')) {
+            var code = parseInt(entity.slice(2), 16)
+            return String.fromCharCode(code)
+          }
+          if (entity.startsWith('#')) {
+            var code = parseInt(entity.slice(1), 10)
+            return String.fromCharCode(code)
+          }
+          // 命名实体
+          if (ENTITY_TO_CHAR[entity]) {
+            return ENTITY_TO_CHAR[entity]
+          }
+          // 常见实体兜底
+          var common = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', copy: '©', reg: '®', trade: '™', euro: '€', pound: '£', yen: '¥', cent: '¢', sect: '§', para: '¶', deg: '°', plusmn: '±', times: '×', divide: '÷', middot: '·', hellip: '…', mdash: '—', ndash: '–', lsquo: ''', rsquo: ''', ldquo: '"', rdquo: '"', bull: '•', dagger: '†', Dagger: '‡', permil: '‰', prime: '′', Prime: '″', lsaquo: '‹', rsaquo: '›', oline: '‾', frasl: '⁄', infin: '∞', radic: '√', sum: '∑', prod: '∏', part: '∂', int: '∫', asymp: '≈', ne: '≠', equiv: '≡', le: '≤', ge: '≥', sub: '⊂', sup: '⊃', cup: '∪', cap: '∩', empty: '∅', isin: '∈', notin: '∉', ni: '∋', and: '∧', or: '∨', not: '¬', oplus: '⊕', otimes: '⊗', lArr: '⇐', rArr: '⇒', uArr: '⇑', dArr: '⇓', hArr: '⇔', larr: '←', rarr: '→', uarr: '↑', darr: '↓', harr: '↔', starf: '★', star: '☆', hearts: '♥', diams: '♦', clubs: '♣', spades: '♠', check: '✓', cross: '✗' }
+          if (common[entity]) return common[entity]
+          return match
+        })
+      }
+
+      function process(text) {
+        try {
+          var result = ''
+          var actionName = ''
+          if (currentCmd === 'encode') {
+            result = encodeHTML(text, true)
+            actionName = '编码'
+          } else {
+            result = decodeHTML(text)
+            actionName = '解码'
+          }
+          showResult(actionName + '完成', result, result.length, actionName, text)
+        } catch (e) {
+          api.renderList([{
+            title: currentCmd === 'encode' ? '编码失败' : '解码失败',
+            subtitle: e.message || '处理错误',
+            icon: 'error-warning-line',
+            detail: '**错误信息**：' + (e.message || '未知错误'),
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制错误', type: 'copy', payload: e.message || '错误', hint: '↵' },
+              { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
+            ]
+          }])
+        }
+      }
+
+      function showResult(title, result, length, actionName, original) {
+        var preview = result.length > 500 ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）' : result
+        var encodedCount = 0
+        if (actionName === '编码') {
+          var matches = result.match(/&[#a-zA-Z0-9]+;/g)
+          encodedCount = matches ? matches.length : 0
+        } else {
+          var matches = original.match(/&[#a-zA-Z0-9]+;/g)
+          encodedCount = matches ? matches.length : 0
+        }
+        api.renderList([{
+          title: title + '（' + length + ' 字符）',
+          subtitle: (actionName === '编码' ? '转换了 ' + encodedCount + ' 个字符' : '解码了 ' + encodedCount + ' 个实体') + ' · 回车复制结果',
+          icon: 'checkbox-circle-line',
+          detail: '**结果**\n\n```\n' + preview + '\n```\n\n' +
+            '- 原文长度: ' + original.length + ' 字符\n' +
+            '- 结果长度: ' + length + ' 字符\n' +
+            (actionName === '编码' ? '- 转换字符数: ' + encodedCount : '- 解码实体数: ' + encodedCount) + '\n\n' +
+            (actionName === '编码' ? '膨胀率: ' + ((length / original.length * 100) - 100).toFixed(1) + '%' : '压缩率: ' + ((1 - length / original.length) * 100).toFixed(1) + '%') +
+            '\n\n回车复制完整结果。',
+          detailFormat: 'markdown',
+          actions: [
+            { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
+            { label: '复制原文', type: 'copy', payload: original, hint: '⌘1' }
+          ]
+        }])
+      }
+
+      api.onAction(function() {})
+    </script>
+  </body>
+</html>

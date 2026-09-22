@@ -1,0 +1,32 @@
+{
+  "id": "com.leaf.currency",
+  "name": "汇率转换",
+  "version": "1.0.1",
+  "description": "实时汇率转换：支持 160+ 货币，从剪贴板读取金额，一键复制转换结果",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "convert",
+      "title": "汇率转换",
+      "description": "输入金额和货币对，查看实时汇率并复制结果"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "baseCurrency",
+      "label": "基准货币",
+      "type": "select",
+      "default": "CNY",
+      "options": ["CNY", "USD", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD", "SGD"]
+    },
+    {
+      "name": "targetCurrency",
+      "label": "目标货币",
+      "type": "select",
+      "default": "USD",
+      "options": ["USD", "CNY", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD", "SGD"]
+    }
+  ],
+  "permissions": ["clipboard.read", "net"]
+}

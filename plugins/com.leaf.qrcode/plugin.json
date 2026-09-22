@@ -1,0 +1,32 @@
+{
+  "id": "com.leaf.qrcode",
+  "name": "二维码生成器",
+  "version": "1.0.1",
+  "description": "生成二维码：输入文本/URL/联系方式，本地生成，支持纠错级别和尺寸调整，一键复制图片",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "generate",
+      "title": "生成二维码",
+      "description": "输入文本生成二维码"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "size",
+      "label": "尺寸(像素)",
+      "type": "select",
+      "default": "256",
+      "options": ["128", "256", "512"]
+    },
+    {
+      "name": "ecc",
+      "label": "纠错级别",
+      "type": "select",
+      "default": "M",
+      "options": ["L", "M", "Q", "H"]
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

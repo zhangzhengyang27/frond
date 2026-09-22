@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Cron 解析</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      var FIELD_NAMES = ['分钟', '小时', '日', '月', '星期']
+      var FIELD_RANGES = [
+        [0, 59],
+        [0, 23],
+        [1, 31],
+        [1, 12],
+        [0, 6]
+      ]
+      var MONTH_NAMES = [
+        '',
+        '一月',
+        '二月',
+        '三月',
+        '四月',
+        '五月',
+        '六月',
+        '七月',
+        '八月',
+        '九月',
+        '十月',
+        '十一月',
+        '十二月'
+      ]
+      var WEEK_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+
+      api.onEnter(function () {
+        api.setSubInput('输入 Cron 表达式（如 0 9 * * 1-5）…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim() && /^[\d\s\*\/\-,\?LW#]+$/.test(text.trim())) {
+              parseCron(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          parseCron(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        api.renderList([
+          {
+            title: 'Cron 表达式解析',
+            subtitle: '输入 Cron 表达式，如 0 9 * * 1-5',
+            icon: 'time-line',
+            detail:
+              '**Cron 表达式格式（5 段）**\n\n```\n┌───────────── 分钟 (0-59)\n│ ┌───────────── 小时 (0-23)\n│ │ ┌───────────── 日 (1-31)\n│ │ │ ┌───────────── 月 (1-12)\n│ │ │ │ ┌───────────── 星期 (0-6, 0=周日)\n│ │ │ │ │\n* * * * *\n```\n\n**常用示例**：\n- `* * * * *` - 每分钟\n- `0 * * * *` - 每小时整点\n- `0 9 * * *` - 每天 9:00\n- `0 9 * * 1-5` - 工作日 9:00\n- `0 0 1 * *` - 每月 1 号 0:00\n- `*/5 * * * *` - 每 5 分钟\n\n回车复制表达式描述。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function parseField(field, min, max) {
+        var result = []
+        var parts = field.split(',')
+        for (var i = 0; i < parts.length; i++) {
+          var part = parts[i]
+          var step = 1
+          var stepMatch = part.match(/\/(\d+)$/)
+          if (stepMatch) {
+            step = parseInt(stepMatch[1], 10)
+            part = part.replace(/\/\d+$/, '')
+          }
+          if (part === '*' || part === '?') {
+            for (var v = min; v <= max; v += step) result.push(v)
+          } else if (part.includes('-')) {
+            var range = part.split('-')
+            var start = parseInt(range[0], 10)
+            var end = parseInt(range[1], 10)
+            for (var v = start; v <= end; v += step) result.push(v)
+          } else {
+            var val = parseInt(part, 10)
+            if (!isNaN(val)) {
+              if (step > 1) {
+                for (var v = val; v <= max; v += step) result.push(v)
+              } else {
+                result.push(val)
+              }
+            }
+          }
+        }
+        return [...new Set(result)].sort(function (a, b) {
+          return a - b
+        })
+      }
+
+      function describeField(field, index) {
+        if (field === '*' || field === '?') return '每' + FIELD_NAMES[index]
+        if (field.startsWith('*/')) return '每 ' + field.slice(2) + ' ' + FIELD_NAMES[index]
+        if (field.includes('/')) {
+          var parts = field.split('/')
+          return '从 ' + parts[0] + ' 开始每 ' + parts[1] + ' ' + FIELD_NAMES[index]
+        }
+        if (field.includes(',')) return FIELD_NAMES[index] + ': ' + field
+        if (field.includes('-')) return FIELD_NAMES[index] + ': ' + field
+        if (index === 3) return MONTH_NAMES[parseInt(field, 10)] || field
+        if (index === 4) return WEEK_NAMES[parseInt(field, 10)] || field
+        return field
+      }
+
+      function getNextRuns(fields, count) {
+        var runs = []
+        var now = new Date()
+        now.setSeconds(0, 0)
+        var current = new Date(now.getTime() + 60000) // 从下一分钟开始
+        var safety = 0
+        while (runs.length < count && safety < 100000) {
+          safety++
+          var minute = current.getMinutes()
+          var hour = current.getHours()
+          var day = current.getDate()
+          var month = current.getMonth() + 1
+          var weekday = current.getDay()
+
+          if (!fields[0].includes(minute)) {
+            current.setMinutes(minute + 1)
+            continue
+          }
+          if (!fields[1].includes(hour)) {
+            current.setHours(hour + 1, 0, 0, 0)
+            continue
+          }
+          if (!fields[2].includes(day)) {
+            current.setDate(day + 1)
+            current.setHours(0, 0, 0, 0)
+            continue
+          }
+          if (!fields[3].includes(month)) {
+            current.setMonth(month, 1)
+            current.setHours(0, 0, 0, 0)
+            continue
+          }
+          if (!fields[4].includes(weekday)) {
+            current.setDate(day + 1)
+            current.setHours(0, 0, 0, 0)
+            continue
+          }
+
+          runs.push(new Date(current.getTime()))
+          current.setMinutes(current.getMinutes() + 1)
+        }
+        return runs
+      }
+
+      function parseCron(expr) {
+        var parts = expr.trim().split(/\s+/)
+        if (parts.length !== 5 && parts.length !== 6 && parts.length !== 7) {
+          api.renderList([
+            {
+              title: '无效的 Cron 表达式',
+              subtitle: '应为 5/6/7 段，当前 ' + parts.length + ' 段',
+              icon: 'error-warning-line',
+              detail:
+                '**错误**：Cron 表达式应为 5 段（标准）、6 段（含秒）或 7 段（含秒和年）。\n\n当前输入：`' +
+                expr +
+                '`\n\n请检查表达式格式。',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制表达式', type: 'copy', payload: expr, hint: '↵' }]
+            }
+          ])
+          return
+        }
+
+        // 只处理 5 段标准格式
+        var fields5 = parts.length === 5 ? parts : parts.slice(1, 6)
+        var hasSeconds = parts.length >= 6
+
+        try {
+          var fields = []
+          for (var i = 0; i < 5; i++) {
+            fields.push(parseField(fields5[i], FIELD_RANGES[i][0], FIELD_RANGES[i][1]))
+          }
+
+          var description = '每'
+          if (fields5[2] !== '*' || fields5[4] !== '*') description += ''
+          if (fields5[4] !== '*') description += describeField(fields5[4], 4) + ' '
+          if (fields5[3] !== '*') description += describeField(fields5[3], 3) + ' '
+          if (fields5[2] !== '*') description += describeField(fields5[2], 2) + ' '
+          if (fields5[1] !== '*') description += describeField(fields5[1], 1) + ' '
+          if (fields5[0] !== '*') description += describeField(fields5[0], 0) + ' '
+          description = description.trim()
+          if (description === '每') description = '每分钟'
+
+          var nextRuns = getNextRuns(fields, 5)
+          var now = Date.now()
+
+          var items = [
+            {
+              title: description,
+              subtitle: '表达式: ' + expr + (hasSeconds ? ' (含秒)' : ''),
+              icon: 'checkbox-circle-line',
+              accessories: ['有效'],
+              detail:
+                '**Cron 表达式解析**\n\n- 表达式: `' +
+                expr +
+                '`\n- 描述: **' +
+                description +
+                '**\n' +
+                (hasSeconds ? '- 秒: `' + parts[0] + '`\n' : '') +
+                '- 分钟: `' +
+                fields5[0] +
+                '` (' +
+                describeField(fields5[0], 0) +
+                ')\n' +
+                '- 小时: `' +
+                fields5[1] +
+                '` (' +
+                describeField(fields5[1], 1) +
+                ')\n' +
+                '- 日: `' +
+                fields5[2] +
+                '` (' +
+                describeField(fields5[2], 2) +
+                ')\n' +
+                '- 月: `' +
+                fields5[3] +
+                '` (' +
+                describeField(fields5[3], 3) +
+                ')\n' +
+                '- 星期: `' +
+                fields5[4] +
+                '` (' +
+                describeField(fields5[4], 4) +
+                ')\n\n' +
+                '下次执行时间见下方。回车复制描述。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制描述', type: 'copy', payload: description, hint: '↵' },
+                { label: '复制表达式', type: 'copy', payload: expr, hint: '⌘1' }
+              ]
+            }
+          ]
+
+          if (nextRuns.length > 0) {
+            items.push({
+              title: '下次执行时间（前 ' + nextRuns.length + ' 次）',
+              subtitle: nextRuns[0].toLocaleString('zh-CN'),
+              icon: 'time-line',
+              accessories: ['下次'],
+              detail:
+                '**下次执行时间**\n\n' +
+                nextRuns
+                  .map(function (d, idx) {
+                    var diff = Math.round((d.getTime() - now) / 60000)
+                    var relative =
+                      diff < 60
+                        ? diff + ' 分钟后'
+                        : diff < 1440
+                          ? Math.floor(diff / 60) + ' 小时 ' + (diff % 60) + ' 分钟后'
+                          : Math.floor(diff / 1440) +
+                            ' 天 ' +
+                            Math.floor((diff % 1440) / 60) +
+                            ' 小时后'
+                    return idx + 1 + '. ' + d.toLocaleString('zh-CN') + '（' + relative + '）'
+                  })
+                  .join('\n'),
+              detailFormat: 'markdown',
+              actions: [
+                {
+                  label: '复制下次时间',
+                  type: 'copy',
+                  payload: nextRuns[0].toLocaleString('zh-CN'),
+                  hint: '↵'
+                }
+              ]
+            })
+          }
+
+          // 各字段展开
+          for (var i = 0; i < 5; i++) {
+            var values = fields[i]
+            var display =
+              values.length > 12
+                ? values.slice(0, 6).join(', ') +
+                  ' … ' +
+                  values.slice(-3).join(', ') +
+                  ' (共' +
+                  values.length +
+                  '个)'
+                : values.join(', ')
+            items.push({
+              title: FIELD_NAMES[i] + ': ' + (fields5[i] === '*' ? '全部' : fields5[i]),
+              subtitle: display,
+              icon: 'list-unordered',
+              accessories: [String(values.length)],
+              detail:
+                '**' +
+                FIELD_NAMES[i] +
+                '**\n\n- 表达式: `' +
+                fields5[i] +
+                '`\n- 描述: ' +
+                describeField(fields5[i], i) +
+                '\n- 匹配值 (' +
+                values.length +
+                ' 个): `' +
+                display +
+                '`',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制匹配值', type: 'copy', payload: values.join(', '), hint: '↵' }
+              ]
+            })
+          }
+
+          api.renderList(items)
+        } catch (e) {
+          api.renderList([
+            {
+              title: '解析失败',
+              subtitle: e.message || '无效的 Cron 表达式',
+              icon: 'error-warning-line',
+              detail: '**错误**：' + (e.message || '未知错误') + '\n\n输入：`' + expr + '`',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制表达式', type: 'copy', payload: expr, hint: '↵' }]
+            }
+          ])
+        }
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

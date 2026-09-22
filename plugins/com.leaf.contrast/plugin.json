@@ -1,0 +1,30 @@
+{
+  "id": "com.leaf.contrast",
+  "name": "颜色对比度",
+  "version": "1.0.1",
+  "description": "WCAG 颜色对比度检查：输入前景色和背景色，计算对比度比率，判断 AA/AAA 合规性",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "check",
+      "title": "检查对比度",
+      "description": "检查两个颜色的 WCAG 对比度"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "fgColor",
+      "label": "默认前景色",
+      "type": "text",
+      "default": "#000000"
+    },
+    {
+      "name": "bgColor",
+      "label": "默认背景色",
+      "type": "text",
+      "default": "#FFFFFF"
+    }
+  ],
+  "permissions": []
+}

@@ -1,0 +1,16 @@
+{
+  "id": "com.leaf.csvjson",
+  "name": "CSV↔JSON",
+  "version": "1.0.1",
+  "description": "CSV 与 JSON 互转：自动识别格式，支持表头、引号、逗号分隔，从剪贴板读取，一键复制",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "convert",
+      "title": "CSV↔JSON 转换",
+      "description": "CSV 与 JSON 互相转换"
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>常用目录</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var DB_KEY = 'quickfolders:list'
+
+      function expandHome(p) {
+        if (p.startsWith('~')) {
+          return (process.env.HOME || '~') + p.slice(1)
+        }
+        return p
+      }
+
+      function getFolders() {
+        return api.db.get(DB_KEY).then(function (stored) {
+          if (stored && Array.isArray(stored) && stored.length > 0) return stored
+          // 首次使用：从偏好读取默认目录
+          return api.preferences.get('defaultFolders').then(function (r) {
+            var raw = r && r.ok && r.value ? String(r.value) : '~/Desktop,~/Documents,~/Downloads'
+            var list = raw
+              .split(',')
+              .map(function (s) {
+                return s.trim()
+              })
+              .filter(Boolean)
+            return api.db.put(DB_KEY, list).then(function () {
+              return list
+            })
+          })
+        })
+      }
+
+      function renderFolders(query) {
+        var q = (query || '').toLowerCase()
+        return getFolders().then(function (folders) {
+          var rows = folders
+            .filter(function (f) {
+              if (!q) return true
+              var name = f.split('/').pop() || f
+              return name.toLowerCase().includes(q) || f.toLowerCase().includes(q)
+            })
+            .map(function (f) {
+              var name = f.split('/').pop() || f
+              var fullPath = expandHome(f)
+              return {
+                title: name,
+                subtitle: fullPath,
+                icon: 'folder-line',
+                accessories: [fullPath.startsWith('~') ? '用户目录' : ''],
+                detail: '路径：' + fullPath + '\n\n回车在 Finder 中打开\n⌘1 复制路径\n⌘2 移除',
+                actions: [
+                  { label: '打开', type: 'open', payload: fullPath, hint: '↵' },
+                  { label: '复制路径', type: 'copy', payload: fullPath, hint: '⌘1' },
+                  { label: '移除', type: 'callback', payload: 'remove:' + f, hint: '⌘2' }
+                ]
+              }
+            })
+          if (rows.length === 0) {
+            rows.push({
+              title: '没有匹配的目录',
+              subtitle: q ? '试试其他关键词，或用「添加常用目录」命令添加' : '还没有保存任何目录',
+              icon: 'folder-info-line',
+              actions: [{ label: '知道了', type: 'callback', payload: 'noop' }]
+            })
+          }
+          api.renderList(rows)
+        })
+      }
+
+      function addFromClipboard() {
+        return api.readText().then(function (text) {
+          var path = (text || '').trim()
+          if (!path) {
+            api.renderList([
+              {
+                title: '剪贴板为空',
+                subtitle: '请先复制一个文件夹路径，再执行本命令',
+                icon: 'clipboard-line',
+                actions: [{ label: '关闭', type: 'callback', payload: 'close' }]
+              }
+            ])
+            return
+          }
+          return getFolders().then(function (folders) {
+            if (folders.includes(path)) {
+              api.renderList([
+                {
+                  title: '已存在',
+                  subtitle: path + ' 已在常用目录中',
+                  icon: 'checkbox-circle-line',
+                  actions: [{ label: '关闭', type: 'callback', payload: 'close' }]
+                }
+              ])
+              return
+            }
+            var next = [path].concat(folders)
+            return api.db.put(DB_KEY, next).then(function () {
+              api.notify('已添加常用目录：' + path)
+              api.renderList([
+                {
+                  title: '已添加',
+                  subtitle: path,
+                  icon: 'checkbox-circle-line',
+                  actions: [{ label: '关闭', type: 'callback', payload: 'close' }]
+                }
+              ])
+            })
+          })
+        })
+      }
+
+      api.onEnter(function (data) {
+        var cmd = data && data.cmd
+        if (cmd === 'add') {
+          addFromClipboard()
+        } else {
+          renderFolders('')
+        }
+      })
+
+      api.onSubInputChange(function (data) {
+        renderFolders(data && data.text ? data.text : '')
+      })
+
+      api.onAction(function (payload) {
+        var action = payload.action
+        if (action.type !== 'callback') return
+        var p = action.payload || ''
+        if (p === 'close') {
+          api.close()
+          return
+        }
+        if (p === 'noop') return
+        if (p.startsWith('remove:')) {
+          var target = p.slice('remove:'.length)
+          getFolders().then(function (folders) {
+            var next = folders.filter(function (f) {
+              return f !== target
+            })
+            return api.db.put(DB_KEY, next).then(function () {
+              api.notify('已移除：' + target)
+              renderFolders('')
+            })
+          })
+        }
+      })
+    </script>
+  </body>
+</html>

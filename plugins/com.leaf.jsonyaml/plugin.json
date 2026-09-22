@@ -1,0 +1,25 @@
+{
+  "id": "com.leaf.jsonyaml",
+  "name": "JSON↔YAML",
+  "version": "1.0.1",
+  "description": "JSON 与 YAML 互转：从剪贴板读取，自动识别格式，支持缩进配置，一键复制结果",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "convert",
+      "title": "JSON↔YAML 转换",
+      "description": "JSON 与 YAML 互相转换"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "indent",
+      "label": "YAML 缩进",
+      "type": "select",
+      "default": "2",
+      "options": ["2", "4"]
+    }
+  ],
+  "permissions": ["clipboard.read"]
+}

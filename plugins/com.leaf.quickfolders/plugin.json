@@ -1,7 +1,7 @@
 {
   "id": "com.leaf.quickfolders",
   "name": "常用目录",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "保存常用文件夹路径，从启动器直接搜索并打开；支持从剪贴板添加目录",
   "author": "Leaf",
   "main": "index.html",
@@ -16,5 +16,6 @@
       "title": "添加常用目录",
       "description": "从剪贴板读取文件夹路径并加入常用目录"
     }
-  ]
+  ],
+  "permissions": ["clipboard.read"]
 }

@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>颜色选择器</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      // ─── 颜色转换工具 ───
+      function hexToRgb(hex) {
+        hex = hex.replace('#', '')
+        if (hex.length === 3)
+          hex = hex
+            .split('')
+            .map(function (c) {
+              return c + c
+            })
+            .join('')
+        var n = parseInt(hex, 16)
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
+      }
+
+      function rgbToHex(r, g, b) {
+        return (
+          '#' +
+          [r, g, b]
+            .map(function (v) {
+              var h = Math.max(0, Math.min(255, Math.round(v))).toString(16)
+              return h.length === 1 ? '0' + h : h
+            })
+            .join('')
+            .toUpperCase()
+        )
+      }
+
+      function rgbToHsl(r, g, b) {
+        r /= 255
+        g /= 255
+        b /= 255
+        var max = Math.max(r, g, b),
+          min = Math.min(r, g, b)
+        var h,
+          s,
+          l = (max + min) / 2
+        if (max === min) {
+          h = s = 0
+        } else {
+          var d = max - min
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+          switch (max) {
+            case r:
+              h = (g - b) / d + (g < b ? 6 : 0)
+              break
+            case g:
+              h = (b - r) / d + 2
+              break
+            case b:
+              h = (r - g) / d + 4
+              break
+          }
+          h /= 6
+        }
+        return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) }
+      }
+
+      function parseColor(input) {
+        input = (input || '').trim()
+        // HEX
+        if (/^#?[0-9a-fA-F]{3}([0-9a-fA-F]{3})?$/.test(input)) {
+          var hex = input.charAt(0) === '#' ? input : '#' + input
+          var rgb = hexToRgb(hex)
+          return buildResult(hex, rgb.r, rgb.g, rgb.b)
+        }
+        // RGB
+        var rgbMatch = input.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i)
+        if (rgbMatch) {
+          var r = parseInt(rgbMatch[1]),
+            g = parseInt(rgbMatch[2]),
+            b = parseInt(rgbMatch[3])
+          return buildResult(rgbToHex(r, g, b), r, g, b)
+        }
+        // HSL
+        var hslMatch = input.match(/hsla?\s*\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?/i)
+        if (hslMatch) {
+          var h = parseInt(hslMatch[1]) / 360,
+            s = parseInt(hslMatch[2]) / 100,
+            l = parseInt(hslMatch[3]) / 100
+          var r2, g2, b2
+          if (s === 0) {
+            r2 = g2 = b2 = l
+          } else {
+            var hue2rgb = function (p, q, t) {
+              if (t < 0) t += 1
+              if (t > 1) t -= 1
+              if (t < 1 / 6) return p + (q - p) * 6 * t
+              if (t < 1 / 2) return q
+              if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+              return p
+            }
+            var q = l < 0.5 ? l * (1 + s) : l + s - l * s
+            var p = 2 * l - q
+            r2 = hue2rgb(p, q, h + 1 / 3)
+            g2 = hue2rgb(p, q, h)
+            b2 = hue2rgb(p, q, h - 1 / 3)
+          }
+          return buildResult(
+            rgbToHex(r2 * 255, g2 * 255, b2 * 255),
+            Math.round(r2 * 255),
+            Math.round(g2 * 255),
+            Math.round(b2 * 255)
+          )
+        }
+        return null
+      }
+
+      function buildResult(hex, r, g, b) {
+        var hsl = rgbToHsl(r, g, b)
+        return {
+          hex: hex,
+          rgb: 'rgb(' + r + ', ' + g + ', ' + b + ')',
+          hsl: 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)',
+          r: r,
+          g: g,
+          b: b
+        }
+      }
+
+      // ─── 常用色板 ───
+      var PALETTE = [
+        { name: '红色', hex: '#EF4444' },
+        { name: '橙色', hex: '#F97316' },
+        { name: '琥珀', hex: '#F59E0B' },
+        { name: '黄色', hex: '#EAB308' },
+        { name: '绿色', hex: '#22C55E' },
+        { name: '翠绿', hex: '#10B981' },
+        { name: '青色', hex: '#14B8A6' },
+        { name: '天蓝', hex: '#06B6D4' },
+        { name: '蓝色', hex: '#3B82F6' },
+        { name: '靛蓝', hex: '#6366F1' },
+        { name: '紫色', hex: '#8B5CF6' },
+        { name: '品红', hex: '#D946EF' },
+        { name: '粉色', hex: '#EC4899' },
+        { name: '玫瑰', hex: '#F43F5E' },
+        { name: '石板灰', hex: '#64748B' },
+        { name: '深灰', hex: '#374151' },
+        { name: '近黑', hex: '#111827' },
+        { name: '纯白', hex: '#FFFFFF' }
+      ]
+
+      var currentCmd = 'convert'
+
+      api.onEnter(function (data) {
+        currentCmd = (data && data.command) || 'convert'
+        if (currentCmd === 'palette') {
+          api.setSubInput('搜索颜色名称…')
+          renderPalette('')
+        } else {
+          api.setSubInput('输入 HEX / RGB / HSL 颜色…')
+          // 尝试从剪贴板读取
+          api
+            .readText()
+            .then(function (res) {
+              var text = res || ''
+              var parsed = parseColor(text)
+              if (parsed) {
+                renderConvert(parsed.hex)
+              } else {
+                renderConvert('')
+              }
+            })
+            .catch(function () {
+              renderConvert('')
+            })
+        }
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (currentCmd === 'palette') {
+          renderPalette(text)
+        } else {
+          renderConvert(text)
+        }
+      })
+
+      function renderConvert(input) {
+        if (!input || !input.trim()) {
+          api.renderList([
+            {
+              title: '请输入颜色值',
+              subtitle: '支持 #FF5733 / FF5733 / rgb(255,87,51) / hsl(12,80%,60%)',
+              icon: 'color-palette-line',
+              detail:
+                '在上方输入框输入任意格式的颜色值，回车复制默认格式。\n\n可在偏好设置中修改默认复制格式。',
+              actions: [{ label: '输入颜色', type: 'callback', hint: '↵' }]
+            }
+          ])
+          return
+        }
+        var result = parseColor(input)
+        if (!result) {
+          api.renderList([
+            {
+              title: '无法解析颜色: ' + input,
+              subtitle: '请检查格式是否正确',
+              icon: 'error-warning-line',
+              detail:
+                '支持的格式：\n- HEX: #FF5733 或 FF5733 或 #F53\n- RGB: rgb(255, 87, 51)\n- HSL: hsl(12, 80%, 60%)',
+              actions: [{ label: '重新输入', type: 'callback', hint: '↵' }]
+            }
+          ])
+          return
+        }
+        api.preferences.get('defaultFormat').then(function (prefRes) {
+          var defaultFmt = prefRes && prefRes.ok && prefRes.value ? prefRes.value : 'HEX'
+          var defaultPayload =
+            defaultFmt === 'RGB' ? result.rgb : defaultFmt === 'HSL' ? result.hsl : result.hex
+          api.renderList([
+            {
+              title: result.hex + '  ' + result.rgb,
+              subtitle: result.hsl,
+              icon: 'color-palette-line',
+              accessories: [defaultFmt],
+              detail:
+                '**' +
+                result.hex +
+                '**\n\n' +
+                '- RGB: ' +
+                result.rgb +
+                '\n' +
+                '- HSL: ' +
+                result.hsl +
+                '\n' +
+                '- R=' +
+                result.r +
+                ' G=' +
+                result.g +
+                ' B=' +
+                result.b +
+                '\n\n' +
+                '回车复制默认格式（' +
+                defaultFmt +
+                '），⌘1 复制 HEX，⌘2 复制 RGB，⌘3 复制 HSL。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制 ' + defaultFmt, type: 'copy', payload: defaultPayload, hint: '↵' },
+                { label: '复制 HEX', type: 'copy', payload: result.hex, hint: '⌘1' },
+                { label: '复制 RGB', type: 'copy', payload: result.rgb, hint: '⌘2' },
+                { label: '复制 HSL', type: 'copy', payload: result.hsl, hint: '⌘3' }
+              ]
+            }
+          ])
+        })
+      }
+
+      function renderPalette(query) {
+        var q = (query || '').toLowerCase()
+        var items = PALETTE.filter(function (c) {
+          return (
+            !q || c.name.toLowerCase().indexOf(q) !== -1 || c.hex.toLowerCase().indexOf(q) !== -1
+          )
+        }).map(function (c) {
+          var rgb = hexToRgb(c.hex)
+          var hsl = rgbToHsl(rgb.r, rgb.g, rgb.b)
+          return {
+            title: c.name + '  ' + c.hex,
+            subtitle:
+              'rgb(' +
+              rgb.r +
+              ', ' +
+              rgb.g +
+              ', ' +
+              rgb.b +
+              ') · hsl(' +
+              hsl.h +
+              ', ' +
+              hsl.s +
+              '%, ' +
+              hsl.l +
+              '%)',
+            icon: 'color-palette-line',
+            detail:
+              '**' +
+              c.name +
+              '** — ' +
+              c.hex +
+              '\n\n' +
+              '- RGB: rgb(' +
+              rgb.r +
+              ', ' +
+              rgb.g +
+              ', ' +
+              rgb.b +
+              ')\n' +
+              '- HSL: hsl(' +
+              hsl.h +
+              ', ' +
+              hsl.s +
+              '%, ' +
+              hsl.l +
+              '%)\n\n' +
+              '回车复制 HEX，⌘1 复制 RGB，⌘2 复制 HSL。',
+            detailFormat: 'markdown',
+            actions: [
+              { label: '复制 HEX', type: 'copy', payload: c.hex, hint: '↵' },
+              {
+                label: '复制 RGB',
+                type: 'copy',
+                payload: 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')',
+                hint: '⌘1'
+              },
+              {
+                label: '复制 HSL',
+                type: 'copy',
+                payload: 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)',
+                hint: '⌘2'
+              }
+            ]
+          }
+        })
+        if (items.length === 0) {
+          items.push({
+            title: '未找到匹配颜色',
+            subtitle: query,
+            icon: 'search-line',
+            actions: [{ label: '清除搜索', type: 'callback', hint: '↵' }]
+          })
+        }
+        api.renderList(items)
+      }
+
+      api.onAction(function () {
+        /* 回调动作无需特殊处理 */
+      })
+    </script>
+  </body>
+</html>

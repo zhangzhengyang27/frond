@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>JWT 解码</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      api.onEnter(function () {
+        api.setSubInput('粘贴 JWT Token，或从剪贴板自动读取…')
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              decodeJWT(text.trim())
+            } else {
+              showEmpty()
+            }
+          })
+          .catch(function () {
+            showEmpty()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          decodeJWT(text.trim())
+        } else {
+          showEmpty()
+        }
+      })
+
+      function showEmpty() {
+        api.renderList([
+          {
+            title: 'JWT 解码',
+            subtitle: '粘贴 JWT Token，或从剪贴板自动读取',
+            icon: 'key-2-line',
+            detail:
+              '**JWT (JSON Web Token) 解码**\n\nJWT 由三部分组成，用 `.` 分隔：\n1. **Header** - 算法和令牌类型\n2. **Payload** - 声明（用户数据、过期时间等）\n3. **Signature** - 签名（用于验证）\n\n本工具仅解码，**不验证签名**。\n\n支持的标准声明：iss(签发者)、sub(主题)、aud(受众)、exp(过期时间)、nbf(生效时间)、iat(签发时间)、jti(JWT ID)。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function base64UrlDecode(str) {
+        // Base64URL → Base64 → 解码
+        var base64 = str.replace(/-/g, '+').replace(/_/g, '/')
+        while (base64.length % 4) base64 += '='
+        try {
+          var binary = atob(base64)
+          // UTF-8 解码
+          var bytes = new Uint8Array(binary.length)
+          for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+          return new TextDecoder('utf-8').decode(bytes)
+        } catch (e) {
+          return null
+        }
+      }
+
+      function formatTimestamp(ts) {
+        if (!ts) return '(未设置)'
+        var d = new Date(ts * 1000)
+        if (isNaN(d.getTime())) return '(无效)'
+        var now = Date.now() / 1000
+        var diff = ts - now
+        var relative = ''
+        if (diff > 0) {
+          var days = Math.floor(diff / 86400)
+          var hours = Math.floor((diff % 86400) / 3600)
+          var mins = Math.floor((diff % 3600) / 60)
+          relative =
+            '（' +
+            (days > 0 ? days + '天' : '') +
+            (hours > 0 ? hours + '小时' : '') +
+            (mins > 0 ? mins + '分钟' : '') +
+            '后过期）'
+        } else {
+          var ago = Math.abs(diff)
+          var days = Math.floor(ago / 86400)
+          var hours = Math.floor((ago % 86400) / 3600)
+          relative =
+            '（已过期 ' + (days > 0 ? days + '天' : '') + (hours > 0 ? hours + '小时' : '') + '）'
+        }
+        return d.toLocaleString('zh-CN') + ' ' + relative
+      }
+
+      function decodeJWT(token) {
+        // 去除 Bearer 前缀
+        token = token.replace(/^Bearer\s+/i, '').trim()
+
+        var parts = token.split('.')
+        if (parts.length !== 3) {
+          api.renderList([
+            {
+              title: '无效的 JWT 格式',
+              subtitle: 'JWT 应由 3 部分组成，用 . 分隔',
+              icon: 'error-warning-line',
+              detail:
+                '**错误**：JWT 应由 3 部分组成（Header.Payload.Signature），当前有 ' +
+                parts.length +
+                ' 部分。\n\n请检查输入是否为有效的 JWT Token。',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制 Token', type: 'copy', payload: token, hint: '↵' }]
+            }
+          ])
+          return
+        }
+
+        var headerJson = base64UrlDecode(parts[0])
+        var payloadJson = base64UrlDecode(parts[1])
+        var signature = parts[2]
+
+        if (!headerJson || !payloadJson) {
+          api.renderList([
+            {
+              title: '解码失败',
+              subtitle: 'Header 或 Payload 不是有效的 Base64URL',
+              icon: 'error-warning-line',
+              detail:
+                '**错误**：无法解码 Header 或 Payload。\n\n请检查 JWT Token 是否完整、未被截断。',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制 Token', type: 'copy', payload: token, hint: '↵' }]
+            }
+          ])
+          return
+        }
+
+        var header, payload
+        try {
+          header = JSON.parse(headerJson)
+        } catch (e) {
+          header = null
+        }
+        try {
+          payload = JSON.parse(payloadJson)
+        } catch (e) {
+          payload = null
+        }
+
+        if (!header || !payload) {
+          api.renderList([
+            {
+              title: 'JSON 解析失败',
+              subtitle: 'Header 或 Payload 不是有效的 JSON',
+              icon: 'error-warning-line',
+              detail:
+                '**Header**：\n```\n' +
+                headerJson +
+                '\n```\n\n**Payload**：\n```\n' +
+                payloadJson +
+                '\n```',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制 Token', type: 'copy', payload: token, hint: '↵' }]
+            }
+          ])
+          return
+        }
+
+        // 标准声明
+        var claims = {
+          iss: '签发者',
+          sub: '主题',
+          aud: '受众',
+          exp: '过期时间',
+          nbf: '生效时间',
+          iat: '签发时间',
+          jti: 'JWT ID'
+        }
+
+        var isExpired = payload.exp && payload.exp * 1000 < Date.now()
+
+        var items = [
+          {
+            title: isExpired ? 'Token 已过期 ⚠' : 'Token 有效 ✓',
+            subtitle: '算法: ' + (header.alg || '未知') + ' · 类型: ' + (header.typ || 'JWT'),
+            icon: isExpired ? 'error-warning-line' : 'checkbox-circle-line',
+            accessories: [header.alg || '?'],
+            detail:
+              '**JWT 概览**\n\n- 算法: `' +
+              (header.alg || '未知') +
+              '`\n- 类型: `' +
+              (header.typ || 'JWT') +
+              '`\n' +
+              (payload.iss ? '- 签发者: `' + payload.iss + '`\n' : '') +
+              (payload.sub ? '- 主题: `' + payload.sub + '`\n' : '') +
+              (payload.aud
+                ? '- 受众: `' +
+                  (Array.isArray(payload.aud) ? payload.aud.join(', ') : payload.aud) +
+                  '`\n'
+                : '') +
+              (payload.exp ? '- 过期时间: ' + formatTimestamp(payload.exp) + '\n' : '') +
+              (payload.iat ? '- 签发时间: ' + formatTimestamp(payload.iat) + '\n' : '') +
+              (payload.nbf ? '- 生效时间: ' + formatTimestamp(payload.nbf) + '\n' : '') +
+              (payload.jti ? '- JWT ID: `' + payload.jti + '`\n' : '') +
+              '\n**注意**：本工具仅解码，不验证签名有效性。\n\n回车复制完整 Payload。',
+            detailFormat: 'markdown',
+            actions: [
+              {
+                label: '复制 Payload',
+                type: 'copy',
+                payload: JSON.stringify(payload, null, 2),
+                hint: '↵'
+              },
+              {
+                label: '复制 Header',
+                type: 'copy',
+                payload: JSON.stringify(header, null, 2),
+                hint: '⌘1'
+              },
+              { label: '复制 Token', type: 'copy', payload: token, hint: '⌘2' }
+            ]
+          },
+          {
+            title: 'Header (' + Object.keys(header).length + ' 个字段)',
+            subtitle: JSON.stringify(header),
+            icon: 'file-info-line',
+            accessories: ['Header'],
+            detail:
+              '**Header (JOSE)**\n\n```json\n' +
+              JSON.stringify(header, null, 2) +
+              '\n```\n\n' +
+              Object.entries(header)
+                .map(function (e) {
+                  return (
+                    '- `' +
+                    e[0] +
+                    '`: ' +
+                    (typeof e[1] === 'string' ? '`' + e[1] + '`' : JSON.stringify(e[1]))
+                  )
+                })
+                .join('\n'),
+            detailFormat: 'markdown',
+            actions: [
+              {
+                label: '复制 Header',
+                type: 'copy',
+                payload: JSON.stringify(header, null, 2),
+                hint: '↵'
+              }
+            ]
+          },
+          {
+            title: 'Payload (' + Object.keys(payload).length + ' 个声明)',
+            subtitle: Object.entries(payload)
+              .slice(0, 3)
+              .map(function (e) {
+                return e[0] + '=' + (typeof e[1] === 'string' ? e[1] : JSON.stringify(e[1]))
+              })
+              .join(' · '),
+            icon: 'file-list-3-line',
+            accessories: ['Payload'],
+            detail:
+              '**Payload (Claims)**\n\n```json\n' +
+              JSON.stringify(payload, null, 2) +
+              '\n```\n\n' +
+              Object.entries(payload)
+                .map(function (e) {
+                  var label = claims[e[0]] || '自定义声明'
+                  var val = e[1]
+                  if (
+                    (e[0] === 'exp' || e[0] === 'iat' || e[0] === 'nbf') &&
+                    typeof val === 'number'
+                  ) {
+                    val = formatTimestamp(val)
+                  } else if (typeof val === 'string') {
+                    val = '`' + val + '`'
+                  } else {
+                    val = '`' + JSON.stringify(val) + '`'
+                  }
+                  return '- **' + e[0] + '** (' + label + '): ' + val
+                })
+                .join('\n'),
+            detailFormat: 'markdown',
+            actions: [
+              {
+                label: '复制 Payload',
+                type: 'copy',
+                payload: JSON.stringify(payload, null, 2),
+                hint: '↵'
+              }
+            ]
+          },
+          {
+            title: 'Signature (' + signature.length + ' 字符)',
+            subtitle: signature.slice(0, 40) + '…',
+            icon: 'shield-keyhole-line',
+            accessories: ['Signature'],
+            detail:
+              '**Signature**\n\n```\n' +
+              signature +
+              '\n```\n\n签名用于验证 Token 的完整性和真实性。\n\n- 算法: `' +
+              (header.alg || '未知') +
+              '`\n- 签名长度: ' +
+              signature.length +
+              ' 字符\n\n**注意**：本工具不验证签名。',
+            detailFormat: 'markdown',
+            actions: [{ label: '复制签名', type: 'copy', payload: signature, hint: '↵' }]
+          }
+        ]
+
+        api.renderList(items)
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

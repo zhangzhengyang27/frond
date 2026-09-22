@@ -1,0 +1,56 @@
+{
+  "id": "com.leaf.passwordgen",
+  "name": "密码生成器",
+  "version": "1.0.1",
+  "description": "生成安全随机密码：可配置长度、大小写/数字/符号，支持批量生成，一键复制",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "generate",
+      "title": "生成密码",
+      "description": "生成安全随机密码"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "length",
+      "label": "密码长度",
+      "type": "select",
+      "default": "16",
+      "options": ["8", "12", "16", "20", "24", "32"]
+    },
+    {
+      "name": "uppercase",
+      "label": "包含大写字母",
+      "type": "checkbox",
+      "default": true
+    },
+    {
+      "name": "lowercase",
+      "label": "包含小写字母",
+      "type": "checkbox",
+      "default": true
+    },
+    {
+      "name": "numbers",
+      "label": "包含数字",
+      "type": "checkbox",
+      "default": true
+    },
+    {
+      "name": "symbols",
+      "label": "包含符号",
+      "type": "checkbox",
+      "default": true
+    },
+    {
+      "name": "count",
+      "label": "生成数量",
+      "type": "select",
+      "default": "1",
+      "options": ["1", "5", "10"]
+    }
+  ],
+  "permissions": []
+}

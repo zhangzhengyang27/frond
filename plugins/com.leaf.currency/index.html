@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>汇率转换</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+
+      // 常用货币符号映射
+      var CURRENCY_SYMBOLS = {
+        CNY: '¥',
+        USD: '$',
+        EUR: '€',
+        JPY: '¥',
+        GBP: '£',
+        HKD: 'HK$',
+        KRW: '₩',
+        AUD: 'A$',
+        CAD: 'C$',
+        SGD: 'S$',
+        CHF: 'Fr',
+        NZD: 'NZ$',
+        INR: '₹',
+        RUB: '₽',
+        BRL: 'R$',
+        ZAR: 'R',
+        MXN: '$',
+        SEK: 'kr',
+        NOK: 'kr',
+        DKK: 'kr',
+        PLN: 'zł',
+        THB: '฿',
+        MYR: 'RM',
+        IDR: 'Rp',
+        PHP: '₱',
+        VND: '₫',
+        TRY: '₺',
+        ILS: '₪',
+        AED: 'د.إ',
+        SAR: '﷼'
+      }
+
+      var ratesCache = null
+      var ratesTime = 0
+      var CACHE_TTL = 10 * 60 * 1000 // 10 分钟缓存
+
+      api.onEnter(function () {
+        api.setSubInput('输入金额（如 100 USD CNY 或 100）…')
+        // 尝试从剪贴板读取
+        api
+          .readText()
+          .then(function (res) {
+            var text = res || ''
+            if (text && text.trim()) {
+              processInput(text.trim())
+            } else {
+              showDefault()
+            }
+          })
+          .catch(function () {
+            showDefault()
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        var text = data && typeof data.text === 'string' ? data.text : ''
+        if (text && text.trim()) {
+          processInput(text.trim())
+        } else {
+          showDefault()
+        }
+      })
+
+      function showDefault() {
+        api.preferences.get('baseCurrency').then(function (bRes) {
+          api.preferences.get('targetCurrency').then(function (tRes) {
+            var base = bRes && bRes.ok && bRes.value ? bRes.value : 'CNY'
+            var target = tRes && tRes.ok && tRes.value ? tRes.value : 'USD'
+            api.renderList([
+              {
+                title: '汇率转换',
+                subtitle: base + ' → ' + target + '（在偏好设置中修改默认货币对）',
+                icon: 'exchange-funds-line',
+                detail:
+                  '**使用方法**：\n\n- 输入金额：`100` → 按默认货币对转换\n- 输入金额+货币对：`100 USD CNY` → 100 美元转人民币\n- 输入金额+源货币：`100 EUR` → 欧元转默认目标货币\n\n支持 160+ 货币，汇率数据每 10 分钟缓存。',
+                detailFormat: 'markdown',
+                actions: [{ label: '输入金额', type: 'callback', hint: '↵' }]
+              }
+            ])
+          })
+        })
+      }
+
+      function parseInput(input) {
+        // 格式：100 / 100 USD / 100 USD CNY / USD 100 CNY / $100
+        var parts = input.toUpperCase().replace(/[,，]/g, '').split(/\s+/)
+        var amount = null
+        var from = null
+        var to = null
+
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i]
+          // 金额（可能带货币符号前缀）
+          var numMatch = p.match(/^[¥$€£₩₹₽฿]?(\d+\.?\d*)$/)
+          if (numMatch && amount === null) {
+            amount = parseFloat(numMatch[1])
+            continue
+          }
+          // 货币代码（3 字母）
+          if (/^[A-Z]{3}$/.test(p)) {
+            if (from === null) from = p
+            else if (to === null) to = p
+          }
+        }
+        return { amount: amount, from: from, to: to }
+      }
+
+      function processInput(input) {
+        var parsed = parseInput(input)
+        if (parsed.amount === null) {
+          api.renderList([
+            {
+              title: '无法识别金额: ' + input,
+              subtitle: '请输入数字金额，如 100 或 100 USD CNY',
+              icon: 'error-warning-line',
+              actions: [{ label: '重新输入', type: 'callback', hint: '↵' }]
+            }
+          ])
+          return
+        }
+
+        api.preferences.get('baseCurrency').then(function (bRes) {
+          api.preferences.get('targetCurrency').then(function (tRes) {
+            var base = bRes && bRes.ok && bRes.value ? bRes.value : 'CNY'
+            var target = tRes && tRes.ok && tRes.value ? tRes.value : 'USD'
+            var from = parsed.from || base
+            var to = parsed.to || target
+
+            if (from === to) {
+              var sameResult = formatNumber(parsed.amount)
+              api.renderList([
+                {
+                  title: sameResult + ' ' + from,
+                  subtitle: '源货币与目标货币相同',
+                  icon: 'exchange-funds-line',
+                  actions: [{ label: '复制金额', type: 'copy', payload: sameResult, hint: '↵' }]
+                }
+              ])
+              return
+            }
+
+            fetchRates(from)
+              .then(function (rates) {
+                if (!rates || !rates.rates || !rates.rates[to]) {
+                  api.renderList([
+                    {
+                      title: '获取汇率失败',
+                      subtitle: '请检查网络连接',
+                      icon: 'error-warning-line',
+                      actions: [{ label: '重试', type: 'callback', hint: '↵' }]
+                    }
+                  ])
+                  return
+                }
+                var rate = rates.rates[to]
+                var result = parsed.amount * rate
+                var resultStr = formatNumber(result)
+                var fromSym = CURRENCY_SYMBOLS[from] || ''
+                var toSym = CURRENCY_SYMBOLS[to] || ''
+
+                api.renderList([
+                  {
+                    title:
+                      fromSym +
+                      formatNumber(parsed.amount) +
+                      ' ' +
+                      from +
+                      ' = ' +
+                      toSym +
+                      resultStr +
+                      ' ' +
+                      to,
+                    subtitle:
+                      '汇率: 1 ' +
+                      from +
+                      ' = ' +
+                      formatRate(rate) +
+                      ' ' +
+                      to +
+                      '（更新于 ' +
+                      new Date(ratesTime).toLocaleTimeString() +
+                      '）',
+                    icon: 'exchange-funds-line',
+                    accessories: [to],
+                    detail:
+                      '**转换结果**\n\n' +
+                      '- 金额: ' +
+                      fromSym +
+                      formatNumber(parsed.amount) +
+                      ' ' +
+                      from +
+                      '\n' +
+                      '- 汇率: 1 ' +
+                      from +
+                      ' = ' +
+                      formatRate(rate) +
+                      ' ' +
+                      to +
+                      '\n' +
+                      '- 结果: **' +
+                      toSym +
+                      resultStr +
+                      ' ' +
+                      to +
+                      '**\n\n' +
+                      '反向汇率: 1 ' +
+                      to +
+                      ' = ' +
+                      formatRate(1 / rate) +
+                      ' ' +
+                      from +
+                      '\n\n' +
+                      '数据来源: open.er-api.com（免费汇率 API，每 10 分钟缓存）。',
+                    detailFormat: 'markdown',
+                    actions: [
+                      { label: '复制结果', type: 'copy', payload: resultStr, hint: '↵' },
+                      {
+                        label: '复制完整表达式',
+                        type: 'copy',
+                        payload:
+                          fromSym +
+                          formatNumber(parsed.amount) +
+                          ' ' +
+                          from +
+                          ' = ' +
+                          toSym +
+                          resultStr +
+                          ' ' +
+                          to,
+                        hint: '⌘1'
+                      },
+                      {
+                        label: '复制汇率',
+                        type: 'copy',
+                        payload: '1 ' + from + ' = ' + formatRate(rate) + ' ' + to,
+                        hint: '⌘2'
+                      }
+                    ]
+                  }
+                ])
+              })
+              .catch(function (e) {
+                api.renderList([
+                  {
+                    title: '获取汇率失败: ' + (e.message || '网络错误'),
+                    subtitle: '请检查网络连接后重试',
+                    icon: 'error-warning-line',
+                    actions: [{ label: '重试', type: 'callback', hint: '↵' }]
+                  }
+                ])
+              })
+          })
+        })
+      }
+
+      function fetchRates(base) {
+        var now = Date.now()
+        if (ratesCache && ratesCache.base === base && now - ratesTime < CACHE_TTL) {
+          return Promise.resolve(ratesCache)
+        }
+        // 使用 launcherApi.fetch（主进程代理，有 SSRF 防护）
+        var url = 'https://open.er-api.com/v6/latest/' + base
+        return api.fetch(url).then(function (res) {
+          if (!res || !res.ok) throw new Error('HTTP ' + (res ? res.status : 'error'))
+          ratesCache = res.data
+          ratesTime = now
+          return ratesCache
+        })
+      }
+
+      function formatNumber(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M'
+        if (n >= 1000) return n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+        if (n >= 1) return n.toFixed(2)
+        return n.toFixed(4)
+      }
+
+      function formatRate(r) {
+        if (r >= 100) return r.toFixed(2)
+        if (r >= 1) return r.toFixed(4)
+        return r.toFixed(6)
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+{
+  // ⚠ 重建，非原件：原 tsconfig.json 随 2026-09-22 桌面删除事故丢失（从没被编辑器/agent 读到过，
+  // 无任何正文残留）。此处按 electron-vite 项目惯例 + 现存 tsconfig.node.json / tsconfig.web.json
+  // 反推为「只做 solution 聚合」，两个子配置各自 composite，与 package.json 的
+  // typecheck:node / typecheck:web 两条 -p 调用一致。
+  "files": [],
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.web.json" }]
+}

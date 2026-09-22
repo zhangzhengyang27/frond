@@ -1,0 +1,35 @@
+{
+  "extends": "@electron-toolkit/tsconfig/tsconfig.web.json",
+  "include": [
+    "src/renderer/src/env.d.ts",
+    "src/renderer/src/**/*",
+    "src/renderer/src/**/*.vue",
+    "src/preload/index.d.ts",
+    "src/preload/index.ts",
+    "src/shared/**/*"
+  ],
+  "compilerOptions": {
+    "composite": true,
+    "baseUrl": ".",
+    "moduleResolution": "bundler",
+    "types": ["vite/client"],
+    "ignoreDeprecations": "5.0",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@renderer/*": ["src/renderer/src/*"],
+      "@components/*": ["src/renderer/src/components/*"],
+      "@composables/*": ["src/renderer/src/composables/*"],
+      "@utils/*": ["src/renderer/src/utils/*"],
+      "@views/*": ["src/renderer/src/views/*"],
+      "@api/*": ["src/renderer/src/api/*"],
+      "@constants/*": ["src/renderer/src/constants/*"],
+      "@router/*": ["src/renderer/src/router/*"],
+      "@preload/*": ["src/preload/*"],
+      "@shared/*": ["src/shared/*"]
+    }
+  },
+  "vueCompilerOptions": {
+    "globalTypesPath": "./node_modules/.vue-global-types/index.d.ts"
+  }
+}

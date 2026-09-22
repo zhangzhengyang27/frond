@@ -5,9 +5,6 @@ directories:
   # electron-vite 产物在 out/{main,preload,renderer}；打包输出统一到 out/make，
   # 与 .github/workflows/release.yml 的 artifact 路径保持一致
   output: out/make
-  # electron-vite 产物在 out/{main,preload,renderer}；打包输出统一到 out/make，
-  # 与 .github/workflows/release.yml 的 artifact 路径保持一致
-  output: out/make
 files:
   - '!**/.vscode/*'
   - '!src/*'

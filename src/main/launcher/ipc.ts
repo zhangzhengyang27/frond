@@ -83,12 +83,8 @@ import {
   writeHotkeyConfig,
   registerAllHotkeys,
   getHotkeyConflicts,
-  getHotkeyConflicts,
   getRegisteredAccelerators
 } from './hotkeys'
-import { dispatchMainAction } from './actionHandlers'
-import { setPluginSearchItems, listPluginSearchItems } from './pluginSearchIndex'
-import { fileIndex } from '../modules/fileIndex/service'
 import { dispatchMainAction } from './actionHandlers'
 import { setPluginSearchItems, listPluginSearchItems } from './pluginSearchIndex'
 import { fileIndex } from '../modules/fileIndex/service'

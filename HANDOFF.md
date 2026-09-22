@@ -271,9 +271,23 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 
 ### A 类 · 主进程在、preload 桥没了 —— 补桥即恢复（**代价最低、功能量最大**）
 
+> **2026-09-23 进展**：这一类做掉三格 —— ①**通知**（8 个通道，`notifications.ts` 被恢复成
+> 全量迁移**前**的旧副本：按位置参数收，而 preload 早发单对象 → 通知整条静默不响）
+> ②**录屏崩溃恢复的两个动作** `recording.recovery.recover/discard`（RecoveryManager 的实现一直在，
+> 只有注册没了：对话框列得出孤儿文件、按钮按下去永远 reject）
+> ③**截图桥 21 个方法**（选区覆盖层协议 `SCREENSHOT:ready/ok/save/cancel` + 推送 capture/reset
+> + 12 个 `screenshot:history:*`）。
+> 读数：幽灵 API **28 → 2**；dead handler **35 → 17**；无监听推送 **5 → 3**；
+> `typecheck:web` 146 → 143；`typecheck:node` 43（本批 0 新增）。
+> **剩下的 17 条不是同一种病**：`pin:*`（10 个 handler + 3 个推送）连**创建钉图窗口的代码都不在树里**，
+> 归 C 类；`platform:{setDockBadge,setProgressBar,requestUserAttention}` 与
+> `recording.markers.{list,add,remove,rename}`（4 条）才是同型的缺桥。
+> 另有 3 条 preload 写了、主进程没有：`pomodoro:dispatchShortcut`、`region-overlay:submit/cancel`
+> （后两条与 `RegionOverlay.ts` 的 `leaf-region://` 协议撞车，先判哪条是正的再动）。
+
 | 功能域 | 缺的调用 | 证据 |
 | --- | --- | --- |
-| 截图库 | 16 处：`screenshot.history.{list,recent,openFile,showInFolder,storageUsage,setSaveDirectory,getSaveDirectory,delete}`、`screenshot.{startCapture,captureWindow,endCapture,getWindowList}` | 主进程 `src/main/ipc/screenshotHistory.ts` + `src/main/modules/screenshot.ts` 共注册 14 个 `screenshot:*` handler；`grep -c screenshot src/preload/index.ts` = **0** |
+| 截图库 | 16 处：`screenshot.history.{list,recent,openFile,showInFolder,storageUsage,setSaveDirectory,getSaveDirectory,delete}`、`screenshot.{startCapture,captureWindow,endCapture,getWindowList}` | 主进程 `src/main/ipc/screenshotHistory.ts` + `src/main/modules/screenshot.ts` 共注册 14 个 `screenshot:*` handler —— **已接回**（本行留作判定样例） |
 | （已修，同类参照） | 密度档 / 玻璃档 / 紧凑模式 9 个方法 | `f63fd57` 就是这一类的先例：store 与 ipc-contract 都在，只有 handler + preload 那截没了 |
 
 涉及渲染端文件：`views/screenshot/{index.vue,components/HistoryPanel.vue,components/WindowPicker.vue,pages/CapturePage.vue}`。
@@ -283,7 +297,7 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 
 | 缺 | 用在哪 | 说明 |
 | --- | --- | --- |
-| `screenshot.{ready,ok,cancel,save,onCapture,onReset,removeListeners}` | `views/screenshot/pages/CapturePage.vue`（自身 13 条类型错） | 截图覆盖层的握手协议，主进程与 preload 两侧都无踪迹；**别照猜写语义**，先读 CapturePage 现存的用法反推 |
+| ~~`screenshot.{ready,ok,cancel,save,onCapture,onReset,removeListeners}`~~ **已解决（2026-09-23）** | `views/screenshot/pages/CapturePage.vue` | 原判「两头都没」是**错的**：主进程一直有这些通道，只是名字叫**大写** `SCREENSHOT:ready/ok/save/cancel` 与推送 `SCREENSHOT:capture/reset`（`ScreenshotService.ts`）。桥已按真名接回 preload |
 | `screenshot.pin.create` | `views/screenshot/components/Screenshots.vue` | 钉图 |
 | `video.readFile` | `views/screenRecorder/components/PlaybackPanel.vue` | 录屏回放读文件 |
 

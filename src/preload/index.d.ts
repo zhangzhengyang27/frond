@@ -5,6 +5,12 @@ import type { McpToolArg } from '../shared/mcp'
 import type { McpToolCommand } from './mcp'
 import type { McpCallResult } from '../main/services/mcp/client'
 import type { PopToRootMode } from '../shared/popToRoot'
+import type {
+  Display as ScreenshotDisplay,
+  ScreenshotsData,
+  WindowInfo as ScreenshotWindowInfo
+} from '../main/services/ScreenshotService'
+import type { ScreenshotFilter } from '../main/db/repos/ScreenshotRepository'
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
 import type { BrowserTab } from '../main/services/BrowserTabsService'
@@ -186,6 +192,42 @@ export interface LauncherPluginState {
   /** P-2④ 第二半：插件自己的视图栈（含当前层）与「还有得退吗」 */
   viewDepth?: number
   canGoBack?: boolean
+}
+
+/**
+ * 截图历史的返回信封 —— 逐条对齐主进程 `screenshotHistory.ts` 各 handler 的 return。
+ * 只定这一处：preload 实现按这些名字断言、d.ts 按它们声明，
+ * 免得「两处各写一遍就必然漂」（插件快照、三档设置都犯过）。
+ */
+export interface ShotListRes {
+  success: boolean
+  items: unknown[]
+  total: number
+  error?: string
+}
+export interface ShotItemRes {
+  success: boolean
+  item?: unknown
+  error?: string
+}
+export interface ShotItemsRes {
+  success: boolean
+  items: unknown[]
+  error?: string
+}
+export interface ShotOkRes {
+  success: boolean
+  error?: string
+}
+export interface ShotDeleteManyRes {
+  success: boolean
+  count?: number
+  filesRemoved?: number
+  error?: string
+}
+export interface ShotLooseRes {
+  success: boolean
+  [k: string]: unknown
 }
 
 export interface API {
@@ -429,6 +471,37 @@ export interface API {
     onCompactModeChanged: (cb: (enabled: boolean) => void) => () => void
   }
   // 截图库 OCR 索引（V4 P1-10）
+  /**
+   * 截图：选区覆盖层协议 + 截图动作 + 历史。
+   * 类型直接指主进程的导出形状（`ScreenshotService` / `ScreenshotRepository`），
+   * 别在这里另抄一份 —— 上一轮「两处各写一遍就必然漂」已经犯过两次（插件快照、三档设置）。
+   */
+  screenshot: {
+    ready: () => void
+    ok: (buffer: ArrayBuffer, data: ScreenshotsData) => void
+    save: (buffer: ArrayBuffer, data: ScreenshotsData) => void
+    cancel: () => void
+    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void) => void
+    onReset: (cb: () => void) => void
+    removeListeners: () => void
+    startCapture: () => Promise<unknown>
+    endCapture: () => Promise<unknown>
+    getWindowList: () => Promise<ScreenshotWindowInfo[]>
+    captureWindow: (windowId: string, scaleFactor?: number) => Promise<unknown>
+    history: {
+      list: (filter?: ScreenshotFilter, limit?: number, offset?: number) => Promise<ShotListRes>
+      get: (id: string) => Promise<ShotItemRes>
+      recent: (limit?: number) => Promise<ShotItemsRes>
+      delete: (id: string) => Promise<ShotOkRes>
+      deleteMany: (ids: string[]) => Promise<ShotDeleteManyRes>
+      showInFolder: (filePath: string) => Promise<ShotOkRes>
+      copyImage: (filePath: string) => Promise<ShotOkRes>
+      openFile: (filePath: string) => Promise<ShotOkRes>
+      storageUsage: () => Promise<ShotLooseRes>
+      setSaveDirectory: () => Promise<ShotLooseRes>
+      getSaveDirectory: () => Promise<ShotLooseRes>
+    }
+  }
   shotIndex: {
     status: () => Promise<{
       total: number

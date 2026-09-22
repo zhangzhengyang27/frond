@@ -1,9 +1,25 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { API, PomodoroTraySnapshot, TelemetryMode } from './index.d'
+import type {
+  API,
+  PomodoroTraySnapshot,
+  TelemetryMode,
+  ShotListRes,
+  ShotItemRes,
+  ShotItemsRes,
+  ShotOkRes,
+  ShotDeleteManyRes,
+  ShotLooseRes
+} from './index.d'
 import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
 import type { McpToolArg } from '../shared/mcp'
 import type { PopToRootMode } from '../shared/popToRoot'
+import type {
+  Display as ScreenshotDisplay,
+  ScreenshotsData,
+  WindowInfo as ScreenshotWindowInfo
+} from '../main/services/ScreenshotService'
+import type { ScreenshotFilter } from '../main/db/repos/ScreenshotRepository'
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
 import { typedInvoke } from './typedIpc'
@@ -273,6 +289,77 @@ const api: API = {
       const listener = (_e: Electron.IpcRendererEvent, on: boolean): void => cb(on)
       ipcRenderer.on('compact-mode:changed', listener)
       return () => ipcRenderer.removeListener('compact-mode:changed', listener)
+    }
+  },
+  /**
+   * 截图（V4 P1-4 起）。这一段在恢复事故里整块丢失，症状是「截图页画得出来、
+   * 任何按钮按下去都 reject」——主进程 `ScreenshotService` 与 `screenshotHistory.ts`
+   * 的 17 个注册一直都在，只是没有桥过来。
+   *
+   * 为什么这里是裸 `ipcRenderer` 而不是 typedInvoke：**这些通道不在登记册里**
+   * （ipc-contract 没有 screenshot:* 条目），且主进程签名是位置参数
+   * （`list(filter, limit, offset)`、`ok(buffer, data)`），单对象约定套不上。
+   * 迁移它们 = 主进程 17 个 handler 与 4 个渲染页一起改，属 §8 的剩余清单，
+   * 不在「把断掉的桥接回来」这一格里。
+   */
+  screenshot: {
+    // ── 选区覆盖层协议（SCREENSHOT:*，主进程 ScreenshotService）──
+    ready: (): void => ipcRenderer.send('SCREENSHOT:ready'),
+    ok: (buffer: ArrayBuffer, data: ScreenshotsData): void =>
+      ipcRenderer.send('SCREENSHOT:ok', buffer, data),
+    /** 只保存不关闭：主进程走另一条落盘分支，不回 resolve 当前这轮截图 */
+    save: (buffer: ArrayBuffer, data: ScreenshotsData): void =>
+      ipcRenderer.send('SCREENSHOT:save', buffer, data),
+    cancel: (): void => ipcRenderer.send('SCREENSHOT:cancel'),
+    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void): void => {
+      ipcRenderer.on('SCREENSHOT:capture', (_e, display: ScreenshotDisplay, imageUrl: string) =>
+        cb(display, imageUrl)
+      )
+    },
+    onReset: (cb: () => void): void => {
+      ipcRenderer.on('SCREENSHOT:reset', () => cb())
+    },
+    /** 覆盖层是整页重载的：重新挂监听前必须摘掉旧的，否则一次推送会跑两遍 */
+    removeListeners: (): void => {
+      ipcRenderer.removeAllListeners('SCREENSHOT:capture')
+      ipcRenderer.removeAllListeners('SCREENSHOT:reset')
+    },
+    // ── 截图动作与窗口源 ──
+    startCapture: (): Promise<unknown> => ipcRenderer.invoke('screenshot:startCapture'),
+    endCapture: (): Promise<unknown> => ipcRenderer.invoke('screenshot:endCapture'),
+    getWindowList: (): Promise<ScreenshotWindowInfo[]> =>
+      ipcRenderer.invoke('screenshot:getWindowList'),
+    captureWindow: (windowId: string, scaleFactor?: number): Promise<unknown> =>
+      ipcRenderer.invoke('screenshot:captureWindow', windowId, scaleFactor),
+    // ── 截图历史（OCR 索引与文件都在这一层）──
+    history: {
+      list: (filter?: ScreenshotFilter, limit?: number, offset?: number) =>
+        ipcRenderer.invoke(
+          'screenshot:history:list',
+          filter,
+          limit,
+          offset
+        ) as Promise<ShotListRes>,
+      get: (id: string) => ipcRenderer.invoke('screenshot:history:get', id) as Promise<ShotItemRes>,
+      recent: (limit = 10) =>
+        ipcRenderer.invoke('screenshot:history:recent', limit) as Promise<ShotItemsRes>,
+      delete: (id: string) =>
+        ipcRenderer.invoke('screenshot:history:delete', id) as Promise<ShotOkRes>,
+      deleteMany: (ids: string[]) =>
+        ipcRenderer.invoke('screenshot:history:deleteMany', ids) as Promise<ShotDeleteManyRes>,
+      showInFolder: (filePath: string) =>
+        ipcRenderer.invoke('screenshot:history:showInFolder', filePath) as Promise<ShotOkRes>,
+      copyImage: (filePath: string) =>
+        ipcRenderer.invoke('screenshot:history:copyImage', filePath) as Promise<ShotOkRes>,
+      openFile: (filePath: string) =>
+        ipcRenderer.invoke('screenshot:history:openFile', filePath) as Promise<ShotOkRes>,
+      storageUsage: () =>
+        ipcRenderer.invoke('screenshot:history:storageUsage') as Promise<ShotLooseRes>,
+      /** 弹系统目录选择框，返回改后的目录（取消时 success:false） */
+      setSaveDirectory: () =>
+        ipcRenderer.invoke('screenshot:history:setSaveDirectory') as Promise<ShotLooseRes>,
+      getSaveDirectory: () =>
+        ipcRenderer.invoke('screenshot:history:getSaveDirectory') as Promise<ShotLooseRes>
     }
   },
   // 截图库 OCR 索引（V4 P1-10）

@@ -186,9 +186,8 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
 
   ipcMain.handle(
     'recording.settings.patch',
-    wrap(
-      (req: Partial<RecordingDefaultSettings>): RecordingDefaultSettings =>
-        recordingSettingsRepository.patch(req)
+    wrap((req: Partial<RecordingDefaultSettings>): RecordingDefaultSettings =>
+      recordingSettingsRepository.patch(req)
     )
   )
 
@@ -211,6 +210,18 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         }))
       }
     })
+  )
+
+  // 恢复对话框的两个动作。实现一直在 RecoveryManager 里（recover 认「DB 有行/没行」两种崩法，
+  // discard 只删临时片），注册被恢复事故吞掉后：scan 列得出来、按钮按下去永远 reject。
+  ipcMain.handle(
+    'recording.recovery.recover',
+    wrap(async (req: { filePath: string }) => getRecoveryManager().recover(req.filePath))
+  )
+
+  ipcMain.handle(
+    'recording.recovery.discard',
+    wrap((req: { filePath: string }) => getRecoveryManager().discard(req.filePath))
   )
 
   // ── Segments（PR-3 暂停/恢复） ──────────────────────────────
@@ -567,4 +578,3 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 }
-

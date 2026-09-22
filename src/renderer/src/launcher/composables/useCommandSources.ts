@@ -101,13 +101,14 @@ export function useCommandSources(afterTableChange?: () => void) {
     dynamicCommands.value = parts
   }
 
-  /** 读一次工具清单（主进程侧只读缓存，不会 spawn） */
-  async function loadMcpCommands(): Promise<void> {
-    mcpCommands.value = await loadMcpToolEntries()
-  }
+  /** 读一次工具清单（主进程侧只读缓存，不会 spawn），同样只认最新一趟 */
+  const loadMcpCommands = latestOnly(loadMcpToolEntries, (v) => {
+    mcpCommands.value = v
+  })
 
-  /** 拉一次插件命令表（不含提交，交给 latestOnly 决定还要不要这份结果） */
+  /** 拉一次插件命令表；提交交给 latestOnly——两次推送挨得近时旧结果不能盖掉新结果 */
   async function fetchPluginCommands(): Promise<CommandEntry[]> {
+    try {
       const plugins = (await window.api.launcher.listPlugins()) as Array<{
         id: string
         name: string
@@ -119,9 +120,9 @@ export function useCommandSources(afterTableChange?: () => void) {
           arguments?: PluginArgument[]
         }>
       }>
-      pluginCommands.value = plugins
+      return plugins
         .filter((p) => p.enabled && Array.isArray(p.commands))
-        .flatMap((p) =>
+        .flatMap((p): CommandEntry[] =>
           p.commands!.map((cmd) => ({
             key: `plugin:${p.id}:${cmd.code}`,
             icon: 'plug-2',
@@ -140,8 +141,13 @@ export function useCommandSources(afterTableChange?: () => void) {
         )
     } catch {
       /* 插件列表读取失败不阻塞内置搜索 */
+      return pluginCommands.value
     }
   }
+
+  const loadPluginCommands = latestOnly(fetchPluginCommands, (v) => {
+    pluginCommands.value = v
+  })
 
   /** #5 插件双通道：searchable 插件持久化条目（关闭插件后仍可从根搜索命中） */
   const pluginSearchRows = ref<CommandEntry[]>([])

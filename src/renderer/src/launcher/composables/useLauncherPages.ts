@@ -25,7 +25,8 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   qlform: '添加快捷链接',
   qlarg: '快捷链接',
   pluginarg: '插件命令参数',
-  pluginarg: '插件命令参数',
+  mcparg: 'MCP 工具参数',
+  mcpcall: 'MCP 工具',
   settings: '设置',
   ai: 'AI 问答',
   browserTabs: '浏览器标签',
@@ -91,49 +92,3 @@ export function useLauncherPages() {
 
   return { pageStack, firstPartyPage, pageRef, pushPage, popPage, beginShowCycle, pushedSince }
 }
-=== FirstPartyPage
-26:export const FIRST_PARTY_PAGE_VALUES = [
-27-  'focus',
-28-  'snippets',
-29-  'shots',
-30-  'schedule',
-31-  'eventform',
-32-  'clips',
-33-  'focusStats',
-34-  'files',
-35-  'qlform',
-36-  'qlarg',
-37-  'pluginarg',
-38-  'settings',
-39-  'ai',
-40-  'browserTabs',
-41-  'systemInfo',
-42-  'windowSwitcher',
-43-  'trash',
-44-  'dictionary',
-45-  'notes',
-46-  'reminders',
-47-  'calendar'
-48-] as const
-49-
-50:export type FirstPartyPage = (typeof FIRST_PARTY_PAGE_VALUES)[number]
-51-
-52-/**
-53- * 重型模块（阶段C「主窗口降级」）：从启动台 / ⌘K 打开时走独立窗口，
-54- * 不抢占主窗口当前状态；侧边栏内的窗口内导航行为不变。
-55- */
-56-export const WINDOW_MODULES: ReadonlySet<string> = new Set(['snippets', 'screenRecorder'])
-57-
-58-/** 命令可执行的动作 */
-59-export type CommandAction =
-60-  | { type: 'module'; moduleId: string; path: string }
-61-  | { type: 'page'; pageId: string; path: string }
-62-  | { type: 'plugin'; pluginId: string; cmd: string; arguments?: PluginArgument[] }
-63-  /** #5 插件双通道：searchable 插件持久化条目，动作复用声明式 List 的 PluginItemAction */
-64-  | { type: 'pluginSearch'; pluginId: string; action: PluginItemAction }
-65-  | { type: 'app'; path: string }
-66-  | { type: 'firstParty'; page: FirstPartyPage }
-67-  | { type: 'copyText'; text: string }
-68-  /** 系统命令 / 窗口管理（M2），id 形如 system.lock / window.left */
-69-  | { type: 'system'; cmdId: string }
-70-  /** 用户自定义快捷链接（M2.3） */

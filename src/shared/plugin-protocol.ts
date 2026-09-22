@@ -475,3 +475,158 @@ export const SENSITIVE_PLUGIN_API_PERMISSIONS: Record<string, PluginPermission> 
 export function isPluginPermission(value: unknown): value is PluginPermission {
   return typeof value === 'string' && value in PLUGIN_PERMISSION_LABELS
 }
+
+// ─── 插件平台 API 的三道清洗（P-2.5）───
+//
+// ⚠ 恢复说明：本节的三个清洗函数随 2026-09-22 桌面删除事故丢失，语义按
+// src/shared/__tests__/pluginPlatformApis.test.ts 里既有用例逐条重建（那份测试没丢，
+// 是它把边界钉死的：哪些输入必须整条剔除、哪些只丢一个字段、哪些必须拒绝）。
+
+/** 偏好项数量上限（防第三方声明超量设置项刷爆设置页） */
+export const PLUGIN_MAX_PREFERENCES = 20
+/** name 会当存储键用：剪短就等于换键，故超长只能整条剔除 */
+const PREFERENCE_NAME_MAX = 64
+const PREFERENCE_LABEL_MAX = 60
+const PREFERENCE_DEFAULT_MAX = 500
+const PREFERENCE_OPTION_MAX = 120
+const PREFERENCE_TYPES = new Set(['text', 'select', 'checkbox'])
+
+export type PluginPreferenceType = 'text' | 'select' | 'checkbox'
+
+export interface PluginPreference {
+  name: string
+  label: string
+  type: PluginPreferenceType
+  default?: string | boolean
+  options?: string[]
+}
+
+/**
+ * 声明式偏好设置清洗。
+ *
+ * 取舍：能影响「存到哪个键 / 用什么控件」的字段出错一律整条剔除，
+ * 只有纯显示用的 label 允许截断 —— 截断比剔除更坏，键被剪短之后
+ * 插件 getPreference() 用的就不是同一个键了。password 之类不认识的 type
+ * 也不降级成文本框（那等于把口令明文摆在设置页里）。
+ */
+export function sanitizePluginPreferences(raw: unknown): PluginPreference[] {
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  const out: PluginPreference[] = []
+  for (const item of raw) {
+    if (out.length >= PLUGIN_MAX_PREFERENCES) break
+    if (typeof item !== 'object' || item === null) continue
+    const rec = item as Record<string, unknown>
+    if (typeof rec.name !== 'string' || rec.name.trim() === '') continue
+    if (rec.name.length > PREFERENCE_NAME_MAX) continue // 键超长：只能丢，不能剪
+    if (seen.has(rec.name)) continue
+    if (typeof rec.label !== 'string' || rec.label.trim() === '') continue // 无法展示 = 等于没声明
+    seen.add(rec.name)
+
+    let type: PluginPreferenceType
+    if (rec.type === undefined) type = 'text'
+    else if (typeof rec.type === 'string' && PREFERENCE_TYPES.has(rec.type))
+      type = rec.type as PluginPreferenceType
+    else continue
+
+    const pref: PluginPreference = {
+      name: rec.name,
+      label: rec.label.slice(0, PREFERENCE_LABEL_MAX),
+      type
+    }
+
+    if (type === 'select') {
+      const options = Array.isArray(rec.options)
+        ? rec.options.filter(
+            (o): o is string => typeof o === 'string' && o !== '' && o.length <= PREFERENCE_OPTION_MAX
+          )
+        : []
+      if (options.length === 0) continue // 无候选的 select 换了个控件，整条丢
+      pref.options = options
+      if (typeof rec.default === 'string' && options.includes(rec.default)) pref.default = rec.default
+    } else if (type === 'checkbox') {
+      if (typeof rec.default === 'boolean') pref.default = rec.default
+    } else if (typeof rec.default === 'string' && rec.default.length <= PREFERENCE_DEFAULT_MAX) {
+      pref.default = rec.default
+    }
+    out.push(pref)
+  }
+  return out
+}
+
+/** 交给 shell.openExternal 的 URL 长度上限：超限直接拒，不截断成一条「还能打开」的地址 */
+export const PLUGIN_MAX_OPENABLE_URL = 2048
+/** 宿主策略允许的协议：file:/data:/自定义 scheme 都不许（能读本地盘、能起任意 handler） */
+const OPENABLE_PROTOCOLS = new Set(['http:', 'https:', 'mailto:'])
+
+export function sanitizePluginOpenableUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (trimmed === '' || trimmed.length > PLUGIN_MAX_OPENABLE_URL) return null
+  let url: URL
+  try {
+    url = new URL(trimmed) // 协议相对 //example.com 与 'not a url' 都在这里落空
+  } catch {
+    return null
+  }
+  if (!OPENABLE_PROTOCOLS.has(url.protocol)) return null
+  if (url.protocol === 'mailto:' && url.href.slice('mailto:'.length).trim() === '') return null
+  return url.href
+}
+
+/** 一条模态框最多摆几颗按钮（再多就不是提示而是选择恐惧） */
+export const PLUGIN_MAX_ALERT_ACTIONS = 4
+const ALERT_TITLE_MAX = 80
+const ALERT_MESSAGE_MAX = 600
+const ALERT_STYLES = new Set(['default', 'cancel', 'destructive'])
+
+export type SanitizedAlertStyle = 'default' | 'cancel' | 'destructive'
+
+export interface SanitizedAlertAction {
+  id: string
+  title: string
+  style: SanitizedAlertStyle
+}
+
+export interface SanitizedAlert {
+  title: string
+  message: string
+  actions: SanitizedAlertAction[]
+}
+
+/**
+ * 插件 alert 请求清洗：宿主确实会弹**原生模态框**，所以这里必须苛刻。
+ * 没有 message 直接拒（弹一个空框只会吓人）；动作缺 id/title 的剔除、id 去重、
+ * style 只认三种（拼错的降级成 default 而不是丢掉，按钮内容还在）。
+ */
+export function sanitizeAlertRequest(raw: unknown): SanitizedAlert | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const rec = raw as Record<string, unknown>
+  if (typeof rec.message !== 'string' || rec.message.trim() === '') return null
+
+  const actions: SanitizedAlertAction[] = []
+  const seen = new Set<string>()
+  if (Array.isArray(rec.actions)) {
+    for (const item of rec.actions) {
+      if (actions.length >= PLUGIN_MAX_ALERT_ACTIONS) break
+      if (typeof item !== 'object' || item === null) continue
+      const a = item as Record<string, unknown>
+      if (typeof a.id !== 'string' || a.id === '' || seen.has(a.id)) continue
+      if (typeof a.title !== 'string' || a.title.trim() === '') continue
+      seen.add(a.id)
+      actions.push({
+        id: a.id,
+        title: a.title.slice(0, ALERT_TITLE_MAX),
+        style:
+          typeof a.style === 'string' && ALERT_STYLES.has(a.style)
+            ? (a.style as SanitizedAlertStyle)
+            : 'default'
+      })
+    }
+  }
+  return {
+    title: typeof rec.title === 'string' ? rec.title.slice(0, ALERT_TITLE_MAX) : '',
+    message: rec.message.slice(0, ALERT_MESSAGE_MAX),
+    actions
+  }
+}

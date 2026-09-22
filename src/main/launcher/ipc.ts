@@ -25,7 +25,6 @@ import {
   getActiveContext,
   setDeclaredList,
   setDeclaredView,
-  setDeclaredView,
   submitPluginFormValues,
   clearDeclaredList,
   runPluginCallback,
@@ -219,7 +218,7 @@ export function registerLauncherIpc(): void {
   })
   typedHandle('launcher:hyperkey:setQuickPress', (_e, { action }) => {
     const next = writeHyperKeyConfig({ quickPress: normalizeQuickPress(action) })
-    return { ok: true, config: next }
+    return { ok: true as const, config: next }
   })
 
   typedHandle('launcher:pluginDevtools', (_e, { pluginId }) => {
@@ -354,15 +353,15 @@ export function registerLauncherIpc(): void {
     if (canceled || filePaths.length === 0) return { ok: false, canceled: true }
     const scopes = fileIndex.getScopes()
     if (!scopes.includes(filePaths[0])) fileIndex.setScopes([...scopes, filePaths[0]])
-    return { ok: true, scopes: fileIndex.getScopes() }
+    return { ok: true as const, scopes: fileIndex.getScopes() }
   })
   typedHandle('fileIndex:removeScope', (_e, { dir }) => {
     fileIndex.setScopes(fileIndex.getScopes().filter((s) => s !== String(dir ?? '')))
-    return { ok: true, scopes: fileIndex.getScopes() }
+    return { ok: true as const, scopes: fileIndex.getScopes() }
   })
   typedHandle('fileIndex:rebuild', () => {
     void fileIndex.rebuild()
-    return { ok: true }
+    return { ok: true as const }
   })
   typedHandle('fileIndex:setHidden', (_e, { value }) => {
     fileIndex.setHidden(value === true)
@@ -385,7 +384,7 @@ export function registerLauncherIpc(): void {
     }
     const next = writeHotkeyConfig({ commands })
     registerAllHotkeys()
-    return { ok: true, config: next, registered: getRegisteredAccelerators() }
+    return { ok: true as const, config: next, registered: getRegisteredAccelerators() }
   })
   // 两段式直达（GAP_ANALYSIS 维度 5）：字母（a-z）→ 命令 spec
   typedHandle('launcher:hotkeys:setChord', (_e, { letter, spec }) => {
@@ -498,7 +497,7 @@ export function registerLauncherIpc(): void {
         isValidQuicklinkUrl((item as { url?: unknown }).url)
     ) as Quicklink[]
     store.put(QUICKLINK_NS, 'items', safeItems)
-    return { success: true, removed: list.length - safeItems.length }
+    return { success: true as const, removed: list.length - safeItems.length }
   })
 
   // ─────────── 插件受控 API（plugapi:*）───────────
@@ -669,7 +668,7 @@ export function registerLauncherIpc(): void {
   typedHandle('launcher:syncGetConfig', () => getSyncConfig())
   typedHandle('launcher:syncSetConfig', (_e, { config }) => {
     setSyncConfig(config)
-    return { success: true }
+    return { success: true as const }
   })
   typedHandle('launcher:syncTest', (_e, { configOverride }) =>
     testConnection(configOverride ?? undefined)

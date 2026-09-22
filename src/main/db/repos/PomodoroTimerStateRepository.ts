@@ -90,3 +90,5 @@ export class PomodoroTimerStateRepository {
   }
 }
 
+export const pomodoroTimerStateRepository = new PomodoroTimerStateRepository()
+

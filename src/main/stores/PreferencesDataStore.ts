@@ -1,6 +1,5 @@
 import { prefRepository } from '../db/repos/PrefRepository'
 import { normalizePopToRootMode, type PopToRootMode } from '../../shared/popToRoot'
-import { normalizePopToRootMode, type PopToRootMode } from '../../shared/popToRoot'
 import { DEFAULT_DENSITY, normalizeDensity, type Density } from '../../shared/density'
 import { normalizeGlass, type CapsuleGlass } from '../../shared/capsuleGlass'
 
@@ -197,33 +196,6 @@ export class PreferencesDataStore {
   }
 
   /** 兜底命令的用户自定义顺序（id 列表；未收录的 id 保持默认相对序随后，V4 P0-3） */
-  getFallbackOrder(): string[] {
-    const raw = prefRepository.get(PREF_KEYS.fallbackOrder)
-    if (!raw) return []
-    try {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
-    } catch {
-      /* fall through */
-    }
-    return []
-  }
-
-  /** 写入兜底命令自定义顺序 */
-  setFallbackOrder(ids: string[]): void {
-    prefRepository.set(PREF_KEYS.fallbackOrder, JSON.stringify([...new Set(ids)]))
-  }
-
-  /** Pop to Root 三态（对标 Raycast；非法值回退 immediately，V4 P0-3） */
-  getPopToRootMode(): PopToRootMode {
-    return normalizePopToRootMode(prefRepository.get(PREF_KEYS.popToRoot))
-  }
-
-  setPopToRootMode(mode: PopToRootMode): void {
-    prefRepository.set(PREF_KEYS.popToRoot, normalizePopToRootMode(mode))
-  }
-
-  /** 窗口间隙（px，窗口与屏幕边缘留白；0 = 关闭，V4 P1-7 批次3） */
   getWindowGap(): number {
     const raw = prefRepository.get(PREF_KEYS.windowGap)
     const n = raw === null ? Number.NaN : Number(raw)

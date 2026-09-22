@@ -85,25 +85,6 @@ export function sortFallbackCommands(cmds: FallbackCommand[], order: string[]): 
   })
 }
 
-/**
- * 按用户自定义顺序排序兜底命令：
- * order 里收录的 id 按其位置排前；未收录的保持默认相对序随后（对标 Vicinae 可排序 fallback 列表）。
- * 纯函数，不修改入参。
- */
-export function sortFallbackCommands(cmds: FallbackCommand[], order: string[]): FallbackCommand[] {
-  if (order.length === 0) return [...cmds]
-  const pos = new Map(order.map((id, i) => [id, i]))
-  const defaultIndex = new Map(cmds.map((c, i) => [c.id, i]))
-  const UNKNOWN = Number.MAX_SAFE_INTEGER
-  return [...cmds].sort((a, b) => {
-    const pa = pos.get(a.id) ?? UNKNOWN
-    const pb = pos.get(b.id) ?? UNKNOWN
-    if (pa !== pb) return pa - pb
-    // 同为未收录：按默认相对序
-    return (defaultIndex.get(a.id) ?? 0) - (defaultIndex.get(b.id) ?? 0)
-  })
-}
-
 /** 渲染时替换 {query} 占位符 */
 export function renderFallbackCommand(cmd: FallbackCommand, query: string): FallbackCommand {
   const encoded = encodeURIComponent(query)

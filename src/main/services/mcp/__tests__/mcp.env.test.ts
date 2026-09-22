@@ -20,7 +20,7 @@ vi.mock('electron', () => ({
 import Database from 'better-sqlite3'
 import { migrations } from '../../../db/migrations'
 import { database } from '../../../db/database'
-import { readMcpServers, sanitizeMcpServers, saveMcpServers } from '../store'
+import { readMcpServers, sanitizeMcpServers, saveMcpServers, mcpOverview } from '../store'
 
 function freshDb(): Database.Database {
   const db = new Database(':memory:')

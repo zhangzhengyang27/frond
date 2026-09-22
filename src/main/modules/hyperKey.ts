@@ -14,7 +14,7 @@
  *   与 Karabiner 等虚拟键盘驱动冲突（同 Raycast 限制）
  * - 应用崩溃时重映射会残留，再次启用/停用一次即可还原
  */
-import { execFile } from 'child_process'
+import { execFile, execFileSync } from 'child_process'
 import { promisify } from 'util'
 import { UiohookKey } from 'uiohook-napi'
 import { getLauncherDocStore } from '../launcher/docStore'
@@ -92,6 +92,14 @@ export async function applyCapsRemap(): Promise<void> {
 
 export async function clearCapsRemap(): Promise<void> {
   await execFileAsync('hidutil', ['property', '--set', HIDUTIL_CLEAR])
+}
+
+/**
+ * will-quit 用的同步版：异步 execFile 在窗口期内不一定跑完，
+ * 崩溃/退出时系统映射会留在Caps→F18 上，下次开机前键盘都是错的。
+ */
+export function clearCapsRemapSync(): void {
+  execFileSync('hidutil', ['property', '--set', HIDUTIL_CLEAR])
 }
 
 // ── F18 监听与分发 ──

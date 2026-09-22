@@ -7,6 +7,7 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import * as os from 'os'
+import { ipcMain } from 'electron'
 
 const execAsync = promisify(exec)
 
@@ -152,7 +153,7 @@ export async function getSystemInfo(): Promise<SystemInfo> {
 }
 
 /** 注册系统信息 IPC */
-export function registerSystemInfoIpc(ipcMain: typeof import('electron').ipcMain): void {
+export function registerSystemInfoIpc(): void {
   ipcMain.handle('system:hardware', async () => {
     return getSystemInfo()
   })

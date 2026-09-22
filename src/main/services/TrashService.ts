@@ -7,7 +7,7 @@
  */
 import * as fs from 'fs'
 import * as path from 'path'
-import { app, shell } from 'electron'
+import { app, ipcMain, shell } from 'electron'
 
 export interface TrashItem {
   /** 文件名 */
@@ -148,7 +148,7 @@ export async function openTrashInFinder(): Promise<void> {
 }
 
 /** 注册回收站 IPC */
-export function registerTrashIpc(ipcMain: typeof import('electron').ipcMain): void {
+export function registerTrashIpc(): void {
   ipcMain.handle('trash:list', async () => listTrash())
   ipcMain.handle('trash:empty', async () => emptyTrash())
   ipcMain.handle('trash:restore', async (_e, itemPath: string) =>

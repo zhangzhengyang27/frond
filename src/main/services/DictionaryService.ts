@@ -5,7 +5,7 @@
  * 1. macOS 自带词典（dict:// URL scheme）
  * 2. 免费在线词典 API（dictionaryapi.dev，无需 key）
  */
-import { shell } from 'electron'
+import { ipcMain, shell } from 'electron'
 import https from 'https'
 
 export interface DictionaryDefinition {
@@ -61,7 +61,7 @@ export function queryDictionary(word: string): Promise<DictionaryDefinition[]> {
 }
 
 /** 注册词典 IPC */
-export function registerDictionaryIpc(ipcMain: typeof import('electron').ipcMain): void {
+export function registerDictionaryIpc(): void {
   ipcMain.handle('dictionary:open', (_e, word: string) => {
     openInDictionary(word)
     return true

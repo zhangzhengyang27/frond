@@ -13,8 +13,6 @@
 
 import type { McpArgType, McpToolArg } from '../../../shared/mcp'
 
-import type { McpArgType, McpToolArg } from '../../../shared/mcp'
-
 /** 我们声称支持的协议版本（服务器回什么就记什么，不做兼容层） */
 export const MCP_PROTOCOL_VERSION = '2025-06-18'
 /** 单帧上限：正常工具清单远小于此，超限即判定流已坏 */
@@ -290,89 +288,3 @@ export function coerceToolArgs(
   }
   return out
 }
-
-
-/** 一个工具最多排几格参数（再多就不是「顺手填一下」而是表单了，界面上也摆不下） */
-export const MAX_ARGS_PER_TOOL = 6
-
-/** 只认这四种标量：其余（array/object/enum/联合）填不出来，丢掉并计数 */
-const SCALAR = new Set(['string', 'number', 'integer', 'boolean'])
-
-/**
- * `inputSchema` → 能填的参数表（P-4②「工具进根搜索」的地基）。
- *
- * 只取**顶层 properties**里 type 是单个标量的那些：
- * - 嵌套对象/数组要的是编辑器不是搜索框里的一格，enum 要的是候选列表；
- * - `type` 写成数组（`['string','null']`）按不支持处理——猜哪个都有反例。
- * 丢掉的个数原样带回去（`droppedArgs`），界面说「另有 N 个参数不支持」而不是
- * 摆出一个提交上去必然被服务器拒的工具。
- * 顺序 = schema 里出现的顺序；必填的排前面（第一格预填时落在必填参数上）。
- */
-export function toolArgSpecs(
-  schema: Record<string, unknown> | undefined
-): { args: McpToolArg[]; dropped: number } {
-  const props = schema?.properties
-  if (!props || typeof props !== 'object' || Array.isArray(props)) return { args: [], dropped: 0 }
-  const required = new Set(requiredArgNames(schema))
-  const args: McpToolArg[] = []
-  let dropped = 0
-  for (const [name, raw] of Object.entries(props)) {
-    if (args.length >= MAX_ARGS_PER_TOOL) {
-      dropped++
-      continue
-    }
-    const type = (raw as { type?: unknown })?.type
-    if (typeof type !== 'string' || !SCALAR.has(type)) {
-      dropped++
-      continue
-    }
-    const desc = (raw as { description?: unknown })?.description
-    args.push({
-      name,
-      type: type as McpArgType,
-      description: typeof desc === 'string' ? desc.trim().slice(0, 200) : '',
-      required: required.has(name)
-    })
-  }
-  // 必填的排前面：内联槽只有两格，第一格该是用户非填不可的那个
-  args.sort((a, b) => Number(b.required) - Number(a.required))
-  return { args, dropped }
-}
-
-/**
- * 界面交回来的字符串 → 服务器要的 JSON 值（用参数表定型）。
- *
- * 数字格填了「abc」时**不猜**：原样发过去让服务器报错，比本地静默丢掉一个参数好
- * （静默丢参数 = 工具按「没传这个参数」的语义跑了，用户看到的是错的结果）。
- * 空串 = 没填，整个键不发（必填与否由界面那关管）。
- */
-export function coerceToolArgs(
-  specs: McpToolArg[],
-  raw: Record<string, string>
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const s of specs) {
-    const v = raw[s.name]
-    if (typeof v !== 'string') continue
-    const t = v.trim()
-    if (t === '') continue
-    if (s.type === 'boolean') {
-      if (/^(true|1|yes|是)$/i.test(t)) out[s.name] = true
-      else if (/^(false|0|no|否)$/i.test(t)) out[s.name] = false
-      else out[s.name] = t // 认不出来的写法原样发，让服务器说
-      continue
-    }
-    if (s.type === 'number' || s.type === 'integer') {
-      const n = Number(t)
-      if (Number.isFinite(n) && (s.type === 'number' || Number.isInteger(n))) {
-        out[s.name] = n
-        continue
-      }
-      out[s.name] = t
-      continue
-    }
-    out[s.name] = v
-  }
-  return out
-}
-

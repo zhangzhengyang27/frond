@@ -101,7 +101,11 @@ import { focusShield, registerFocusShieldIpc } from './modules/focusShield'
 // AI 服务（P0-3：OpenAI 兼容 API + 流式响应）
 import { registerAIIpc } from './services/AIService'
 import { registerMcpIpc, stopAllMcpServers } from './services/mcp/store'
-import { registerAutomationIpc } from './modules/automation/store'
+import {
+  registerAutomationIpc,
+  startAutomationEngine,
+  stopAutomationEngine
+} from './modules/automation/store'
 // 内置插件自动安装
 import { autoInstallBuiltinPlugins } from './launcher/builtinPlugins'
 // 命令别名（P2-8）
@@ -433,6 +437,8 @@ app.whenReady().then(() => {
   registerMcpIpc()
   // Automations（P-4④）：设置页读写 + 引擎心跳的 IPC
   registerAutomationIpc()
+  // 心跳必须单独起：只注册 IPC 的话，任务写得进库，但到点没人触发
+  startAutomationEngine()
 
   // 内置插件自动安装（开箱即用）
   autoInstallBuiltinPlugins()
@@ -524,8 +530,7 @@ app.whenReady().then(() => {
     textExpansion.stop()
     // MCP 是自己 spawn 的长命子进程：不显式杀就会留成孤儿
     stopAllMcpServers()
-    // MCP 是自己 spawn 的长命子进程：不显式杀就会留成孤儿
-    stopAllMcpServers()
+    stopAutomationEngine()
     if (memorySnapshotTimer) {
       clearInterval(memorySnapshotTimer)
       memorySnapshotTimer = null

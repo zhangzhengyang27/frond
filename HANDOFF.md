@@ -297,13 +297,15 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 | 10 份 TextMate 语法 `src/renderer/src/components/editor/grammars/textmate/*.tmLanguage.json` | 代码编辑器语法高亮（`languages.ts` 10 条错） |
 | `@composables/useMarkers`、`@composables/useVideoClip` | 截图标记 / 剪辑面板 |
 
-### D 类 · **恢复源在别处，回拷即可**（今天才发现，优先级最高）
+### D 类 · ✅ **已做完（`8f4dc68`）** —— 回拷 19 个内置插件
 
-`~/Library/Application Support/leaf-desktop/launcher-plugins/` 里有 **21 份内置插件的已安装副本**
-（base64 / baseconvert / colorpicker / contrast / cron / csvjson / currency / hash / htmlentity / jsonfmt /
-jsonyaml / jwt …），而仓库 `plugins/` 只剩 2 个（quickfolders、regex）。
-→ 「21 个内置插件」不是要重写 21 个，是**回拷 19 个 + 核对 manifest 是否被安装流程改写过**。
-（`pluginManifestAudit.test.ts` 现在报 `expected 2 to be greater than 15`，就是这个缺口的直接读数。）
+`~/Library/Application Support/leaf-desktop/launcher-plugins/` 里的 **21 份已安装副本**已回拷进
+`plugins/`（每份只有 plugin.json + index.html，安装流程不塞 node_modules）。
+回拷前逐条核过版本：与静态市场索引 `plugins.json` 21/21 相符；**唯一例外 `com.leaf.regex` 没被覆盖**
+（索引与仓库源都是 1.1.0、带 P-1.6b 的三参数声明，而已安装副本是旧的 1.0.1——覆盖就白做）。
+反倒 `com.leaf.quickfolders` 是仓库这份坏的：缺入口 `index.html` 且停在 1.0.0，按已安装的 1.0.1 补齐。
+读数：`pluginManifestAudit` 从 `expected 2 to be greater than 15` + 2 条断言红 → **9/9 全绿**；
+全量单测 789 → 792 通过、47 → 44 失败。
 
 ### E 类 · 实现里少了测试点名的导出（**测试就是规格**，逐个补即可）
 
@@ -335,5 +337,5 @@ jsonyaml / jwt …），而仓库 `plugins/` 只剩 2 个（quickfolders、regex
 
 ### 建议的处理顺序
 
-D（回拷 19 个插件，代价最低）→ A（screenshot 桥，照 `f63fd57` 的打法）→ E（少导出，用例即规格，含我这两次被回退的 `diffPermissions`/`mapAuthStatus`）→ F → B/C。
+~~D 已做完~~ → **A（screenshot 桥，照 `f63fd57` 的打法）→ E（少导出）** 是当前性价比最高的两格→ E（少导出，用例即规格，含我这两次被回退的 `diffPermissions`/`mapAuthStatus`）→ F → B/C。
 C 类里的 10 个页组件是**唯一会同时卡住 build 与 e2e 的一格**；它不归谁"顺手"做，得单独排。

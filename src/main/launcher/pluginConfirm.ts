@@ -5,7 +5,7 @@
  * 本地导入与远程市场安装必须同等受闸，否则市场索引联网化后确认形同虚设。
  */
 import { readManifest } from './pluginStore'
-import { isPluginPermission, PLUGIN_PERMISSION_LABELS } from '../shared/plugin-protocol'
+import { isPluginPermission, PLUGIN_PERMISSION_LABELS } from '../../shared/plugin-protocol'
 import { getLauncherWindow } from './window'
 
 /** 系统级模态确认：展示插件声明的敏感权限清单；E2E 旁路 */

@@ -375,6 +375,8 @@ export class RecordingRepository {
          WHERE id = ? AND deleted_at IS NULL`
       )
       .run(now(), endedAt ?? null, now(), id)
+  }
+
   /**
    * 扫描存量的 orphan 标记：file_path 以 .partial.mp4 结尾且 status != 'recovered'
    * 用于 RecoveryManager.scan 之外的快速查询

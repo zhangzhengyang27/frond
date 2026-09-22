@@ -36,9 +36,9 @@ export class PomodoroTimerStateRepository {
   get(projectId: string): PersistedTimerState | null {
     const raw = prefRepository.get(key(projectId))
     if (!raw) return null
-    try {
-      const parsed = JSON.parse(raw) as Partial<PersistedTimerState>
-      if (!parsed || typeof parsed !== 'object') return null
+    return this.parseState(raw)
+  }
+
   private parseState(raw: string): PersistedTimerState | null {
     try {
       const parsed = JSON.parse(raw) as Partial<PersistedTimerState>
@@ -84,10 +84,6 @@ export class PomodoroTimerStateRepository {
       if (!k.startsWith(KEY_PREFIX)) continue
       const projectId = k.slice(KEY_PREFIX.length)
       const parsed = this.parseState(value)
-      if (parsed) out[projectId] = parsed
-    }
-    return out
-  }
       if (parsed) out[projectId] = parsed
     }
     return out

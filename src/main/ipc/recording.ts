@@ -201,30 +201,23 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   ipcMain.handle(
     'recording.recovery.scan',
     wrap(() => {
-
-  ipcMain.handle(
-    'recording.settings.patch',
-    wrap(
-      (req: Partial<RecordingDefaultSettings>): RecordingDefaultSettings =>
-        recordingSettingsRepository.patch(req)
-    )
-  )
-
-  ipcMain.handle(
-    'recording.settings.reset',
-    wrap((): RecordingDefaultSettings => recordingSettingsRepository.reset())
-  )
-
-  // ── Recovery ───────────────────────────────────────────────
-  ipcMain.handle(
-    'recording.recovery.scan',
-    wrap(() => {
       const r = getRecoveryManager().scan()
       return {
         orphans: r.orphans.map((o) => ({
+          recordingId: o.recordingId,
+          filePath: o.filePath,
+          fileSize: o.fileSize,
+          mtimeMs: o.mtimeMs
+        }))
+      }
+    })
+  )
+
   // ── Segments（PR-3 暂停/恢复） ──────────────────────────────
   // 注意：recordingId 参数直接传入（renderer 端已生成 UUID），无需后端分配
-  // 段序号（seg_index）由 RecordingSegmentRepository 自动维护  ipcMain.handle(    'recording.segments.open',
+  // 段序号（seg_index）由 RecordingSegmentRepository 自动维护
+  ipcMain.handle(
+    'recording.segments.open',
     wrap((req: { recordingId: string }) => {
       const row = segmentService.openSegment(req.recordingId)
       return { segmentId: row.id, segIndex: row.seg_index, startedAt: row.started_at }
@@ -402,28 +395,25 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
               audioBitrateKbps: req.audioBitrateKbps,
               introPath: req.introPath,
               outroPath: req.outroPath,
-        gifPreset?: 'compact' | 'standard' | 'high'
-      }) => {
-        const jobId = randomUUID()
-        const svc = exportService
-        const ac = new AbortController()
-        activeExports.set(jobId, { ac, recordingId: req.recordingId })
-        void svc
-          .export(
-            {
-              sourcePath: req.sourcePath,
-              outputPath: req.outputPath,
-              format: req.format,
-              resolution: req.resolution,
-              fps: req.fps,
-              videoBitrateKbps: req.videoBitrateKbps,
-              audioBitrateKbps: req.audioBitrateKbps,
-              introPath: req.introPath,
-              outroPath: req.outroPath,
               backgroundMusic: req.backgroundMusic,
               transition: req.transition,
               fadeDurationSec: req.fadeDurationSec,
               gifPreset: req.gifPreset
+            },
+            (p) => {
+              const wc = getMainWindowFn?.()?.webContents ?? null
+              if (wc && !wc.isDestroyed()) {
+                wc.send('recording:export:progress', {
+                  jobId,
+                  recordingId: req.recordingId,
+                  percent: p.percent,
+                  message: p.message
+                })
+              }
+            },
+            ac.signal
+          )
+          .then(async (result) => {
             if (result.ok) {
               // 导出只是转码产物：只更新输出路径/大小，绝不能用 finalize 把
               // duration_ms 清零（旧实现传 duration_ms: 0 → 导出后历史时长归零）

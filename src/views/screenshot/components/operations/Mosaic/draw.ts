@@ -1,0 +1,14 @@
+/* 2026-09-22 由 dev 缓存编译产物机械还原：类型标注已被 esbuild 剥除，import 说明符已尽量还原。过 node --check，未做运行验证。 */
+export default function draw(ctx, action) {
+  const { tiles, size } = action.data;
+  tiles.forEach((tile) => {
+    const r = Math.round(tile.color[0]);
+    const g = Math.round(tile.color[1]);
+    const b = Math.round(tile.color[2]);
+    const a = tile.color[3] / 255;
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+    ctx.fillRect(tile.x - size / 2, tile.y - size / 2, size, size);
+  });
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbImRyYXcudHMiXSwic291cmNlc0NvbnRlbnQiOlsiaW1wb3J0IHR5cGUgeyBIaXN0b3J5SXRlbVNvdXJjZSB9IGZyb20gJy4uLy4uLy4uL3R5cGVzJ1xuaW1wb3J0IHR5cGUgeyBNb3NhaWNEYXRhIH0gZnJvbSAnLi9pbmRleC52dWUnXG5cbmV4cG9ydCBkZWZhdWx0IGZ1bmN0aW9uIGRyYXcoXG4gIGN0eDogQ2FudmFzUmVuZGVyaW5nQ29udGV4dDJELFxuICBhY3Rpb246IEhpc3RvcnlJdGVtU291cmNlPE1vc2FpY0RhdGEsIG51bGw+XG4pIHtcbiAgY29uc3QgeyB0aWxlcywgc2l6ZSB9ID0gYWN0aW9uLmRhdGFcbiAgdGlsZXMuZm9yRWFjaCgodGlsZSkgPT4ge1xuICAgIGNvbnN0IHIgPSBNYXRoLnJvdW5kKHRpbGUuY29sb3JbMF0pXG4gICAgY29uc3QgZyA9IE1hdGgucm91bmQodGlsZS5jb2xvclsxXSlcbiAgICBjb25zdCBiID0gTWF0aC5yb3VuZCh0aWxlLmNvbG9yWzJdKVxuICAgIGNvbnN0IGEgPSB0aWxlLmNvbG9yWzNdIC8gMjU1XG5cbiAgICBjdHguZmlsbFN0eWxlID0gYHJnYmEoJHtyfSwgJHtnfSwgJHtifSwgJHthfSlgXG4gICAgY3R4LmZpbGxSZWN0KHRpbGUueCAtIHNpemUgLyAyLCB0aWxlLnkgLSBzaXplIC8gMiwgc2l6ZSwgc2l6ZSlcbiAgfSlcbn1cbiJdLCJtYXBwaW5ncyI6IkFBR0Esd0JBQXdCLEtBQ3RCLEtBQ0EsUUFDQTtBQUNBLFFBQU0sRUFBRSxPQUFPLEtBQUssSUFBSSxPQUFPO0FBQy9CLFFBQU0sUUFBUSxDQUFDLFNBQVM7QUFDdEIsVUFBTSxJQUFJLEtBQUssTUFBTSxLQUFLLE1BQU0sQ0FBQyxDQUFDO0FBQ2xDLFVBQU0sSUFBSSxLQUFLLE1BQU0sS0FBSyxNQUFNLENBQUMsQ0FBQztBQUNsQyxVQUFNLElBQUksS0FBSyxNQUFNLEtBQUssTUFBTSxDQUFDLENBQUM7QUFDbEMsVUFBTSxJQUFJLEtBQUssTUFBTSxDQUFDLElBQUk7QUFFMUIsUUFBSSxZQUFZLFFBQVEsQ0FBQyxLQUFLLENBQUMsS0FBSyxDQUFDLEtBQUssQ0FBQztBQUMzQyxRQUFJLFNBQVMsS0FBSyxJQUFJLE9BQU8sR0FBRyxLQUFLLElBQUksT0FBTyxHQUFHLE1BQU0sSUFBSTtBQUFBLEVBQy9ELENBQUM7QUFDSDsiLCJuYW1lcyI6W119

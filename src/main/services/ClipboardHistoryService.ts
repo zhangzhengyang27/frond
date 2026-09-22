@@ -238,9 +238,12 @@ class ClipboardHistoryService {
       }
     }
     return true
+  }
 
-
-   * 让轮询把这次写入视为「无变化」——扩展内容不应混进用户剪贴板历史。   */  noteExternalTextWrite(text: string): void {
+  /**
+   * 让轮询把这次写入视为「无变化」——扩展内容不应混进用户剪贴板历史。
+   */
+  noteExternalTextWrite(text: string): void {
     this.lastTextFingerprint = this.fingerprintText(text)
   }
 

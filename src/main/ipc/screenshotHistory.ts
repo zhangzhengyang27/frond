@@ -87,16 +87,17 @@ export function registerScreenshotHistoryHandlers(): void {
         try {
           if (existsSync(item.filePath)) {
             unlinkSync(item.filePath)
+          }
+        } catch (e) {
+          // 文件删不掉不改写删除结果；残留交给存储统计/手动清理兜底
+          console.warn('[ScreenshotHistory] delete file unlink failed:', item.filePath, e)
+        }
+      }
+      return { success: true }
     } catch (error) {
       console.error('[ScreenshotHistory] delete error:', error)
       return { success: false, error: (error as Error).message }
     }
-  })
-
-  // 批量删除截图
-  ipcMain.handle('screenshot:history:deleteMany', async (_event, ids: string[]) => {
-    try {
-      // 先删数据库行（仓库层自带事务），再逐个删物理文件：
   })
 
   // 批量删除截图
@@ -129,6 +130,14 @@ export function registerScreenshotHistoryHandlers(): void {
   })
 
   // 打开截图所在文件夹
+  ipcMain.handle('screenshot:history:showInFolder', async (_event, filePath: string) => {
+    try {
+      const target = safeOpenablePath(filePath)
+      if (target) {
+        shell.showItemInFolder(target)
+        return { success: true }
+      }
+      return { success: false, error: 'File not found' }
     } catch (error) {
       console.error('[ScreenshotHistory] showInFolder error:', error)
       return { success: false, error: (error as Error).message }

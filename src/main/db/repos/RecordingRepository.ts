@@ -330,21 +330,18 @@ export class RecordingRepository {
   }
 
   /**
-   * 硬删除（含级联 rec_markers / rec_clips / rec_segments）
+   * 硬删除（含级联 rec_markers / rec_segments）
    * 谨慎：物理文件由调用方另行处理
    */
   hardDelete(id: string): boolean {
-    // FK 级联只覆盖 rec_segments（008 声明了外键）；rec_markers / rec_clips
-    // 建表时（001）没有外键，子行必须显式删除，否则成孤儿
+    // FK 级联只覆盖 rec_segments（008 声明了外键）；rec_markers 建表时（001）没有
+    // 外键，子行必须显式删除，否则成孤儿。rec_clips 已随 027 下线，不再清理。
     let changes = 0
     const tx = this.db.transaction(() => {
       this.db.prepare(`DELETE FROM rec_markers WHERE recording_id = ?`).run(id)
-      this.db.prepare(`DELETE FROM rec_clips WHERE recording_id = ?`).run(id)
       this.db.prepare(`DELETE FROM rec_segments WHERE recording_id = ?`).run(id)
       changes = this.db.prepare(`DELETE FROM rec_recordings WHERE id = ?`).run(id).changes
     })
-    tx()
-    return changes > 0
     tx()
     return changes > 0
   }

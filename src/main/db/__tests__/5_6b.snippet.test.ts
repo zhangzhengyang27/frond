@@ -1,232 +1,74 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest'
 import type Database from 'better-sqlite3'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createTestDb, closeTestDb } from './testDb'
 import { SnippetRepository, type SnippetContent } from '../repos/SnippetRepository'
+
+/**
+ * Leaf · SnippetRepository 存储测试
+ *
+ * ⚠ 恢复说明：本文件随 2026-09-22 删除事故被切成 254 行、其中 219 行是
+ * 「第 N 行未留存」占位。留下的是头部与一条 FTS 用例（下面按原文保留）；
+ * beforeEach 与其余用例按当前仓库层 API 重写，不代表原用例的断言集合。
+ *
+ * 这段 electron mock 是必需而非样板：contents.value 走 utils/crypto 的加密落盘，
+ * 密钥文件写在 app.getPath('userData')/.leaf-key；加密失败时它**故意**抛错
+ * （拒绝静默降级为明文），所以没有这个 userData 就会 5 条全红。
+ */
+
+vi.mock('electron', () => ({
+  app: {
+    getPath: (key: string) => {
+      if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
+      if (!process.env.__LEAF_TEST_USER_DATA) throw new Error('test env not set up')
+      return process.env.__LEAF_TEST_USER_DATA
+    },
+    getVersion: () => '0.0.0-test',
+    isReady: () => true
+  }
+}))
 
 describe('SnippetRepository', () => {
   let db: Database.Database
   let repo: SnippetRepository
+  let userData: string
+
+  beforeAll(() => {
+    userData = mkdtempSync(join(tmpdir(), 'leaf-snippet-crypto-'))
+    process.env.__LEAF_TEST_USER_DATA = userData
+  })
+
+  afterAll(() => {
+    rmSync(userData, { recursive: true, force: true })
+    delete process.env.__LEAF_TEST_USER_DATA
+  })
 
   beforeEach(() => {
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
-~~~ 第 30 行未留存 ~~~
-~~~ 第 31 行未留存 ~~~
-~~~ 第 32 行未留存 ~~~
-~~~ 第 33 行未留存 ~~~
-~~~ 第 34 行未留存 ~~~
-~~~ 第 35 行未留存 ~~~
-~~~ 第 36 行未留存 ~~~
-~~~ 第 37 行未留存 ~~~
-~~~ 第 38 行未留存 ~~~
-~~~ 第 39 行未留存 ~~~
-~~~ 第 40 行未留存 ~~~
-~~~ 第 41 行未留存 ~~~
-~~~ 第 42 行未留存 ~~~
-~~~ 第 43 行未留存 ~~~
-~~~ 第 44 行未留存 ~~~
-~~~ 第 45 行未留存 ~~~
-~~~ 第 46 行未留存 ~~~
-~~~ 第 47 行未留存 ~~~
-~~~ 第 48 行未留存 ~~~
-~~~ 第 49 行未留存 ~~~
-~~~ 第 50 行未留存 ~~~
-~~~ 第 51 行未留存 ~~~
-~~~ 第 52 行未留存 ~~~
-~~~ 第 53 行未留存 ~~~
-~~~ 第 54 行未留存 ~~~
-~~~ 第 55 行未留存 ~~~
-~~~ 第 56 行未留存 ~~~
-~~~ 第 57 行未留存 ~~~
-~~~ 第 58 行未留存 ~~~
-~~~ 第 59 行未留存 ~~~
-~~~ 第 60 行未留存 ~~~
-~~~ 第 61 行未留存 ~~~
-~~~ 第 62 行未留存 ~~~
-~~~ 第 63 行未留存 ~~~
-~~~ 第 64 行未留存 ~~~
-~~~ 第 65 行未留存 ~~~
-~~~ 第 66 行未留存 ~~~
-~~~ 第 67 行未留存 ~~~
-~~~ 第 68 行未留存 ~~~
-~~~ 第 69 行未留存 ~~~
-~~~ 第 70 行未留存 ~~~
-~~~ 第 71 行未留存 ~~~
-~~~ 第 72 行未留存 ~~~
-~~~ 第 73 行未留存 ~~~
-~~~ 第 74 行未留存 ~~~
-~~~ 第 75 行未留存 ~~~
-~~~ 第 76 行未留存 ~~~
-~~~ 第 77 行未留存 ~~~
-~~~ 第 78 行未留存 ~~~
-~~~ 第 79 行未留存 ~~~
-~~~ 第 80 行未留存 ~~~
-~~~ 第 81 行未留存 ~~~
-~~~ 第 82 行未留存 ~~~
-~~~ 第 83 行未留存 ~~~
-~~~ 第 84 行未留存 ~~~
-~~~ 第 85 行未留存 ~~~
-~~~ 第 86 行未留存 ~~~
-~~~ 第 87 行未留存 ~~~
-~~~ 第 88 行未留存 ~~~
-~~~ 第 89 行未留存 ~~~
-~~~ 第 90 行未留存 ~~~
-~~~ 第 91 行未留存 ~~~
-~~~ 第 92 行未留存 ~~~
-~~~ 第 93 行未留存 ~~~
-~~~ 第 94 行未留存 ~~~
-~~~ 第 95 行未留存 ~~~
-~~~ 第 96 行未留存 ~~~
-~~~ 第 97 行未留存 ~~~
-~~~ 第 98 行未留存 ~~~
-~~~ 第 99 行未留存 ~~~
-~~~ 第 100 行未留存 ~~~
-~~~ 第 101 行未留存 ~~~
-~~~ 第 102 行未留存 ~~~
-~~~ 第 103 行未留存 ~~~
-~~~ 第 104 行未留存 ~~~
-~~~ 第 105 行未留存 ~~~
-~~~ 第 106 行未留存 ~~~
-~~~ 第 107 行未留存 ~~~
-~~~ 第 108 行未留存 ~~~
-~~~ 第 109 行未留存 ~~~
-~~~ 第 110 行未留存 ~~~
-~~~ 第 111 行未留存 ~~~
-~~~ 第 112 行未留存 ~~~
-~~~ 第 113 行未留存 ~~~
-~~~ 第 114 行未留存 ~~~
-~~~ 第 115 行未留存 ~~~
-~~~ 第 116 行未留存 ~~~
-~~~ 第 117 行未留存 ~~~
-~~~ 第 118 行未留存 ~~~
-~~~ 第 119 行未留存 ~~~
-~~~ 第 120 行未留存 ~~~
-~~~ 第 121 行未留存 ~~~
-~~~ 第 122 行未留存 ~~~
-~~~ 第 123 行未留存 ~~~
-~~~ 第 124 行未留存 ~~~
-~~~ 第 125 行未留存 ~~~
-~~~ 第 126 行未留存 ~~~
-~~~ 第 127 行未留存 ~~~
-~~~ 第 128 行未留存 ~~~
-~~~ 第 129 行未留存 ~~~
-~~~ 第 130 行未留存 ~~~
-~~~ 第 131 行未留存 ~~~
-~~~ 第 132 行未留存 ~~~
-~~~ 第 133 行未留存 ~~~
-~~~ 第 134 行未留存 ~~~
-~~~ 第 135 行未留存 ~~~
-~~~ 第 136 行未留存 ~~~
-~~~ 第 137 行未留存 ~~~
-~~~ 第 138 行未留存 ~~~
-~~~ 第 139 行未留存 ~~~
-~~~ 第 140 行未留存 ~~~
-~~~ 第 141 行未留存 ~~~
-~~~ 第 142 行未留存 ~~~
-~~~ 第 143 行未留存 ~~~
-~~~ 第 144 行未留存 ~~~
-~~~ 第 145 行未留存 ~~~
-~~~ 第 146 行未留存 ~~~
-~~~ 第 147 行未留存 ~~~
-~~~ 第 148 行未留存 ~~~
-~~~ 第 149 行未留存 ~~~
-~~~ 第 150 行未留存 ~~~
-~~~ 第 151 行未留存 ~~~
-~~~ 第 152 行未留存 ~~~
-~~~ 第 153 行未留存 ~~~
-~~~ 第 154 行未留存 ~~~
-~~~ 第 155 行未留存 ~~~
-~~~ 第 156 行未留存 ~~~
-~~~ 第 157 行未留存 ~~~
-~~~ 第 158 行未留存 ~~~
-~~~ 第 159 行未留存 ~~~
-~~~ 第 160 行未留存 ~~~
-~~~ 第 161 行未留存 ~~~
-~~~ 第 162 行未留存 ~~~
-~~~ 第 163 行未留存 ~~~
-~~~ 第 164 行未留存 ~~~
-~~~ 第 165 行未留存 ~~~
-~~~ 第 166 行未留存 ~~~
-~~~ 第 167 行未留存 ~~~
-~~~ 第 168 行未留存 ~~~
-~~~ 第 169 行未留存 ~~~
-~~~ 第 170 行未留存 ~~~
-~~~ 第 171 行未留存 ~~~
-~~~ 第 172 行未留存 ~~~
-~~~ 第 173 行未留存 ~~~
-~~~ 第 174 行未留存 ~~~
-~~~ 第 175 行未留存 ~~~
-~~~ 第 176 行未留存 ~~~
-~~~ 第 177 行未留存 ~~~
-~~~ 第 178 行未留存 ~~~
-~~~ 第 179 行未留存 ~~~
-~~~ 第 180 行未留存 ~~~
-~~~ 第 181 行未留存 ~~~
-~~~ 第 182 行未留存 ~~~
-~~~ 第 183 行未留存 ~~~
-~~~ 第 184 行未留存 ~~~
-~~~ 第 185 行未留存 ~~~
-~~~ 第 186 行未留存 ~~~
-~~~ 第 187 行未留存 ~~~
-~~~ 第 188 行未留存 ~~~
-~~~ 第 189 行未留存 ~~~
-~~~ 第 190 行未留存 ~~~
-~~~ 第 191 行未留存 ~~~
-~~~ 第 192 行未留存 ~~~
-~~~ 第 193 行未留存 ~~~
-~~~ 第 194 行未留存 ~~~
-~~~ 第 195 行未留存 ~~~
-~~~ 第 196 行未留存 ~~~
-~~~ 第 197 行未留存 ~~~
-~~~ 第 198 行未留存 ~~~
-~~~ 第 199 行未留存 ~~~
-~~~ 第 200 行未留存 ~~~
-~~~ 第 201 行未留存 ~~~
-~~~ 第 202 行未留存 ~~~
-~~~ 第 203 行未留存 ~~~
-~~~ 第 204 行未留存 ~~~
-~~~ 第 205 行未留存 ~~~
-~~~ 第 206 行未留存 ~~~
-~~~ 第 207 行未留存 ~~~
-~~~ 第 208 行未留存 ~~~
-~~~ 第 209 行未留存 ~~~
-~~~ 第 210 行未留存 ~~~
-~~~ 第 211 行未留存 ~~~
-~~~ 第 212 行未留存 ~~~
-~~~ 第 213 行未留存 ~~~
-~~~ 第 214 行未留存 ~~~
-~~~ 第 215 行未留存 ~~~
-~~~ 第 216 行未留存 ~~~
-~~~ 第 217 行未留存 ~~~
-~~~ 第 218 行未留存 ~~~
-~~~ 第 219 行未留存 ~~~
-~~~ 第 220 行未留存 ~~~
-~~~ 第 221 行未留存 ~~~
-~~~ 第 222 行未留存 ~~~
-~~~ 第 223 行未留存 ~~~
-~~~ 第 224 行未留存 ~~~
-~~~ 第 225 行未留存 ~~~
-~~~ 第 226 行未留存 ~~~
-~~~ 第 227 行未留存 ~~~
-~~~ 第 228 行未留存 ~~~
-~~~ 第 229 行未留存 ~~~
+    db = createTestDb()
+    repo = new SnippetRepository(db)
+  })
+
+  afterEach(() => {
+    closeTestDb(db)
+  })
+
+  const content = (over: Partial<SnippetContent> = {}): SnippetContent => ({
+    id: over.id ?? 'c1',
+    label: over.label ?? 'first',
+    value: over.value ?? 'some basic code',
+    language: over.language ?? 'txt'
+  })
+
+  const base = (over: Partial<Parameters<SnippetRepository['addSnippet']>[0]> = {}) => ({
+    name: 'beta',
+    contents: [content()],
+    folderId: null,
+    tagIds: [],
+    isDeleted: false,
+    isFavorites: false,
+    ...over
   })
 
   it('FTS search 命中', () => {
@@ -250,5 +92,52 @@ describe('SnippetRepository', () => {
       .prepare(`SELECT rowid FROM snip_snippets_fts WHERE snip_snippets_fts MATCH ?`)
       .all('uniqueword') as Array<{ rowid: number }>
     expect(hits.length).toBeGreaterThan(0)
+  })
+
+  it('contents 走子表：写入后按 position 原序读回，值经加解密往返不变', () => {
+    const s = repo.addSnippet(
+      base({
+        contents: [
+          content({ id: 'c1', value: '第一段 中文 + emoji 🌿' }),
+          content({ id: 'c2', label: 'second', value: 'second block' })
+        ]
+      })
+    )
+    const back = repo.getSnippetById(s.id)
+    expect(back?.contents.map((c) => c.value)).toEqual(['第一段 中文 + emoji 🌿', 'second block'])
+    // 库里存的是密文，明文不得出现在 snip_snippet_contents.value
+    const raw = db.prepare(`SELECT value FROM snip_snippet_contents WHERE id = ?`).get('c1') as {
+      value: string
+    }
+    expect(raw.value).not.toContain('第一段')
+  })
+
+  it('软删除只打 deleted_at：列表按 isDeleted 过滤，restore 后回到未删集合', () => {
+    const s = repo.addSnippet(base())
+    expect(repo.deleteSnippet(s.id)).toBe(true)
+    // 契约：不传 isDeleted 就不加删除过滤（由调用方决定），所以裸列表仍看得见
+    expect(repo.getSnippets({ isDeleted: false }).some((x) => x.id === s.id)).toBe(false)
+    expect(repo.getSnippets({ isDeleted: true }).some((x) => x.id === s.id)).toBe(true)
+    expect(repo.restoreSnippet(s.id)).toBe(true)
+    expect(repo.getSnippets({ isDeleted: false }).some((x) => x.id === s.id)).toBe(true)
+    expect(repo.permanentlyDeleteSnippet(s.id)).toBe(true)
+    expect(repo.getSnippetById(s.id)).toBeUndefined()
+  })
+
+  it('updateSnippet 换掉 contents 时旧子行被替换而不是追加', () => {
+    const s = repo.addSnippet(base({ contents: [content({ id: 'c1', value: 'old' })] }))
+    const updated = repo.updateSnippet(s.id, {
+      contents: [content({ id: 'c9', label: 'new', value: 'new' })]
+    })
+    expect(updated?.contents.map((c) => c.value)).toEqual(['new'])
+    const rows = db
+      .prepare(`SELECT id FROM snip_snippet_contents WHERE snippet_id = ?`)
+      .all(s.id) as Array<{ id: string }>
+    expect(rows.map((r) => r.id)).toEqual(['c9'])
+  })
+
+  it('trigger 参与唯一性读取：按触发词能找回同一条', () => {
+    const s = repo.addSnippet(base({ trigger: ';brb', name: 'away' }))
+    expect(repo.getSnippetById(s.id)?.trigger).toBe(';brb')
   })
 })

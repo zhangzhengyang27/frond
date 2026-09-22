@@ -35,11 +35,6 @@ describe('createPinningLookup', () => {
     await new Promise((r) => setTimeout(r, 0))
     expect(result.err).toBeNull()
     expect(result.address).toBe('93.184.216.34')
-  })
-
-    const { result, fn } = makeCallback()
-    lookup('example.com', {}, fn)
-    await new Promise((r) => setTimeout(r, 0))
     expect(result.err).toBeNull()
     const rows = result.address as LookupAddress[]
     expect(rows.map((r) => r.address)).toEqual(['93.184.216.34'])
@@ -95,3 +90,4 @@ describe('createPinningLookup', () => {
   })
 })
 
+})

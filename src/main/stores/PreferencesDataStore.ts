@@ -47,12 +47,9 @@ const PREF_KEYS = {
   fallbackDisabled: 'launcher:fallbackDisabled',
   fallbackOrder: 'launcher:fallbackOrder',
   popToRoot: 'launcher:popToRoot',
-  fallbackOrder: 'launcher:fallbackOrder',
-  popToRoot: 'launcher:popToRoot',
   windowGap: 'launcher:windowGap',
   density: 'launcher:density',
   capsuleGlass: 'launcher:capsuleGlass',
-  compactMode: 'launcher:compactMode',
   compactMode: 'launcher:compactMode',
   autoJoin: 'launcher:autoJoin',
   activeTheme: 'theme:activeUser'

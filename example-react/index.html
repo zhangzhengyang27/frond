@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>React 示例</title>
+    <style>
+      /*
+       * api:'react' 的插件页是纯逻辑宿主：它自己什么都不画，
+       * 只把视图树经 plugapi:renderView 提交给胶囊原生渲染。
+       * 提交前宿主按缺省尺寸留着这块视图，所以底色透明、正文为空，
+       * 闪出来的应当是胶囊而不是这张白页。
+       */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        color-scheme: dark;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 经典 <script> + 相对路径：解析成 plugin://<id>/dist/main.js，仍在插件目录内 -->
+    <script src="./dist/main.js"></script>
+  </body>
+</html>

@@ -45,13 +45,28 @@
       "description": "Detail.actions 降级到占位条目"
     },
     {
+      "code": "argsum",
+      "title": "参数求和（内联参数槽）",
+      "description": "两个文本参数、第一个必填：P-1.6b 内联槽的载体，选中后不跳表单页",
+      "arguments": [
+        { "name": "a", "type": "text", "placeholder": "第一个参数（必填）", "required": true },
+        { "name": "b", "type": "text", "placeholder": "第二个参数（可空）" }
+      ]
+    },
+    {
+      "code": "platform",
+      "title": "平台能力探针",
+      "description": "偏好读取与 open(url) 的两道闸：https 过、file 挡"
+    },
+    {
       "code": "schedule-selftest",
       "title": "排程通道自检",
       "mode": "action"
     }
   ],
-  "permissions": [
-    "net",
-    "schedule"
-  ]
+  "preferences": [
+    { "name": "who", "label": "探针读取的偏好名", "type": "text", "default": "leaf" },
+    { "name": "theme", "label": "偏好第二项（探针用）", "type": "text", "default": "dark" }
+  ],
+  "permissions": ["net", "schedule"]
 }

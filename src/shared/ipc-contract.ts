@@ -808,7 +808,16 @@ export interface IpcContract {
     }
     res: Awaited<ReturnType<typeof proxyPluginFetch>> | { ok: false; error: string }
   }
-  'plugapi:renderList': { req: { items: unknown }; res: ReturnType<typeof setDeclaredList> }
+  /** push = 「我进下一层」（栈里留住当前层）；不带就是当前层重绘。id 是渲染端的稳定 key */
+  'plugapi:renderList': {
+    req: { items: unknown; push: boolean; id: string }
+    res: ReturnType<typeof setDeclaredList>
+  }
+  /** 插件退一层（P-2④ 第二半）。depth = 退完剩下的栈深；第一层退不动，交给胶囊关插件 */
+  'plugapi:popView': {
+    req: void
+    res: { ok: boolean; depth: number; error?: string }
+  }
   'plugapi:clearList': { req: void; res: ReturnType<typeof clearDeclaredList> }
   'plugapi:renderView': { req: { view: unknown }; res: ReturnType<typeof setDeclaredView> }
   'plugapi:getContext': {

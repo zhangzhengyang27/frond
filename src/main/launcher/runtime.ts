@@ -15,8 +15,16 @@
 import { BrowserView, BrowserWindow, Notification } from 'electron'
 import { join } from 'path'
 import { getPlugin, pluginEntryUrl, type InstalledPlugin } from './pluginStore'
-import { ensureLauncherWindow } from './window'
+import { ensureLauncherWindow, getLauncherWindow } from './window'
 import { headlessRunBlocker } from './headlessRun'
+import {
+  pluginCanGoBack,
+  type PluginViewLayer,
+  popLayer,
+  pushLayer,
+  replaceLayer,
+  topLayer
+} from '../../shared/pluginViewStack'
 import { getLauncherDocStore } from './docStore'
 import { isLocalAddressLiteral } from './netGuard'
 import fetch from 'node-fetch'
@@ -62,6 +70,20 @@ interface PluginViewContext {
   /** P-2.6：列表视图的伴生状态（Raycast isLoading / emptyView 语义），随快照下发 */
   declaredLoading: boolean
   declaredEmptyMessage: string | null
+  /**
+   * 插件自己的视图栈（P-2④ 第二半），**含当前层**（末位）。上面 declared* 四个字段是它
+   * 的镜像 —— 镜像而不是就地改读法，是为了不动渲染端与既有回调的读法。
+   * 栈只在插件明说 push 时生长：判据与为什么不靠数据猜，见 shared/pluginViewStack。
+   */
+  viewStack: PluginViewBackLayer[]
+}
+
+/** 栈里的一层连数据一起存：弹出时原样恢复，而不是要求插件重画一遍 */
+export interface PluginViewBackLayer extends PluginViewLayer {
+  list: PluginListItem[] | null
+  form: ParsedPluginForm | null
+  loading: boolean
+  emptyMessage: string | null
 }
 
 /** Action 命令的回收时限（毫秒）：够跑一次网络请求 + 通知，又不至于漏一个常驻视图 */
@@ -80,10 +102,32 @@ export function getContextBySender(senderId: number): PluginViewContext | null {
 }
 
 /** M3.1：插件提交声明式列表（校验形状，非法输入整体拒绝；capsule 由 ipc 层注入避免循环依赖） */
+/** 把栈顶镜像回 declared* —— 渲染端与既有回调读的是那几个字段 */
+function applyTopLayer(ctx: PluginViewContext): void {
+  const top = topLayer(ctx.viewStack) as PluginViewBackLayer | null
+  ctx.declaredList = top?.list ?? null
+  ctx.declaredForm = top?.form ?? null
+  ctx.declaredLoading = top?.loading ?? false
+  ctx.declaredEmptyMessage = top?.emptyMessage ?? null
+}
+
+/** 提交一层：push = 明说「我进下一层」；否则是**当前层重绘**（id 不变则渲染端不换实例） */
+function commitLayer(
+  ctx: PluginViewContext,
+  layer: PluginViewBackLayer,
+  push: boolean | undefined
+): void {
+  ctx.viewStack = (
+    push ? pushLayer(ctx.viewStack, layer) : replaceLayer(ctx.viewStack, layer)
+  ) as PluginViewBackLayer[]
+  applyTopLayer(ctx)
+}
+
 export function setDeclaredList(
   senderId: number,
   items: unknown,
-  capsule: BrowserWindow | null
+  capsule: BrowserWindow | null,
+  opts?: { push?: boolean; id?: string }
 ): { ok: boolean; error?: string } {
   const ctx = viewsByWebContents.get(senderId)
   if (!ctx) return { ok: false, error: 'no plugin context' }
@@ -129,8 +173,18 @@ export function setDeclaredList(
       })
     })
   }
-  ctx.declaredList = list
-  ctx.declaredForm = null // 表单视图被列表/详情替换（互斥）
+  commitLayer(
+    ctx,
+    {
+      kind: 'list',
+      id: opts?.id ?? topLayer(ctx.viewStack)?.id ?? 'root',
+      list,
+      form: null, // 表单视图被列表/详情替换（互斥）
+      loading: ctx.declaredLoading,
+      emptyMessage: ctx.declaredEmptyMessage
+    },
+    opts?.push
+  )
   // Action 命令提交视图即视为「要界面」，升级为可见
   promoteToVisible(ctx, capsule)
   // 声明式模式下隐藏插件视图（纯数据源），窗口回到默认尺寸由原生列表填充
@@ -150,6 +204,7 @@ export function clearDeclaredList(
 ): { ok: boolean } {
   const ctx = viewsByWebContents.get(senderId)
   if (!ctx) return { ok: false }
+  ctx.viewStack = []
   ctx.declaredList = null
   // 回退传统 UI 模式：恢复插件视图与窗口尺寸（否则视图停留在 0 高不可见）
   if (!ctx.detached && capsule && !capsule.isDestroyed() && active === ctx) {
@@ -184,10 +239,19 @@ export function setDeclaredView(
     // 表单视图：存 declaredForm（与 declaredList 互斥），胶囊切 FormPage 渲染
     const form = parsePluginForm(raw)
     if (!form) return { ok: false, error: 'empty or invalid form' }
-    ctx.declaredList = null
-    ctx.declaredForm = form
-    ctx.declaredLoading = false
-    ctx.declaredEmptyMessage = null
+    commitLayer(
+      ctx,
+      {
+        kind: 'form',
+        id: `form:${form.fields.map((f) => f.key).join(',')}`.slice(0, 64),
+        list: null,
+        form,
+        loading: false,
+        emptyMessage: null
+      },
+      // 换一张表就是进一层（填完表回得去列表），同一张表重画则是替换
+      ctx.declaredForm === null || ctx.declaredForm.submitId !== form.submitId
+    )
     promoteToVisible(ctx, capsule)
     if (!ctx.detached && capsule && !capsule.isDestroyed() && active === ctx) {
       applyViewBounds(ctx, capsule)
@@ -470,6 +534,9 @@ function notifyRenderer(win: BrowserWindow | null): void {
     // P-2.6：列表加载态 / 空态文案（Raycast isLoading / emptyView 语义）
     declaredLoading: active?.declaredLoading ?? false,
     declaredEmptyMessage: active?.declaredEmptyMessage ?? null,
+    // 插件视图栈（P-2④）：渲染端要靠这两个值决定面包屑的返回键与 ESC 的走向
+    viewDepth: active?.viewStack.length ?? 0,
+    canGoBack: active ? pluginCanGoBack(active.viewStack) : false,
     // P-2.2 的两把尺子也随快照下发：渲染端要靠它们判断「插件到底接管了搜索框没有」
     // （Action 命令打开又自关，一路 open=true→false，但从未挂过视图，搜索框不该被它清掉）
     headless: active?.headless ?? false,
@@ -550,7 +617,8 @@ export function openPlugin(
     attached: !headless,
     headlessTimer: null,
     declaredLoading: false,
-    declaredEmptyMessage: null
+    declaredEmptyMessage: null,
+    viewStack: []
   }
   active = ctx
   viewsByWebContents.set(view.webContents.id, ctx)
@@ -682,6 +750,22 @@ export function runPluginCommandDetached(
     return { ok: false, error: `起不动：${(error as Error).message}` }
   }
   return { ok: true }
+}
+
+/**
+ * 插件退一层（P-2④ 第二半）。已在第一层时返回 error 而不是关插件 ——
+ * 「退回上一层」与「关掉插件」是两个动作，胶囊的 ESC 三段式分开处理，
+ * 混在一起的结果是插件里的返回键把整个插件弹掉。
+ */
+export function popActiveView(senderId: number): { ok: boolean; depth: number; error?: string } {
+  const ctx = viewsByWebContents.get(senderId)
+  if (!ctx) return { ok: false, depth: 0, error: 'no plugin context' }
+  const popped = popLayer(ctx.viewStack) as PluginViewBackLayer[] | null
+  if (!popped) return { ok: false, depth: ctx.viewStack.length, error: '已在插件的第一层' }
+  ctx.viewStack = popped
+  applyTopLayer(ctx)
+  notifyRenderer(getLauncherWindow())
+  return { ok: true, depth: popped.length }
 }
 
 export function closeActivePlugin(win: BrowserWindow): void {

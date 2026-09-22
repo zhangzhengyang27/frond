@@ -123,7 +123,15 @@ const launcherApi = {
   },
 
   /** ─── 声明式 List 协议（M3.1）：提交数据由宿主原生渲染，插件无需写 UI ─── */
-  renderList: (items: unknown) => typedInvoke('plugapi:renderList', { items }),
+  /**
+   * 声明式列表。`{ push: true }` = 「我进下一层」，宿主把当前层留在栈里；
+   * 不带就是**当前层重绘**（搜索型插件每敲一个字都调它，那些不该长出一层返回栈）。
+   * `id` 是给渲染端的稳定 key：同一层重绘不换 id，输入焦点与滚动位置才留得住。
+   */
+  renderList: (items: unknown, opts?: { push?: boolean; id?: string }) =>
+    typedInvoke('plugapi:renderList', { items, push: opts?.push === true, id: opts?.id ?? '' }),
+  /** 退一层；已在插件第一层时 ok=false（那种情况下该由胶囊的 ESC 关插件） */
+  popView: () => typedInvoke('plugapi:popView'),
   clearList: () => typedInvoke('plugapi:clearList'),
 
   /** ─── M3.2 偏好（值存主进程 kv，仅限清单声明的键）─── */

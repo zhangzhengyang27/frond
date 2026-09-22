@@ -23,6 +23,7 @@ import {
   detachActivePlugin,
   getContextBySender,
   getActiveContext,
+  popActiveView,
   setDeclaredList,
   setDeclaredView,
   submitPluginFormValues,
@@ -512,10 +513,12 @@ export function registerLauncherIpc(): void {
   })
 
   // ─────────── 声明式 List 协议（M3.1）───────────
-  typedHandle('plugapi:renderList', (e, { items }) =>
-    setDeclaredList(e.sender.id, items, getLauncherWindow())
+  typedHandle('plugapi:renderList', (e, { items, push, id }) =>
+    setDeclaredList(e.sender.id, items, getLauncherWindow(), { push, id })
   )
   typedHandle('plugapi:clearList', (e) => clearDeclaredList(e.sender.id, getLauncherWindow()))
+  // 插件退一层（P-2④ 第二半）：只有明说 push 过的层退得回去，第一层交给胶囊的 ESC 关插件
+  typedHandle('plugapi:popView', (e) => popActiveView(e.sender.id))
   // ─────────── React 视图协议（#11）───────────
   typedHandle('plugapi:renderView', (e, { view }) =>
     setDeclaredView(e.sender.id, view, getLauncherWindow())

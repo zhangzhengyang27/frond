@@ -122,22 +122,29 @@
 
 ### 2.6.1 敏感权限声明制
 
-`copyText` / `readText` / `openPath` / `fetch` / `openUrl` 属于敏感 API，需在 `plugin.json` 中声明
+`copyText` / `readText` / `openPath` / `fetch` / `openUrl` / `schedule.*` 属于敏感 API，需在 `plugin.json` 中声明
 `permissions` 后才可用；**未声明时调用按该 API 的失败形状静默拒绝**（`fetch` 返回
 `{ ok: false, error }`，其余返回 `''` / `false`）。
 
 ```json
 {
-  "permissions": ["clipboard.read", "net"]
+  "permissions": ["clipboard.read", "net", "schedule"]
 }
 ```
+
+`schedule` 与前几条不是一类东西：它不是「这一次调用做了件敏感事」，而是「往后每次到点都
+唤起本插件的一条命令」。所以判据全在宿主侧的四条闸上（只能排自己的命令、只能排
+`mode: 'action'`、每插件 3 条、最快每 15 分钟一次），登记后的任务在
+**设置 → 高级 → 定时任务** 里带着「来自插件 <id>」显示，用户能关能删，卸载插件时一并清掉。
+详见 `PLUGIN_DEV.md` 的「定时任务」一节。
 
 | 权限 | 解锁的 API | 导入确认框展示 |
 | --- | --- | --- |
 | `clipboard.read` | `readText` | 读取剪贴板 |
 | `clipboard.write` | `copyText` | 写入剪贴板 |
 | `fs.open` | `openPath` | 打开本地文件 |
-| `net` | `fetch` | 访问网络 |
+| `net` | `fetch`、`open(url)` | 访问网络 |
+| `schedule` | `schedule.add/list/remove` | 按计划运行本插件的命令 |
 
 规则：
 - 声明以外的值在读取时剔除（拼错权限名 = 没声明）

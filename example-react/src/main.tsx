@@ -10,7 +10,10 @@ import {
   closePlugin,
   showToast,
   getPreferenceValues,
-  openExternalUrl
+  openExternalUrl,
+  scheduleCommand,
+  listScheduledCommands,
+  cancelScheduledCommand
 } from 'leaf-plugin-sdk'
 import type { ReactElement } from 'react'
 
@@ -136,6 +139,35 @@ void (async () => {
     start(<Detail markdown={`# 参数已收到\n\na=${a}\nb=${b}`} />)
     return
   }
+  /**
+   * P-2③ 排程探针：登记 → 列出，四道闸里能在插件侧撞到的三道各撞一次。
+   * 幂等：先把自己旧任务撤干净再排，跑几遍结果都一样（e2e 允许重跑）。
+   * 三条都是读界面就能判定的：收下的那条回 id，被拒的两条回宿主原话。
+   */
+  if (ctx?.cmd === 'schedule-selftest') {
+    for (const old of await listScheduledCommands()) await cancelScheduledCommand(old.id)
+    const okAdd = await scheduleCommand({ label: 'e2e 排程', cron: '*/15 * * * *', cmd: 'ping' })
+    // 再排一条「下一分钟」的：e2e 要验的是**真到点跑起来**（引擎 + 三道闸 + detached 起插件），
+    // 而不是只验「立刻跑一次」那个按钮。30s 一次心跳，最多等 100s 一定跨过一分钟。
+    const next = new Date(Date.now() + 65_000)
+    const soonCron = `${next.getMinutes()} ${next.getHours()} ${next.getDate()} ${next.getMonth() + 1} *`
+    await scheduleCommand({ label: 'e2e 一分钟后排程', cron: soonCron, cmd: 'ping' })
+    const tooDense = await scheduleCommand({ label: '太密', cron: '* * * * *', cmd: 'ping' })
+    const notAction = await scheduleCommand({ label: '视图命令', cron: '0 9 * * *', cmd: 'repos' })
+    const list = await listScheduledCommands()
+    start(
+      <Detail
+        markdown={
+          `# 排程探针\n\nadd=${okAdd.ok ? okAdd.id : okAdd.error}\n` +
+          `dense=${tooDense.ok ? 'ACCEPTED' : tooDense.error}\n` +
+          `view=${notAction.ok ? 'ACCEPTED' : notAction.error}\n` +
+          `count=${list.length}\nlabels=${list.map((t) => t.label).sort().join(',')}`
+        }
+      />
+    )
+    return
+  }
+
   if (ctx?.cmd === 'platform') {
     const prefs = await getPreferenceValues<Record<string, unknown>>()
     const file = await openExternalUrl('file:///etc/passwd')

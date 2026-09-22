@@ -21,7 +21,8 @@ import {
   idleRemainingMs,
   shiftLastActivity,
   nextHistoryCursor,
-  primaryActionLabel
+  primaryActionLabel,
+  latestOnly
 } from '../launcherInteractions'
 
 describe('launcherInteractions', () => {

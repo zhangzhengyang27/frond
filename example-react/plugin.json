@@ -6,7 +6,11 @@
   "main": "index.html",
   "api": "react",
   "commands": [
-    { "code": "repos", "title": "React 仓库示例", "description": "React 视图协议演示列表" },
+    {
+      "code": "repos",
+      "title": "React 仓库示例",
+      "description": "React 视图协议演示列表"
+    },
     {
       "code": "ping",
       "title": "Ping（无界面 Action 命令）",
@@ -39,6 +43,15 @@
       "code": "detail-actions",
       "title": "详情带动作（P-2.6）",
       "description": "Detail.actions 降级到占位条目"
+    },
+    {
+      "code": "schedule-selftest",
+      "title": "排程通道自检",
+      "mode": "action"
     }
+  ],
+  "permissions": [
+    "net",
+    "schedule"
   ]
 }

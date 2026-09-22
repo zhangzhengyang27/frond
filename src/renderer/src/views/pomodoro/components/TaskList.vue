@@ -20,6 +20,4 @@ const handleDelete = (taskId: string): void => {
 const handleComplete = (taskId: string): void => {
   emit('complete-task', taskId)
 }
-</script>
-
-<style scoped>
+</script><style scoped>

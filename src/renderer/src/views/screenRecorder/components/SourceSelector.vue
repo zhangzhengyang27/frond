@@ -13,7 +13,6 @@ onMounted(async () => {
     } catch (e) {
       console.warn('[SourceSelector] listDisplays failed:', e)
     }
-  }
 })
 
 function selectDisplay(id: number): void {

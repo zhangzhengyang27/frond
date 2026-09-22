@@ -83,9 +83,7 @@ const handleSelect = (win: WindowInfo) => {
 const handleClose = () => {
   emit('close')
 }
-</script>
-
-<style scoped>
+</script><style scoped>
 .window-picker-overlay {
   position: fixed;
   top: 0;

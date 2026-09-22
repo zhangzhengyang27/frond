@@ -1,5 +1,4 @@
       dominantColor = { r, g, b }
-    }
   })
 
   // 计算平均颜色

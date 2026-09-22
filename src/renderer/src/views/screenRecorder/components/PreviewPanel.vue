@@ -154,6 +154,4 @@ defineExpose({
   previewVideoRef,
   pipCameraRef
 })
-</script>
-
-<style scoped>
+</script><style scoped>

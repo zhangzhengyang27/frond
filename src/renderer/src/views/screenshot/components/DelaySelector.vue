@@ -73,9 +73,7 @@ const select = (sec: number) => {
 const start = () => {
   emit('start', finalSeconds.value)
 }
-</script>
-
-<style scoped>
+</script><style scoped>
 .delay-overlay {
   position: fixed;
   top: 0;

@@ -241,7 +241,6 @@ async function removeSelected(): Promise<void> {
   if (!item) return
   const ok = await window.api.clipHist.copy(item.id)
   if (ok) flash('已复制到剪贴板')
-}
 
 async function pinSelected(): Promise<void> {
   const item = selected.value

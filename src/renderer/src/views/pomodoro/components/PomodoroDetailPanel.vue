@@ -1,3 +1,4 @@
+/**
 // formatDateTime / formatTime 收敛到 @utils/format
 const formatTime = formatClockWithSeconds
 </script>

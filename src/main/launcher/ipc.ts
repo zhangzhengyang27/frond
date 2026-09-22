@@ -171,11 +171,6 @@ export function registerLauncherIpc(): void {
     setLauncherCompact(compact === true, Number(height))
   })
 
-  // 紧凑模式（P-6⑤）：渲染端量好搜索行的高度报过来，主进程只负责夹住并改窗口
-  typedHandle('launcher:setCompact', (_e, { compact, height }) => {
-    setLauncherCompact(compact === true, Number(height))
-  })
-
   typedHandle('launcher:installFromFolder', async (_e, { dirPath }) => {
     try {
       const dir = String(dirPath ?? '')

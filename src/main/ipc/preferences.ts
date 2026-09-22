@@ -101,6 +101,36 @@ export function registerPreferencesIpcHandlers(preferencesStore: PreferencesData
     preferencesStore.setAutoJoinEnabled(enabled === true)
   })
 
+  // 密度档 / 胶囊玻璃档 / 紧凑模式（P-6）。三档都要**改完广播**：胶囊窗与主窗同时挂着，
+  // 只回给发起方会让另一侧继续按旧值渲染（设置页改了、胶囊没变）。
+  typedHandle('preferences:getDensity', () => preferencesStore.getDensity())
+  typedHandle('preferences:setDensity', (_event, { density }) => {
+    // 回的是 store 归一化后的值：传非法档时界面要显示真正生效的那个
+    const next = preferencesStore.setDensity(density)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('density:changed', next)
+    }
+    return next
+  })
+
+  typedHandle('preferences:getCapsuleGlass', () => preferencesStore.getCapsuleGlass())
+  typedHandle('preferences:setCapsuleGlass', (_event, { glass }) => {
+    const next = preferencesStore.setCapsuleGlass(glass)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('capsule-glass:changed', next)
+    }
+    return next
+  })
+
+  typedHandle('preferences:getCompactMode', () => preferencesStore.getCompactMode())
+  typedHandle('preferences:setCompactMode', (_event, { enabled }) => {
+    const next = preferencesStore.setCompactMode(enabled)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('compact-mode:changed', next)
+    }
+    return next
+  })
+
   // onboarding 状态与常用模块
   typedHandle('preferences:isOnboardingCompleted', () => preferencesStore.isOnboardingCompleted())
   typedHandle('preferences:setOnboardingCompleted', () => {

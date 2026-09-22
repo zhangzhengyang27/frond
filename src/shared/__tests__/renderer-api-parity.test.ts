@@ -22,12 +22,10 @@ function resolveRepoRoot(): string {
 /** 从 preload/index.ts 静态解析暴露面：'ns.method' / 'ns.sub.method' / 顶层 'method' */
 function extractExposedApiSurface(): Set<string> {
   const source = readFileSync(join(repoRoot, 'src/preload/index.ts'), 'utf-8')
-  const lines = source
-    .split('\n')
-    .filter((l) => {
-      const t = l.trimStart()
-      return !(t.startsWith('//') || t.startsWith('/*') || t.startsWith('*'))
-    })
+  const lines = source.split('\n').filter((l) => {
+    const t = l.trimStart()
+    return !(t.startsWith('//') || t.startsWith('/*') || t.startsWith('*'))
+  })
 
   const exposed = new Set<string>()
   const stack: string[] = []
@@ -72,7 +70,11 @@ function collectRendererFiles(dir: string): string[] {
 describe('渲染端 window.api 奇偶校验', () => {
   it('renderer 调用的每个 api 路径都在 preload 暴露面中存在', () => {
     const exposed = extractExposedApiSurface()
+    // 少了这一行整个测试就是「扫了个空目录」——恢复事故里它被吞过一次，正例计数兜住
+    const files = collectRendererFiles(join(repoRoot, 'src/renderer/src'))
+    expect(files.length, 'renderer 源文件一个都没扫到 = 路径错，不是通过').toBeGreaterThan(50)
     let matchCount = 0
+    const offenders: string[] = []
 
     for (const file of files) {
       const rel = file.slice(repoRoot.length + 1)
@@ -104,4 +106,3 @@ describe('渲染端 window.api 奇偶校验', () => {
     )
   })
 })
-

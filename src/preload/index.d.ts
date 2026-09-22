@@ -5,6 +5,8 @@ import type { McpToolArg } from '../shared/mcp'
 import type { McpToolCommand } from './mcp'
 import type { McpCallResult } from '../main/services/mcp/client'
 import type { PopToRootMode } from '../shared/popToRoot'
+import type { Density } from '../shared/density'
+import type { CapsuleGlass } from '../shared/capsuleGlass'
 import type { BrowserTab } from '../main/services/BrowserTabsService'
 import type { AIConfig, AIChatMessage, AIChatSession, AIModelPreset } from '../shared/ai'
 import type { ThemeDefinition } from '../shared/themeSchema'
@@ -161,6 +163,29 @@ export interface PomodoroTaskExportPayload {
 export interface PomodoroRecordDetail {
   record: PomodoroRecord
   task: PomodoroTask | null
+}
+
+/**
+ * 胶囊侧看到的插件快照。`getPluginState` 的返回值与 `onPluginChanged` 的载荷是**同一份数据**，
+ * 之前各写一遍就漂了（一边 headless/attached 必填、一边可选，赋值直接红）。
+ * 声明一次，两处引用。
+ */
+export interface LauncherPluginState {
+  open: boolean
+  pluginId: string | null
+  pluginName: string | null
+  subInputPlaceholder: string | null
+  declaredList?: unknown
+  declaredForm?: unknown
+  /** P-2.6：列表加载态 / 空态文案 */
+  declaredLoading?: boolean
+  declaredEmptyMessage?: string | null
+  /** P-2.2：Action 命令 = headless；attached = 视图是否已挂到胶囊窗 */
+  headless?: boolean
+  attached?: boolean
+  /** P-2④ 第二半：插件自己的视图栈（含当前层）与「还有得退吗」 */
+  viewDepth?: number
+  canGoBack?: boolean
 }
 
 export interface API {
@@ -392,6 +417,16 @@ export interface API {
     /** 自动入会开关（默认关） */
     getAutoJoinEnabled: () => Promise<boolean>
     setAutoJoinEnabled: (enabled: boolean) => Promise<void>
+    /** 密度档 / 玻璃档 / 紧凑模式（P-6）：三件套，订阅函数返回取消订阅 */
+    getDensity: () => Promise<Density>
+    setDensity: (density: string) => Promise<Density>
+    onDensityChanged: (cb: (density: Density) => void) => () => void
+    getCapsuleGlass: () => Promise<CapsuleGlass>
+    setCapsuleGlass: (glass: string) => Promise<CapsuleGlass>
+    onCapsuleGlassChanged: (cb: (glass: CapsuleGlass) => void) => () => void
+    getCompactMode: () => Promise<boolean>
+    setCompactMode: (enabled: boolean) => Promise<boolean>
+    onCompactModeChanged: (cb: (enabled: boolean) => void) => () => void
   }
   // 截图库 OCR 索引（V4 P1-10）
   shotIndex: {
@@ -617,27 +652,13 @@ export interface API {
     ) => () => void
     /** 独立模块窗已接管某路由（主窗口若正显示同路由应让位回 Hub） */
     onAppRouteTaken: (cb: (payload: { path: string }) => void) => () => void
-    getPluginState: () => Promise<{
-      open: boolean
-      pluginId: string | null
-      pluginName: string | null
-      subInputPlaceholder: string | null
-      declaredList?: unknown
-      declaredForm?: unknown
-      /** P-2.6：列表加载态 / 空态文案 */
-      declaredLoading?: boolean
-      declaredEmptyMessage?: string | null
-      /** P-2.2：Action 命令 = headless；attached = 视图是否已挂到胶囊窗 */
-      headless: boolean
-      attached: boolean
-      /** P-2④ 第二半：插件自己的视图栈（含当前层）与「还有得退吗」 */
-      viewDepth?: number
-      canGoBack?: boolean
-    } | null>
+    getPluginState: () => Promise<LauncherPluginState | null>
     /** 性能基线（M0）：胶囊唤起耗时 */
     perf: () => Promise<{ lastShowLatencyMs: number }>
     /** 保持打开（P-1.3）：钉住时失焦不隐藏，返回主进程生效值 */
     setPinned: (pinned: boolean) => Promise<{ pinned: boolean }>
+    /** 紧凑模式（P-6⑤）：渲染端量好一条栏的高度报过来 */
+    setCompact: (compact: boolean, height: number) => Promise<void>
     /** Quicklinks（M2.3） */
     quicklinksList: () => Promise<Array<{ id: string; name: string; url: string }>>
     quicklinksSave: (items: Array<{ id: string; name: string; url: string }>) => Promise<{
@@ -798,24 +819,7 @@ export interface API {
     syncBackup: () => Promise<{ ok: boolean; count?: number; error?: string }>
     syncRestore: () => Promise<{ ok: boolean; count?: number; error?: string }>
     onShown: (cb: () => void) => () => void
-    onPluginChanged: (
-      cb: (state: {
-        open: boolean
-        pluginId: string | null
-        pluginName: string | null
-        subInputPlaceholder: string | null
-        declaredList?: unknown
-        declaredForm?: unknown
-        /** P-2.6：与 launcher:getPluginState 同形（快照是同一份数据，两处别再漂） */
-        declaredLoading?: boolean
-        declaredEmptyMessage?: string | null
-        headless?: boolean
-        attached?: boolean
-        /** P-2④ 第二半：插件视图栈的栈深与「可退」 */
-        viewDepth?: number
-        canGoBack?: boolean
-      }) => void
-    ) => () => void
+    onPluginChanged: (cb: (state: LauncherPluginState) => void) => () => void
     /** #11 M2：React 表单视图提交（值经 Callback 钩子回传插件 onSubmit）；
      * 表单/列表都随 onPluginChanged 的整份快照下发，无独立推送通道 */
     pluginFormSubmit: (

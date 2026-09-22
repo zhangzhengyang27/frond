@@ -382,13 +382,19 @@ const clipFilter = ref<KindFilter>('all')
 /** I9 统一加载态：内联页慢路径忙碌计数 */
 const { busyCount } = useLauncherBusy()
 
-/** 当前打开的插件状态（打开时搜索框转为插件副输入框） */
-const pluginState = ref<{
-  open: boolean
-  pluginId: string | null
-  pluginName: string | null
-  subInputPlaceholder: string | null
-}>({ open: false, pluginId: null, pluginName: null, subInputPlaceholder: null })
+/** 当前打开的插件状态（打开时搜索框转为插件副输入框）。
+ *  形状**取自 preload 的 getPluginState**：这里曾另抄一份四行字面量，于是主进程与
+ *  preload 都补了 viewDepth / canGoBack 之后，本文件读 canGoBack 仍是 unknown，
+ *  「胶囊返回键先退插件那一层」在界面上静默失效。抄一份就会漂一次，所以推出去。 */
+type PluginSnapshot = NonNullable<Awaited<ReturnType<typeof window.api.launcher.getPluginState>>>
+const pluginState = ref<PluginSnapshot>({
+  open: false,
+  pluginId: null,
+  pluginName: null,
+  subInputPlaceholder: null,
+  headless: false,
+  attached: false
+})
 
 /**
  * combobox 的当前项：读屏靠它念高亮行。没有结果、或插件占着输入框时

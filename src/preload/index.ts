@@ -4,6 +4,8 @@ import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
 import type { McpToolArg } from '../shared/mcp'
 import type { PopToRootMode } from '../shared/popToRoot'
+import type { Density } from '../shared/density'
+import type { CapsuleGlass } from '../shared/capsuleGlass'
 import { typedInvoke } from './typedIpc'
 import type { CommandHotkeySpec } from '../main/launcher/hotkeys'
 import type { ExpansionConfig } from '../main/modules/textExpansion'
@@ -248,7 +250,30 @@ const api: API = {
     setWindowGap: (px: number) => typedInvoke('preferences:setWindowGap', { px }),
     getAutoJoinEnabled: () => typedInvoke('preferences:getAutoJoinEnabled'),
     setAutoJoinEnabled: (enabled: boolean) =>
-      typedInvoke('preferences:setAutoJoinEnabled', { enabled })
+      typedInvoke('preferences:setAutoJoinEnabled', { enabled }),
+    // 密度档 / 玻璃档 / 紧凑模式（P-6）：都是「一处改完别的窗口要立刻跟上」的档，
+    // 所以每档三件套 get + set + on…Changed（订阅函数返回取消订阅，与 onThemeChanged 同形）
+    getDensity: () => typedInvoke('preferences:getDensity'),
+    setDensity: (density: string) => typedInvoke('preferences:setDensity', { density }),
+    onDensityChanged: (cb: (density: Density) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, d: Density): void => cb(d)
+      ipcRenderer.on('density:changed', listener)
+      return () => ipcRenderer.removeListener('density:changed', listener)
+    },
+    getCapsuleGlass: () => typedInvoke('preferences:getCapsuleGlass'),
+    setCapsuleGlass: (glass: string) => typedInvoke('preferences:setCapsuleGlass', { glass }),
+    onCapsuleGlassChanged: (cb: (glass: CapsuleGlass) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, g: CapsuleGlass): void => cb(g)
+      ipcRenderer.on('capsule-glass:changed', listener)
+      return () => ipcRenderer.removeListener('capsule-glass:changed', listener)
+    },
+    getCompactMode: () => typedInvoke('preferences:getCompactMode'),
+    setCompactMode: (enabled: boolean) => typedInvoke('preferences:setCompactMode', { enabled }),
+    onCompactModeChanged: (cb: (enabled: boolean) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, on: boolean): void => cb(on)
+      ipcRenderer.on('compact-mode:changed', listener)
+      return () => ipcRenderer.removeListener('compact-mode:changed', listener)
+    }
   },
   // 截图库 OCR 索引（V4 P1-10）
   shotIndex: {
@@ -455,6 +480,9 @@ const api: API = {
     perf: () => typedInvoke('launcher:perf'),
     /** 保持打开（P-1.3）：返回主进程生效值 */
     setPinned: (pinned: boolean) => typedInvoke('launcher:setPinned', { pinned }),
+    /** 紧凑模式（P-6⑤）：渲染端量好一条栏的高度报过来，主进程夹住后改窗 */
+    setCompact: (compact: boolean, height: number) =>
+      typedInvoke('launcher:setCompact', { compact, height }),
     /** Quicklinks（M2.3） */
     quicklinksList: () => typedInvoke('launcher:quicklinks:list'),
     quicklinksSave: (items: unknown[]) => typedInvoke('launcher:quicklinks:save', { items }),

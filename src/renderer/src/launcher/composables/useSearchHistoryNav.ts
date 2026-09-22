@@ -59,6 +59,9 @@ export function useSearchHistoryNav(query: Ref<string>) {
   return {
     historyCache,
     historyNavActive,
+    // 消费方靠它区分「程序回填」与「用户键入」，漏了这一句外面拿到 undefined，
+    // `!undefined && active` 直接把历史导航踢掉（文件头写的那个保护就没了）
+    historyNavApplying,
     exitHistoryNav,
     loadHistoryCache,
     enterHistoryNav,

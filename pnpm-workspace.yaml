@@ -1,0 +1,11 @@
+# ⚠ 重建，非原件：pnpm-workspace.yaml 随 2026-09-22 桌面删除事故丢失（从没被编辑器/agent 读到过，
+# 无正文残留）。依据：
+# - vitest.global-setup.ts 的注释写明它构建的是「workspace 包产物」，且要保证「全新 clone 的
+#   pnpm test 起手不红」→ packages/* 必须是成员（SDK 的 react / react-reconciler / typescript
+#   不在根 package.json 里，不进 workspace 就装不到）。
+# - example-react 的 package.json 用 file:../packages/leaf-plugin-sdk 指过来，HANDOFF §4 的
+#   重建流程是「cd example-react && npm run build」且不带 install 步骤 → 它的依赖当时由根安装
+#   带起，故一并列为成员。
+packages:
+  - 'packages/*'
+  - 'example-react'

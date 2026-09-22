@@ -1,0 +1,27 @@
+{
+  // ⚠ 重建，非原件：packages/leaf-plugin-sdk/tsconfig.json 随 2026-09-22 桌面删除事故丢失。
+  // 形状照同仓姐妹包 packages/leaf-raycast-api/tsconfig.json（那份在，未丢），并按本包
+  // package.json 的硬约束对齐：type=module、main=./dist/index.js、types=./dist/index.d.ts
+  // → 必须 declaration:true + outDir:dist；build 脚本是 `tsc -p tsconfig.json`、include 只 src。
+  //
+  // 唯一被迫放宽的是 noImplicitAny：react-reconciler 0.34 不自带 .d.ts，而
+  //  · 本包 devDependencies（原件存活）里没有 @types/react-reconciler，
+  //  · 恢复台账里本包被记录过的文件只有 src/{components,index,reconciler,registry,types}.ts
+  //    与 package.json / __tests__/sdk.test.ts —— 没有任何 declare module 类型桩，
+  //  · src/ 全文也搜不到 @ts-ignore / @ts-expect-error。
+  // 三者都没有，原配置若开着 noImplicitAny，`npm run build` 当时就会红。故 strict 保留，
+  // 只关这一个开关（不是「顺手放宽」）。
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "dist",
+    "moduleDetection": "force"
+  },
+  "include": ["src"]
+}

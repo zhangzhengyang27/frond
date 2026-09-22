@@ -94,6 +94,31 @@ export interface PluginArgument {
 /** 参数数量上限（对标 Raycast 最多 3 个参数） */
 export const PLUGIN_MAX_ARGUMENTS = 3
 
+// ─── 命令形态（View 命令 / Action 命令，对标 Raycast commands[].mode）───
+
+/** 'view' = 打开插件界面（缺省）；'action' = 无界面执行，宿主不挂插件视图 */
+export type PluginCommandMode = 'view' | 'action'
+
+/**
+ * fail-closed：只认字面量 'view' / 'action'，其余（含拼错的 'Acion'）一律 undefined
+ * 即按缺省的 view 处理——拼错权限名等于没声明，拼错模式也不能让命令偷偷变成无界面。
+ */
+export function sanitizePluginCommandMode(raw: unknown): PluginCommandMode | undefined {
+  return raw === 'action' || raw === 'view' ? raw : undefined
+}
+
+/**
+ * 该命令是否无界面 Action 命令。cmd = manifest commands[].code；
+ * null / 找不到对应命令 → false（按 view 走，宁多不少挂一次 UI）。
+ */
+export function isActionCommand(
+  commands: Array<{ code: string; mode?: PluginCommandMode }> | undefined,
+  cmd: string | null
+): boolean {
+  if (!commands?.length || typeof cmd !== 'string') return false
+  return commands.find((c) => c.code === cmd)?.mode === 'action'
+}
+
 /** dropdown 候选项数量上限 */
 export const PLUGIN_MAX_ARGUMENT_OPTIONS = 20
 
@@ -311,6 +336,24 @@ function sanitizeViewListItem(rec: Record<string, unknown>): PluginViewListItem 
 }
 
 /**
+ * 列表视图的「非条目」元信息（对标 Raycast 的 isLoading / emptyView）：
+ * 单独抽出来是因为解析结果仍是条目数组（宿主渲染管线不变），
+ * 这两项只作为伴生状态随快照下发。
+ */
+export interface PluginListMeta {
+  loading: boolean
+  emptyMessage: string | null
+}
+
+export function parsePluginListMeta(raw: unknown): PluginListMeta {
+  if (typeof raw !== 'object' || raw === null) return { loading: false, emptyMessage: null }
+  const node = raw as Record<string, unknown>
+  if (node.$t !== 'list') return { loading: false, emptyMessage: null }
+  const empty = typeof node.emptyMessage === 'string' ? node.emptyMessage.trim().slice(0, 120) : ''
+  return { loading: node.loading === true, emptyMessage: empty || null }
+}
+
+/**
  * 解析视图树 → v1 条目列表（fail-closed）：
  * - list：items + sections 拍平，非法 item/action 剔除，封顶 300
  * - detail：降级为「单条占位条目 + detail 正文」，复用胶囊 List-Detail 渲染
@@ -455,13 +498,24 @@ export function parsePluginForm(raw: unknown): ParsedPluginForm | null {
  * 未声明的敏感 API 调用按各 API 现有失败形状静默拒绝（fail closed）。
  * 基础 API（UI/生命周期/db/preferences/notify）无需声明。
  */
-export type PluginPermission = 'clipboard.read' | 'clipboard.write' | 'fs.open' | 'net'
+export type PluginPermission =
+  | 'clipboard.read'
+  | 'clipboard.write'
+  | 'fs.open'
+  | 'net'
+  /**
+   * 让本插件的命令**在插件没开着的时候**被排程唤起（P-2③「生命周期外执行」）。
+   * 单独一条而不是并入 net/fs.*：它的副作用是「第三方代码会在你没看它的时候跑」，
+   * 用户该在导入确认框里单独看到这一项。
+   */
+  | 'schedule'
 
 export const PLUGIN_PERMISSION_LABELS: Record<PluginPermission, string> = {
   'clipboard.read': '读取剪贴板',
   'clipboard.write': '写入剪贴板',
   'fs.open': '打开本地文件',
-  net: '访问网络'
+  net: '访问网络',
+  schedule: '按计划运行本插件的命令'
 }
 
 /** 敏感 preload API → 所需权限（launcher/ipc.ts 强制执行） */
@@ -469,7 +523,17 @@ export const SENSITIVE_PLUGIN_API_PERMISSIONS: Record<string, PluginPermission> 
   readText: 'clipboard.read',
   copyText: 'clipboard.write',
   openPath: 'fs.open',
-  fetch: 'net'
+  fetch: 'net',
+  // open(url) 归到 net 而不是 fs.open：它的副作用是「把链接交给外部去取」，
+  // 与 fetch 同类；fs.open 说的是本地文件系统
+  openUrl: 'net'
+  // alert / toast / hide 这类纯 UI 原语**故意不在这里**：它们不读用户的数据，
+  // 要防的是「拿它骗用户点确认」和「刷屏」——前者靠标题必带插件名 +
+  // destructive 走 warning 样式，后者靠同插件同时只一条模态框（launcher/pluginAlert）。
+  // 加一条权限声明只会让每个插件的 manifest 多一行没人看得懂的字。
+  //
+  // schedule 也不在这里：排程通道走 plugapi:schedule* 那三根管子，
+  // 由 launcher/ipc.ts 按 sender 直接查 hasPluginPermission('schedule')。
 }
 
 export function isPluginPermission(value: unknown): value is PluginPermission {
@@ -492,6 +556,9 @@ const PREFERENCE_OPTION_MAX = 120
 const PREFERENCE_TYPES = new Set(['text', 'select', 'checkbox'])
 
 export type PluginPreferenceType = 'text' | 'select' | 'checkbox'
+
+/** pluginStore 与 manifest 读的是这个名字；别名而不是第二份定义，免得两处漂移 */
+export type PluginPreferenceDeclaration = PluginPreference
 
 export interface PluginPreference {
   name: string

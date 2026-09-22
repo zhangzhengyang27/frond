@@ -20,7 +20,14 @@ import type {
   AIChatSession,
   AIModelPreset
 } from '../../shared/ai'
-import { DEFAULT_AI_CONFIG } from '../../shared/ai'
+import {
+  aiConfigUsable,
+  aiModelsUrl,
+  DEFAULT_AI_CONFIG,
+  isLocalAiBaseUrl,
+  modelsPathFor,
+  parseModelList
+} from '../../shared/ai'
 import { encryptText, decryptText } from '../utils/crypto'
 import { assertAiEndpointAllowed } from '../utils/aiEndpointGuard'
 
@@ -91,10 +98,14 @@ export async function setAIConfig(patch: Partial<AIConfig>): Promise<AIConfig> {
   return getAIConfig()
 }
 
-/** 简单的 API Key 可用性检查（非空即可，不做远程验证） */
+/**
+ * 「已配置」的口径（P-4① BYOM）：**本地端点不要求 key**。
+ * 旧口径把 apiKey 当必要条件，于是 Ollama / LM Studio 这类「跑在本机、没有 key」的
+ * 配置永远显示未配置——用户只能为了过检查随手塞一串假 key。
+ */
 export function isAIConfigured(): boolean {
   const cfg = getAIConfig()
-  return cfg.enabled && !!cfg.apiKey.trim() && !!cfg.baseUrl.trim() && !!cfg.model.trim()
+  return cfg.enabled && aiConfigUsable(cfg)
 }
 
 /**
@@ -270,6 +281,87 @@ function saveSessions(sessions: AIChatSession[]): void {
 }
 
 /** 列出所有会话（按更新时间倒序） */
+/**
+ * 无界面执行一次提问（P-4④ Automations 用）。
+ *
+ * 与 ai:chat 的区别只有一个但很关键：这里没有 webContents 可推流，
+ * 所以走非流式一次性拿结果；结果由调用方决定怎么落（写进会话、发通知或丢弃），
+ * 本函数不碰任何窗口。
+ */
+export async function runPrompt(
+  prompt: string
+): Promise<{ ok: boolean; text: string; error?: string }> {
+  const cfg = getAIConfig()
+  if (!cfg.enabled) return { ok: false, text: '', error: 'AI 未启用' }
+  if (!aiConfigUsable(cfg)) return { ok: false, text: '', error: 'AI 未配置完整' }
+  const text = (prompt ?? '').trim()
+  if (!text) return { ok: false, text: '', error: '提示词为空' }
+  try {
+    const messages: AIChatMessage[] = [
+      { role: 'system', content: cfg.systemPrompt },
+      { role: 'user', content: text }
+    ]
+    const answer = await chatNonStream(cfg, messages)
+    return { ok: true, text: answer }
+  } catch (error) {
+    return { ok: false, text: '', error: (error as Error).message }
+  }
+}
+
+/**
+ * 拉当前端点的模型列表（P-4①「BYOM」）。设置页那个「拉取模型」按钮的全部理由：
+ * 用户填的是一个**地址**，不是 our 目录里的某一项，不拉一下他就不知道自己写对没有。
+ *
+ * 三条口径：
+ * - 地址按 provider 的 modelsPath 相对 **baseUrl** 解析（Ollama 的清单在 `/api/tags`，
+ *   不在 `/v1` 下）；
+ * - 解析按**响应形态**判断而不是按 provider 名（`{data:[{id}]}` 或 `{models:[{name}]}`）；
+ * - 「200 但看不懂」必须是失败——空列表当成功会让用户以为端点一个模型都没有。
+ */
+export async function listModels(): Promise<{
+  ok: boolean
+  models: string[]
+  error?: string
+  url?: string
+}> {
+  const cfg = getAIConfig()
+  const url = aiModelsUrl(cfg.baseUrl, modelsPathFor(cfg.provider))
+  if (!url) return { ok: false, models: [], error: '没填服务地址' }
+  const guard = await assertAiEndpointAllowed(cfg.baseUrl)
+  if (!guard.ok) return { ok: false, models: [], error: guard.reason, url }
+  const local = isLocalAiBaseUrl(cfg.baseUrl)
+  try {
+    const resp = await fetch(url, {
+      headers: cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {},
+      signal: AbortSignal.timeout(8000)
+    })
+    if (!resp.ok) return { ok: false, models: [], error: `端点回了 ${resp.status}`, url }
+    let payload: unknown
+    try {
+      payload = await resp.json()
+    } catch {
+      return {
+        ok: false,
+        models: [],
+        error: local ? `本地端点没起来（${cfg.baseUrl}）：回的不是 JSON` : '端点回的不是 JSON',
+        url
+      }
+    }
+    const models = parseModelList(payload)
+    if (models.length === 0)
+      return { ok: false, models: [], error: '端点没返回可识别的模型列表', url }
+    return { ok: true, models, url }
+  } catch (error) {
+    const why = (error as Error).message
+    return {
+      ok: false,
+      models: [],
+      error: local ? `本地端点没起来（${cfg.baseUrl}）：${why}` : why,
+      url
+    }
+  }
+}
+
 export function listSessions(): AIChatSession[] {
   return getSessions().sort((a, b) => b.updatedAt - a.updatedAt)
 }
@@ -366,6 +458,8 @@ export function registerAIIpc(): void {
   ipcMain.handle('ai:setConfig', (_e, patch: Partial<AIConfig>) => setAIConfig(patch))
 
   ipcMain.handle('ai:isConfigured', () => isAIConfigured())
+  // 「拉取模型」（P-4① BYOM）：填的是地址，不拉一下用户不知道自己写对没有
+  ipcMain.handle('ai:listModels', () => listModels())
 
   // ─── 对话历史 IPC ───
   ipcMain.handle('ai:listSessions', () => listSessions())

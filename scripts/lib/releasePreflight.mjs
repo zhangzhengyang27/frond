@@ -80,3 +80,26 @@ export function evaluateReleaseReadiness(input) {
     signed: platform === 'mac' ? !!env.CSC_LINK : null
   }
 }
+
+/**
+ * 从 electron-builder.yml 里取生效的 publish 目标。
+ * 只认我们自己这份配置的形态：`publish:` 块下的扁平 `key: value`（缩进两格），
+ * 遇到下一个顶格 key 结束。没有引 yaml 依赖，就为一个四行块装个解析器不值当。
+ */
+export function readPublishTarget(ymlText) {
+  const lines = String(ymlText).split(/\r?\n/)
+  let inPublish = false
+  const out = {}
+  for (const raw of lines) {
+    if (/^publish:\s*$/.test(raw)) {
+      inPublish = true
+      continue
+    }
+    if (!inPublish) continue
+    if (raw.trim() === '' || raw.trimStart().startsWith('#')) continue
+    if (/^\S/.test(raw)) break // 顶格 = publish 块结束
+    const m = /^ {2}(\w+):\s*(.*)$/.exec(raw)
+    if (m) out[m[1]] = m[2].trim().replace(/^["']|["']$/g, '')
+  }
+  return { provider: out.provider ?? null, owner: out.owner ?? null, repo: out.repo ?? null }
+}

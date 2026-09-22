@@ -98,6 +98,12 @@ export interface LauncherPageDef {
    * 运行时不看它。
    */
   name: string
+  /**
+   * 组件名。只为**测试与开发态自检**存在：钉住「这个 id 渲染的是哪一页」时，断言方
+   * 不必 import 24 个 SFC（单测环境解析不了 `@components/*` 这类渲染端别名）。
+   * 运行时不看它。
+   */
+  name: string
   props?: (ctx: LauncherViewCtx) => Record<string, unknown>
   on?: (ctx: LauncherViewCtx) => Record<string, ViewHandler>
   ready?: (ctx: LauncherViewCtx) => boolean
@@ -317,6 +323,9 @@ export function pickPageView(
     component: def.component,
     props: def.props?.(ctx) ?? {},
     on: def.on?.(ctx) ?? {},
-    key: def.key?.(ctx)
+    // 默认键就是页面 id：以前 24 节硬链里每一节是不同的 vnode 位置，换页必然重挂载；
+    // 合成一个 <component :is> 之后不写 key 就会**复用实例**——同名组件（FormPage 有 6 条）
+    // 在两张参数表之间切换时会留着上一页填过的值。mcpcall 用自己的 seq 覆盖这条。
+    key: def.key?.(ctx) ?? id
   }
 }

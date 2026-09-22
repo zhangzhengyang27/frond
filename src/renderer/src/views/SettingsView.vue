@@ -254,6 +254,7 @@ async function loadAIConfig(): Promise<void> {
     aiModel.value = cfg.model
     aiSystemPrompt.value = cfg.systemPrompt
     aiTemperature.value = cfg.temperature
+    await loadMcp()
   } catch {
     /* AI 配置读取失败 */
   }
@@ -447,6 +448,22 @@ async function saveAutomations(): Promise<void> {
   autoTasks.value = res.tasks
 }
 
+/** 任务归属（只认 `plugin:<id>` 这一种形态，认不出的不当用户的任务来标） */
+function automationOwner(t: AutomationRow): string {
+  const id = ownerPluginId(t.owner)
+  return id ? `来自插件 ${id}` : ''
+}
+
+/**
+ * 动作那一栏的文案。插件命令要单独写：宿主只能看到「投递到了插件」，
+ * 插件里那条命令跑成什么样看不到——写「成功」是替插件撒的谎。
+ */
+function automationActionLabel(t: AutomationRow): string {
+  const a = t.action
+  if (a.type === 'plugin') return `插件命令 ${'cmd' in a ? a.cmd : ''}`.trim()
+  return a.type
+}
+
 async function runAutomationNow(id: string): Promise<void> {
   autoBusyId.value = id
   autoMsg.value = ''
@@ -465,6 +482,96 @@ async function toggleAutomation(task: AutomationView): Promise<void> {
     autoTasks.value = await window.api.ai.automationSetEnabled(task.id, !task.enabled)
   } finally {
     autoBusyId.value = null
+  }
+}
+
+// ── MCP 客户端（P-4②）──
+type McpOverviewT = Awaited<ReturnType<typeof window.api.ai.mcpOverview>>
+const mcp = ref<McpOverviewT | null>(null)
+/** 编辑器里是「公开形态」，所以永远不含 env 值——保存时主进程按 id 沿用本机原值 */
+const mcpJson = ref('[]')
+const mcpBusyId = ref<string | null>(null)
+const mcpMsg = ref('')
+const mcpCallResult = ref<Record<string, string>>({})
+
+async function loadMcp(): Promise<void> {
+  try {
+    const view = await window.api.ai.mcpOverview()
+    mcp.value = view
+    mcpJson.value = JSON.stringify(
+      view.servers.map((x) => ({
+        id: x.id,
+        label: x.label,
+        command: x.command,
+        args: x.args,
+        enabled: x.enabled
+      })),
+      null,
+      2
+    )
+  } catch {
+    mcpMsg.value = '读取 MCP 配置失败'
+  }
+}
+
+async function saveMcpJson(): Promise<void> {
+  mcpMsg.value = ''
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(mcpJson.value)
+  } catch (error) {
+    mcpMsg.value = `JSON 不合法：${(error as Error).message}`
+    return
+  }
+  const res = await window.api.ai.mcpSetServers(parsed)
+  if (res.rejected.length > 0) {
+    mcpMsg.value = `已保存 ${res.servers.length} 个，拒绝 ${res.rejected.length} 个：` +
+      res.rejected.map((r) => `第 ${r.index + 1} 条 ${r.reason}`).join('；')
+  } else {
+    mcpMsg.value = `已保存 ${res.servers.length} 个`
+  }
+  await loadMcp()
+}
+
+async function mcpConnect(id: string): Promise<void> {
+  mcpBusyId.value = id
+  mcpMsg.value = ''
+  try {
+    const view = await window.api.ai.mcpConnect(id)
+    mcpMsg.value =
+      view.status === 'ready'
+        ? `${view.serverName ?? id} 已连接，${view.tools.length} 个工具${
+            view.skipped > 0 ? `（${view.skipped} 个非法条目已忽略）` : ''
+          }`
+        : `连不上：${view.error ?? view.status}`
+    await loadMcp()
+  } finally {
+    mcpBusyId.value = null
+  }
+}
+
+async function mcpStop(id: string): Promise<void> {
+  mcpBusyId.value = id
+  try {
+    await window.api.ai.mcpStop(id)
+    await loadMcp()
+  } finally {
+    mcpBusyId.value = null
+  }
+}
+
+async function mcpCall(id: string, tool: string): Promise<void> {
+  mcpBusyId.value = `${id}:${tool}`
+  try {
+    const res = await window.api.ai.mcpCallTool(id, tool, {})
+    mcpCallResult.value = {
+      ...mcpCallResult.value,
+      [`${id}:${tool}`]: res.ok
+        ? res.text + (res.ignoredContent > 0 ? `\n（忽略了 ${res.ignoredContent} 段非文本内容）` : '')
+        : `失败：${res.error ?? '未知错误'}`
+    }
+  } finally {
+    mcpBusyId.value = null
   }
 }
 
@@ -1527,7 +1634,14 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     表达式不合法
                   </span>
                   <span class="min-w-0 flex-1 truncate font-mono text-[11px] text-fg-tertiary">
-                    {{ t.action.type }}
+                    {{ automationActionLabel(t) }}
+                  </span>
+                  <!-- 后台会跑的东西必须看得见是谁安排的：插件登记的那条带上来源 -->
+                  <span
+                    v-if="automationOwner(t)"
+                    class="shrink-0 rounded-full bg-surface-active px-2 py-0.5 text-[11px] text-fg-secondary"
+                  >
+                    {{ automationOwner(t) }}
                   </span>
                   <UButton
                     size="sm"
@@ -1554,7 +1668,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 <div v-if="t.lastFiredAt" class="mt-1 text-[11px] text-fg-tertiary">
                   上次 {{ new Date(t.lastFiredAt).toLocaleString('zh-CN', { hour12: false }) }} ·
                   <span :class="t.lastOk ? 'text-fg-success' : 'text-fg-danger'">
-                    {{ t.lastOk ? '成功' : `失败：${t.lastError ?? '未知错误'}` }}
+                    {{ automationResultLabel(t) }}
                   </span>
                 </div>
               </div>

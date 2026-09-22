@@ -15,6 +15,8 @@
 import { BrowserView, BrowserWindow, Notification } from 'electron'
 import { join } from 'path'
 import { getPlugin, pluginEntryUrl, type InstalledPlugin } from './pluginStore'
+import { ensureLauncherWindow } from './window'
+import { headlessRunBlocker } from './headlessRun'
 import { getLauncherDocStore } from './docStore'
 import { isLocalAddressLiteral } from './netGuard'
 import fetch from 'node-fetch'
@@ -278,6 +280,11 @@ export function setPluginPreference(
  * 只回**清单里声明过的键**：值没设过就落默认值，未声明的键不存在——
  * 插件不能拿它探宿主里别人存了什么。
  */
+/**
+ * 一次取回全部声明偏好的生效值（P-2.5 · Raycast `getPreferenceValues` 的形状）。
+ * 只回**清单里声明过的键**：值没设过就落默认值，未声明的键不存在——
+ * 插件不能拿它探宿主里别人存了什么。
+ */
 export function listPluginPreferences(pluginId: string): {
   ok: boolean
   values?: Record<string, unknown>
@@ -462,7 +469,11 @@ function notifyRenderer(win: BrowserWindow | null): void {
     declaredForm: active?.declaredForm ?? null,
     // P-2.6：列表加载态 / 空态文案（Raycast isLoading / emptyView 语义）
     declaredLoading: active?.declaredLoading ?? false,
-    declaredEmptyMessage: active?.declaredEmptyMessage ?? null
+    declaredEmptyMessage: active?.declaredEmptyMessage ?? null,
+    // P-2.2 的两把尺子也随快照下发：渲染端要靠它们判断「插件到底接管了搜索框没有」
+    // （Action 命令打开又自关，一路 open=true→false，但从未挂过视图，搜索框不该被它清掉）
+    headless: active?.headless ?? false,
+    attached: active?.attached ?? false
   }
   win.webContents.send('launcher:plugin-changed', state)
 }
@@ -645,6 +656,32 @@ export function openPluginDevtools(pluginId: string): boolean {
     return true
   }
   return false
+}
+
+/**
+ * 无人值守跑一条插件命令（Automations 的 `'plugin'` 动作用，P-2③）。
+ *
+ * 三条设计上的实话：
+ * - **只跑 action 模式**（`headlessRunBlocker` 判）：视图命令会在没人看着时弹界面；
+ * - **不弹窗**：宿主用 `ensureLauncherWindow()`，创建时 show:false，这里也不 show；
+ * - **成败只代表「投递到了插件」**：插件里的逻辑跑成什么样宿主看不到（Action 命令没有
+ *   回调通道）。所以设置页那句提示写的是「已交给插件」而不是「执行成功」，不假装看得见。
+ */
+export function runPluginCommandDetached(
+  pluginId: string,
+  cmd: string,
+  args?: Record<string, string>
+): { ok: boolean; error?: string } {
+  const blocker = headlessRunBlocker(getPlugin(pluginId), cmd, active !== null)
+  if (blocker) return { ok: false, error: blocker }
+  const win = ensureLauncherWindow()
+  if (!win) return { ok: false, error: '建不出承载插件的窗口' }
+  try {
+    openPlugin(win, pluginId, cmd, args)
+  } catch (error) {
+    return { ok: false, error: `起不动：${(error as Error).message}` }
+  }
+  return { ok: true }
 }
 
 export function closeActivePlugin(win: BrowserWindow): void {

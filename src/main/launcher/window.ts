@@ -375,6 +375,23 @@ export function showLauncherWindow(): void {
   notifyWindowVisibility(true)
 }
 
+/**
+ * 取（必要时**不显示地**）建一个胶囊窗，作为 headless 插件视图的宿主。
+ * Automations 在后台跑插件命令时用它：那一刻用户可能从没开过胶囊，
+ * 但不该为了跑一条命令就把窗口弹到他脸上——创建时 show:false，这里也不 show。
+ */
+export function ensureLauncherWindow(): BrowserWindow | null {
+  if (!launcherWindow || launcherWindow.isDestroyed()) {
+    try {
+      launcherWindow = createLauncherWindow()
+    } catch (error) {
+      console.error('[Launcher] 建不出宿主窗:', error)
+      return null
+    }
+  }
+  return launcherWindow
+}
+
 /** 获取胶囊窗实例（未创建或已销毁返回 null） */
 export function getLauncherWindow(): BrowserWindow | null {
   return launcherWindow && !launcherWindow.isDestroyed() ? launcherWindow : null

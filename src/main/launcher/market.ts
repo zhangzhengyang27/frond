@@ -202,8 +202,7 @@ export function compareSemver(a: string, b: string): number | null {
  */
 export function isUpdatable(marketVersion?: string, installedVersion?: string): boolean {
   if (!marketVersion || !installedVersion) return false
-  const cmp = compareSemver(marketVersion, installedVersion)
-  return cmp === null ? marketVersion !== installedVersion : cmp > 0
+  return marketVersion !== installedVersion
 }
 
 /** 索引条目 × 已装插件 → 市场列表行（纯函数，可单测）：补充安装态与可更新标识 */

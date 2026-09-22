@@ -32,9 +32,12 @@ export {
   removeCacheItem,
   showAlert,
   openExternalUrl,
-  getPreferenceValues
+  getPreferenceValues,
+  scheduleCommand,
+  listScheduledCommands,
+  cancelScheduledCommand
 } from './platform'
-export type { AlertAction } from './platform'
+export type { AlertAction, PluginSchedule, PluginScheduleInput } from './platform'
 export type {
   ListProps,
   ListItemProps,

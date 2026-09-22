@@ -50,10 +50,10 @@ import type {
 import type { InstalledPlugin } from '../main/launcher/pluginStore'
 import type { PermissionId, PermissionState, PermissionStatus } from '../main/ipc/permissions'
 import type { AutomationTaskView } from '../shared/automation'
-import type { FrontmostContext } from '../main/utils/screenAwareness'
 import type { McpCallResult, McpServerView } from '../main/services/mcp/client'
-import type { McpOverview, McpServerPublic } from '../main/services/mcp/store'
+import type { FrontmostContext } from '../main/utils/screenAwareness'
 import type { McpToolCommand } from './mcp'
+import type { McpOverview, McpServerPublic } from '../main/services/mcp/store'
 import type {
   MarketItem,
   installFromMarket,
@@ -835,6 +835,19 @@ export interface IpcContract {
     res: string | null
   }
   /** 一次取回声明过的全部偏好（P-2.5：getPreferenceValues） */
+  // 插件登记自己的定时任务（P-2③「生命周期外执行」）：owner 由 handler 按 sender 定，
+  // 插件传不进别人的身份，也只能排 mode:'action' 的命令
+  'plugapi:scheduleList': { req: void; res: AutomationTaskView[] }
+  'plugapi:scheduleAdd': {
+    req: {
+      label?: string
+      cron: string
+      cmd: string
+      arguments?: Record<string, string>
+    }
+    res: { ok: boolean; id?: string; error?: string }
+  }
+  'plugapi:scheduleRemove': { req: { id: string }; res: { ok: boolean; error?: string } }
   'plugapi:listPreferences': {
     req: void
     res: ReturnType<typeof listPluginPreferences>
@@ -1177,7 +1190,6 @@ export interface IpcContract {
   'system:frontmostApp': { req: void; res: string | null }
   /** P-4⑤：前台应用 + 窗口标题（只到「标题」这一层，不抓屏、不动剪贴板） */
   'system:frontmostContext': { req: void; res: FrontmostContext }
-  'system:openAccessibilitySettings': { req: void; res: { ok: boolean; error?: string } }
 
   'notification:show': {
     req: { type: NotificationType; title: string; body: string; options?: NotificationOptions }
@@ -1276,7 +1288,9 @@ export interface IpcContract {
     req: { id: string; tool: string; args: Record<string, unknown> }
     res: { ok: boolean; text: string; ignoredContent: number; error?: string }
   }
+  /** 工具清单缓存 → 根搜索命令行（P-4② 收尾）：不 spawn，纯读缓存 */
   'mcp:toolCommands': { req: void; res: McpToolCommand[] }
+  /** 从搜索框跑一个工具：认 id + 工具名，参数是**字符串**（类型由主进程按 schema 定） */
   'mcp:runTool': {
     req: { id: string; tool: string; args: Record<string, string> }
     res: McpCallResult

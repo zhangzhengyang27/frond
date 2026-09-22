@@ -83,6 +83,23 @@ export function cronMatches(spec: CronSpec, at: Date): boolean {
   )
 }
 
+/**
+ * 这个表达式在 24 小时里会触发几次（从 `from` 起算的下一个整点日）。
+ *
+ * 用最笨也最可靠的办法：一分钟一分钟问 `cronMatches`。1440 次判定比任何
+ * 解析式推算都便宜，而且**与真正决定触发的判据是同一份代码**——自己按字段
+ * 推算的话，DOM/DOW 那条并集规则（见 cronMatches）迟早会被算错一次。
+ */
+export function firesPerDay(spec: CronSpec, from = new Date()): number {
+  const start = new Date(from)
+  start.setHours(0, 0, 0, 0)
+  let n = 0
+  for (let i = 0; i < 1440; i++) {
+    if (cronMatches(spec, new Date(start.getTime() + i * 60_000))) n++
+  }
+  return n
+}
+
 /** 一行说明写错在哪（界面直接显示，不要求用户懂 cron 语法） */
 export function cronError(source: string): string | null {
   const parts = (source ?? '').trim().split(/\s+/)

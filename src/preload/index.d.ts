@@ -1,6 +1,9 @@
 import type { UpdateEvent, UpdateStatus } from '../renderer/src/types/update'
 import type { ArchiveInfo } from '../main/db/legacyArchive'
 import type { FirstPartyPage } from '../shared/commands'
+import type { McpToolArg } from '../shared/mcp'
+import type { McpToolCommand } from './mcp'
+import type { McpCallResult } from '../main/services/mcp/client'
 import type { PopToRootMode } from '../shared/popToRoot'
 import type { BrowserTab } from '../main/services/BrowserTabsService'
 import type { AIConfig, AIChatMessage, AIChatSession, AIModelPreset } from '../shared/ai'
@@ -591,6 +594,25 @@ export interface API {
     openFirstParty: (page: FirstPartyPage) => void
     /** 第一方内联页打开事件（主进程转发，胶囊渲染端订阅） */
     onOpenFirstParty: (cb: (page: FirstPartyPage) => void) => () => void
+    /**
+     * MCP 工具调用转交胶囊（P-4② 收尾）：⌘K 面板没有参数格与结果页。
+     * argSpecs 是**参数清单**（排几格、哪个必填），不是值。
+     */
+    runMcpTool: (payload: {
+      serverId: string
+      serverLabel: string
+      tool: string
+      argSpecs: McpToolArg[]
+    }) => void
+    /** 胶囊侧订阅上述转交 */
+    onRunMcpTool: (
+      cb: (payload: {
+        serverId: string
+        serverLabel: string
+        tool: string
+        argSpecs: McpToolArg[]
+      }) => void
+    ) => () => void
     /** 独立模块窗已接管某路由（主窗口若正显示同路由应让位回 Hub） */
     onAppRouteTaken: (cb: (payload: { path: string }) => void) => () => void
     getPluginState: () => Promise<{
@@ -861,6 +883,33 @@ export interface API {
     getConfig: () => Promise<AIConfig>
     setConfig: (patch: Partial<AIConfig>) => Promise<AIConfig>
     isConfigured: () => Promise<boolean>
+    listModels: () => Promise<{
+      ok: boolean
+      models: string[]
+      error?: string
+      url?: string
+    }>
+    /** MCP 客户端最小面（P-4②） */
+    mcpOverview: () => Promise<McpOverview>
+    /** 工具清单缓存 → 根搜索命令行（P-4② 收尾，纯读缓存不 spawn） */
+    mcpToolCommands: () => Promise<McpToolCommand[]>
+    /** 从搜索框/⌘K 跑一个工具：参数值是字符串，类型由主进程按 schema 定 */
+    mcpRunTool: (payload: {
+      id: string
+      tool: string
+      args: Record<string, string>
+    }) => Promise<McpCallResult>
+    mcpSetServers: (servers: unknown) => Promise<{
+      servers: McpServerPublic[]
+      rejected: Array<{ index: number; reason: string }>
+    }>
+    mcpConnect: (id: string) => Promise<McpServerView>
+    mcpStop: (id: string) => Promise<boolean>
+    mcpCallTool: (
+      id: string,
+      tool: string,
+      args: Record<string, unknown>
+    ) => Promise<{ ok: boolean; text: string; ignoredContent: number; error?: string }>
     chat: (
       sessionId: string,
       messages: AIChatMessage[]

@@ -6,7 +6,7 @@
  * 正在用的那个插件关掉」），必须能被单测钉住；而它旁边就是 `runtime.ts` 里的
  * BrowserView / Notification，混在一起就只能靠 e2e 碰运气。
  */
-import { isActionCommand, type InstalledPluginView } from '../../shared/plugin-protocol'
+import { isActionCommand } from '../../shared/plugin-protocol'
 
 /** 判定只要三样：装了什么、要跑哪条、现在有没有活跃视图 */
 export interface HeadlessRunPlugin {
@@ -33,6 +33,3 @@ export function headlessRunBlocker(
   if (hasActiveView) return '胶囊里正有插件在用，这次跳过'
   return null
 }
-
-/** 让类型系统记住「installed plugin 也能当判定输入」，调用方不必自己挑字段 */
-export type InstalledPluginForHeadless = InstalledPluginView | HeadlessRunPlugin

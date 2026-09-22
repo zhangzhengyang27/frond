@@ -81,7 +81,7 @@ export function applyGlassVars(
   const vars = CAPSULE_GLASS[normalizeGlass(glass)]
   for (const key of Object.keys(vars) as Array<keyof GlassVars>) {
     const value = vars[key]
-    if (value === null) target.style.removeProperty(GLASS_CSS_VARS[key])
+    if (value === null) target.style.setProperty(GLASS_CSS_VARS[key], '')
     else target.style.setProperty(GLASS_CSS_VARS[key], value)
   }
 }

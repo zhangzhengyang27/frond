@@ -10,7 +10,7 @@
  * （`system.hideAll` 一个写「显示桌面」一个写「隐藏所有窗口」），标题不同的那些
  * ——音量五档、屏保、清空废纸篓——就这么成对出现在搜索框里，使用统计劈成两个 key。
  */
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { buildQuicklinkCommands, addPinyinAliases, type CommandEntry } from '@shared/commands'
 import { mergeCommandEntries } from '@shared/mergeCommands'
 import type { Command } from '@shared/commandRegistry'
@@ -22,10 +22,24 @@ import {
   getFastCommands,
   getAppCommands
 } from '@renderer/commands/CommandLoader'
+import { loadMcpToolEntries } from '@renderer/commands/McpCommandProvider'
+import { latestOnly } from './launcherInteractions'
 
-export function useCommandSources() {
+/**
+ * 命令源聚合。
+ *
+ * `afterTableChange`：命令表被**推送**刷新之后要做的事（胶囊传的是「按当前查询重跑」——
+ * 它那份结果是命令式的 ref，不重跑就还是旧的一屏；主窗 ⌘K 面板的结果是 computed，不用传）。
+ */
+export function useCommandSources(afterTableChange?: () => void) {
   /** 插件命令（每次唤起刷新，管理页装/停插件后立即生效） */
   const pluginCommands = ref<CommandEntry[]>([])
+
+  /**
+   * MCP 工具行（P-4②「工具进根搜索」）。单独一路而不是塞进 Registry：
+   * 推送刷新时只重拉变了的那一路，代价是一条 IPC。
+   */
+  const mcpCommands = ref<CommandEntry[]>([])
 
   /** Quicklinks（M2.3，用户在设置里自建；参数化链接的槽位在 actionMap 那边判） */
   const dynamicCommands = ref<CommandEntry[]>([])
@@ -87,8 +101,13 @@ export function useCommandSources() {
     dynamicCommands.value = parts
   }
 
-  async function loadPluginCommands(): Promise<void> {
-    try {
+  /** 读一次工具清单（主进程侧只读缓存，不会 spawn） */
+  async function loadMcpCommands(): Promise<void> {
+    mcpCommands.value = await loadMcpToolEntries()
+  }
+
+  /** 拉一次插件命令表（不含提交，交给 latestOnly 决定还要不要这份结果） */
+  async function fetchPluginCommands(): Promise<CommandEntry[]> {
       const plugins = (await window.api.launcher.listPlugins()) as Array<{
         id: string
         name: string
@@ -161,7 +180,12 @@ export function useCommandSources() {
   async function enrichAliases(): Promise<void> {
     // 动态源也要补别名：合一之前主窗面板单独给 Quicklink / 系统命令做过 addPinyinAliases，
     // 中文命名的 Quicklink 打首字母搜得到，合一后漏了就搜不到了
-    const all = [...registryEntries.value, ...pluginCommands.value, ...dynamicCommands.value]
+    const all = [
+      ...registryEntries.value,
+      ...pluginCommands.value,
+      ...mcpCommands.value,
+      ...dynamicCommands.value
+    ]
     await addPinyinAliases(all)
     // P2-8：合并用户自定义别名（key = 命令 key）
     try {
@@ -209,6 +233,7 @@ export function useCommandSources() {
     const merged = mergeCommandEntries([
       registryEntries.value, // 统一 Registry（应用 + 系统 + 第一方 + 模块/系统页）
       pluginCommands.value,
+      mcpCommands.value, // MCP 工具清单缓存
       pluginSearchRows.value, // #5 插件双通道：searchable 插件持久化条目
       dynamicCommands.value
     ])
@@ -225,8 +250,27 @@ export function useCommandSources() {
     return merged.entries
   })
 
+  // 命令表变了（插件装卸 / 启停 / 市场更新 / MCP 工具清单变化）：两路消费者都在这重拉。
+  // 放在这里而不是各界面自己订，是因为「谁该刷新」与命令源同源，散着订迟早漏一路
+  // （此前只有胶囊订，主窗的 ⌘K 面板就一直拿着过期的表）。
+  // 推送带上了**是哪一路**变的：只重拉那一路，不去连带把系统命令/模块行全重算。
+  const offTableChange = window.api.launcher.onCommandTableChanged((source) => {
+    const reload = source === 'mcp' ? loadMcpCommands() : loadPluginCommands()
+    void reload
+      .then(async () => {
+        await enrichAliases()
+        afterTableChange?.()
+      })
+      .catch(() => {
+        /* 拉不到就保持现状：下一次唤起照样会重拉，不该把界面搞成半更新 */
+      })
+  })
+  onScopeDispose(() => offTableChange())
+
   return {
     pluginCommands,
+    mcpCommands,
+    loadMcpCommands,
     pluginSearchRows,
     dynamicCommands,
     registryEntries,

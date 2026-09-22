@@ -101,6 +101,7 @@ import { focusShield, registerFocusShieldIpc } from './modules/focusShield'
 // AI 服务（P0-3：OpenAI 兼容 API + 流式响应）
 import { registerAIIpc } from './services/AIService'
 import { registerMcpIpc, stopAllMcpServers } from './services/mcp/store'
+import { registerAutomationIpc } from './modules/automation/store'
 // 内置插件自动安装
 import { autoInstallBuiltinPlugins } from './launcher/builtinPlugins'
 // 命令别名（P2-8）
@@ -356,6 +357,7 @@ app.whenReady().then(() => {
   registerCloudBackupIpcHandlers()
   registerRemindersIpc()
   registerPermissionsIpcHandlers()
+  registerPermissionsIpcHandlers()
   registerLauncher(() => mainWindow)
 
   // 创建新窗口 IPC 处理
@@ -429,6 +431,8 @@ app.whenReady().then(() => {
   // AI 服务（P0-3）
   registerAIIpc()
   registerMcpIpc()
+  // Automations（P-4④）：设置页读写 + 引擎心跳的 IPC
+  registerAutomationIpc()
 
   // 内置插件自动安装（开箱即用）
   autoInstallBuiltinPlugins()

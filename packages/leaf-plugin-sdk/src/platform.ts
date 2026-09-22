@@ -28,6 +28,33 @@ interface PluginHostApi {
   preferences?: {
     all?: () => Promise<{ ok?: boolean; values?: Record<string, unknown> } | undefined>
   }
+  schedule?: {
+    list?: () => Promise<PluginSchedule[]>
+    add?: (
+      task: PluginScheduleInput
+    ) => Promise<{ ok: boolean; id?: string; error?: string } | undefined>
+    remove?: (id: string) => Promise<{ ok: boolean; error?: string } | undefined>
+  }
+}
+
+/** 一条已登记的定时任务（宿主回给插件的形状，与 AutomationTaskView 同源） */
+export interface PluginSchedule {
+  id: string
+  label: string
+  cron: string
+  enabled: boolean
+  action: { type: string; cmd?: string }
+  lastFiredAt: number | null
+  lastOk: boolean | null
+  lastError?: string
+}
+
+/** 排一条本插件的 action 命令（cron 是本机本地时间的标准 5 字段） */
+export interface PluginScheduleInput {
+  label?: string
+  cron: string
+  cmd: string
+  arguments?: Record<string, string>
 }
 
 /** Alert 的一个动作按钮。style 只影响呈现（destructive 走警告框样式），不影响语义 */
@@ -179,4 +206,36 @@ export async function openExternalUrl(url: string): Promise<boolean> {
 export async function getPreferenceValues<T = Record<string, unknown>>(): Promise<T> {
   const res = await host()?.preferences?.all?.()
   return ((res?.ok ? res.values : undefined) ?? {}) as T
+}
+
+/**
+ * 排一条本插件的定时任务（P-2③「生命周期外执行」）。
+ *
+ * 需要 plugin.json 声明 `schedule` 权限；能排的只有**自己声明过的 mode:'action' 命令**
+ * （视图命令会在没人看着的时候弹界面），每个插件 3 条上限、最快每 15 分钟一次。
+ * 排上的任务在「设置 → 定时任务」里看得见也能删——后台会跑的东西不该只有插件知道。
+ * 返回里的 `ok` 只代表「宿主收下了这条排程」；到点跑起来后插件里成没成看不到。
+ */
+export async function scheduleCommand(
+  input: PluginScheduleInput
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const api = host()
+  if (!api?.schedule?.add) return { ok: false, error: '宿主不支持定时任务' }
+  return (await api.schedule.add(input)) ?? { ok: false, error: '宿主没回应' }
+}
+
+/** 本插件已登记的任务（不含别的插件的） */
+export async function listScheduledCommands(): Promise<PluginSchedule[]> {
+  const api = host()
+  if (!api?.schedule?.list) return []
+  return (await api.schedule.list()) ?? []
+}
+
+/** 撤一条（只能撤本插件登记的；不是自己的会带回 error） */
+export async function cancelScheduledCommand(
+  id: string
+): Promise<{ ok: boolean; error?: string }> {
+  const api = host()
+  if (!api?.schedule?.remove) return { ok: false, error: '宿主不支持定时任务' }
+  return (await api.schedule.remove(id)) ?? { ok: false, error: '宿主没回应' }
 }

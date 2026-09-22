@@ -211,9 +211,7 @@ export class PreferencesDataStore {
   /** 自动入会开关（V4 P0-1 批次4；默认关） */
   getAutoJoinEnabled(): boolean {
     return prefRepository.get(PREF_KEYS.autoJoin) === 'true'
-  }
-
-  /** 列表密度档（P-6 Compact Mode）：非法值回落 comfortable，不存原始字符串 */
+  }  /** 列表密度档（P-6 Compact Mode）：非法值回落 comfortable，不存原始字符串 */
   getDensity(): Density {
     return normalizeDensity(prefRepository.get(PREF_KEYS.density))
   }
@@ -228,6 +226,9 @@ export class PreferencesDataStore {
     return DEFAULT_DENSITY
   }
 
+
+
+
   /** 胶囊玻璃档（P-6）：默认 opaque = 观感与改动前完全一致 */
   getCapsuleGlass(): CapsuleGlass {
     return normalizeGlass(prefRepository.get(PREF_KEYS.capsuleGlass))
@@ -236,6 +237,17 @@ export class PreferencesDataStore {
   setCapsuleGlass(glass: CapsuleGlass): CapsuleGlass {
     const next = normalizeGlass(glass)
     prefRepository.set(PREF_KEYS.capsuleGlass, next)
+    return next
+  }
+
+  /** 紧凑模式（P-6⑤）：空查询时胶囊收成一条栏。默认关——开着它空态建议列表就不见了 */
+  getCompactMode(): boolean {
+    return prefRepository.get(PREF_KEYS.compactMode) === 'true'
+  }
+
+  setCompactMode(enabled: boolean): boolean {
+    const next = enabled === true
+    prefRepository.set(PREF_KEYS.compactMode, next ? 'true' : 'false')
     return next
   }
 

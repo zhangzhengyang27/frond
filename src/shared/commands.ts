@@ -4,13 +4,14 @@
  * 单一真理源：启动台胶囊、⌘K 命令面板、托盘 / Dock 菜单、⌘1-4 的入口
  * 全部从这份注册表取命令，保证「同样的搜索，到处一个样」。
  *
- * 三类静态命令在此构建：
- * - module  → 主窗口模块页（家中的页面）
- * - page    → 系统管理页（设置 / 数据迁移 / 关于，非模块不进 MODULES）
- * - 内联页  → 第一方内联页命令（见 FIRST_PARTY_COMMANDS）
- * 两类动态命令由消费方运行时追加（类型沿用本文件）：
- * - plugin  → 已启用插件在 plugin.json 声明的命令（launcher.listPlugins）
- * - app     → 本机应用（getApplications）
+ * 这份文件现在只留**数据与类型**：命令条目形状、系统页清单、第一方内联页清单、
+ * 搜索引擎要用的规范化/别名工具。
+ *
+ * 「把这些行变成命令列表」的组装在 P-7② 之后只有一处 ——
+ * `renderer/src/commands/BuiltinCommandProvider`（模块 / 系统页 / 第一方动作）
+ * 与其余 provider 一起注册进 `shared/commandRegistry`；胶囊与主窗 ⌘K 面板都从同一个
+ * `useCommandSources()` 取行。以前这里另有一个 `buildStaticCommands()` 供两边各自摊平，
+ * 那是「统一注册表」名不副实的根因（两个界面的行会飘）。
  *
  * 执行语义见 renderer utils/commandRunner.ts；分工契约见 docs/IA_V2.md。
  */
@@ -45,7 +46,9 @@ export const FIRST_PARTY_PAGE_VALUES = [
   'dictionary',
   'notes',
   'reminders',
-  'calendar'
+  'calendar',
+  'mcpcall',
+  'mcparg'
 ] as const
 
 export type FirstPartyPage = (typeof FIRST_PARTY_PAGE_VALUES)[number]
@@ -180,6 +183,8 @@ export interface CommandEntry {
   badge: string
   /** 别名（拼音首字母等，M1.1，惰性生成） */
   aliases?: string[]
+  /** 这条命令接参数（「命令 + 尾部参数」的查询写法因此可命中）；参数格由查询词预填 */
+  acceptsArgs?: boolean
   action: CommandAction
 }
 
@@ -275,14 +280,6 @@ export const FIRST_PARTY_COMMANDS: CommandEntry[] = [
     action: { type: 'firstParty', page: 'schedule' }
   },
   {
-    key: 'firstparty:clips',
-    icon: 'clipboard-line',
-    title: '剪贴板历史',
-    subtitle: '最近复制的文本与图片，回车再复制',
-    badge: '动作',
-    action: { type: 'firstParty', page: 'clips' }
-  },
-  {
     key: 'firstparty:focusStats',
     icon: 'bar-chart-line',
     title: '专注统计',
@@ -321,14 +318,6 @@ export const FIRST_PARTY_COMMANDS: CommandEntry[] = [
     subtitle: '胶囊内与 AI 对话（需配置 API Key）',
     badge: 'AI',
     action: { type: 'firstParty', page: 'ai' }
-  },
-  {
-    key: 'firstparty:browserTabs',
-    icon: 'chrome-line',
-    title: '浏览器标签',
-    subtitle: '搜索 Chrome / Safari 标签并切换（macOS）',
-    badge: '浏览器',
-    action: { type: 'firstParty', page: 'browserTabs' }
   },
   {
     key: 'firstparty:notes',

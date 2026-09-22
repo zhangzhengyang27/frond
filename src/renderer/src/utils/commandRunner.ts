@@ -25,6 +25,11 @@ export interface CommandRunOptions {
   openQuicklinkArg?: (entry: CommandEntry) => void
   /** 带参数声明的插件命令需要参数输入时回调（胶囊 pluginarg 表单）；缺省退化为无参直接打开 */
   openPluginArg?: (entry: CommandEntry) => void
+  /**
+   * MCP 工具：只有胶囊实现了它（参数格 + 结果页都在胶囊里）。
+   * 缺省（⌘K 面板）= 把这条转交给胶囊执行同一件事，见 case 'mcpTool'。
+   */
+  openMcpTool?: (entry: CommandEntry) => void
 }
 
 export async function executeCommand(entry: CommandEntry, opts: CommandRunOptions): Promise<void> {
@@ -208,6 +213,24 @@ export async function executeCommand(entry: CommandEntry, opts: CommandRunOption
     case 'shotPaste': {
       // 粘贴最近截图（V4 P1-10）：主进程写剪贴板 → 收起胶囊 → ⌘V 注入前台
       void window.api.shotIndex.pasteLatest()
+      close()
+      break
+    }
+    case 'mcpTool': {
+      // MCP 工具（P-4②「工具进根搜索」）：**两个入口都收在胶囊那一侧执行**。
+      // 面板里既没有参数格也没有结果页，一条按下去看不出发生了什么的东西不该摆在那儿——
+      // 所以面板入口把调用转交胶囊（主进程顺手把胶囊窗唤起），与插件动作走 openPlugin 同一形态。
+      void window.api.usage.recordUse(entry.key)
+      if (opts.openMcpTool) {
+        opts.openMcpTool(entry)
+        break
+      }
+      window.api.launcher.runMcpTool({
+        serverId: a.serverId,
+        serverLabel: a.serverLabel,
+        tool: a.tool,
+        argSpecs: a.args
+      })
       close()
       break
     }

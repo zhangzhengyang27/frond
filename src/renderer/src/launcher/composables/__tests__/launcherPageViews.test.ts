@@ -12,7 +12,8 @@ import { FIRST_PARTY_PAGE_VALUES } from '@shared/commands'
 import {
   LAUNCHER_PAGE_VIEWS,
   pickPageView,
-  type LauncherViewCtx
+  type LauncherViewCtx,
+  type McpCallView
 } from '../launcherPageViews'
 
 const ctx = (over: Partial<LauncherViewCtx> = {}): LauncherViewCtx => ({
@@ -102,14 +103,17 @@ describe('pickPageView', () => {
   })
 
   it('mcpcall 的 key 跟着调用次数走（同一个工具连跑两次必须重挂载重发）', () => {
-    const call = (seq: number) =>
+    const call = (seq: number): LauncherViewCtx =>
       ctx({
         mcpCall: () => ({ serverId: 's', serverLabel: 'S', tool: 't', args: {}, seq })
       })
     expect(pickPageView('mcpcall', call(1))?.key).toBe(1)
     expect(pickPageView('mcpcall', call(2))?.key).toBe(2)
-    // 其余页面不带 key：Vue 默认的组件复用行为正是我们要的
-    expect(pickPageView('notes', ctx())?.key).toBeUndefined()
+    // 其余页面的 key 就是页面 id：换页必重挂载（与旧硬链的 vnode 行为一致）
+    expect(pickPageView('notes', ctx())?.key).toBe('notes')
+    // 两张参数表单都是 FormPage：不给键 Vue 会复用实例、留着上一页填过的值
+    expect(pickPageView('qlarg', ctx({ qlArgTarget: () => ({}) }))?.key).toBe('qlarg')
+    expect(pickPageView('pluginarg', ctx({ pluginArgTarget: () => ({}) }))?.key).toBe('pluginarg')
   })
 
   it('列表页把 loading / 空态文案原样搬过去（插件自己写的文案不能被宿主吃掉）', () => {

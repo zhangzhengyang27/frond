@@ -1,7 +1,8 @@
 }
 
 const hotkeyCommands = computed(() => {
-  const specs = buildStaticCommands() as unknown as CommandEntryLike[]
+  // P-7②：与 Registry 同一份定义（builtin provider），不再另抄一份静态清单
+  const specs = builtinStaticRows() as unknown as CommandEntryLike[]
   return specs
     .map((entry) => {
       const spec = specOfCommand(entry)

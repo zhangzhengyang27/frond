@@ -56,6 +56,26 @@ export function nextHistoryCursor(cursor: number, count: number, direction: 'up'
 }
 
 /** 底部动作栏主动作提示文案：跟随选中项的动作类型（回车语义） */
+/**
+ * 「只认最新一次」的异步拉取包装。
+ *
+ * 命令表是**推送驱动**重拉的，而两次推送可以挨得比一次拉取还近（连点插件开关、
+ * 装完立刻启用）。不加这道闸，先发起的那次拉取晚回来就会**覆盖**后一次的结果，
+ * 表现是「明明启用了，搜索框里却没有那几行」——而且下次唤起才好，最难复现。
+ */
+export function latestOnly<T>(
+  run: () => Promise<T>,
+  commit: (value: T) => void
+): () => Promise<void> {
+  let seq = 0
+  return async (): Promise<void> => {
+    const mine = ++seq
+    const value = await run()
+    if (mine === seq) commit(value)
+    // 晚了就别提交：已经有更新的一趟在跑或已经跑完
+  }
+}
+
 export function primaryActionLabel(actionType: string | undefined): string {
   switch (actionType) {
     case 'app':

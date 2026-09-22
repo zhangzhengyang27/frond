@@ -42,7 +42,11 @@ import {
   setLauncherCompact
 } from './window'
 import { countE2E } from '../e2eProbe'
-import { sanitizeAlertRequest, sanitizePluginOpenableUrl } from '../../shared/plugin-protocol'
+import {
+  isActionCommand,
+  sanitizeAlertRequest,
+  sanitizePluginOpenableUrl
+} from '../../shared/plugin-protocol'
 import {
   alertPressedAction,
   beginPluginAlert,
@@ -67,6 +71,12 @@ import { textExpansion } from '../modules/textExpansion'
 import { probeGlobalKeys, globalKeyHook } from '../modules/globalKeys'
 import { getLauncherDocStore } from './docStore'
 import { confirmPluginImport } from './pluginConfirm'
+import {
+  addPluginTask,
+  listPluginTasks,
+  removePluginTask,
+  removeTasksOwnedByPlugin
+} from '../modules/automation/store'
 import {
   hyperKeyService,
   normalizeQuickPress,
@@ -120,10 +130,20 @@ function hasPluginPermission(
  * 搜索框里就是搜不到那条新命令，用户得先把胶囊收起来再唤起一次。
  * 与 `launcher:plugin-search-index-updated` 同一个路子（单向推送，不入 typedHandle 契约）。
  */
-function notifyPluginTableChanged(): void {
-  const capsule = getLauncherWindow()
-  if (capsule && !capsule.isDestroyed()) {
-    capsule.webContents.send('launcher:plugin-table-changed')
+/**
+ * 命令表变了（插件装卸/启停/市场更新，以及 MCP 工具清单变化）：胶囊不必收起再唤起。
+ * 名字叫 command-table 而不是 plugin-table，是因为重拉方在渲染端要同时拉两路
+ * （Registry 里的 MCP 工具行 + 插件命令行）。
+ */
+/**
+ * @param source 哪一路命令表变了。渲染端据此**只重拉那一路**——一次 MCP 变化不该
+ *   连带把系统命令、模块行、Quicklinks 全重算一遍（推送与唤起同频时会把选中位反复归零）。
+ */
+export function notifyCommandTableChanged(source: 'plugins' | 'mcp' = 'plugins'): void {
+  // 播给所有窗：胶囊与主窗的 ⌘K 面板共用同一份命令源（P-7②），
+  // 只推胶囊会让面板拿着一张过期的表
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('launcher:command-table-changed', { source })
   }
 }
 
@@ -149,6 +169,11 @@ export function registerLauncherIpc(): void {
     setLauncherCompact(compact === true, Number(height))
   })
 
+  // 紧凑模式（P-6⑤）：渲染端量好搜索行的高度报过来，主进程只负责夹住并改窗口
+  typedHandle('launcher:setCompact', (_e, { compact, height }) => {
+    setLauncherCompact(compact === true, Number(height))
+  })
+
   typedHandle('launcher:installFromFolder', async (_e, { dirPath }) => {
     try {
       const dir = String(dirPath ?? '')
@@ -156,7 +181,7 @@ export function registerLauncherIpc(): void {
         return { success: false, error: 'canceled' }
       }
       const plugin = importFromFolder(dir)
-      notifyPluginTableChanged()
+      notifyCommandTableChanged('plugins')
       return { success: true, plugin }
     } catch (error) {
       return { success: false, error: (error as Error).message }
@@ -170,7 +195,7 @@ export function registerLauncherIpc(): void {
   typedHandle('launcher:market:refreshIndex', () => refreshRemoteIndex())
   typedHandle('launcher:market:install', async (_e, { entryId }) => {
     const result = await installFromMarket(String(entryId ?? ''))
-    if (result.success) notifyPluginTableChanged()
+    if (result.success) notifyCommandTableChanged('plugins')
     return result
   })
   // 版本更新通道：与 install 同为覆盖式安装；成功后就地重载存活插件视图
@@ -178,7 +203,7 @@ export function registerLauncherIpc(): void {
     const result = await installFromMarket(String(entryId ?? ''))
     if (result.success && result.plugin) {
       reloadPluginView(result.plugin.id, getLauncherWindow())
-      notifyPluginTableChanged()
+      notifyCommandTableChanged('plugins')
     }
     return result
   })
@@ -235,7 +260,10 @@ export function registerLauncherIpc(): void {
         closeActivePlugin(capsule)
       }
       removePlugin(pluginId)
-      notifyPluginTableChanged()
+      // 它登记的定时任务一起清掉：留着的话下次装回来会看到不属于它的旧任务，
+      // 而且那条任务会在没人知道的情况下继续排下去
+      removeTasksOwnedByPlugin(pluginId)
+      notifyCommandTableChanged('plugins')
       return { success: true }
     } catch (error) {
       return { success: false, error: (error as Error).message }
@@ -264,7 +292,7 @@ export function registerLauncherIpc(): void {
 
   typedHandle('launcher:setPluginEnabled', (_e, { pluginId, enabled }) => {
     const updated = setPluginEnabled(pluginId, enabled)
-    if (updated) notifyPluginTableChanged()
+    if (updated) notifyCommandTableChanged('plugins')
     return updated ? { success: true, plugin: updated } : { success: false }
   })
 
@@ -290,6 +318,37 @@ export function registerLauncherIpc(): void {
     showLauncherWindow()
     getLauncherWindow()?.webContents.send('launcher:firstparty:open', { page })
   })
+
+  // MCP 工具从 ⌘K 面板触发时交给胶囊跑（P-4② 收尾）：面板既没有参数格也没有结果页，
+  // 与其在面板里做一套残缺的（无参工具能跑、带参的静默失败），不如两个入口同一个行为。
+  ipcMain.on(
+    'launcher:runMcpTool',
+    (
+      _e,
+      payload: {
+        serverId?: string
+        serverLabel?: string
+        tool?: string
+        argSpecs?: unknown
+      }
+    ) => {
+      const serverId = typeof payload?.serverId === 'string' ? payload.serverId.slice(0, 32) : ''
+      const tool = typeof payload?.tool === 'string' ? payload.tool.slice(0, 64) : ''
+      // 只认 id + 工具名，且把清单原样转给胶囊：真正的门槛在执行侧
+      // （mcp:runTool 认已存配置的 id、认活会话里的工具名，见 main/services/mcp/store.ts）
+      if (!serverId || !tool) return
+      showLauncherWindow()
+      getLauncherWindow()?.webContents.send('launcher:mcp:run', {
+        serverId,
+        serverLabel:
+          typeof payload?.serverLabel === 'string'
+            ? payload.serverLabel.slice(0, 60)
+            : serverId,
+        tool,
+        argSpecs: Array.isArray(payload?.argSpecs) ? payload.argSpecs.slice(0, 6) : []
+      })
+    }
+  )
 
   ipcMain.on(
     'launcher:openPlugin',
@@ -567,6 +626,33 @@ export function registerLauncherIpc(): void {
     const ctx = getContextBySender(e.sender.id)
     if (!ctx) return { ok: false, error: 'no plugin context' }
     return listPluginPreferences(ctx.plugin.id)
+  })
+
+  // 插件的定时任务（P-2③「生命周期外执行」）。三条共同点：
+  // owner 由 sender 身份定，插件传不进别人的 id；没声明 schedule 权限一律拒。
+  typedHandle('plugapi:scheduleList', (e) => {
+    const ctx = getContextBySender(e.sender.id)
+    if (!ctx || !hasPluginPermission(ctx.plugin, 'schedule')) return []
+    return listPluginTasks(ctx.plugin.id)
+  })
+  typedHandle('plugapi:scheduleAdd', (e, { label, cron, cmd, arguments: args }) => {
+    countE2E('plugapi:scheduleAdd')
+    const ctx = getContextBySender(e.sender.id)
+    if (!ctx || !hasPluginPermission(ctx.plugin, 'schedule')) {
+      return { ok: false, error: 'permission denied: schedule（需在 plugin.json 声明）' }
+    }
+    // 「只能排 mode:'action' 的命令」这条闸要按清单声明判，而清单在 ctx.plugin 里就有。
+    // 不查的后果很具体：插件排了一条视图命令，就会在没人看着的时候把界面弹出来。
+    return addPluginTask(ctx.plugin.id, { label, cron, cmd, arguments: args }, (code) =>
+      isActionCommand(ctx.plugin.commands, code)
+    )
+  })
+  typedHandle('plugapi:scheduleRemove', (e, { id }) => {
+    const ctx = getContextBySender(e.sender.id)
+    if (!ctx || !hasPluginPermission(ctx.plugin, 'schedule')) {
+      return { ok: false, error: 'permission denied: schedule（需在 plugin.json 声明）' }
+    }
+    return removePluginTask(ctx.plugin.id, String(id ?? ''))
   })
 
   // open(url)：交给系统浏览器。权限按 net 收（与 fetch 同类：副作用在外部），

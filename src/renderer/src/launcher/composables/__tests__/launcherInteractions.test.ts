@@ -9,6 +9,7 @@
  *  - primaryActionLabel: 底部动作栏主动作文案映射
  */
 
+import { ref } from 'vue'
 import { describe, it, expect } from 'vitest'
 import {
   POP_TO_ROOT_TIMEOUT_MS,
@@ -161,6 +162,35 @@ describe('groupResultsForDisplay（V5 分区渲染的扁平下标映射）', () 
     expect(groups.map((g) => g.label)).toEqual(['结果', '文件'])
     expect(groups[0].items).toEqual([])
     expect(groups[1].items.map((s) => s.index)).toEqual([0])
+  })
+})
+
+describe('latestOnly（推送驱动的重拉：只认最新一趟）', () => {
+  it('先发起的那趟晚回来时，不许覆盖后一趟的结果', async () => {
+    const commit = ref<string>('')
+    let n = 0
+    const load = latestOnly<string>(
+      async () => {
+        const mine = ++n
+        // 第 1 趟慢、第 2 趟快：不按序号提交的话，晚到的「1」会盖掉「2」
+        await new Promise((r) => setTimeout(r, mine === 1 ? 30 : 1))
+        return String(mine)
+      },
+      (v) => {
+        commit.value = v
+      }
+    )
+    const first = load()
+    const second = load()
+    await Promise.all([first, second])
+    expect(commit.value).toBe('2')
+  })
+
+  it('一趟都没有更新时照常提交（这条闸不能变成「什么都不提交」）', async () => {
+    const commit = ref<number | null>(null)
+    const load = latestOnly<number>(async () => 7, (v) => (commit.value = v))
+    await load()
+    expect(commit.value).toBe(7)
   })
 })
 

@@ -91,6 +91,11 @@
 | --- | --- | --- |
 | `preferences.get` | `(name) => Promise<{ ok, value?, error? }>` | 未设置时返回清单声明的 `default` 兜底 |
 | `preferences.set` | `(name, value) => Promise<{ ok, error? }>` | 未声明的键报 `preference not declared` |
+| `preferences.all` | `() => Promise<{ ok, values?, error? }>` | 一次取回**声明过的全部**偏好（P-2.5，未设过的落 `default`）；未声明的键不会出现 |
+
+清单里的 `preferences` 走与参数声明同一套 fail-closed 清洗（`sanitizePluginPreferences`）：
+非法类型降级为 `text`、无候选的 `select` 降级为 `text`、缺 `label` 的项整条剔除、最多 20 项。
+内置插件的声明由 `pluginManifestAudit` 的「过一遍真清洗器不丢项」钉住。
 
 ### 2.5 网络：fetch（主进程代理）
 
@@ -108,6 +113,8 @@
 | `copyText` | `(text: string) => Promise<boolean>` | 写剪贴板（需 `clipboard.write` 权限） |
 | `readText` | `() => Promise<string>` | 读剪贴板（需 `clipboard.read` 权限） |
 | `openPath` | `(path: string) => Promise<boolean>` | 系统默认程序打开（需 `fs.open` 权限）；经安全守卫（§3.2），拒绝返回 false |
+| `openUrl` | `(url: string) => Promise<boolean>` | **P-2.5**：把链接交给系统浏览器（需 `net` 权限）。协议只收 `http` / `https` / `mailto`，≤2048 字符；`file:`、自定义 scheme（`obsidian://` 等）、`javascript:` 一律返回 false |
+| `alert` | `({ title?, message, actions? }) => Promise<string \| null>` | **P-2.5**：宿主原生模态框（`dialog.showMessageBox`）。回被按下的 `action.id`；只带一个「好」的确认框回 `null`。标题固定拼成「插件名 · 标题」，动作最多 4 个、正文 ≤600 字符 |
 | `setSubInput` | `(placeholder: string) => Promise<boolean>` | 把胶囊搜索框设为插件副输入框；输入变化经 `onSubInputChange` 回插件；分离模式不可用 |
 | `setExpandHeight` | `(height: number) => Promise<boolean>` | 调整插件区高度，主进程夹取 120–580；分离模式不可用 |
 | `detach` | `() => Promise<boolean>` | 分离为独立窗口（单一分离窗，已有分离窗时失败）；分离后 Enter 会带 `detached: true` 重发 |
@@ -115,7 +122,7 @@
 
 ### 2.6.1 敏感权限声明制
 
-`copyText` / `readText` / `openPath` / `fetch` 属于敏感 API，需在 `plugin.json` 中声明
+`copyText` / `readText` / `openPath` / `fetch` / `openUrl` 属于敏感 API，需在 `plugin.json` 中声明
 `permissions` 后才可用；**未声明时调用按该 API 的失败形状静默拒绝**（`fetch` 返回
 `{ ok: false, error }`，其余返回 `''` / `false`）。
 

@@ -58,8 +58,27 @@ export function useLauncherPages() {
     () => pageStack.value[pageStack.value.length - 1] ?? null
   )
   const pageRef = ref<LauncherPageHandle | null>(null)
+  // ── 唤起轮次 ──
+  // 唤起时的「回根」要先 await 一次读偏好，而 ⌘K 转交（openFirstParty / MCP 工具调用）
+  // 走的是另一条 IPC，两条谁先到不可控；比时间戳又会被「主进程直接 hide()、渲染端不知道」
+  // 打穿（那样 lastHiddenAt 永远不更新，回根从此再也不执行）。所以按**轮次**记：
+  // 每次唤起开一轮，压页盖上当前轮号，回根只清那些不属于本轮的请求。
+  let showCycle = 0
+  let lastPushCycle = -1
+
+  /** 本次唤起开新的一轮，返回轮号（回根判定要用它） */
+  function beginShowCycle(): number {
+    showCycle += 1
+    return showCycle
+  }
+
+  /** 这一轮唤起里有没有人**显式**要过页面（有的话回根要给它的意图让路） */
+  function pushedSince(cycle: number): boolean {
+    return lastPushCycle >= cycle
+  }
 
   function pushPage(page: FirstPartyPage): void {
+    lastPushCycle = showCycle
     pageStack.value = [...pageStack.value, page]
   }
 
@@ -70,7 +89,7 @@ export function useLauncherPages() {
     return pageStack.value.length > 0
   }
 
-  return { pageStack, firstPartyPage, pageRef, pushPage, popPage }
+  return { pageStack, firstPartyPage, pageRef, pushPage, popPage, beginShowCycle, pushedSince }
 }
 === FirstPartyPage
 26:export const FIRST_PARTY_PAGE_VALUES = [

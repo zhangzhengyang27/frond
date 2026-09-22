@@ -9,7 +9,6 @@ import { createApplicationProvider } from './ApplicationCommandProvider'
 import { createSystemCommandProvider } from './SystemCommandProvider'
 import { createFirstPartyCommandProvider } from './FirstPartyCommandProvider'
 import { createBuiltinCommandProvider } from './BuiltinCommandProvider'
-import { createMcpCommandProvider } from './McpCommandProvider'
 import type { CommandEntry, CommandAction } from '@shared/commands'
 
 let initialized = false
@@ -24,8 +23,7 @@ export function initCommandRegistry(): void {
   commandRegistry.register(createFirstPartyCommandProvider())
   // P-7②：模块行与系统页行也进 Registry——此前它们是最后一个「调用方各自摊平」的静态清单
   commandRegistry.register(createBuiltinCommandProvider())
-  // P-4② 收尾：MCP 工具进根搜索（读主进程的工具清单缓存，不 spawn）
-  commandRegistry.register(createMcpCommandProvider())
+
 }
 
 /**
@@ -55,7 +53,7 @@ export function commandsToEntries(cmds: Command[]): CommandEntry[] {
 }
 
 /** 纯内存的那一批（第一方 / 系统 / 模块与系统页），不碰磁盘 */
-export const FAST_COMMAND_PROVIDERS = ['first-party', 'system', 'builtin', 'mcp']
+export const FAST_COMMAND_PROVIDERS = ['first-party', 'system', 'builtin']
 /** 慢的那一批：应用扫描 */
 export const SLOW_COMMAND_PROVIDERS = ['applications']
 

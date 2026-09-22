@@ -378,6 +378,11 @@ function pruneToolCache(): void {
  * 命令表：缓存里、且服务器**处于启用状态**的那些工具。
  * 停用的一律不出（搜索框里摆一条回车必失败的行是噪音，不是功能）。
  */
+/** 单测用的读缓存出口：断言「缓存里到底剩了谁」，不去猜 pref 的序列化形状 */
+export function readToolCacheForTest(): Record<string, unknown> {
+  return readToolCache()
+}
+
 export function mcpToolCommands(): McpToolCommand[] {
   const enabled = new Map(readMcpServers().map((s) => [s.id, s]))
   const out: McpToolCommand[] = []

@@ -25,6 +25,7 @@ import Database from 'better-sqlite3'
 import { migrations } from '../../db/migrations'
 import { database } from '../../db/database'
 import { setAIConfig, listModels, isAIConfigured } from '../AIService'
+import { prefRepository } from '../../db/repos'
 
 function injectDb(db: Database.Database): void {
   ;(database as unknown as { db: Database.Database | null }).db = db
@@ -48,9 +49,15 @@ beforeAll(async () => {
       send(200, { models: [{ name: 'llama3.2:latest' }] })
       return
     }
-    if (url === '/v1/noauth') send(401, { error: { message: 'bad key' } })
-    if (url === '/v1/garbage') send(200, { hello: 'world' })
-    if (url === '/v1/plain') {
+    if (url.startsWith('/v1/noauth')) {
+      send(401, { error: { message: 'bad key' } })
+      return
+    }
+    if (url.startsWith('/v1/garbage')) {
+      send(200, { hello: 'world' })
+      return
+    }
+    if (url.startsWith('/v1/plain')) {
       res.writeHead(200, { 'Content-Type': 'text/plain' })
       res.end('not json at all')
       return
@@ -123,8 +130,14 @@ describe('listModels（真起本地服务）', () => {
     expect(res.error).toContain('本地端点没起来')
   })
 
-  it('SSRF：指向链路本地/元数据地址一律拒，不发请求', async () => {
-    await setAIConfig({ enabled: true, baseUrl: 'http://169.254.169.254/v1', model: 'x' })
+  it('SSRF：指向链路本地/元数据地址一律拒', async () => {
+    // 保存这一关就先拦了（比等 listModels 去发请求更早、也更少留一次错误配置），
+    // 所以这里断言的是「进不去」这件事，而不是它在哪一层被挡
+    await expect(
+      setAIConfig({ enabled: true, baseUrl: 'http://169.254.169.254/v1', model: 'x' })
+    ).rejects.toThrow(/受限|元数据/)
+    // 存量库里可能已经有这样的地址（守卫是后加的）：发请求前还要再过一遍
+    prefRepository.set('ai.config', JSON.stringify({ enabled: true, baseUrl: 'http://169.254.169.254/v1', model: 'x', apiKey: 'k' }))
     const res = await listModels()
     expect(res.ok).toBe(false)
     expect(res.error).toMatch(/受限|元数据/)

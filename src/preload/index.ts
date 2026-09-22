@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { API, PomodoroTraySnapshot, TelemetryMode } from './index.d'
 import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
+import type { McpToolArg } from '../shared/mcp'
 import type { PopToRootMode } from '../shared/popToRoot'
 import { typedInvoke } from './typedIpc'
 import type { CommandHotkeySpec } from '../main/launcher/hotkeys'
@@ -410,6 +411,30 @@ const api: API = {
     closePlugin: () => ipcRenderer.send('launcher:closePlugin'),
     /** 第一方内联页（Raycast 式）：外部入口唤起胶囊窗并打开对应页 */
     openFirstParty: (page: FirstPartyPage) => ipcRenderer.send('launcher:openFirstParty', { page }),
+    /**
+     * MCP 工具调用（P-4② 收尾）：⌘K 面板既没有参数格也没有结果页，
+     * 把「跑这个工具」交给胶囊做——两个入口同一个行为，而不是面板里做半套。
+     * 送的是**参数清单**（几个格、哪个必填）不是值：值由用户在胶囊里填。
+     */
+    runMcpTool: (payload: {
+      serverId: string
+      serverLabel: string
+      tool: string
+      argSpecs: McpToolArg[]
+    }) => ipcRenderer.send('launcher:runMcpTool', payload),
+    /** 胶囊侧订阅上述转交（主进程已把窗唤起） */
+    onRunMcpTool: (
+      cb: (payload: {
+        serverId: string
+        serverLabel: string
+        tool: string
+        argSpecs: McpToolArg[]
+      }) => void
+    ): (() => void) => {
+      const l = (_e: unknown, payload: unknown): void => cb(payload as never)
+      ipcRenderer.on('launcher:mcp:run', l as never)
+      return () => ipcRenderer.removeListener('launcher:mcp:run', l as never)
+    },
     /** 第一方内联页打开事件（主进程转发，胶囊渲染端订阅） */
     onOpenFirstParty: (cb: (page: FirstPartyPage) => void): (() => void) => {
       const l = (_e: unknown, payload: { page: FirstPartyPage }): void => cb(payload.page)
@@ -510,6 +535,9 @@ const api: API = {
         subInputPlaceholder: string | null
         declaredList?: unknown
         declaredForm?: unknown
+        /** Action 命令 = headless；attached = 视图是否真挂上了胶囊窗 */
+        headless?: boolean
+        attached?: boolean
       }) => void
     ): (() => void) => {
       const l = (_e: unknown, state: unknown): void =>
@@ -535,6 +563,16 @@ const api: API = {
       const l = (): void => cb()
       ipcRenderer.on('launcher:plugin-search-index-updated', l as never)
       return () => ipcRenderer.removeListener('launcher:plugin-search-index-updated', l as never)
+    },
+    /**
+     * 命令表变了（插件装/卸/启停/市场更新，或 MCP 工具清单变化）。
+     * 回调带上**是哪一路**：渲染端只重拉那一路，别连带把别的源也刷一遍（会把选中位反复归零）。
+     */
+    onCommandTableChanged: (cb: (source: 'plugins' | 'mcp') => void): (() => void) => {
+      const l = (_e: unknown, payload: { source?: 'plugins' | 'mcp' }): void =>
+        cb(payload?.source ?? 'plugins')
+      ipcRenderer.on('launcher:command-table-changed', l as never)
+      return () => ipcRenderer.removeListener('launcher:command-table-changed', l as never)
     },
     /** 执行声明式条目的 callback 动作（copy/open 由胶囊本地执行） */
     runPluginAction: (pluginId: string, itemIndex: number, actionIndex: number) =>
@@ -576,6 +614,26 @@ const api: API = {
     getConfig: () => typedInvoke('ai:getConfig'),
     setConfig: (patch) => typedInvoke('ai:setConfig', { patch }),
     isConfigured: () => typedInvoke('ai:isConfigured'),
+    /** BYOM：探测当前端点并拉模型列表（P-4①） */
+    listModels: () => typedInvoke('ai:listModels'),
+    /** MCP 客户端最小面（P-4②）：连接只认已存配置的 id */
+    mcpOverview: () => typedInvoke('mcp:overview'),
+    mcpSetServers: (servers: unknown) => typedInvoke('mcp:setServers', { servers }),
+    mcpConnect: (id: string) => typedInvoke('mcp:connect', { id }),
+    mcpStop: (id: string) => typedInvoke('mcp:stop', { id }),
+    mcpCallTool: (id: string, tool: string, args: Record<string, unknown>) =>
+      typedInvoke('mcp:callTool', { id, tool, args }),
+    /** 工具清单缓存 → 根搜索命令（P-4② 收尾）：纯读缓存，不 spawn */
+    mcpToolCommands: () => typedInvoke('mcp:toolCommands'),
+    /** 从搜索框跑一个工具（未连接时主进程先连接；参数以字符串送，类型主进程定） */
+    mcpRunTool: (id: string, tool: string, args: Record<string, string>) =>
+      typedInvoke('mcp:runTool', { id, tool, args }),
+    /** Automations（P-4④） */
+    automationList: () => typedInvoke('automation:list'),
+    automationSave: (tasks: unknown) => typedInvoke('automation:save', { tasks }),
+    automationRunNow: (id: string) => typedInvoke('automation:runNow', { id }),
+    automationSetEnabled: (id: string, enabled: boolean) =>
+      typedInvoke('automation:setEnabled', { id, enabled }),
     chat: (sessionId, messages) => typedInvoke('ai:chat', { sessionId, messages }),
     onStreamChunk: (
       cb: (payload: { sessionId: string; delta: string; done: boolean; error?: string }) => void

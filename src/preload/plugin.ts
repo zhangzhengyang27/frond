@@ -134,6 +134,23 @@ const launcherApi = {
     set: (name: string, value: unknown) => typedInvoke('plugapi:setPreference', { name, value })
   },
 
+  /**
+   * ─── P-2③ 定时任务（插件生命周期外执行）───
+   * 需要在 plugin.json 里声明 `schedule` 权限；没声明时 list 返回空表、add/remove 带回原因。
+   * 能排的只有**本插件自己的 mode:'action' 命令**（视图命令会在没人看着时弹界面），
+   * 每个插件最多 3 条、最快每 15 分钟一次，登记后在「设置 → 定时任务」里看得见也能删。
+   */
+  schedule: {
+    list: () => typedInvoke('plugapi:scheduleList'),
+    add: (task: {
+      label?: string
+      cron: string
+      cmd: string
+      arguments?: Record<string, string>
+    }) => typedInvoke('plugapi:scheduleAdd', task),
+    remove: (id: string) => typedInvoke('plugapi:scheduleRemove', { id })
+  },
+
   /** ─── M3.3 网络代理（绕 CORS，15s 超时，2MB 上限）─── */
   fetch: (
     url: string,

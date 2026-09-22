@@ -47,9 +47,14 @@ export const SYNC_TABLES: Array<{ table: string; pk: string[] }> = [
   { table: 'pom_pomodoros', pk: ['id'] }
 ]
 
-/** pref_preferences 中不同步的键：剪贴板数据（Decision-009 排除）+ 同步自身的标记 */
+/**
+ * pref_preferences 中不同步的键：剪贴板数据（Decision-009 排除）+ 同步自身的标记，
+ * 再加 MCP 的两项——**这不是「同步了不方便」而是「同步了会泄」**：
+ * mcp.servers 里是 stdio 命令行与环境变量（常常就是 token），
+ * mcp.toolCache 是各服务器工具清单的快照，跟着走只会多一处副本。
+ */
 export function prefExcludedKeys(): Set<string> {
-  return new Set(['clips', 'launcher.sync', SYNC_MARKER_PREF])
+  return new Set(['clips', 'launcher.sync', SYNC_MARKER_PREF, 'mcp.servers', 'mcp.toolCache'])
 }
 
 export interface SyncBundle {

@@ -114,30 +114,6 @@ function collectPreloadUsedChannels(): Set<string> {
   return used
 }
 
-/**
- * 提取文件里所有 ipcRenderer.send('channel', ...) 的 channel 名
- * （ipcMain.on 的对端）
- */
-function extractPreloadSends(filePath: string): string[] {
-  const src = readFileSync(filePath, 'utf-8')
-  const re = /ipcRenderer\.send\(\s*['"`]([^'"`]+)['"`]/g
-  const out: string[] = []
-  let m: RegExpExecArray | null
-  while ((m = re.exec(src))) out.push(m[1])
-  return out
-}
-
-/** 收集所有 preload 入口（应用 preload + 插件 preload）中被引用的 channel */
-function collectPreloadUsedChannels(): Set<string> {
-  const used = new Set<string>()
-  for (const f of ['src/preload/index.ts', 'src/preload/plugin.ts']) {
-    const file = join(REPO_ROOT, f)
-    for (const ch of extractPreloadInvokes(file)) used.add(ch)
-    for (const ch of extractPreloadOns(file)) used.add(ch)
-    for (const ch of extractPreloadSends(file)) used.add(ch)
-  }
-  return used
-}
 
 /** 收集目录下所有 .ts 文件 */
 function walkTsFiles(dir: string): string[] {

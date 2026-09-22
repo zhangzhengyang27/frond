@@ -164,6 +164,7 @@ npx playwright test                     # 全套（pomodoro-manual 已加守卫�
 | 插件 props 环状对象 | 已修：`sanitizeValue` 加路径 WeakSet + 深度 24 上限，重复处置 null 并 warn 出键路径（不再整棵视图静默不提交） |
 | 水位表启动期补偿 | 已实现：`compensateStaleDirs` 一趟每目录一次 stat，mtime 变了才 rescanDir；消失目录连水位一并清。边界：**原地改文件内容**不动目录 mtime，这类漂移不回补 |
 | 「Fuse 单实例复用」 | **核实后不做**：实测 `fuzzyEngine` 每探测约 2µs，复用实例只省 11%（约 0.1ms/次按键），换来共享可变实例的重入风险。数字在这里，别再去改一遍 |
+| ↳ 2026-09-20 重量（P-6④）| 结论仍是不做，但**换成端到端口径支撑**：真胶囊里「敲键到第一次 DOM 变」十个查询全在 153-161ms，而防抖就吃 150ms → 打分 + 首屏总共 3-11ms，没有可省的空间。短查询那 450-540ms 的尾巴全在第一次突变之后（文件搜索 IO 晚到），改 Fuse 碰不到它。数据与做法见 `docs/RAYCAST_PARITY_PLAN_V5.md` P-6.4 与 `e2e/perf-results.spec.mjs` |
 | plugin-changed 双份 IPC | 已修，且真身比描述严重：`launcher:plugin-list` 与快照重复推同一份列表；而快照**从不带 declaredForm**（d.ts 却早声明了）→ 任何一次状态推送都把胶囊里的 React 表单清成 null。现合并为单一快照，两条死通道删除 |
 | NavigationRoot context 重渲染 | 已修（useMemo 固定 nav 引用 + 回归单测） |
 | Windows 文件索引 | 已实现（@parcel/watcher 后端 + `fileIndex/paths.ts` 路径归一 + `source` 分层）。**Windows 运行时未实机验证**，两条 file-index e2e 仍 skip，有机器时去掉守卫跑一遍 |

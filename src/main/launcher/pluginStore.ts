@@ -20,12 +20,14 @@
 import { app } from 'electron'
 import { join, resolve, basename, sep } from 'path'
 import {
+  type PluginPreferenceDeclaration,
   isPluginPermission,
   sanitizePluginArguments,
   sanitizePluginCommandMode,
   type PluginArgument,
   type PluginApiMode,
-  type PluginCommandMode
+  type PluginCommandMode,
+  sanitizePluginPreferences
 } from '../../shared/plugin-protocol'
 import { getLauncherDocStore } from './docStore'
 import {
@@ -50,16 +52,9 @@ export interface PluginCommand {
   arguments?: PluginArgument[]
 }
 
-/** M3.2：插件声明式偏好（管理页自动渲染表单，值存 launcher_docs kv） */
-export interface PluginPreference {
-  /** 键名（launcherApi.getPreference(name) 读取） */
-  name: string
-  label: string
-  type: 'text' | 'select' | 'checkbox'
-  default?: string | boolean
-  /** type=select 时的可选项 */
-  options?: string[]
-}
+/** M3.2：插件声明式偏好（管理页自动渲染表单，值存 launcher_docs kv）。
+ *  键名/形状与清洗器都在 shared/plugin-protocol.ts，这里只做别名，避免两处漂移。 */
+export type PluginPreference = PluginPreferenceDeclaration
 
 export interface PluginManifest {
   id: string
@@ -231,6 +226,14 @@ export function readManifest(dir: string): PluginManifest {
     manifest.api = 'react'
   } else if (manifest.api !== undefined) {
     delete manifest.api
+  }
+  // 偏好声明清洗（fail-closed）：此前 manifest.preferences 是**整段照收**的，
+  // 类型写错、label 缺失、select 没有候选都会悄悄流到读取端（插件拿到 undefined，
+  // 用户以为自己没填）。清洗器见 sanitizePluginPreferences
+  if (manifest.preferences !== undefined) {
+    const cleaned = sanitizePluginPreferences(manifest.preferences)
+    if (cleaned.length) manifest.preferences = cleaned
+    else delete manifest.preferences
   }
   // 命令参数声明清洗（fail-closed）：非法项剔除 / 非法类型降级 / 数量封顶，
   // 见 shared/plugin-protocol.ts sanitizePluginArguments

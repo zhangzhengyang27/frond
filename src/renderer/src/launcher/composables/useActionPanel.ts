@@ -37,6 +37,9 @@ export function useActionPanel(deps: {
   /** P-1.4：收藏态与切换（key = CommandEntry.key，全类型可用，不只模块） */
   favorites: Ref<string[]>
   toggleFavorite: (key: string) => void
+  /** P-4③：AI 配好了才出现在动作面板里（没配就别摆一个按了必失败的动作） */
+  aiReady: Ref<boolean>
+  askAI: (entry: CommandEntry) => void
 }): {
   actionPanelEntry: Ref<CommandEntry | null>
   actionIndex: Ref<number>
@@ -206,6 +209,19 @@ export function useActionPanel(deps: {
         break
       default:
         list.push({ id: 'run', label: '执行', icon: 'play-line', hint: '↵', run: primary })
+    }
+    // P-4③：AI 动作对所有条目类型开放，但只在 AI 真配好时出现。
+    // 它不关窗——提示词会作为用户自己发出去的消息显示在 AI 页里（可见，不藏在系统提示后面）。
+    if (deps.aiReady.value) {
+      list.push({
+        id: 'ai-ask',
+        label: '问 AI：解释这条',
+        icon: 'sparkling-2-line',
+        run: () => {
+          actionPanelEntry.value = null
+          deps.askAI(entry)
+        }
+      })
     }
     // 与条目类型无关的通用动作，排在类型动作之后（保证 ↵ 语义仍是主动作）。
     // keep-open 执行后不关窗——否则切完态立刻看不见效果。

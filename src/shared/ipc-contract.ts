@@ -51,8 +51,9 @@ import type { InstalledPlugin } from '../main/launcher/pluginStore'
 import type { PermissionId, PermissionState, PermissionStatus } from '../main/ipc/permissions'
 import type { AutomationTaskView } from '../shared/automation'
 import type { FrontmostContext } from '../main/utils/screenAwareness'
-import type { McpServerView } from '../main/services/mcp/client'
+import type { McpCallResult, McpServerView } from '../main/services/mcp/client'
 import type { McpOverview, McpServerPublic } from '../main/services/mcp/store'
+import type { McpToolCommand } from './mcp'
 import type {
   MarketItem,
   installFromMarket,
@@ -1274,6 +1275,11 @@ export interface IpcContract {
   'mcp:callTool': {
     req: { id: string; tool: string; args: Record<string, unknown> }
     res: { ok: boolean; text: string; ignoredContent: number; error?: string }
+  }
+  'mcp:toolCommands': { req: void; res: McpToolCommand[] }
+  'mcp:runTool': {
+    req: { id: string; tool: string; args: Record<string, string> }
+    res: McpCallResult
   }
   // ── Automations（P-4④）：定时跑主进程可无界面执行的动作 ──
   'automation:list': { req: void; res: AutomationTaskView[] }

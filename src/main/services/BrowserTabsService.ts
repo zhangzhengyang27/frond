@@ -115,8 +115,8 @@ async function activateTab(tab: BrowserTab): Promise<boolean> {
       : `
     tell application "Safari"
       activate
-      set index of window ${wid} to 1
-      set current tab of window ${wid} to tab ${tid} of window ${wid}
+      set index of window ${tab.windowId} to 1
+      set current tab of window ${tab.windowId} to tab ${tab.tabIndex} of window ${tab.windowId}
     end tell
   `
   try {

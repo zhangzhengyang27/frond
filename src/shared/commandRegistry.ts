@@ -70,11 +70,6 @@ export interface Command {
    * 插件命令与 MCP 工具命令才有；适配器会原样搬到 CommandEntry 上。
    */
   acceptsArgs?: boolean
-  /**
-   * 这条命令接参数（「命令 + 尾部参数」的查询写法因此可命中，尾部预填进参数格）。
-   * 插件命令与 MCP 工具命令才有；适配器会原样搬到 CommandEntry 上。
-   */
-  acceptsArgs?: boolean
   /** 详情面板内容（选中时右侧展示，可选） */
   detail?: CommandDetail | (() => Promise<CommandDetail> | CommandDetail)
   /** 执行默认动作（等价于 actions[0]，但可携带上下文） */

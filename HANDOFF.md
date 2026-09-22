@@ -254,3 +254,86 @@ d4ed4ea feat: 文件自建索引 M1（#9）——FSEvents + sqlite FTS5，摆脱
 eb19521 fix: 内置插件目录按启动形态解析 + e2e 可跳过自动安装
 d6695e6 feat: 借鉴清单落地——模糊容错/多参数命令/pop-to-root 三态/热键冲突/剪贴板关键词/统一动作执行端
 ```
+
+## 10. 全量缺口清单（2026-09-22 19:10 实测 · 渲染层 typecheck 解盲之后）
+
+**这不是计划，是账。** 三轴扫出来的：主进程在不在、preload 桥在不在、渲染端等不等。
+每条都带复现命令，改完请回来划掉——不要凭印象更新这一节。
+
+测量口径（随时可重跑）：
+
+```bash
+npm run typecheck:web   # 146 条（2026-09-22 起是真数；此前 95 条全 TS1xxx、0 条语义错 = 被语法错屏蔽）
+npm run typecheck:node  # 43 条
+npx vitest run src/shared/__tests__/renderer-api-parity.test.ts   # 28 处幽灵 API 调用
+npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条归因）
+```
+
+### A 类 · 主进程在、preload 桥没了 —— 补桥即恢复（**代价最低、功能量最大**）
+
+| 功能域 | 缺的调用 | 证据 |
+| --- | --- | --- |
+| 截图库 | 16 处：`screenshot.history.{list,recent,openFile,showInFolder,storageUsage,setSaveDirectory,getSaveDirectory,delete}`、`screenshot.{startCapture,captureWindow,endCapture,getWindowList}` | 主进程 `src/main/ipc/screenshotHistory.ts` + `src/main/modules/screenshot.ts` 共注册 14 个 `screenshot:*` handler；`grep -c screenshot src/preload/index.ts` = **0** |
+| （已修，同类参照） | 密度档 / 玻璃档 / 紧凑模式 9 个方法 | `f63fd57` 就是这一类的先例：store 与 ipc-contract 都在，只有 handler + preload 那截没了 |
+
+涉及渲染端文件：`views/screenshot/{index.vue,components/HistoryPanel.vue,components/WindowPicker.vue,pages/CapturePage.vue}`。
+**现在的症状不是报错列表，是「界面画得出来、一点就 TypeError」**——所以它比 146 条类型错更靠近用户。
+
+### B 类 · 两头都没 —— 要按现存调用点重建两侧协议
+
+| 缺 | 用在哪 | 说明 |
+| --- | --- | --- |
+| `screenshot.{ready,ok,cancel,save,onCapture,onReset,removeListeners}` | `views/screenshot/pages/CapturePage.vue`（自身 13 条类型错） | 截图覆盖层的握手协议，主进程与 preload 两侧都无踪迹；**别照猜写语义**，先读 CapturePage 现存的用法反推 |
+| `screenshot.pin.create` | `views/screenshot/components/Screenshots.vue` | 钉图 |
+| `video.readFile` | `views/screenRecorder/components/PlaybackPanel.vue` | 录屏回放读文件 |
+
+### C 类 · 文件盘上不存在、全盘无副本 —— 只能重写
+
+| 缺 | 谁在等它 |
+| --- | --- |
+| 10 个胶囊页组件：`AIChatPage` `BrowserTabsPage` `CalendarPage` `DictionaryPage` `NotesPage` `ReminderPage` `SettingsPage` `SystemInfoPage` `TrashPage` `WindowSwitcherPage`（均在 `src/renderer/src/launcher/pages/`） | `LauncherApp.vue` 与 `launcherPageViews.ts` 注册表；**同时挡住 `electron-vite build` 与全部 e2e** |
+| `ClipboardPage.vue` 存在但**没有默认导出**（且内部 `delta` / `moveSelection` 未定义） | 同上；8 条类型错 |
+| `example-plugin/` 整个目录 | `src/shared/__tests__/plugin-manifest.test.ts`（ENOENT scandir） |
+| 10 份 TextMate 语法 `src/renderer/src/components/editor/grammars/textmate/*.tmLanguage.json` | 代码编辑器语法高亮（`languages.ts` 10 条错） |
+| `@composables/useMarkers`、`@composables/useVideoClip` | 截图标记 / 剪辑面板 |
+
+### D 类 · **恢复源在别处，回拷即可**（今天才发现，优先级最高）
+
+`~/Library/Application Support/leaf-desktop/launcher-plugins/` 里有 **21 份内置插件的已安装副本**
+（base64 / baseconvert / colorpicker / contrast / cron / csvjson / currency / hash / htmlentity / jsonfmt /
+jsonyaml / jwt …），而仓库 `plugins/` 只剩 2 个（quickfolders、regex）。
+→ 「21 个内置插件」不是要重写 21 个，是**回拷 19 个 + 核对 manifest 是否被安装流程改写过**。
+（`pluginManifestAudit.test.ts` 现在报 `expected 2 to be greater than 15`，就是这个缺口的直接读数。）
+
+### E 类 · 实现里少了测试点名的导出（**测试就是规格**，逐个补即可）
+
+| 少的导出 | 谁要 | 归属 |
+| --- | --- | --- |
+| `diffPermissions(before, after, hasInstalled)` | `pluginConfirm.test.ts` 6 条用例 | **P-3④ 本会话功能，又被回退了一半** |
+| `mapAuthStatus` / `extractAndSortMeetings` | `CalendarService.test.ts` | P-3⑤ 权限分档（`2` 是 denied 不是 authorized，那条用例专门防它） |
+| `argPrefixMatch` | `searchArgPrefix.test.ts` | P-1 前缀命中 |
+| `BUILTIN_COMMANDS` | `scratch-score-perf.test.ts` | 收藏/打分基线 |
+| `applyDbFile` | `cloudBackup` 生产代码 import | 整库恢复 |
+| `migrate{Ai,Clips,Markers,RecordingSettings}FromLegacyStore` | 4 个 `dataMigrations*.test.ts` | V4 数据迁移 |
+| `renderExpansionWithCursor` | 生产代码 import | 文本扩展 |
+
+### F 类 · 掐头件（同一文件头被吞，`TS18004` + `TS2304` 是签名）
+
+`composables/useMarkdown.ts`、`composables/useTags.ts`（两个都是：import 与 state 声明没了，
+`return { tags, isLoading, … }` 的简写找不到值）；`views/screenshot/components/ScreenshotsCanvas.vue`
+缺 `useDispatcher`。**先按 recovery 记忆里的三步查**：source map 解码 → `=== X ===` 拼接缝 → 池内副本。
+
+### G 类 · 通道登记册不一致（不是缺功能，是账不平）
+
+`ipcContract.test.ts`：`system:frontmostContext` 在主进程注册了但登记册里没有。
+顺带说明 P-4⑤「Screen Awareness」的**主进程半边可能已经存在一半**，动它之前先读这条通道是谁注册的。
+
+### H 类 · 纯断言不符（行为与期望不一致，需要逐个判，不是缺件）
+
+`windowGeometry`（几何取整）、`market`（true/false 反了）、`ScreenshotIndexService`（undefined vs 'total'）、
+`capsuleGlass`（CSS 变量覆盖值）、`hyperKey`（`BrowserWindow` 命名导出在测试环境取不到——mock 形态问题）。
+
+### 建议的处理顺序
+
+D（回拷 19 个插件，代价最低）→ A（screenshot 桥，照 `f63fd57` 的打法）→ E（少导出，用例即规格，含我这两次被回退的 `diffPermissions`/`mapAuthStatus`）→ F → B/C。
+C 类里的 10 个页组件是**唯一会同时卡住 build 与 e2e 的一格**；它不归谁"顺手"做，得单独排。

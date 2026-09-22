@@ -8,6 +8,8 @@ import {
   themesDir
 } from '../modules/userThemes'
 import { typedHandle } from './typedIpc'
+import { normalizeDensity } from '../../shared/density'
+import { normalizeGlass } from '../../shared/capsuleGlass'
 
 export function registerPreferencesIpcHandlers(preferencesStore: PreferencesDataStore): void {
   // 编辑器设置（updateEditorSettings 的 req 本身就是补丁对象，符合约定）
@@ -105,8 +107,9 @@ export function registerPreferencesIpcHandlers(preferencesStore: PreferencesData
   // 只回给发起方会让另一侧继续按旧值渲染（设置页改了、胶囊没变）。
   typedHandle('preferences:getDensity', () => preferencesStore.getDensity())
   typedHandle('preferences:setDensity', (_event, { density }) => {
-    // 回的是 store 归一化后的值：传非法档时界面要显示真正生效的那个
-    const next = preferencesStore.setDensity(density)
+    // 契约收 string（渲染端/外部能给任何值），先归一化再落库：
+    // 回的是生效值，传非法档时界面显示的也是真正生效的那一档
+    const next = preferencesStore.setDensity(normalizeDensity(density))
     for (const win of BrowserWindow.getAllWindows()) {
       if (!win.isDestroyed()) win.webContents.send('density:changed', next)
     }
@@ -115,7 +118,7 @@ export function registerPreferencesIpcHandlers(preferencesStore: PreferencesData
 
   typedHandle('preferences:getCapsuleGlass', () => preferencesStore.getCapsuleGlass())
   typedHandle('preferences:setCapsuleGlass', (_event, { glass }) => {
-    const next = preferencesStore.setCapsuleGlass(glass)
+    const next = preferencesStore.setCapsuleGlass(normalizeGlass(glass))
     for (const win of BrowserWindow.getAllWindows()) {
       if (!win.isDestroyed()) win.webContents.send('capsule-glass:changed', next)
     }

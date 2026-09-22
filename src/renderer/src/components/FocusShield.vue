@@ -1,3 +1,27 @@
+<template>
+  <div class="shield">
+    <div class="shield-card">
+      <div class="shield-icon">🍅</div>
+      <div class="shield-title">专注时间</div>
+      <p class="shield-text">
+        「<span class="shield-app">{{ appName }}</span>」在专注屏蔽清单中。
+      </p>
+      <p class="shield-sub">切回其他应用遮罩会自动消失；也可以短暂放行。</p>
+      <div class="shield-actions">
+        <button type="button" class="shield-btn primary" @click="allow">
+          放行 60 秒
+        </button>
+      </div>
+      <div class="shield-hint">按 Esc 同样放行</div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+
+const appName = ref('此应用')
+
 function allow(): void {
   void window.api.focusShield.temporaryAllow()
 }
@@ -10,11 +34,9 @@ function onInfo(payload: { appName: string; pattern: string }): void {
   if (payload?.appName) appName.value = payload.appName
 }
 
-let unsubscribeInfo: (() => void) | null = null
-
 onMounted(async () => {
   window.addEventListener('keydown', onKey)
-  unsubscribeInfo = window.api.focusShield.onInfo(onInfo)
+  window.api.focusShield.onInfo(onInfo)
   // 兜底：事件早于监听注册时主动查一次
   try {
     const state = await window.api.focusShield.currentState()
@@ -26,8 +48,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKey)
-  unsubscribeInfo?.()
-  unsubscribeInfo = null
 })
 </script>
 
@@ -42,3 +62,9 @@ onUnmounted(() => {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', sans-serif;
+  user-select: none;
+}
+
+.shield-card {
+  text-align: center;
+  padding: 48px 64px;

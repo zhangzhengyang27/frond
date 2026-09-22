@@ -1,4 +1,3 @@
-}
 
 export function useTags(): {
   tags: ShallowRef<Tag[]>

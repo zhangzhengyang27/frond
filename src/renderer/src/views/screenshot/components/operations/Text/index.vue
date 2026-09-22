@@ -1,3 +1,62 @@
+~~~ 第 1 行未留存 ~~~
+~~~ 第 2 行未留存 ~~~
+~~~ 第 3 行未留存 ~~~
+~~~ 第 4 行未留存 ~~~
+~~~ 第 5 行未留存 ~~~
+~~~ 第 6 行未留存 ~~~
+~~~ 第 7 行未留存 ~~~
+~~~ 第 8 行未留存 ~~~
+~~~ 第 9 行未留存 ~~~
+~~~ 第 10 行未留存 ~~~
+~~~ 第 11 行未留存 ~~~
+~~~ 第 12 行未留存 ~~~
+~~~ 第 13 行未留存 ~~~
+~~~ 第 14 行未留存 ~~~
+~~~ 第 15 行未留存 ~~~
+~~~ 第 16 行未留存 ~~~
+~~~ 第 17 行未留存 ~~~
+~~~ 第 18 行未留存 ~~~
+~~~ 第 19 行未留存 ~~~
+~~~ 第 20 行未留存 ~~~
+~~~ 第 21 行未留存 ~~~
+~~~ 第 22 行未留存 ~~~
+~~~ 第 23 行未留存 ~~~
+~~~ 第 24 行未留存 ~~~
+~~~ 第 25 行未留存 ~~~
+~~~ 第 26 行未留存 ~~~
+~~~ 第 27 行未留存 ~~~
+~~~ 第 28 行未留存 ~~~
+~~~ 第 29 行未留存 ~~~
+~~~ 第 30 行未留存 ~~~
+~~~ 第 31 行未留存 ~~~
+~~~ 第 32 行未留存 ~~~
+~~~ 第 33 行未留存 ~~~
+~~~ 第 34 行未留存 ~~~
+~~~ 第 35 行未留存 ~~~
+~~~ 第 36 行未留存 ~~~
+~~~ 第 37 行未留存 ~~~
+~~~ 第 38 行未留存 ~~~
+~~~ 第 39 行未留存 ~~~
+~~~ 第 40 行未留存 ~~~
+~~~ 第 41 行未留存 ~~~
+~~~ 第 42 行未留存 ~~~
+~~~ 第 43 行未留存 ~~~
+~~~ 第 44 行未留存 ~~~
+~~~ 第 45 行未留存 ~~~
+~~~ 第 46 行未留存 ~~~
+~~~ 第 47 行未留存 ~~~
+~~~ 第 48 行未留存 ~~~
+~~~ 第 49 行未留存 ~~~
+~~~ 第 50 行未留存 ~~~
+~~~ 第 51 行未留存 ~~~
+~~~ 第 52 行未留存 ~~~
+~~~ 第 53 行未留存 ~~~
+~~~ 第 54 行未留存 ~~~
+~~~ 第 55 行未留存 ~~~
+~~~ 第 56 行未留存 ~~~
+~~~ 第 57 行未留存 ~~~
+~~~ 第 58 行未留存 ~~~
+~~~ 第 59 行未留存 ~~~
   x1: number
   x2: number
   y1: number
@@ -36,12 +95,12 @@ const text = ref<string>('')
 
 const checked = computed(() => operation === 'Text')
 
-const selectText = (): void => {
+const selectText = () => {
   operationDispatcher.set('Text')
   cursorDispatcher.set('default')
 }
 
-const handleSelectText = (): void => {
+const handleSelectText = () => {
   if (checked.value) {
     return
   }
@@ -49,28 +108,28 @@ const handleSelectText = (): void => {
   historyDispatcher.clearSelect()
 }
 
-const handleSizeChange = (newSize: number): void => {
+const handleSizeChange = (newSize: number) => {
   if (textRef.value) {
     textRef.value.data.size = sizes[newSize]
   }
   size.value = newSize
 }
 
-const handleColorChange = (newColor: string): void => {
+const handleColorChange = (newColor: string) => {
   if (textRef.value) {
     textRef.value.data.color = newColor
   }
   color.value = newColor
 }
 
-const handleTextareaChange = (value: string): void => {
+const handleTextareaChange = (value: string) => {
   text.value = value
   if (checked.value && textRef.value) {
     textRef.value.data.text = value
   }
 }
 
-const handleTextareaBlur = (): void => {
+const handleTextareaBlur = () => {
   if (textRef.value && textRef.value.data.text) {
     historyDispatcher.push(textRef.value)
   }
@@ -82,7 +141,7 @@ const handleTextareaBlur = (): void => {
 const onDrawSelect = (
   action: import('../../../types').HistoryItemSource<unknown, unknown>,
   e: MouseEvent
-): void => {
+) => {
   if (action.name !== 'Text') {
     return
   }
@@ -103,7 +162,7 @@ const onDrawSelect = (
   historyDispatcher.select(action)
 }
 
-const onMousedown = (e: MouseEvent): void => {
+const onMousedown = (e: MouseEvent) => {
   if (!checked.value || !canvasContextRef.value || textRef.value || !bounds.value) {
     return
   }
@@ -166,3 +225,4 @@ useCanvasMousedown(onMousedown)
 useCanvasMousemove(onMousemove)
 useCanvasMouseup(onMouseup)
 </script>
+

@@ -1,7 +1,3 @@
-src/preload/index.ts(683,60): error TS2345: Argument of type '{ name: string; parentId?: string | null | undefined; icon?: string | null | undefined; defaultLanguage?: string | undefined; isOpen?: boolean | undefined; }' is not assignable to parameter of type 'Omit<Omit<Folder, "id" | "createdAt" | "updatedAt">, "orderIndex">'.
-  Types of property 'parentId' are incompatible.
-    Type 'string | null | undefined' is not assignable to type 'string | null'.
-      Type 'undefined' is not assignable to type 'string | null'.
 /**
  * Leaf · 截图库 OCR 索引 IPC（V4 P1-10）
  *

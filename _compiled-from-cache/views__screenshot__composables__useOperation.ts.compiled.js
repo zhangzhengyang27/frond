@@ -1,0 +1,22 @@
+import { computed } from "/@fs/Users/xiaoye/Desktop/electron-tools/node_modules/.vite/deps/vue.js?v=c8635d8b";
+import { useStore, getValue } from "/src/views/screenshot/composables/useScreenshotsContext.ts";
+export function useOperation() {
+  const store = useStore();
+  const operation = computed(() => getValue(store.operation));
+  const dispatcher = store.dispatcher;
+  const set = (newOperation) => {
+    dispatcher?.setOperation(newOperation);
+  };
+  const reset = () => {
+    dispatcher?.setOperation(void 0);
+  };
+  return [
+    operation.value,
+    {
+      set,
+      reset
+    }
+  ];
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInVzZU9wZXJhdGlvbi50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBjb21wdXRlZCB9IGZyb20gJ3Z1ZSdcbmltcG9ydCB7IHVzZVN0b3JlLCBnZXRWYWx1ZSB9IGZyb20gJy4vdXNlU2NyZWVuc2hvdHNDb250ZXh0J1xuXG5leHBvcnQgaW50ZXJmYWNlIE9wZXJhdGlvbkRpc3BhdGNoZXIge1xuICBzZXQ6IChvcGVyYXRpb246IHN0cmluZykgPT4gdm9pZFxuICByZXNldDogKCkgPT4gdm9pZFxufVxuXG5leHBvcnQgZnVuY3Rpb24gdXNlT3BlcmF0aW9uKCk6IFtzdHJpbmcgfCB1bmRlZmluZWQsIE9wZXJhdGlvbkRpc3BhdGNoZXJdIHtcbiAgY29uc3Qgc3RvcmUgPSB1c2VTdG9yZSgpXG4gIGNvbnN0IG9wZXJhdGlvbiA9IGNvbXB1dGVkKCgpID0+IGdldFZhbHVlKHN0b3JlLm9wZXJhdGlvbikpXG4gIC8vIHN0b3JlIOaYryBwcm92aWRlU2NyZWVuc2hvdHNDb250ZXh0IOazqOWFpeeahOWkjeWQiOWvueixoe+8jOexu+Wei+acquWujOWFqOaUtuaVm1xuICAvLyBlc2xpbnQtZGlzYWJsZS1uZXh0LWxpbmUgQHR5cGVzY3JpcHQtZXNsaW50L25vLWV4cGxpY2l0LWFueVxuICBjb25zdCBkaXNwYXRjaGVyID0gKHN0b3JlIGFzIGFueSkuZGlzcGF0Y2hlclxuXG4gIGNvbnN0IHNldCA9IChuZXdPcGVyYXRpb246IHN0cmluZykgPT4ge1xuICAgIGRpc3BhdGNoZXI/LnNldE9wZXJhdGlvbihuZXdPcGVyYXRpb24pXG4gIH1cblxuICBjb25zdCByZXNldCA9ICgpID0+IHtcbiAgICBkaXNwYXRjaGVyPy5zZXRPcGVyYXRpb24odW5kZWZpbmVkKVxuICB9XG5cbiAgcmV0dXJuIFtcbiAgICBvcGVyYXRpb24udmFsdWUsXG4gICAge1xuICAgICAgc2V0LFxuICAgICAgcmVzZXRcbiAgICB9XG4gIF1cbn1cbiJdLCJtYXBwaW5ncyI6IkFBQUEsU0FBUyxnQkFBZ0I7QUFDekIsU0FBUyxVQUFVLGdCQUFnQjtBQU81QixnQkFBUyxlQUEwRDtBQUN4RSxRQUFNLFFBQVEsU0FBUztBQUN2QixRQUFNLFlBQVksU0FBUyxNQUFNLFNBQVMsTUFBTSxTQUFTLENBQUM7QUFHMUQsUUFBTSxhQUFjLE1BQWM7QUFFbEMsUUFBTSxNQUFNLENBQUMsaUJBQXlCO0FBQ3BDLGdCQUFZLGFBQWEsWUFBWTtBQUFBLEVBQ3ZDO0FBRUEsUUFBTSxRQUFRLE1BQU07QUFDbEIsZ0JBQVksYUFBYSxNQUFTO0FBQUEsRUFDcEM7QUFFQSxTQUFPO0FBQUEsSUFDTCxVQUFVO0FBQUEsSUFDVjtBQUFBLE1BQ0U7QUFBQSxNQUNBO0FBQUEsSUFDRjtBQUFBLEVBQ0Y7QUFDRjsiLCJuYW1lcyI6W119

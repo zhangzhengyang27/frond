@@ -1,0 +1,159 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (ESLint)
+        run: pnpm run lint
+
+      # Stylelint 门禁：全量 lint:css 存量 946 warnings 已知，只对增量 changed/untracked
+      # 做零容忍（新增代码必须用 design token 写颜色），存量渐进清零
+      - name: Lint CSS (增量：只查本次 changed / untracked)
+        run: pnpm run lint:css:changed
+
+      - name: Typecheck (Node)
+        run: pnpm run typecheck:node
+
+      - name: Typecheck (Web)
+        run: pnpm run typecheck:web
+
+      - name: Typecheck (Node)
+        run: pnpm run typecheck:node
+
+      - name: Typecheck (Web)
+        run: pnpm run typecheck:web
+
+  test:
+    name: Unit Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node-version: [20]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build native modules
+        run: pnpm rebuild:native || echo "Native rebuild skipped (no better-sqlite3)"
+
+      - name: Run tests
+        run: pnpm test -- --reporter=verbose
+
+      # E2E（playwright + electron.launch）仅本地跑；CI 需要 xvfb-run
+      # 包装 + 重新设计，暂不集成到 CI 主流程。
+      # 本地命令：pnpm build && pnpm test:e2e:smoke
+
+  build:
+    name: Build (Linux)
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        run: pnpm rebuild:native
+
+      - name: electron-vite build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm exec electron-vite build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: out/
+          retention-days: 7
+
+  # 六期：E2E 冒烟上 CI（此前仅本地）。Linux 下 Electron 依赖系统库，用 xvfb 包装。
+  # 注意：CI 尚无远端仓库、从未真实运行过——首次运行若暴露环境性 flake，
+  # 优先修环境（依赖库/xvfb 参数）而不是回退 continue-on-error。
+  e2e-smoke:
+    name: E2E Smoke (Linux, xvfb)
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules
+        run: pnpm rebuild:native
+
+      - name: Install Electron system deps + xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libnss3 libatk1.0-0 libatk-bridge2.0-0 libgtk-3-0 libxss1 \
+            libasound2t64 xvfb
+
+      - name: electron-vite build
+        run: pnpm exec electron-vite build
+
+      - name: E2E smoke
+        run: xvfb-run -a pnpm exec playwright test e2e/launch-smoke.spec.mjs

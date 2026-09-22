@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>正则测试</title>
+  </head>
+  <body>
+    <script>
+      var api = window.launcherApi
+      var testText = ''
+      var currentFlags = 'g'
+
+      api.onEnter(function (data) {
+        // 多参数命令：胶囊表单收集到 pattern / text / flags 时直接开跑，
+        // 不再要求「先复制文本再输入正则」；未带参数时保持原来的剪贴板流程。
+        var args = (data && data.args) || {}
+        api.preferences.get('flags').then(function (res) {
+          currentFlags = (res && res.ok && res.value) || 'g'
+          if (args.flags) currentFlags = String(args.flags)
+          api.setSubInput(
+            args.pattern
+              ? String(args.pattern)
+              : '输入正则表达式（如 \\d+），当前标志: ' + currentFlags + '…'
+          )
+          if (args.text) {
+            testText = String(args.text)
+            if (args.pattern) testRegex(String(args.pattern))
+            else showReady()
+            return
+          }
+          api
+            .readText()
+            .then(function (res) {
+              var text = res || ''
+              if (text && text.trim()) {
+                testText = text.trim()
+                showReady()
+              } else {
+                showEmpty()
+              }
+            })
+            .catch(function () {
+              showEmpty()
+            })
+        })
+      })
+
+      api.onSubInputChange(function (data) {
+        var pattern = data && typeof data.text === 'string' ? data.text : ''
+        if (pattern && pattern.trim()) {
+          testRegex(pattern.trim())
+        } else {
+          showReady()
+        }
+      })
+
+      function showEmpty() {
+        api.renderList([
+          {
+            title: '正则测试',
+            subtitle: '剪贴板为空，请先复制测试文本',
+            icon: 'code-line',
+            detail:
+              '**正则表达式测试**\n\n1. 复制要测试的文本到剪贴板\n2. 在上方输入框输入正则表达式\n3. 查看匹配结果和捕获组\n\n**支持的标志位**：g(全局) i(忽略大小写) m(多行) u(Unicode)\n\n回车复制匹配结果。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function showReady() {
+        var preview = testText.length > 100 ? testText.slice(0, 100) + '…' : testText
+        api.renderList([
+          {
+            title: '已加载测试文本（' + testText.length + ' 字符）',
+            subtitle: '在上方输入正则表达式开始测试',
+            icon: 'file-text-line',
+            detail: '**测试文本**\n\n```\n' + preview + '\n```\n\n输入正则表达式开始测试。',
+            detailFormat: 'markdown',
+            actions: [{ label: '等待正则', type: 'callback', hint: '↵' }]
+          }
+        ])
+      }
+
+      function testRegex(pattern) {
+        try {
+          var regex = new RegExp(pattern, currentFlags)
+          var matches = []
+          var match
+          var lastIndex = 0
+          var safety = 0
+
+          if (currentFlags.includes('g')) {
+            while ((match = regex.exec(testText)) !== null && safety < 1000) {
+              matches.push({
+                index: match.index,
+                value: match[0],
+                groups: match.slice(1)
+              })
+              if (match[0].length === 0) regex.lastIndex++
+              safety++
+              if (safety >= 1000) break
+            }
+          } else {
+            match = regex.exec(testText)
+            if (match) {
+              matches.push({
+                index: match.index,
+                value: match[0],
+                groups: match.slice(1)
+              })
+            }
+          }
+
+          if (matches.length === 0) {
+            api.renderList([
+              {
+                title: '无匹配',
+                subtitle: '正则: /' + pattern + '/' + currentFlags,
+                icon: 'close-circle-line',
+                detail:
+                  '**正则表达式**：`/' +
+                  pattern +
+                  '/' +
+                  currentFlags +
+                  '`\n\n测试文本中没有匹配项。\n\n请检查正则表达式是否正确。',
+                detailFormat: 'markdown',
+                actions: [
+                  { label: '复制正则', type: 'copy', payload: pattern, hint: '↵' },
+                  { label: '复制文本', type: 'copy', payload: testText, hint: '⌘1' }
+                ]
+              }
+            ])
+            return
+          }
+
+          // 构建高亮文本
+          var highlighted = ''
+          var pos = 0
+          for (var i = 0; i < matches.length; i++) {
+            var m = matches[i]
+            if (m.index > pos) {
+              highlighted += testText.slice(pos, m.index)
+            }
+            highlighted += '**' + m.value.replace(/\*/g, '\\*') + '**'
+            pos = m.index + m.value.length
+          }
+          if (pos < testText.length) {
+            highlighted += testText.slice(pos)
+          }
+          if (highlighted.length > 500) highlighted = highlighted.slice(0, 500) + '…'
+
+          var items = [
+            {
+              title: '匹配 ' + matches.length + ' 处',
+              subtitle: '正则: /' + pattern + '/' + currentFlags,
+              icon: 'checkbox-circle-line',
+              accessories: [String(matches.length)],
+              detail:
+                '**匹配结果高亮**\n\n' +
+                highlighted +
+                '\n\n共匹配 ' +
+                matches.length +
+                ' 处。回车复制所有匹配项。',
+              detailFormat: 'markdown',
+              actions: [
+                {
+                  label: '复制所有匹配',
+                  type: 'copy',
+                  payload: matches
+                    .map(function (m) {
+                      return m.value
+                    })
+                    .join('\n'),
+                  hint: '↵'
+                },
+                { label: '复制正则', type: 'copy', payload: pattern, hint: '⌘1' }
+              ]
+            }
+          ]
+
+          // 显示前 10 个匹配详情
+          var showCount = Math.min(matches.length, 10)
+          for (var i = 0; i < showCount; i++) {
+            var m = matches[i]
+            var groupInfo = ''
+            if (m.groups && m.groups.length > 0) {
+              groupInfo =
+                '\n\n**捕获组**：\n' +
+                m.groups
+                  .map(function (g, idx) {
+                    return '- 组' + (idx + 1) + ': `' + (g || '(空)') + '`'
+                  })
+                  .join('\n')
+            }
+            items.push({
+              title:
+                '匹配 #' +
+                (i + 1) +
+                ': ' +
+                (m.value.length > 40 ? m.value.slice(0, 40) + '…' : m.value),
+              subtitle:
+                '位置: ' +
+                m.index +
+                (m.groups && m.groups.length > 0 ? ' · ' + m.groups.length + ' 个捕获组' : ''),
+              icon: 'arrow-right-line',
+              detail:
+                '**匹配内容**\n\n```\n' +
+                (m.value.length > 200 ? m.value.slice(0, 200) + '…' : m.value) +
+                '\n```\n\n- 位置: ' +
+                m.index +
+                '\n- 长度: ' +
+                m.value.length +
+                groupInfo +
+                '\n\n回车复制此匹配项。',
+              detailFormat: 'markdown',
+              actions: [{ label: '复制匹配', type: 'copy', payload: m.value, hint: '↵' }]
+            })
+          }
+
+          if (matches.length > 10) {
+            items.push({
+              title: '还有 ' + (matches.length - 10) + ' 个匹配未显示',
+              subtitle: '回车复制所有匹配项',
+              icon: 'more-line',
+              actions: [
+                {
+                  label: '复制所有匹配',
+                  type: 'copy',
+                  payload: matches
+                    .map(function (m) {
+                      return m.value
+                    })
+                    .join('\n'),
+                  hint: '↵'
+                }
+              ]
+            })
+          }
+
+          api.renderList(items)
+        } catch (e) {
+          api.renderList([
+            {
+              title: '正则语法错误',
+              subtitle: e.message || '无效的正则表达式',
+              icon: 'error-warning-line',
+              detail:
+                '**错误信息**：' +
+                (e.message || '未知错误') +
+                '\n\n**输入的正则**：`' +
+                pattern +
+                '`\n\n请检查正则表达式语法是否正确。',
+              detailFormat: 'markdown',
+              actions: [
+                { label: '复制错误', type: 'copy', payload: e.message || '错误', hint: '↵' },
+                { label: '复制正则', type: 'copy', payload: pattern, hint: '⌘1' }
+              ]
+            }
+          ])
+        }
+      }
+
+      api.onAction(function () {})
+    </script>
+  </body>
+</html>

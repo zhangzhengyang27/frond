@@ -1,0 +1,306 @@
+/**
+ * Leaf · MCP stdio 客户端（P-4②）
+ *
+ * 本期只做「连上、列工具、能调一次」：不做 resources/prompts/sampling/进度通知。
+ *
+ * 安全口径（这几条是这套东西唯一的风险面——**用户自配的命令行 = 本机任意执行**）：
+ * - 一律 `spawn(command, args[])`，**永不开 shell**：配置里写 `rm -rf /` 也只会被当
+ *   成一个找不到的可执行文件名，不会被解释；
+ * - 命令与参数只能来自用户在设置里写下的配置，渲染端没有任何路径能凭空发起连接
+ *   （IPC 只接受已存配置的 id，不接受 command 字符串——这条是刻意的）；
+ * - 每个服务器最多一份会话、工具数与帧长各有上限（见 protocol.ts），超时即杀进程；
+ * - 子进程 stdout/stderr 只用于协议与错误摘要，不当文件路径、不 openPath。
+ */
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import {
+  createFrameParser,
+  encodeMessage,
+  initializedNotification,
+  initializeRequest,
+  parseInitializeResult,
+  parseToolCallResult,
+  parseToolList,
+  toolCallRequest,
+  toolsListRequest,
+  type McpTool
+} from './protocol'
+
+const HANDSHAKE_TIMEOUT_MS = 10_000
+const LIST_TIMEOUT_MS = 10_000
+const CALL_TIMEOUT_MS = 60_000
+/** stderr 只留尾巴给界面看，长跑的服务器不能把内存吃掉 */
+const STDERR_TAIL = 2000
+
+export type McpStatus = 'stopped' | 'connecting' | 'ready' | 'error'
+
+export interface McpServerView {
+  id: string
+  label: string
+  status: McpStatus
+  serverName?: string
+  protocolVersion?: string
+  tools: McpTool[]
+  /** 被剔除的非法工具数（界面要如实说「N 个已忽略」） */
+  skipped: number
+  error?: string
+}
+
+interface Pending {
+  resolve: (msg: unknown) => void
+  reject: (err: Error) => void
+  timer: NodeJS.Timeout
+}
+
+interface Session {
+  child: ChildProcessWithoutNullStreams
+  nextId: number
+  pending: Map<number, Pending>
+  tools: McpTool[]
+  skipped: number
+  serverName: string
+  protocolVersion: string
+  stderrTail: string
+  state: McpStatus
+  error?: string
+}
+
+const sessions = new Map<string, Session>()
+
+function killSession(id: string): void {
+  const s = sessions.get(id)
+  if (!s) return
+  for (const p of s.pending.values()) {
+    clearTimeout(p.timer)
+    p.reject(new Error('会话已结束'))
+  }
+  s.pending.clear()
+  try {
+    s.child.kill()
+  } catch {
+    /* 已经死了 */
+  }
+  sessions.delete(id)
+}
+
+/** 起进程 + 握手 + 列工具；任何一步失败都留一条 error 状态并杀掉进程 */
+export async function connectServer(input: {
+  id: string
+  command: string
+  args?: string[]
+  env?: Record<string, string>
+}): Promise<McpServerView> {
+  const { id, command } = input
+  const args = Array.isArray(input.args) ? input.args.filter((a) => typeof a === 'string') : []
+  if (!command.trim()) {
+    return { id, label: id, status: 'error', tools: [], skipped: 0, error: '命令为空' }
+  }
+  killSession(id)
+
+  let child: ChildProcessWithoutNullStreams
+  try {
+    // shell:false 是默认值，这里显式写出来当作文档：绝不经过 shell
+    child = spawn(command.trim(), args, {
+      shell: false,
+      env: { ...process.env, ...(input.env ?? {}) },
+      stdio: ['pipe', 'pipe', 'pipe']
+    })
+  } catch (error) {
+    return {
+      id,
+      label: id,
+      status: 'error',
+      tools: [],
+      skipped: 0,
+      error: `起不动：${(error as Error).message}`
+    }
+  }
+
+  const session: Session = {
+    child,
+    nextId: 1,
+    pending: new Map(),
+    tools: [],
+    skipped: 0,
+    serverName: '',
+    protocolVersion: '',
+    stderrTail: '',
+    state: 'connecting'
+  }
+  sessions.set(id, session)
+
+  // 每个回调都要先确认「我仍是这个 id 的当前会话」：killSession 里 child.kill() 是异步的，
+  // 旧进程的 exit 完全可能晚于新会话建立之后到达。不认身份就会**误删新会话**——
+  // 表现是界面显示已连接、真正调用时报「服务器未连接」（快速重连两次即可复现）。
+  const isCurrent = (): boolean => sessions.get(id) === session
+
+  child.on('error', (err) => {
+    if (!isCurrent()) return
+    session.state = 'error'
+    session.error = err.message
+    for (const p of session.pending.values()) {
+      clearTimeout(p.timer)
+      p.reject(err)
+    }
+    session.pending.clear()
+  })
+  child.stderr.on('data', (chunk: Buffer) => {
+    if (!isCurrent()) return
+    session.stderrTail = (session.stderrTail + chunk.toString('utf-8')).slice(-STDERR_TAIL)
+  })
+
+  const framer = createFrameParser()
+  child.stdout.on('data', (chunk: Buffer) => {
+    if (!isCurrent()) return
+    const { frames, error } = framer.push(chunk.toString('utf-8'))
+    if (error) {
+      session.state = 'error'
+      session.error = error
+      killSession(id)
+      return
+    }
+    for (const line of frames) {
+      let msg: unknown
+      try {
+        msg = JSON.parse(line)
+      } catch {
+        continue // 服务器自己打的日志行走 stdout：忽略，不因此判死
+      }
+      const m = msg as { id?: unknown }
+      if (typeof m.id !== 'number') continue // 通知类消息本期不消费
+      const p = session.pending.get(m.id)
+      if (!p) continue
+      session.pending.delete(m.id)
+      clearTimeout(p.timer)
+      p.resolve(msg)
+    }
+  })
+  child.on('exit', () => {
+    if (!isCurrent()) return // 已被新会话顶替：这条进程的死活与现在的 sessions[id] 无关
+    for (const p of session.pending.values()) {
+      clearTimeout(p.timer)
+      p.reject(
+        new Error(`进程已退出${session.stderrTail ? `：${session.stderrTail.slice(-200)}` : ''}`)
+      )
+    }
+    session.pending.clear()
+    if (session.state === 'connecting' || session.state === 'ready') {
+      session.state = 'error'
+      session.error = session.error ?? '服务器进程退出'
+    }
+    sessions.delete(id)
+  })
+
+  const request = (payload: object, timeoutMs: number): Promise<unknown> => {
+    const myId = session.nextId++
+    return new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        session.pending.delete(myId)
+        reject(new Error(`超时（${Math.round(timeoutMs / 1000)}s）`))
+      }, timeoutMs)
+      session.pending.set(myId, { resolve, reject, timer })
+      child.stdin.write(encodeMessage({ ...payload, id: myId }))
+    })
+  }
+
+  try {
+    const init = await request(initializeRequest(session.nextId++), HANDSHAKE_TIMEOUT_MS)
+    const info = parseInitializeResult(init)
+    if (!info) throw new Error('initialize 响应形态不认识')
+    session.serverName = info.serverName
+    session.protocolVersion = info.protocolVersion
+    child.stdin.write(encodeMessage(initializedNotification()))
+
+    const listed = await request(toolsListRequest(session.nextId++), LIST_TIMEOUT_MS)
+    const parsed = parseToolList(listed)
+    if (!Array.isArray((listed as { result?: { tools?: unknown } })?.result?.tools)) {
+      throw new Error('tools/list 响应形态不认识')
+    }
+    session.tools = parsed.tools
+    session.skipped = parsed.skipped
+    session.state = 'ready'
+    session.error = undefined
+  } catch (error) {
+    session.state = 'error'
+    // 已经有更具体的原因（帧超限、进程退出）就别被派生的「会话已结束」盖掉
+    if (!session.error) session.error = (error as Error).message
+    const view = toView(id, session)
+    killSession(id)
+    return view
+  }
+  return toView(id, session)
+}
+
+function toView(id: string, s: Session | undefined, label?: string): McpServerView {
+  if (!s) {
+    return { id, label: label ?? id, status: 'stopped', tools: [], skipped: 0 }
+  }
+  return {
+    id,
+    label: label ?? s.serverName ?? id,
+    status: s.state,
+    serverName: s.serverName || undefined,
+    protocolVersion: s.protocolVersion || undefined,
+    tools: s.tools,
+    skipped: s.skipped,
+    error: s.error
+  }
+}
+
+/** 当前会话快照（不传 label 时以服务器自报名字为准） */
+export function serverViews(
+  configured: Array<{ id: string; label: string }> = []
+): McpServerView[] {
+  const byId = new Map(configured.map((c) => [c.id, c.label]))
+  const ids = new Set([...sessions.keys(), ...byId.keys()])
+  return [...ids].map((id) => toView(id, sessions.get(id), byId.get(id)))
+}
+
+/**
+ * 测试缝：拿当前会话那个子进程句柄，用来模拟「旧进程讣告迟到」。
+ * 那条竞态（client.ts 的 isCurrent 守卫）没有别的确定性写法——真等 OS 回收进程
+ * 的时间点飘，而守卫要看的是「exit 事件晚于新会话建立」这个顺序。
+ */
+export function currentChildForTest(id: string): ChildProcessWithoutNullStreams | undefined {
+  return sessions.get(id)?.child
+}
+
+export function stopServer(id: string): void {
+  killSession(id)
+}
+
+export function stopAllServers(): void {
+  for (const id of [...sessions.keys()]) killSession(id)
+}
+
+/** 一次 tools/call 的结果：文本 + 被忽略的非文本内容条数 + 失败原因（三态都在，不拿空文本冒充成功） */
+export type McpCallResult = {
+  ok: boolean
+  text: string
+  ignoredContent: number
+  error?: string
+}
+
+export async function callToolOnServer(
+  id: string,
+  tool: string,
+  args: Record<string, unknown>
+): Promise<McpCallResult> {
+  const s = sessions.get(id)
+  if (!s || s.state !== 'ready') {
+    return { ok: false, text: '', ignoredContent: 0, error: '服务器未连接' }
+  }
+  const myId = s.nextId++
+  try {
+    const raw = await new Promise<unknown>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        s.pending.delete(myId)
+        reject(new Error(`调用超时（${CALL_TIMEOUT_MS / 1000}s）`))
+      }, CALL_TIMEOUT_MS)
+      s.pending.set(myId, { resolve, reject, timer })
+      s.child.stdin.write(encodeMessage(toolCallRequest(myId, tool, args)))
+    })
+    return parseToolCallResult(raw)
+  } catch (error) {
+    return { ok: false, text: '', ignoredContent: 0, error: (error as Error).message }
+  }
+}

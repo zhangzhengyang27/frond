@@ -1,0 +1,22 @@
+{
+  "name": "leaf-plugin-sdk",
+  "version": "0.1.0",
+  "description": "Leaf 启动器 React 插件 SDK（#11）：react-reconciler 序列化视图树，宿主原生渲染",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-reconciler": "^0.34.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "react": "^19.0.0",
+    "react-reconciler": "^0.34.0",
+    "typescript": "^5.0.0"
+  }
+}

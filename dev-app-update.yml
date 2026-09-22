@@ -1,0 +1,4 @@
+provider: github
+owner: leaf-app
+repo: leaf-desktop
+updaterCacheDirName: leaf-updater

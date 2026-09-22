@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.0.0). Leave empty to use the latest tag.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # ── 跨平台决策（2026-09-11，docs/ROADMAP.md）──
+        # 深度功能（mdfind / osascript 专注护盾 / 辅助功能文本扩展）均为 macOS 专属，
+        # Windows/Linux 构建从未真机验证——暂停发布非 mac 产物，避免向用户分发未验证安装包。
+        # 重启跨平台发布时恢复下方 win/linux matrix 项即可；CI 单测矩阵仍在收集跨平台回归信号。
+        include:
+          - os: macos-latest
+            target: mac
+            artifact_glob: |
+              out/make/**/*.dmg
+              out/make/**/*.zip
+            release_assets: |
+              *.dmg
+              *.zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Verify tag matches package.json version
+        if: github.ref_type == 'tag'
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "${GITHUB_REF_NAME}" != "${PKG_VERSION}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} != package.json version ${PKG_VERSION}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Rebuild native modules (better-sqlite3) for ${{ matrix.target }}
+        # electron-builder 会用 postinstall 自动 rebuild；这里显式跑一次
+        # 避免部分 native 包在 installAppDeps 之前已经被 pnpm 编译到 host node
+        run: pnpm rebuild:native
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: electron-vite build
+        run: pnpm exec electron-vite build
+
+      - name: package.json version
+        id: pkg
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: electron-builder (${{ matrix.target }})
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # —— macOS 签名 / 公证 ——
+          # Apple 开发者账号（去 https://appleid.apple.com → App-Specific Passwords 生成）
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Developer ID Application 证书（base64 编码的 .p12）
+          # 本地生成：security export -t cert -k "keychain login" -f pkcs12 -P "$PASS" \
+          #           -o cert.p12 "Developer ID Application: Your Name"
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+        run: pnpm exec electron-builder --${{ matrix.target }} --publish=never
+        # --publish=never：手动控制 release 资产上传
+        # 避免自动调用 GH publish provider 与本 workflow 重复上传
+
+      - name: List build artifacts
+        run: ls -la out/make/ 2>&1 | head -20
+
+      - name: Upload artifacts (this platform)
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: ${{ matrix.artifact_glob }}
+          retention-days: 14
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            # push tag 触发：GITHUB_REF_NAME = tag
+            # workflow_dispatch 没填 tag：取最近的 v* tag
+            if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+              echo "name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            else
+              LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]' | head -1)
+              echo "name=${LATEST}" >> $GITHUB_OUTPUT
+            fi
+          fi
+          echo "Resolved tag: ${{ steps.tag.outputs.name }}"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: List downloaded assets
+        run: ls -la dist/ && find dist -type f | head -30
+
+      - name: Create / update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/**/*.dmg
+            dist/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

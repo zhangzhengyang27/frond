@@ -1,0 +1,82 @@
+/**
+ * 发布链路自检（P-3.6）· 纯判定部分
+ *
+ * 为什么存在：仓库还没有真的发布目标（`electron-builder.yml` 的 publish 是占位
+ * `leaf-app/leaf-desktop`），也没有 Apple 开发者账号。这两件事在产品里表现为
+ * 「自动更新永远查不到东西」和「下载下来 macOS 报已损坏」，而构建本身是**绿的**——
+ * 绿色不代表能发。所以把判定写成显式的一档：
+ *   blocking = 不能发（占位目标 / 版本不合法 / 没有上传用的 token）
+ *   warnings = 能发，但必须对用户说清楚（未签名 / 已签名未公证）
+ * 签名这一档按 D2（无账号）刻意不算 blocking：现阶段就是发未签名产物，
+ * 等账号到位把 CSC_LINK 配上，warnings 自己会少一条。
+ */
+
+/** 还没换成真仓库之前，构建可以跑、发布不能过的占位目标 */
+export const PLACEHOLDER_PUBLISH = { owner: 'leaf-app', repo: 'leaf-desktop' }
+
+export function isPlaceholderTarget(owner, repo) {
+  return owner === PLACEHOLDER_PUBLISH.owner && repo === PLACEHOLDER_PUBLISH.repo
+}
+
+/** 版本号必须是 x.y.z（可带 prerelease），且 tag 要能对得上 */
+export function parseReleaseVersion(version) {
+  if (typeof version !== 'string') return null
+  const m = /^v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(version.trim())
+  return m ? m[1] : null
+}
+
+/**
+ * @param input.owner / input.repo electron-builder.yml 里生效的 publish 目标
+ * @param input.version package.json 的版本
+ * @param input.tag 触发发布的 tag（没有就跳过 tag 一致性检查）
+ * @param input.env 构建环境（看 CSC_LINK / APPLE_ID / APPLE_TEAM_ID / GH_TOKEN / GITHUB_TOKEN）
+ * @param input.platform 目标平台（非 mac 没有签名/公证这一档）
+ */
+export function evaluateReleaseReadiness(input) {
+  const { owner, repo, version, tag, env = {}, platform = 'mac' } = input
+  const blocking = []
+  const warnings = []
+
+  const semver = parseReleaseVersion(version)
+  if (!semver) blocking.push(`package.json version「${version}」不是 x.y.z 形态`)
+  if (tag) {
+    const tagVersion = parseReleaseVersion(tag)
+    if (!tagVersion) blocking.push(`tag「${tag}」不是 vX.Y.Z 形态`)
+    else if (semver && tagVersion !== semver)
+      blocking.push(`tag v${tagVersion} 与 package.json 的 ${semver} 不一致`)
+  }
+
+  if (!owner || !repo) {
+    blocking.push('electron-builder.yml 的 publish 缺 owner/repo')
+  } else if (isPlaceholderTarget(owner, repo)) {
+    blocking.push(
+      `发布目标仍是占位 ${PLACEHOLDER_PUBLISH.owner}/${PLACEHOLDER_PUBLISH.repo}——` +
+        '自动更新会去查一个不存在的仓库。改成真仓库后再发'
+    )
+  }
+
+  if (!env.GH_TOKEN && !env.GITHUB_TOKEN) {
+    blocking.push('没有 GH_TOKEN / GITHUB_TOKEN，产物传不上 Release')
+  }
+
+  if (platform === 'mac') {
+    const signed = !!env.CSC_LINK
+    const notaryReady = !!env.APPLE_ID && !!env.APPLE_TEAM_ID && !!env.APPLE_APP_SPECIFIC_PASSWORD
+    if (!signed) {
+      warnings.push(
+        '未签名（没配 CSC_LINK）：用户首次打开要右键 → 打开，且自动更新的信任链不完整（D2 现状）'
+      )
+    } else if (!notaryReady) {
+      warnings.push('已签名但未公证（缺 APPLE_ID / APPLE_TEAM_ID / APPLE_APP_SPECIFIC_PASSWORD）')
+    }
+  }
+
+  return {
+    ok: blocking.length === 0,
+    blocking,
+    warnings,
+    version: semver,
+    target: owner && repo ? `${owner}/${repo}` : null,
+    signed: platform === 'mac' ? !!env.CSC_LINK : null
+  }
+}

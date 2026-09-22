@@ -1,0 +1,47 @@
+{
+  "id": "com.leaf.regex",
+  "name": "正则测试",
+  "version": "1.1.0",
+  "description": "正则表达式测试：输入正则和测试文本，高亮匹配结果，显示捕获组，支持标志位",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "test",
+      "title": "正则测试",
+      "description": "测试正则表达式匹配",
+      "arguments": [
+        { "name": "pattern", "label": "正则表达式", "type": "text", "placeholder": "如 \\d+", "required": true },
+        { "name": "text", "label": "测试文本", "type": "text", "placeholder": "留空则取剪贴板" },
+        {
+          "name": "flags",
+          "label": "标志位",
+          "type": "dropdown",
+          "data": [
+            { "title": "g（全局）", "value": "g" },
+            { "title": "gi（全局 + 忽略大小写）", "value": "gi" },
+            { "title": "gm（全局 + 多行）", "value": "gm" }
+          ]
+        }
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "flags",
+      "label": "默认标志位",
+      "type": "select",
+      "default": "g",
+      "options": [
+        "g",
+        "gi",
+        "gm",
+        "gim",
+        "gmu"
+      ]
+    }
+  ],
+  "permissions": [
+    "clipboard.read"
+  ]
+}

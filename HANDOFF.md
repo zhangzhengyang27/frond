@@ -1,0 +1,255 @@
+# 交接文档：IPC 单对象约定已全仓库接线 + 项目全景
+
+> 写给下一个接手的 AI。本文档自包含：读完即可继续，无需上游会话历史。
+> 写作时间：2026-09-19（IPC 全量迁移完成后更新；flake 结论见 §0/§3，迁移落点见 §8 第 4 条）。
+
+---
+
+## 0. 结论（TL;DR）
+
+表单回传 flake **已修复**，但根因与本文档上一版的判断**相反**，记录以免再走弯路：
+
+- 真根因：SDK 的 `commitUpdate` host config 沿用了旧版 5 形参签名
+  `(instance, updatePayload, type, prevProps, nextProps)`，而 react-reconciler 0.34
+  的实际调用是 `commitUpdate(stateNode, type, oldProps, newProps, finishedWork)`
+  （**已无 updatePayload**，见 `cjs/react-reconciler.production.js` 的 `commitHostUpdate`）。
+  错位一位 → 第 5 个实参 **fiber 被赋进 `HostNode.props`** → 下一次 `resetAfterCommit`
+  序列化时 `sanitizeValue` 沿 `stateNode>props>stateNode>…` 无限递归 →
+  `RangeError: Maximum call stack size exceeded`（未捕获，root 被打坏）→
+  **此后所有 `nav.push` 的视图提交静默消失**。胶囊停在旧视图，就是「表单渲染间歇失败」。
+- 被证伪的假设：`supportsMicrotasks: true` + 同步 `scheduleMicrotask(fn){fn()}` 会自递归爆栈。
+  实测不成立——React 的 microtask 回调里有 `executionContext & (RenderContext|CommitContext)`
+  判断，effect 内发起的更新会转交 Scheduler 而非同栈执行；把 `scheduleMicrotask` 改回
+  同步执行，回归单测仍然通过。故该行**保持原样未改**（不是本次问题，别顺手改）。
+- 第二处缺口在 **e2e 自身**：`runPluginAction(plugin, 0, 1)` 打的是「当时声明视图」的
+  条目动作；上一步 `nav.push(Detail)` 已把视图换成详情占位条目（无动作），第二次调用
+  就落在不存在的动作上、连 Callback 都不发。快机器上抢在详情落地前发出所以「绿」——
+  这正是 solo 绿/套跑红的来源。已把 spec 拆成两个用例并按视图状态串行等待。
+
+**本轮另一件大事**：IPC「单对象入参」全仓库迁移完成（391 通道进登记册、两端编译期强制、
+d.ts 顺手拆掉十余处手抄/擦除）——落点、两个必踩过的坑、闸口都在 §8 第 4 条。
+
+诊断手段（本轮用过后已撤销）：主进程 `console-message` 转发插件页 console +
+`sanitizeValue` 打键路径。**下一步若要复现同类问题，直接照 §3 的链路图加这两处**。
+
+---
+
+## 1. 项目背景
+
+仓库：`/Users/xiaoye/Desktop/electron-tools`（Electron 启动器「Leaf」，对标 Raycast，macOS+Windows）。
+本轮工作主题：按 Vicinae/ueli 两个开源项目的借鉴清单落地功能，共 **12 项全部完成**
+（清单与每项状态：`docs/REFERENCE_VICINAE_UELI.md`；审查记录都在 commit message 里）。
+
+技术栈：electron-vite + Vue3（宿主渲染端，无 React）+ better-sqlite3 + TypeScript。
+插件体系：第三方插件是 sandbox BrowserView（隔离世界 preload 暴露 `launcherApi`），
+宿主原生渲染插件 UI（插件不写 CSS/DOM）。
+
+## 2. Git 与产物状态
+
+**本地 main 无 remote 配置，未推送。** 三个必须知道的产物事实：
+
+- `example-react/dist/main.js` **入库**（插件导入即用它，e2e 也用它）。改 SDK 或 example
+  源码后必须重跑：`cd packages/leaf-plugin-sdk && npm run build` → `cd example-react &&
+  npm run build` → `npx electron-vite build`，否则测的是旧字节码（本仓库踩过两次）。
+- `packages/leaf-plugin-sdk/dist/` 被 `.gitignore` 的 `dist` 规则排除、**不入库**，
+  但 `__tests__/sdk.test.ts` 直接 import 它 —— 全新 clone 后 `pnpm test` 会因缺产物失败，
+  需先构建 SDK。遗留 Minor，未修。
+- `out/` 是 electron-vite 产物，跑 e2e 前必须重建。
+
+## 3. 已修复：表单提交值回传间歇 flake
+
+### 症状（修复前）
+React 插件（example-react）表单流：列表渲染 ✓ → 触发表单动作 ✓ → 表单渲染
+**间歇性**失败（`.form-input` 不出现，15s 超时）。solo 跑常绿，批量套跑间歇挂。
+上一轮修的是后台节流冻结提交调度（rAF → queueMicrotask + backgroundThrottling:false，
+commit `84fb0a6`），**方向对但不完整**——它解决的是「Callback 后 detail 永不到达」，
+本次这个 RangeError 静默断链是另一条独立故障。
+
+### 链路图（哪段断了对着日志找）
+```
+胶囊 FormPage 提交
+  → launcher:plugin-form-submit IPC
+  → main submitPluginFormValues（runtime.ts:180+）
+  → sendHook Callback（executeJavaScript → leafPluginHooks.emit）
+  → 插件页 SDK 桥（index.ts installCallbackBridge）
+  → registry.dispatchCallback → onSubmit(values)
+  → nav.push(Detail) → React commit → serializeForm/serializeList
+  → renderView → plugapi:renderView
+  → main setDeclaredView（list/form 分支）
+  → 胶囊渲染（PluginListPage / FormPage）
+```
+
+### 定位与修复（2026-09-19）
+1. 抓栈：主进程 `console-message` 转发只有 message 没有栈帧，于是在 SDK 里临时挂
+   `window.addEventListener('error')` 打 `error.stack` + 在 `sanitizeValue` 里打键路径。
+   一跑就中：**栈帧全是 `sanitizeValue`，键路径 `stateNode>props>stateNode>props…`**
+   ——即 React fiber 被当成视图 props 递归（fiber 的 `stateNode` 是 HostNode/容器，
+   容器 `props` 又是 fiber 数组 → 成环）。
+2. 顺藤到 `commitUpdate` 形参错位（见 §0），改签名即修好；同时删掉 0.34 根本不调用的
+   `prepareUpdate`（全仓 grep 零命中）。
+3. 判异性：把 dist 里 `instance.props = nextProps` 改回 `arguments[4]`，新增的回归单测
+   立刻复现同一句 `RangeError`；改回即绿。反过来把 `scheduleMicrotask` 改回同步执行，
+   所有测试仍然绿 → microtask 假设被证伪，未采纳。
+4. 剩余红是 e2e 抢跑（§0 第三条）→ spec 拆两用例，第二个用 `openPlugin` 重建插件页回到
+   列表，再走 表单 → 填 marker → ⌘↵ → 断言 **marker 出现在回推详情正文里**（真回传，
+   不是只看表单渲染出来了）。
+5. 验证：三联套跑 6 轮全绿、trace 零 RangeError；trace 里可见
+   `form onSubmit {"kind":"建议","content":"回传-…"}` → `submit detail`。
+
+### 遗留（本轮未动）
+- `dispatchCallback` 命中不到 id 时静默返回 false（原设计如此，插桩期未见 MISS）。
+  若日后出现「点了没反应」，这是第一个要看的位置。
+- `runPluginAction(plugin, itemIndex, actionIndex)` 对**当前**声明视图取索引，越界静默
+  no-op；写 e2e 时必须先确认视图状态（本轮 flake 的一半原因就在这）。
+
+## 4. 验证命令（精确顺序）
+
+```bash
+cd packages/leaf-plugin-sdk && npm run build && cd ../..   # SDK dist（单测/e2e 同源）
+cd example-react && npm run build && cd ../..             # example-react/dist/main.js（入库）
+pnpm typecheck                          # 双端 tsconfig，0 error
+pnpm test                               # 830+ 单测（含 SDK 4 个 + 表单解析 5 个）
+npx electron-vite build                 # 必须在跑 e2e 前执行（out/ 是产物）
+npx playwright test e2e/react-view.spec.mjs e2e/launcher.spec.mjs e2e/file-index.spec.mjs --reporter=line
+npx playwright test                     # 全套（pomodoro-manual 已加守卫默认跳过）
+```
+
+**改 SDK/example 源码后不重建产物 = 测的是旧字节码**，本仓库为此踩过两次。
+插件页 console 现在不再转发到主进程；要看得开 `openPluginDevtools`。
+
+## 5. e2e 环境机制（不理解会踩坑）
+
+- 每个 spec 用**独立 userData**：`LEAF_USER_DATA_DIR`（playwright.config 注入，
+  spec 内按 spec 名覆盖）——规避单实例锁 + 不污染真实数据
+- `LEAF_E2E=1`：插件导入确认闸旁路
+- `LEAF_FILE_INDEX_SCOPES`：文件索引范围覆盖（避免 home 全量扫描）
+- `LEAF_SKIP_BUILTIN_PLUGINS=1`：跳过内置插件自动安装
+- `pomodoro-manual.spec`：CDP 连接已运行实例的手动版，已加守卫默认跳过
+- electron.launch 的 env 是**顶层选项**（launchOptions.env 无效——历史 bug）
+
+## 6. 仓库约定
+
+- **TDD**：先写失败测试再实现（本仓库 837+ 测试全部如此）；vitest colocated
+- **验证电池**：typecheck → vitest → eslint → electron-vite build → e2e，全绿才提交
+- commit 风格：`feat:/fix:/docs:` + 中文详述（看 git log 学样例）
+- **不要动**：`references/`（Vicinae/ueli 克隆，gitignored，供源码借鉴）、
+  `src/renderer` 的视觉令牌值（Decision-010 拍板过）、`src/shared/plugin-protocol.ts`
+  的 fail-closed 清洗语义
+- eslint：宿主 strict；SDK 的 reconciler.ts 有 no-empty-function 文件级豁免
+  （host config 惯例）
+
+## 7. 关键文件地图
+
+| 文件 | 职责 |
+| --- | --- |
+| `packages/leaf-plugin-sdk/` | React 插件 SDK（reconciler/组件/回调注册表/导航） |
+| `src/shared/plugin-protocol.ts` | 插件协议：v1 renderList + v2 视图/表单 + fail-closed 清洗 |
+| `src/main/launcher/runtime.ts` | 插件运行时：BrowserView 生命周期 / setDeclaredView / sendHook / declaredForm |
+| `src/main/launcher/ipc.ts` | 全部 launcher:/plugapi: 通道 |
+| `src/preload/plugin.ts` | 插件 preload（launcherApi + leafPluginHooks + HookType） |
+| `src/renderer/src/launcher/LauncherApp.vue` | 胶囊主组件（pluginForm/declaredList 接线） |
+| `src/renderer/src/launcher/pages/FormPage.vue` | 表单页（⌘↵ 提交，e2e 用 Meta+Enter 驱动） |
+| `src/main/modules/fileIndex/` | 文件自建索引（db/scanner/service/excludes/skeleton/content/**paths**/**watcher**） |
+| `src/shared/themeSchema.ts` / `themeFile.ts` | 主题数据层（Phase 1）/ 用户主题文件解析派生（Phase 2） |
+| `src/main/modules/userThemes.ts` | `userData/themes/*.json` 读取与导入（dir 参数化版可单测） |
+| `packages/leaf-raycast-api/` | `@raycast/api` 兼容别名层（#11 M3），插件侧 alias 指过来 |
+| `docs/REFERENCE_VICINAE_UELI.md` | 借鉴清单 12 项状态（唯一进度事实源） |
+| `docs/REACT_API_DESIGN.md` / `docs/FILE_INDEX_DESIGN.md` | 两份设计文档 |
+
+## 8. 上一轮清单的落点（2026-09-19 批次，全部已提交）
+
+| 原待办 | 结果 |
+| --- | --- |
+| 表单回传 flake | 已修（§3：commitUpdate 形参错位）；**升级 react-reconciler 小版本时必须重跑 §3 的判异性检查**，host config 形参会漂移 |
+| 插件 props 环状对象 | 已修：`sanitizeValue` 加路径 WeakSet + 深度 24 上限，重复处置 null 并 warn 出键路径（不再整棵视图静默不提交） |
+| 水位表启动期补偿 | 已实现：`compensateStaleDirs` 一趟每目录一次 stat，mtime 变了才 rescanDir；消失目录连水位一并清。边界：**原地改文件内容**不动目录 mtime，这类漂移不回补 |
+| 「Fuse 单实例复用」 | **核实后不做**：实测 `fuzzyEngine` 每探测约 2µs，复用实例只省 11%（约 0.1ms/次按键），换来共享可变实例的重入风险。数字在这里，别再去改一遍 |
+| plugin-changed 双份 IPC | 已修，且真身比描述严重：`launcher:plugin-list` 与快照重复推同一份列表；而快照**从不带 declaredForm**（d.ts 却早声明了）→ 任何一次状态推送都把胶囊里的 React 表单清成 null。现合并为单一快照，两条死通道删除 |
+| NavigationRoot context 重渲染 | 已修（useMemo 固定 nav 引用 + 回归单测） |
+| Windows 文件索引 | 已实现（@parcel/watcher 后端 + `fileIndex/paths.ts` 路径归一 + `source` 分层）。**Windows 运行时未实机验证**，两条 file-index e2e 仍 skip，有机器时去掉守卫跑一遍 |
+| 用户主题文件 | 已实现（#12 Phase 2，PLUGIN_DEVELOPMENT 无关；用法见 docs/DESIGN_TOKENS.md「用户主题文件」一节） |
+| @raycast/api 兼容别名 | 已实现（`@leaf/raycast-api`，映射表与缺口清单见 PLUGIN_DEV.md） |
+
+同日补做的四项（也已提交）：trigram 中缀影子索引（≥3 字可命中）、外接卷未挂载不再
+拖垮整个索引（逐根隔离 + 管理页点名）、回调 id 失效给出原因、老单测吃 dist 的构建前置。
+
+仍然开着的：
+1. **推送远端**：仓库无 remote 配置，需要 URL。
+2. **Windows 侧实机验证**：@parcel/watcher 后端 + 路径归一只过了单测与审查，
+   两条 file-index e2e 在 Windows 上仍 skip（守卫注释写了原因）；有机器时去掉守卫跑一遍。
+3. 已知边界（都不是 bug，别再当问题查）：水位补偿是**秒级**粒度（同秒变更漏判）；
+   **2 字中文**中缀查不到（trigram 要 ≥3 字符，由 mdfind/PowerShell 回退承接）；
+   用户主题不联动模块命名空间与 `--brand-500`（Decision-010）。
+4. **已完成**：IPC 全仓库统一「单对象入参」（2026-09-19 拍板 → 当日迁完）。
+   415 个 preload 通道里所有 request/response 通道（391 条）都进了 `IpcContract`，
+   两端强制接线：主进程 `src/main/ipc/typedIpc.ts` 的 `typedHandle`/`typedHandleLogged`，
+   preload 的 `typedInvoke`；`const api: API` 再把 d.ts 钉住 —— 形状不符编译期就红。
+   迁移策略兑现了「渲染端与插件面零改动」：`window.api.X(...)` / `window.launcherApi.X(...)`
+   的 JS 签名一字未动，位置参数→对象的折算全部在 preload 内完成。
+   余下 11 条是 `ipcMain.on(...)` 的一次性推送（launcher:toggle / search-input /
+   subscribeSnapshot / ping），没有 response，按设计不入册。
+   旧的 `registerHandlers` / `registerPrefixedHandlers` 注册助手（object-literal + 位置参数
+   转发）迁完即全仓无调用方，已连文件带 `ipc/index.ts` 再导出一起删掉，ipcContract 的
+   静态抽取器也只认 `ipcMain.handle/on` 与 `typedHandle(typedHandleLogged)` 两种形态。
+   新增两条闸口（`src/main/__tests__/ipcContract.test.ts`）：
+   已登记通道不得再被裸 `ipcRenderer.invoke` 调用；登记条目数只增不减（现 391）。
+   **两个必须知道的坑**（都实测踩过，别再踩）：
+   (a) sandbox 化 preload 只能 require 内置模块。`plugin.ts` 与 `index.ts` 一旦共用
+       `./typedIpc`，rollup 就抽成 `./chunks/*.js`，Electron 报「Unable to load preload
+       script: module not found」→ 整个 `window.api` 消失（表现是 e2e 一片红 +
+       `Cannot read properties of undefined (reading 'pomodoro')`）。故 plugin.ts 内联
+       一份 typedInvoke，注释已写明原因，别「顺手」合并回去。
+   (b) `import type` 也会把被引模块编进 web 程序（typecheck:web）。登记册引
+       `PomodoroIntegrationService` 曾因 NotificationService 的 `resources/icon.png?asset`
+       直接编不动 → 纯线格式类型挪到 `src/shared/pomodoroIntegration.ts`（service 重导出，
+       调用面不变），并在 `src/renderer/src/env.d.ts` 补了 `declare module '*?asset'` 兜住
+       其余主进程类型引用。
+   顺带被编译器揪出并修掉的 d.ts 类型谎言（不是顺手改的，每一条都是登记册接上后报红的）：
+   hotkey spec 的 `kind: string`、recording.list 的 `status: Array<string>`、
+   clip.getVideoInfo 多声明的 format/size、reminders 手抄的 10 字段 Reminder 与
+   `filter: Record<string, unknown>`、ai 家族三处 `Record<string, unknown>` 擦除
+   （saveSession 还把必填的 id/createdAt/updatedAt 抄成了可选）、notification 的
+   `type: string` 与 options 丢掉 `actions` 能力、clipHist 条目少抄 3 个真实字段、
+   quicklinks 读侧承诺 `{id,name,url}` 而写侧只校验 url（已补写侧校验）。
+   还修了一个真 bug：`notification:pomodoro('remind')` 类型允许、渲染端真的在发，
+   但 NotificationService 的 switch 没有这条 case，标题退化成「番茄钟」——已补。
+5. 可选项（都不阻塞）：#9 剩余 M3 的 spellfix1 拼写容错、索引体积统计可视化。
+   断连卷的「重挂后自动补扫」已实现（跳过范围 60s 轮询补扫 + watcher 整组重启），
+   但其定时器与接线只有运行时观察、无自动化覆盖（本机无法插拔卷）。
+
+## 9. 提交清单（bf2238c 之后，新→旧）
+
+```
+609002f refactor(ipc): 最后 70 通道（AI/日历/迁移/备份/回收站/词典/窗口/屏幕录制等）单对象入参
+62b5dfd refactor(ipc): 录制历史/系统/通知/剪贴板历史/悬浮窗/专注屏蔽（70 通道）单对象入参
+153b4fc refactor(ipc): 标签/统计/提醒/笔记/片段/剪辑 五家族（68 通道）单对象入参
+e5a5fb4 refactor(ipc): 启动器家族（66 通道）单对象入参；plugapi 面同样登记
+883760a refactor(ipc): pomodoro 家族（52 通道）单对象入参 + preload 必须走 typedInvoke 的门禁
+aaa512a chore(ipc): IPC 登记册去掉 11 条虚构通道与错误签名 + 测试闸口
+ab33039 feat(file-index): 被跳过的范围重新可读后自动补扫
+a435012 fix(sdk): 回调 id 失效时给出原因，不再静默 no-op
+32b4013 fix(file-index): 单个范围读不到不再拖垮整个索引（外接卷未挂载场景）
+850a5fa feat(file-index): trigram 中缀影子索引，主路径零结果时兜底（#9 M3 部分）
+3708f95 feat(file-index): Windows 自建索引后端（@parcel/watcher）+ 索引内部路径归一
+457285b test(e2e): 启动补偿用例显式拉开目录 mtime，去掉秒级粒度带来的偶发红
+f64e276 feat(sdk): @leaf/raycast-api 兼容别名层（#11 M3）
+3d0055b feat(theme): 用户主题文件解析派生 + 设置页选择 + 运行时注入
+3c11fb7 feat(file-index): 启动期目录水位补偿
+636f7f2 build(test): vitest 全局前置构建 SDK 产物，全新 clone 的 pnpm test 可跑
+eb6c626 fix(launcher): 插件视图合并为 plugin-changed 单一快照，修表单被后续推送清空
+42734b7 fix(sdk): props 成环在重复处切断 + NavigationRoot context 引用稳定
+c266445 test(e2e): 番茄钟 spec 去掉外部 dev server 依赖 + 补 userData 隔离
+707ab1d fix: React SDK commitUpdate 形参错位（flake 真根因）+ 撤诊断插桩
+b8d7ade wip+docs: 表单回传诊断插桩 + HANDOFF
+0da1fa8 docs: PLUGIN_DEV 增补 React 视图 API 与表单章节（#11 M2）
+71ca4be feat: React SDK Form 组件族（#11 M2）——表单视图协议 + 胶囊 FormPage 复用
+84fb0a6 fix: react-view 套跑 flake 根因——隐藏 BrowserView 的后台节流冻结提交调度
+73eccb3 feat: 主题 Schema Phase 1（#12）——ThemeDefinition 数据层，CSS 值零变化
+85b52b8 fix: React SDK 审查修复——4C+5I + flake 根因（隐藏页 rAF 冻结）
+cf6561c feat: React 级扩展 API M1（#11）——SDK + 视图协议 v2 + example-react 闭环
+bea0122 fix: 代码审查修复——文件索引 1C+9I + 安全守卫 + 快速 Minor
+d4ed4ea feat: 文件自建索引 M1（#9）——FSEvents + sqlite FTS5，摆脱 Spotlight 制约
+963de96 fix(e2e): electron.launch env 顶层传参 + LEAF_USER_DATA_DIR 隔离 + playwright 1.63
+eb19521 fix: 内置插件目录按启动形态解析 + e2e 可跳过自动安装
+d6695e6 feat: 借鉴清单落地——模糊容错/多参数命令/pop-to-root 三态/热键冲突/剪贴板关键词/统一动作执行端
+```

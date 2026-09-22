@@ -1,0 +1,44 @@
+{
+  "id": "com.leaf.example-react",
+  "name": "React 示例",
+  "version": "0.1.0",
+  "description": "React 级扩展 API 演示：List / Detail / ActionPanel / 回调导航",
+  "main": "index.html",
+  "api": "react",
+  "commands": [
+    { "code": "repos", "title": "React 仓库示例", "description": "React 视图协议演示列表" },
+    {
+      "code": "ping",
+      "title": "Ping（无界面 Action 命令）",
+      "description": "只弹通知、不占胶囊界面",
+      "mode": "action"
+    },
+    {
+      "code": "ping-view",
+      "title": "Ping 但要界面（Action 升级）",
+      "description": "声明 action 但渲染列表 → 宿主应升级为可见",
+      "mode": "action"
+    },
+    {
+      "code": "ping-hold",
+      "title": "Ping 且不自关（回收兜底）",
+      "description": "无界面、不 close，等宿主 20s 兜底回收",
+      "mode": "action"
+    },
+    {
+      "code": "list-loading",
+      "title": "列表加载中（P-2.6）",
+      "description": "提交 loading 空列表，宿主显示加载文案"
+    },
+    {
+      "code": "list-empty",
+      "title": "列表空态文案（P-2.6）",
+      "description": "提交 emptyMessage，宿主原样显示"
+    },
+    {
+      "code": "detail-actions",
+      "title": "详情带动作（P-2.6）",
+      "description": "Detail.actions 降级到占位条目"
+    }
+  ]
+}

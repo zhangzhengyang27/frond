@@ -1,0 +1,267 @@
+/**
+ * Leaf · E2E：用户主题文件端到端（#12 Phase 2）
+ *
+ * 真跑链路：userData/themes/*.json → 主进程解析派生 → 设置页列出 → 点选 →
+ * 渲染端注入 :root 覆盖 → getComputedStyle 读到主题值；切回内置后覆盖摘除。
+ * （单测覆盖了解析/注入器，这里验的是把它们串起来的接线。）
+ */
+
+import { test, expect } from 'playwright/test'
+import { _electron as electron } from 'playwright'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const ROOT = join(__dirname, '..')
+const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
+const USER_DATA = join(ROOT, 'test-results', 'e2e-userdata-user-theme')
+const THEMES = join(USER_DATA, 'themes')
+
+const PLUM = {
+  id: 'plum-night',
+  name: 'Plum Night',
+  appearance: 'dark',
+  core: { bg: '#141018', fg: '#f4eefb', accent: '#b48ef5' }
+}
+
+let app = null
+
+test.beforeAll(async () => {
+  rmSync(USER_DATA, { recursive: true, force: true })
+  mkdirSync(THEMES, { recursive: true })
+  writeFileSync(join(THEMES, 'plum-night.json'), JSON.stringify(PLUM, null, 2))
+  const env = { ...process.env }
+  env.LEAF_USER_DATA_DIR = USER_DATA
+  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.LEAF_E2E = '1'
+  delete env.ELECTRON_RUN_AS_NODE
+  app = await electron.launch({ args: [MAIN_ENTRY], env })
+}, 120000)
+
+test.afterAll(async () => {
+  if (app) await app.close()
+  rmSync(USER_DATA, { recursive: true, force: true })
+})
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+const getMainWindow = async () => {
+  const deadline = Date.now() + 30000
+  while (Date.now() < deadline) {
+    for (const w of app.windows()) {
+      try {
+        // 按 URL 认，不按 title：胶囊窗的 title 也含 Leaf，胶囊一开就会先匹配到它，
+        // 于是后面的点击全发生在胶囊页里（表现为「等按钮等到超时」）
+        const u = w.url()
+        if (/\/index\.html/.test(u) && !/launcher\.html/.test(u)) return w
+      } catch {
+        /* 窗口尚未就绪 */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  throw new Error(
+    `找不到主窗，现有窗口：${app
+      .windows()
+      .map((w) => w.url())
+      .join(' | ')}`
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+const readVar = (page, name) =>
+  page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name)
+
+/** 胶囊窗是另一个渲染进程，只能按 URL 找 */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+const getCapsuleWindow = async () => {
+  const deadline = Date.now() + 15000
+  while (Date.now() < deadline) {
+    for (const w of app.windows()) {
+      try {
+        if (w.url().includes('launcher.html')) return w
+      } catch {
+        /* 窗口可能已关闭 */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  return null
+}
+
+/** 胶囊窗是另一个渲染进程，只能按 URL 找 */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+const getCapsuleWindow = async () => {
+  const deadline = Date.now() + 15000
+  while (Date.now() < deadline) {
+    for (const w of app.windows()) {
+      try {
+        if (w.url().includes('launcher.html')) return w
+      } catch {
+        /* 窗口可能已关闭 */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 200))
+  }
+  return null
+}
+
+test('主题文件被列出 → 点选后 CSS 变量生效 → 切回内置后覆盖摘除', async () => {
+  const page = await getMainWindow()
+  await page.waitForLoadState('domcontentloaded')
+  // 路由守卫在 boot 时就决定停在 #/onboarding，事后 setOnboardingCompleted 不会
+  // 把它顶走 —— 走用户路径：点「跳过引导」
+  const skip = page.getByRole('button', { name: '跳过引导' })
+  if (await skip.isVisible()) await skip.click()
+  await page.evaluate(() => {
+    window.location.hash = '#/settings'
+  })
+
+  // 设置页「主题文件」区应列出这份 JSON（id/名称来自文件）
+  const plumButton = page.getByRole('button', { name: /Plum Night/ })
+  await expect(plumButton).toBeVisible({ timeout: 15000 })
+
+  await plumButton.click()
+  await expect(() => readVar(page, '--surface-0')).resolves.toBe(PLUM.core.bg)
+  await expect(() => readVar(page, '--text-primary')).resolves.toBe(PLUM.core.fg)
+  // 派生值（文件里没写的语义键）同样落地
+  await expect(async () => {
+    expect(await readVar(page, '--border-strong')).toMatch(/^rgba\(/)
+  }).toPass({ timeout: 5000 })
+
+  // 切回内置：覆盖节点摘掉，回到 tokens.css 的值
+  await page.getByRole('button', { name: /内置（tokens.css）/ }).click()
+  await expect(async () => {
+    const v = await readVar(page, '--surface-0')
+    expect(v).not.toBe(PLUM.core.bg)
+    expect(v).toMatch(/^#/)
+  }).toPass({ timeout: 5000 })
+  expect(await page.evaluate(() => document.getElementById('leaf-user-theme-vars') === null)).toBe(
+    true
+  )
+})
+
+/**
+ * 胶囊联动（P-6.3）：主题要一路走到**另一个渲染进程**。
+ *
+ * 单测只能证明派生表里有 `--launcher-*`，证明不了胶囊窗真的注入了它
+ * （胶囊有独立入口 launcher-entry.ts，白名单也在各自渲染端再跑一遍），
+ * 所以这里真的把胶囊开出来读 .launcher 的计算样式。
+ */
+test('2. 用户主题跟着进胶囊窗：底色与文本都是主题派生值，切回内置即复原', async () => {
+  const page = await getMainWindow()
+  const readCapsule = async () => {
+    const capsule = await getCapsuleWindow()
+    if (!capsule) throw new Error(`找不到胶囊窗：${app.windows().map((w) => w.url()).join(' | ')}`)
+    return capsule.evaluate(() => {
+      const el = document.querySelector('.launcher')
+      const input = document.querySelector('.launcher-search-input')
+      if (!el || !input) return null
+      return { bg: getComputedStyle(el).backgroundColor, color: getComputedStyle(input).color }
+    })
+  }
+  /**
+   * 读到**不再变**为止。主题切换有 320ms 过渡（theme-anim），
+   * 切完立刻读会拿到插值中的中间色——那串值既不是主题也不是内置，
+   * 拿它当基线会让「切回内置」这条断言永远对不上（实测抓到 rgba(224,223,224,0.957)）。
+   */
+  const readSettled = async () => {
+    let prev = null
+    await expect
+      .poll(
+        async () => {
+          const now = await readCapsule()
+          if (!now) return false
+          const settled = prev !== null && now.bg === prev.bg
+          prev = now
+          return settled
+        },
+        { timeout: 20000, interval: 400 }
+      )
+      .toBe(true)
+    return prev
+  }
+  // 先取基线（内置主题下的胶囊外观）
+  await page.evaluate(() => window.api.launcher.show())
+  const builtin = await readSettled()
+
+  await page.getByRole('button', { name: /Plum Night/ }).click()
+  // 主题派生：深色档必须**保留 alpha**（毛玻璃结构），色相来自 core.bg
+  await expect
+    .poll(async () => (await readCapsule())?.bg ?? '', { timeout: 10000 })
+    .toMatch(/^rgba\(20, 16, 24, 0\.74\)$/)
+  await expect
+    .poll(async () => (await readCapsule())?.color ?? '', { timeout: 10000 })
+    .toMatch(/^rgba\(244, 238, 251, 0\.96\)$/)
+
+  await page.getByRole('button', { name: /内置（tokens.css）/ }).click()
+  const back = await readSettled()
+  expect(back).toEqual(builtin)
+})
+
+/**
+ * 胶囊联动（P-6.3）：主题要一路走到**另一个渲染进程**。
+ *
+ * 单测只能证明派生表里有 `--launcher-*`，证明不了胶囊窗真的注入了它
+ * （胶囊有独立入口 launcher-entry.ts，白名单也在各自渲染端再跑一遍），
+ * 所以这里真的把胶囊开出来读 .launcher 的计算样式。
+ */
+test('2. 用户主题跟着进胶囊窗：底色与文本都是主题派生值，切回内置即复原', async () => {
+  const page = await getMainWindow()
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+  const readCapsule = async () => {
+    const capsule = await getCapsuleWindow()
+    if (!capsule)
+      throw new Error(
+        `找不到胶囊窗：${app
+          .windows()
+          .map((w) => w.url())
+          .join(' | ')}`
+      )
+    return capsule.evaluate(() => {
+      const el = document.querySelector('.launcher')
+      const input = document.querySelector('.launcher-search-input')
+      if (!el || !input) return null
+      return { bg: getComputedStyle(el).backgroundColor, color: getComputedStyle(input).color }
+    })
+  }
+  /**
+   * 读到**不再变**为止。主题切换有 320ms 过渡（theme-anim），
+   * 切完立刻读会拿到插值中的中间色——那串值既不是主题也不是内置，
+   * 拿它当基线会让「切回内置」这条断言永远对不上（实测抓到 rgba(224,223,224,0.957)）。
+   */
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+  const readSettled = async () => {
+    let prev = null
+    await expect
+      .poll(
+        async () => {
+          const now = await readCapsule()
+          if (!now) return false
+          const settled = prev !== null && now.bg === prev.bg
+          prev = now
+          return settled
+        },
+        { timeout: 20000, interval: 400 }
+      )
+      .toBe(true)
+    return prev
+  }
+  // 先取基线（内置主题下的胶囊外观）
+  await page.evaluate(() => window.api.launcher.show())
+  const builtin = await readSettled()
+
+  await page.getByRole('button', { name: /Plum Night/ }).click()
+  // 主题派生：深色档必须**保留 alpha**（毛玻璃结构），色相来自 core.bg
+  await expect
+    .poll(async () => (await readCapsule())?.bg ?? '', { timeout: 10000 })
+    .toMatch(/^rgba\(20, 16, 24, 0\.74\)$/)
+  await expect
+    .poll(async () => (await readCapsule())?.color ?? '', { timeout: 10000 })
+    .toMatch(/^rgba\(244, 238, 251, 0\.96\)$/)
+
+  await page.getByRole('button', { name: /内置（tokens.css）/ }).click()
+  const back = await readSettled()
+  expect(back).toEqual(builtin)
+})

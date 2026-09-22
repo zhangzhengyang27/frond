@@ -1,0 +1,6 @@
+import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/views/screenshot/components/ScreenshotsTextarea/index.vue?vue&type=style&index=0&scoped=89c2b52e&lang.css");import { updateStyle as __vite__updateStyle, removeStyle as __vite__removeStyle } from "/@vite/client"
+const __vite__id = "/Users/xiaoye/Desktop/electron-tools/src/renderer/src/views/screenshot/components/ScreenshotsTextarea/index.vue?vue&type=style&index=0&scoped=89c2b52e&lang.css"
+const __vite__css = "\n.screenshots-textarea[data-v-89c2b52e] {\n  box-sizing: border-box;\n  position: absolute;\n  left: 0;\n  top: 0;\n  margin: 0;\n  padding: 0;\n  background-color: transparent;\n  border: 2px solid var(--shot-accent);\n  resize: none;\n  outline: none;\n  white-space: nowrap;\n  word-break: break-all;\n  overflow: hidden;\n  font-family:\n    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',\n    sans-serif;\n  text-align: left;\n  z-index: 10001;\n}\n"
+__vite__updateStyle(__vite__id, __vite__css)
+import.meta.hot.accept()
+import.meta.hot.prune(() => __vite__removeStyle(__vite__id))

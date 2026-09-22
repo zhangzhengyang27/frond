@@ -1,0 +1,24 @@
+/* 2026-09-22 由 dev-server 缓存的编译产物机械还原：非原始源码，类型标注已被 esbuild 剥除，
+   import 说明符已尽量改回裸包名。过了 node --check 语法校验，未做运行验证。 */
+import { computed } from "vue";
+import { useStore, getValue } from "/src/views/screenshot/composables/useScreenshotsContext.ts";
+export function useCursor() {
+  const store = useStore();
+  const cursor = computed(() => getValue(store.cursor));
+  const dispatcher = store.dispatcher;
+  const set = (newCursor) => {
+    dispatcher?.setCursor(newCursor);
+  };
+  const reset = () => {
+    dispatcher?.setCursor("move");
+  };
+  return [
+    cursor.value,
+    {
+      set,
+      reset
+    }
+  ];
+}
+
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbInVzZUN1cnNvci50cyJdLCJzb3VyY2VzQ29udGVudCI6WyJpbXBvcnQgeyBjb21wdXRlZCB9IGZyb20gJ3Z1ZSdcbmltcG9ydCB7IHVzZVN0b3JlLCBnZXRWYWx1ZSB9IGZyb20gJy4vdXNlU2NyZWVuc2hvdHNDb250ZXh0J1xuXG5leHBvcnQgaW50ZXJmYWNlIEN1cnNvckRpc3BhdGNoZXIge1xuICBzZXQ6IChjdXJzb3I6IHN0cmluZykgPT4gdm9pZFxuICByZXNldDogKCkgPT4gdm9pZFxufVxuXG5leHBvcnQgZnVuY3Rpb24gdXNlQ3Vyc29yKCk6IFtzdHJpbmcgfCB1bmRlZmluZWQsIEN1cnNvckRpc3BhdGNoZXJdIHtcbiAgY29uc3Qgc3RvcmUgPSB1c2VTdG9yZSgpXG4gIGNvbnN0IGN1cnNvciA9IGNvbXB1dGVkKCgpID0+IGdldFZhbHVlKHN0b3JlLmN1cnNvcikpXG4gIC8vIHN0b3JlIOaYryBwcm92aWRlU2NyZWVuc2hvdHNDb250ZXh0IOazqOWFpeeahOWkjeWQiOWvueixoe+8jOexu+Wei+acquWujOWFqOaUtuaVm1xuICAvLyBlc2xpbnQtZGlzYWJsZS1uZXh0LWxpbmUgQHR5cGVzY3JpcHQtZXNsaW50L25vLWV4cGxpY2l0LWFueVxuICBjb25zdCBkaXNwYXRjaGVyID0gKHN0b3JlIGFzIGFueSkuZGlzcGF0Y2hlclxuXG4gIGNvbnN0IHNldCA9IChuZXdDdXJzb3I6IHN0cmluZykgPT4ge1xuICAgIGRpc3BhdGNoZXI/LnNldEN1cnNvcihuZXdDdXJzb3IpXG4gIH1cblxuICBjb25zdCByZXNldCA9ICgpID0+IHtcbiAgICBkaXNwYXRjaGVyPy5zZXRDdXJzb3IoJ21vdmUnKVxuICB9XG5cbiAgcmV0dXJuIFtcbiAgICBjdXJzb3IudmFsdWUsXG4gICAge1xuICAgICAgc2V0LFxuICAgICAgcmVzZXRcbiAgICB9XG4gIF1cbn1cbiJdLCJtYXBwaW5ncyI6IkFBQUEsU0FBUyxnQkFBZ0I7QUFDekIsU0FBUyxVQUFVLGdCQUFnQjtBQU81QixnQkFBUyxZQUFvRDtBQUNsRSxRQUFNLFFBQVEsU0FBUztBQUN2QixRQUFNLFNBQVMsU0FBUyxNQUFNLFNBQVMsTUFBTSxNQUFNLENBQUM7QUFHcEQsUUFBTSxhQUFjLE1BQWM7QUFFbEMsUUFBTSxNQUFNLENBQUMsY0FBc0I7QUFDakMsZ0JBQVksVUFBVSxTQUFTO0FBQUEsRUFDakM7QUFFQSxRQUFNLFFBQVEsTUFBTTtBQUNsQixnQkFBWSxVQUFVLE1BQU07QUFBQSxFQUM5QjtBQUVBLFNBQU87QUFBQSxJQUNMLE9BQU87QUFBQSxJQUNQO0FBQUEsTUFDRTtBQUFBLE1BQ0E7QUFBQSxJQUNGO0FBQUEsRUFDRjtBQUNGOyIsIm5hbWVzIjpbXX0=

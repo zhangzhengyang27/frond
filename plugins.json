@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "com.leaf.example",
+      "name": "示例插件",
+      "version": "0.1.0",
+      "description": "官方示例：声明式列表 / 偏好设置 / 受控 API 全演示",
+      "author": "Leaf",
+      "download": "./example-plugin"
+    },
+    {
+      "id": "com.leaf.colorpicker",
+      "name": "颜色选择器",
+      "version": "1.0.1",
+      "description": "颜色格式转换与选择：HEX / RGB / HSL 互转，从剪贴板读取颜色，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.colorpicker"
+    },
+    {
+      "id": "com.leaf.jsonfmt",
+      "name": "JSON 格式化",
+      "version": "1.0.1",
+      "description": "JSON 格式化与压缩：从剪贴板读取 JSON，格式化/压缩/转义，一键复制结果",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.jsonfmt"
+    },
+    {
+      "id": "com.leaf.currency",
+      "name": "汇率转换",
+      "version": "1.0.1",
+      "description": "实时汇率转换：支持 160+ 货币，从剪贴板读取金额，一键复制转换结果",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.currency"
+    },
+    {
+      "id": "com.leaf.base64",
+      "name": "Base64 编解码",
+      "version": "1.0.1",
+      "description": "Base64 编码与解码：从剪贴板读取文本，一键编码/解码，支持 UTF-8",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.base64"
+    },
+    {
+      "id": "com.leaf.uuid",
+      "name": "UUID 生成器",
+      "version": "1.0.1",
+      "description": "生成 UUID v4：支持批量生成、大写/小写、无连字符格式，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.uuid"
+    },
+    {
+      "id": "com.leaf.timestamp",
+      "name": "时间戳转换",
+      "version": "1.0.1",
+      "description": "Unix 时间戳与可读时间互转：支持秒/毫秒，从剪贴板读取，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.timestamp"
+    },
+    {
+      "id": "com.leaf.passwordgen",
+      "name": "密码生成器",
+      "version": "1.0.1",
+      "description": "生成安全随机密码：可配置长度、大小写/数字/符号，支持批量生成，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.passwordgen"
+    },
+    {
+      "id": "com.leaf.urlcodec",
+      "name": "URL 编解码",
+      "version": "1.0.1",
+      "description": "URL 编码与解码：encodeURIComponent / decodeURIComponent，从剪贴板读取，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.urlcodec"
+    },
+    {
+      "id": "com.leaf.baseconvert",
+      "name": "进制转换",
+      "version": "1.0.1",
+      "description": "数字进制转换：2/8/10/16 进制互转，支持大整数，从剪贴板读取，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.baseconvert"
+    },
+    {
+      "id": "com.leaf.qrcode",
+      "name": "二维码生成器",
+      "version": "1.0.1",
+      "description": "生成二维码：输入文本/URL/联系方式，本地生成，支持纠错级别和尺寸调整，一键复制图片",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.qrcode"
+    },
+    {
+      "id": "com.leaf.hash",
+      "name": "哈希计算",
+      "version": "1.0.1",
+      "description": "计算文本哈希值：MD5/SHA1/SHA256/SHA384/SHA512，从剪贴板读取，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.hash"
+    },
+    {
+      "id": "com.leaf.regex",
+      "name": "正则测试",
+      "version": "1.1.0",
+      "description": "正则表达式测试：输入正则和测试文本，高亮匹配结果，显示捕获组，支持标志位",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.regex"
+    },
+    {
+      "id": "com.leaf.textstats",
+      "name": "文本统计",
+      "version": "1.0.1",
+      "description": "文本统计：字数/行数/字符数/字节数/词频，从剪贴板读取，一键复制统计结果",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.textstats"
+    },
+    {
+      "id": "com.leaf.contrast",
+      "name": "颜色对比度",
+      "version": "1.0.1",
+      "description": "WCAG 颜色对比度检查：输入前景色和背景色，计算对比度比率，判断 AA/AAA 合规性",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.contrast"
+    },
+    {
+      "id": "com.leaf.jwt",
+      "name": "JWT 解码",
+      "version": "1.0.1",
+      "description": "解码 JWT Token：解析 Header/Payload/Signature，显示过期时间、签发者等声明，从剪贴板读取",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.jwt"
+    },
+    {
+      "id": "com.leaf.cron",
+      "name": "Cron 解析",
+      "version": "1.0.1",
+      "description": "解析 Cron 表达式：显示人类可读描述、下次执行时间列表、各字段含义，支持标准 5 段和 Quartz 6/7 段",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.cron"
+    },
+    {
+      "id": "com.leaf.jsonyaml",
+      "name": "JSON↔YAML",
+      "version": "1.0.1",
+      "description": "JSON 与 YAML 互转：从剪贴板读取，自动识别格式，支持缩进配置，一键复制结果",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.jsonyaml"
+    },
+    {
+      "id": "com.leaf.htmlentity",
+      "name": "HTML 实体编解码",
+      "version": "1.0.1",
+      "description": "HTML 实体编码与解码：特殊字符转义/反转义，支持命名实体和数字实体，从剪贴板读取",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.htmlentity"
+    },
+    {
+      "id": "com.leaf.lorem",
+      "name": "Lorem Ipsum",
+      "version": "1.0.1",
+      "description": "生成占位文本：单词/句子/段落，支持自定义数量，经典 Lorem Ipsum 文本，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.lorem"
+    },
+    {
+      "id": "com.leaf.csvjson",
+      "name": "CSV↔JSON",
+      "version": "1.0.1",
+      "description": "CSV 与 JSON 互转：自动识别格式，支持表头、引号、逗号分隔，从剪贴板读取，一键复制",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.csvjson"
+    },
+    {
+      "id": "com.leaf.quickfolders",
+      "name": "常用目录",
+      "version": "1.0.1",
+      "description": "保存常用文件夹路径，从启动器直接搜索并打开；支持从剪贴板添加目录",
+      "author": "Leaf",
+      "download": "./plugins/com.leaf.quickfolders"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+/**
+ * Leaf · 列表密度（P-6 Compact Mode）
+ *
+ * 就两档，且**只改行高与间距**：字号、图标尺寸不动。
+ * 原因是胶囊是固定高度的窗，密度选项要解决的是「一屏能看见几条结果」，
+ * 跟着缩字号会让 2292 行的胶囊 CSS 里那些按像素对齐的地方（分割线、图标居中、
+ * 详情面板左边距）全部错位——那是拿观感换一个数字。
+ *
+ * 取值走 CSS 自定义属性：胶囊根元素上写 `data-density`，样式里读，
+ * 这样切换不需要重排 JS 计算，也不会和插件视图的 expandHeight 打架。
+ */
+
+export type Density = 'comfortable' | 'compact'
+
+export const DENSITY_VALUES: readonly Density[] = ['comfortable', 'compact']
+
+export interface DensityVars {
+  /** 行的上下内边距 */
+  rowPadY: string
+  /** 行的最小高度 */
+  rowMinHeight: string
+  /** 分组标题与列表之间的间距 */
+  sectionGap: string
+}
+
+export const DENSITY: Record<Density, DensityVars> = {
+  comfortable: { rowPadY: '8px', rowMinHeight: '38px', sectionGap: '6px' },
+  compact: { rowPadY: '3px', rowMinHeight: '28px', sectionGap: '3px'
+  }
+}
+
+export const DEFAULT_DENSITY: Density = 'comfortable'
+
+/** 容错解析：不是两档之一的值一律回落到默认档（存量配置 / 手改数据库） */
+export function normalizeDensity(raw: unknown): Density {
+  return raw === 'compact' || raw === 'comfortable' ? raw : DEFAULT_DENSITY
+}
+
+/** 写进根元素的 CSS 变量名（样式侧与这里必须同名，故只在此处定义） */
+export const DENSITY_CSS_VARS: Record<keyof DensityVars, string> = {
+  rowPadY: '--leaf-row-pad-y',
+  rowMinHeight: '--leaf-row-min-h',
+  sectionGap: '--leaf-section-gap'
+}
+
+/** 把某一档落到元素上（纯逻辑，元素由调用方给，方便单测传假对象） */
+export function applyDensityVars(
+  target: { style: { setProperty(k: string, v: string): void } },
+  density: Density
+): void {
+  const vars = DENSITY[normalizeDensity(density)]
+  for (const key of Object.keys(vars) as Array<keyof DensityVars>) {
+    target.style.setProperty(DENSITY_CSS_VARS[key], vars[key])
+  }
+}

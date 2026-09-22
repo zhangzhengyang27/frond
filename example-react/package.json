@@ -1,0 +1,17 @@
+{
+  "name": "leaf-example-react",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "leaf-plugin-sdk": "file:../packages/leaf-plugin-sdk",
+    "react": "^19.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "@types/react": "^19.0.0"
+  }
+}

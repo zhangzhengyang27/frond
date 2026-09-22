@@ -25,7 +25,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
-import { getSyncConfig } from './sync'
+import { getSyncConfig, type SyncConfig } from './sync'
 import {
   mergeTable,
   pkValues,
@@ -382,6 +382,21 @@ export class DataSyncService {
     return { applied: r.upserted + r.removed }
   }
 
+  /**
+   * 推送成功之后记基线：**远端此刻就是这份 bundle 的样子**。
+   *
+   * 少这一步，先推的那台设备永远没有「第三方」：对端删掉一行之后它拉下来看到的是
+   * 「本地有这行、远端没有、我也没见过这行」，按判据只能不删（删了就等于拿猜测量盖用户数据）
+   * ——于是删除传不过去。真链路单测（两台设备互拉）把这个洞跑了出来。
+   *
+   * 实现是「与自己刚发布的那份合一次」：local 与 remote 逐行相同，判据里只剩两种落子——
+   * 两边都有的行记下修订号、两边都没有的行（本地已删）盖上墓碑。正是「记基线」这件事，
+   * 不必另写一套规则，也就不会与 mergeBundle 漂移。
+   */
+  markPublished(bundle: SyncBundle, now = Date.now()): void {
+    this.mergeBundle(bundle, now)
+  }
+
   /** 拉平前的本地快照（userData/sync-snapshots/<ts>.json，保留 5 份）；返回快照路径 */
   snapshot(): string {
     const dir = join(app.getPath('userData'), 'sync-snapshots')
@@ -424,8 +439,7 @@ function decryptBundle(buf: Buffer, password: string): SyncBundle {
   return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8'))
 }
 
-async function syncClient(): Promise<{ client: WebDAVClient; password: string }> {
-  const config = getSyncConfig()
+async function syncClient(config: SyncConfig): Promise<{ client: WebDAVClient; password: string }> {
   if (!config.url) throw new Error('未配置 WebDAV（启动器设置 → 同步）')
   const client = createClient(config.url, {
     username: config.username,
@@ -467,16 +481,46 @@ function prefSet(key: string, value: string): void {
 
 export type SyncDecision = 'pull' | 'push' | 'noop'
 
+/**
+ * 一次同步所依赖的「外部世界」：库、WebDAV 配置、记账位、快照落盘点。
+ * 生产全走默认；单测要模拟**两台设备**互拉，就得把每台的那四样各换一份进来
+ * ——否则「同步真的不丢东西」这句话只能在真机上验，而真机验收一直排不上。
+ */
+export interface SyncDeps {
+  db?: Database.Database
+  config?: SyncConfig
+  readApplied?: () => number
+  markApplied?: (ts: number) => void
+  snapshot?: () => string
+}
+
+function resolveDeps(
+  deps: SyncDeps,
+  service: DataSyncService
+): {
+  config: SyncConfig
+  readApplied: () => number
+  markApplied: (ts: number) => void
+  snapshot: () => string
+} {
+  return {
+    config: deps.config ?? getSyncConfig(),
+    readApplied: deps.readApplied ?? ((): number => Number(prefGet(SYNC_MARKER_PREF) ?? '0')),
+    markApplied: deps.markApplied ?? ((ts) => prefSet(SYNC_MARKER_PREF, String(ts))),
+    snapshot: deps.snapshot ?? ((): string => service.snapshot())
+  }
+}
+
 /** 推送本地（后写覆盖：覆盖远端 bundle），并记录 lastAppliedAt */
-export async function pushDataSync(): Promise<{
+export async function pushDataSync(deps: SyncDeps = {}): Promise<{
   ok: boolean
   decision?: SyncDecision
   error?: string
 }> {
   try {
-    const service = new DataSyncService()
-    const { client, password } = await syncClient()
-    const config = getSyncConfig()
+    const service = new DataSyncService(deps.db)
+    const { config, markApplied } = resolveDeps(deps, service)
+    const { client, password } = await syncClient(config)
     const bundle = service.buildBundle()
     const buf = encryptBundle(bundle, password)
     const remotePath = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
@@ -485,7 +529,8 @@ export async function pushDataSync(): Promise<{
       `${remotePath}/latest.json`,
       JSON.stringify({ exportedAt: bundle.exportedAt, device: bundle.device })
     )
-    prefSet(SYNC_MARKER_PREF, String(bundle.exportedAt))
+    service.markPublished(bundle)
+    markApplied(bundle.exportedAt)
     return { ok: true, decision: 'push' }
   } catch (error) {
     return { ok: false, error: (error as Error).message }
@@ -493,7 +538,7 @@ export async function pushDataSync(): Promise<{
 }
 
 /** 拉平（决策：远端更新才覆盖本地；覆盖前本地快照；远端不存在时转为推送） */
-export async function pullDataSync(): Promise<{
+export async function pullDataSync(deps: SyncDeps = {}): Promise<{
   ok: boolean
   decision?: SyncDecision
   applied?: number
@@ -503,28 +548,27 @@ export async function pullDataSync(): Promise<{
   error?: string
 }> {
   try {
-    const service = new DataSyncService()
-    const { client, password } = await syncClient()
-    const config = getSyncConfig()
+    const service = new DataSyncService(deps.db)
+    const { config, readApplied, markApplied, snapshot: takeSnapshot } = resolveDeps(deps, service)
+    const { client, password } = await syncClient(config)
     const remotePath = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
     const hasBundle = await client.exists(`${remotePath}/bundle.json.enc`)
     if (!hasBundle) {
-      const r = await pushDataSync()
+      const r = await pushDataSync({ ...deps, config, markApplied })
       return { ok: r.ok, decision: 'push', error: r.error }
     }
     const latest = JSON.parse(
       String(await client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }))
     ) as { exportedAt: number }
-    const lastAppliedAt = Number(prefGet(SYNC_MARKER_PREF) ?? '0')
-    const decision = decideSync(latest.exportedAt, lastAppliedAt, true)
+    const decision = decideSync(latest.exportedAt, readApplied(), true)
     if (decision !== 'pull') return { ok: true, decision }
     const buf = (await client.getFileContents(`${remotePath}/bundle.json.enc`, {
       format: 'binary'
     })) as Buffer
     const bundle = decryptBundle(buf, password)
-    const snapshot = service.snapshot()
+    const snapshot = takeSnapshot()
     const r = service.mergeBundle(bundle)
-    prefSet(SYNC_MARKER_PREF, String(bundle.exportedAt))
+    markApplied(bundle.exportedAt)
     // conflicts 带出去给状态页：合并「成功」不等于「没分歧」，
     // 只报 applied 会让人以为同步把两边捏成了一份，实际是并集 + 冲突副本
     return {

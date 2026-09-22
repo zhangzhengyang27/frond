@@ -540,9 +540,22 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
 本轮补回三条丢掉的：内容只差 `__rev` 不产副本、等修订号打平两份都留、report 型表不拿「远端
 没这行」当删除）。接线已落地（`1b5874e`）：`SYNC_TABLE_SPECS` + bundle v2（每行带 `__rev`，子表向父行要）+
 `mergeBundle()` 单事务回写并把基线/墓碑记进 `sync_state`，`applyBundle()` 退化成薄壳；
-`syncExclusionAudit()` 钉住「每张表要么同步要么点名排除」。dataSync + syncMerge 35/35 通过。
-**仍未验的是真链路**：WebDAV 全链路要服务（CI 侧），两台实体设备各改各的再互拉这个场景
-还没跑过 —— 判据与记账都过了单测，但「同步真的不丢东西」要以真机验收为准。〕
+`syncExclusionAudit()` 钉住「每张表要么同步要么点名排除」。dataSync + syncMerge 35/35 通过。〕
+〔✅ **2026-09-22 真链路补上了**（`dataSync.chain.test.ts`，5 条）：进程内起一个最小 WebDAV 端
+（`__tests__/helpers/minimalDav.ts`，按真客户端探测出的 PROPFIND/MKCOL/PUT/GET 四类请求实现），
+两个内存 sqlite 当两台设备，把 `pushDataSync`/`pullDataSync` 整条链子真跑一遍——真 HTTP 往返、
+真 AES-256-GCM、真行级合并。生产侧只加了一个注入缝 `SyncDeps`（库 / WebDAV 配置 / 记账位 / 快照点，
+全可选，默认走 pref + userData，行为不变）。
+**这条测试当场逮到一个真洞**：先推的那台设备**从不记基线**，于是它拉对端 bundle 时看到的是
+「本地有这行、远端没有、我也没见过」——按判据只能不删，**删除于是永远传不过去**。
+修法：推送成功后 `markPublished(bundle)`（实现＝与自己刚发布的那份合一次，剩下的落子正好就是
+「两边都有→记修订号 / 两边都没→盖墓碑」，不另写一套规则就不会与 `mergeBundle` 漂移）。
+判异性：把那行 `markPublished` 注释掉，恰好「删除传播 + 不许复活」这条红，其余四条照绿。
+覆盖到的：A 推 B 拉落地、**远端存的对象里没有一字节明文**（连 `"tables"` 都搜不到）、
+同版本再拉是 noop 且不白落快照、两边同改一行走完一圈两份都在、迟到的旧 bundle 不复活已删行、
+口令不同→失败且本地一个字节不动。
+**仍然没验的**（别把这条当「任何 WebDAV 都能用」）：真服务器（Nextcloud / 群晖）的鉴权跳转、
+锁、分块、PROPFIND Depth 1 列表行为，以及两台真机各自的时钟偏移。〕
 
 现有 `dataSync.ts` 是**后写覆盖 + 拉平前本地快照 5 份**的 LWW 轻量同步（借鉴清单批次 6，8 单测）。本期要做：范围扩到全量集合、冲突保留双副本而非静默覆盖、设备身份用本机派生密钥（**不引入必须登录**，遵守 Decision-0XX 的 How-to-apply）。端到端加密复用现有 AES-256-GCM 通道。开工前先精读 `src/main/modules/{dataSync,sync,cloudBackup}.ts` 与迁移中心 UI（`MigrationCenterView.vue:7,165-292`）。
 

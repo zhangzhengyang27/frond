@@ -73,3 +73,10 @@ export {
   DEFAULT_RECORDING_SETTINGS,
   RECORDING_SETTINGS_KEY
 } from './RecordingSettingsRepository'
+export {
+  ShotIndexRepository,
+  shotIndexRepository,
+  type ShotRow,
+  type ShotSearchFilter,
+  type ShotOcrStatus
+} from './ShotIndexRepository'

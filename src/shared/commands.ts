@@ -17,6 +17,7 @@
 
 import { MODULES, PENDING_MODULES } from './modules'
 import type { PluginArgument, PluginItemAction } from './plugin-protocol'
+import type { McpToolArg } from './mcp'
 
 /**
  * 第一方内联页 id（Raycast 式：命令结果直接呈现在胶囊窗内）。
@@ -69,6 +70,14 @@ export type CommandAction =
   | { type: 'system'; cmdId: string }
   /** 用户自定义快捷链接（M2.3） */
   | { type: 'quicklink'; id: string; url: string }
+  /** MCP 工具命令（P-4②）：args 的键是 schema 里可填的标量参数名 */
+  | {
+      type: 'mcpTool'
+      serverId: string
+      serverLabel: string
+      tool: string
+      args: McpToolArg[]
+    }
   /** 统一混合搜索（P0-1）：根搜索直接命中文件，回车用默认程序打开 */
   | { type: 'file'; path: string; name: string }
   /** 统一混合搜索：根搜索直接命中剪贴板历史条目，回车再复制 */
@@ -106,6 +115,18 @@ export function buildQuicklinkUrl(url: string, arg: string): string {
  * Raycast 语法 {argument name="org"} 不引入——Leaf 用裸 {org}，更短且表单直接以
  * 参数名做标签（V4 P0-4：多参数命令最小闭环，落在 Quicklink 场景）。
  */
+/**
+ * 内联参数格子用的字段名：命名占位符 **+ {query}**。
+ * 与 quicklinkArgNames 的区别只在这一个：旧实现只数命名占位符，混合形态
+ * `…/{query}?ref={org}` 就漏掉 query 那一格，拼出来的地址里留着 `{query}` 字面量
+ * ——参数收齐了却是个坏链接（V4 P0-4 后续修正）。
+ */
+export function quicklinkFieldNames(url: string): string[] {
+  const names = quicklinkArgNames(url)
+  if (/\{query\}/.test(url) && !names.includes('query')) names.unshift('query')
+  return names
+}
+
 export function quicklinkArgNames(url: string): string[] {
   const names: string[] = []
   const re = /\{([a-zA-Z_][\w-]*)\}/g

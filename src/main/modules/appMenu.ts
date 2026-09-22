@@ -67,4 +67,176 @@ export interface AppMenuContext {
   pomodoroFocusedProjectId?: string | null
 }
 
+/** tray 侧传 Tray 实例，dock 侧传 null（走 app.dock.setMenu） */
+export type MenuTarget = import('electron').Tray | null
+
+/** 取（必要时重建）主窗口再执行：点 dock/tray 菜单时窗口可能已经关了 */
+function withMainWindow(ctx: AppMenuContext, run: (win: BrowserWindow) => void): void {
+  const win = ctx.getMainWindow()
+  if (win && !win.isDestroyed()) {
+    run(win)
+    return
+  }
+  const recreated = ctx.recreateWindow?.()
+  if (recreated) run(recreated)
+}
+
+function sendToRenderer(ctx: AppMenuContext, channel: string, payload?: unknown): void {
+  withMainWindow(ctx, (win) => win.webContents.send(channel, payload))
+}
+
 /**
+ * 模块跳转：只推 IPC，不在主进程记 usage——router.push 与 usage.recordUse
+ * 都由渲染端做（与 ⌘1-9 / CommandPalette 同一条路径，见文件头）。
+ */
+function openModuleItem(ctx: AppMenuContext, meta: ModuleMeta): void {
+  sendToRenderer(ctx, 'app:openModule', { moduleId: meta.id, path: meta.path })
+}
+
+function metaOf(moduleId: string): ModuleMeta | undefined {
+  return MODULES.find((m) => m.id === moduleId)
+}
+
+function moduleItem(
+  ctx: AppMenuContext,
+  meta: ModuleMeta,
+  extraLabel?: string
+): Electron.MenuItemConstructorOptions {
+  return {
+    label: extraLabel ?? meta.label,
+    accelerator: meta.shortcut ? toAccelerator(meta.shortcut) : undefined,
+    click: () => openModuleItem(ctx, meta)
+  }
+}
+
+/** 「最近使用」与「收藏」按 usageStore 实时拉取，避免菜单 stale */
+function byIdList(
+  ctx: AppMenuContext,
+  ids: string[],
+  label: string,
+  emptyHint: string
+): Electron.MenuItemConstructorOptions {
+  const items = ids
+    .map((id) => metaOf(id))
+    .filter((m): m is ModuleMeta => !!m)
+    .map((m) => moduleItem(ctx, m))
+  return {
+    label,
+    submenu: items.length ? items : [{ label: emptyHint, enabled: false }]
+  }
+}
+
+function leafItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] {
+  return [
+    { label: '启动台', click: () => sendToRenderer(ctx, 'app:goHome') },
+    { label: '命令面板…', click: () => sendToRenderer(ctx, 'app:openCommandPalette') },
+    {
+      label: '偏好设置',
+      accelerator: 'CmdOrCtrl+,',
+      click: () => sendToRenderer(ctx, 'app:openSettings')
+    },
+    { label: '关于 Leaf', click: () => sendToRenderer(ctx, 'app:openAbout') }
+  ]
+}
+
+/** 番茄钟段：状态行（只读）+ 焦点项目单选（切换仍由渲染端落库） */
+function pomodoroItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] {
+  const status = ctx.pomodoroStatus
+  const projects = ctx.pomodoroProjects ?? []
+  const focused = ctx.pomodoroFocusedProjectId ?? null
+  const items: Electron.MenuItemConstructorOptions[] = []
+  if (status) {
+    items.push({
+      label: status.primary,
+      sublabel: status.secondary || undefined,
+      enabled: false
+    })
+  }
+  if (projects.length) {
+    items.push({
+      label: '焦点项目',
+      submenu: projects.map((p) => ({
+        label: p.name,
+        type: 'radio' as const,
+        checked: p.id === focused,
+        click: () => sendToRenderer(ctx, 'pomodoro:focusProject', { projectId: p.id })
+      }))
+    })
+  }
+  return items
+}
+
+function buildTemplate(
+  kind: 'tray' | 'dock',
+  ctx: AppMenuContext
+): Electron.MenuItemConstructorOptions[] {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    ...MODULES.map((m) => moduleItem(ctx, m)),
+    { type: 'separator' },
+    byIdList(ctx, usageStore.getRecent(6), '最近使用', '还没有使用记录'),
+    byIdList(ctx, usageStore.getFavorites(), '收藏', '还没有收藏（模块页 ⌘D 收藏）'),
+    ...pomodoroItems(ctx),
+    { type: 'separator' },
+    ...leafItems(ctx)
+  ]
+  // macOS 的退出由应用菜单负责；tray / dock 菜单在 Win/Linux 才自带退出项
+  if (kind === 'tray' && !isMac()) {
+    template.push({ type: 'separator' }, { label: '退出 Leaf', click: () => app.quit() })
+  }
+  return template
+}
+
+/**
+ * 构建并按需挂载 dock / tray 菜单（两者共用同一份 template，见文件头）。
+ * dock 侧每次调用都重新 setMenu —— macOS 的 dock 菜单没有「惰性取单」能力。
+ */
+export function buildAndSetAppMenu(kind: 'tray' | 'dock', target: MenuTarget, ctx: AppMenuContext): void {
+  const menu = Menu.buildFromTemplate(buildTemplate(kind, ctx))
+  if (kind === 'dock') {
+    if (isMac() && app.dock) app.dock.setMenu(menu)
+    return
+  }
+  target?.setContextMenu(menu)
+}
+
+/**
+ * 应用菜单栏（macOS 顶部）。Windows / Linux 上不设菜单：这两平台的窗口菜单
+ * 与 tray 重复，显式 setMenu(null) 免得占一条。
+ */
+export function installApplicationMenu(ctx: AppMenuContext): void {
+  if (!isMac()) {
+    Menu.setApplicationMenu(null)
+    return
+  }
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: app.name,
+      submenu: [
+        { label: '关于 Leaf', click: () => sendToRenderer(ctx, 'app:openAbout') },
+        { label: '偏好设置…', accelerator: 'Cmd+,', click: () => sendToRenderer(ctx, 'app:openSettings') },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+    {
+      label: '前往',
+      submenu: [
+        { label: '启动台', click: () => sendToRenderer(ctx, 'app:goHome') },
+        { label: '命令面板…', click: () => sendToRenderer(ctx, 'app:openCommandPalette') },
+        { type: 'separator' },
+        ...MODULES.map((m) => moduleItem(ctx, m))
+      ]
+    }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+

@@ -117,3 +117,230 @@ const OVERLAY_HTML_TEMPLATE = `<!doctype html>
     sizeEl.textContent = Math.round(w)+' × '+Math.round(h);
     sel.style.display='block'; sizeEl.style.display='block';
   }
+
+  function clearRect(){ sel.style.display='none'; sizeEl.style.display='none'; }
+
+  const MIN_SIZE_PX = 20;
+
+  // 页面 (0,0) 就是 overlay 窗口的左上角，回主进程前换算成屏幕坐标（见 monitorBounds）
+  function report(x0,y0,x1,y1){
+    const x = Math.min(x0,x1), y = Math.min(y0,y1);
+    const width = Math.abs(x1-x0), height = Math.abs(y1-y0);
+    location.href = 'leaf-region://select?x='+Math.round(x+monitorBounds.x)
+      +'&y='+Math.round(y+monitorBounds.y)
+      +'&width='+Math.round(width)+'&height='+Math.round(height);
+  }
+
+  function requestCancel(){ location.href = 'leaf-region://cancel'; }
+
+  document.addEventListener('mousedown', (e)=>{
+    if(e.button!==0) return;
+    drawing=true; sx=e.clientX; sy=e.clientY; setRect(sx,sy,0,0);
+  });
+  document.addEventListener('mousemove', (e)=>{
+    if(!drawing) return;
+    setRect(sx,sy,e.clientX-sx,e.clientY-sy);
+  });
+  document.addEventListener('mouseup', (e)=>{
+    if(!drawing) return;
+    drawing=false;
+    if(Math.abs(e.clientX-sx)<MIN_SIZE_PX || Math.abs(e.clientY-sy)<MIN_SIZE_PX){
+      clearRect(); return;   // 太小多半是误点：清掉重来，不关窗
+    }
+    report(sx,sy,e.clientX,e.clientY);
+  });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') requestCancel(); });
+  if (cancel) cancel.addEventListener('click', requestCancel);
+</script>
+</body>
+</html>`
+
+/** 把显示器原点注入内联页（占位符留在模板里，避免拼接被选区内容打断） */
+function overlayHtml(origin: { x: number; y: number }): string {
+  return OVERLAY_HTML_TEMPLATE.replace(
+    '__MONITOR_BOUNDS_JSON__',
+    JSON.stringify({ x: origin.x, y: origin.y })
+  )
+}
+
+interface PendingSelection {
+  win: BrowserWindow
+  resolve: (r: Result) => void
+}
+
+let pending: PendingSelection | null = null
+
+/** 同一时刻只允许一个 overlay：重复调用先把上一个按「取消」结掉 */
+function closePending(): void {
+  if (!pending) return
+  const { win, resolve } = pending
+  pending = null
+  try {
+    if (!win.isDestroyed()) win.close()
+  } catch {
+    /* 窗口已在销毁流程里 */
+  }
+  resolve({ ok: false, reason: 'canceled' })
+}
+
+/** region 以 primary 显示器为 0,0（与 desktopCapturer 的坐标系一致，见文件头） */
+function primaryOrigin(): { x: number; y: number } {
+  if (!app.isReady()) return { x: 0, y: 0 }
+  const p = screen.getPrimaryDisplay().bounds
+  return { x: p.x, y: p.y }
+}
+
+/**
+ * 打开 overlay 等一次框选。内联页没有 preload，回程走 location.href +
+ * will-navigate 拦截：透明无边框窗口不值得为它再挂一份受控 preload。
+ */
+function openOverlay(target: {
+  x: number
+  y: number
+  width: number
+  height: number
+  displayId: number
+  crossDisplay: boolean
+  scaleFactor: number
+}): Promise<Result> {
+  closePending()
+  const win = new BrowserWindow({
+    x: target.x,
+    y: target.y,
+    width: target.width,
+    height: target.height,
+    show: false,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    movable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    hasShadow: false,
+    webPreferences: { contextIsolation: true, sandbox: true }
+  })
+  win.setKiosk(true)
+  win.setAlwaysOnTop(true, 'screen-saver')
+
+  const origin = primaryOrigin()
+
+  return new Promise<Result>((resolve) => {
+    pending = { win, resolve }
+
+    const settle = (r: Result): void => {
+      if (!pending || pending.win !== win) return
+      pending = null
+      try {
+        if (!win.isDestroyed()) win.close()
+      } catch {
+        /* 已在销毁流程里 */
+      }
+      resolve(r)
+    }
+
+    win.webContents.on('will-navigate', (event, url) => {
+      if (!url.startsWith('leaf-region://')) return
+      event.preventDefault()
+      const m = /^leaf-region:\/\/([^?]*)(?:\?(.*))?$/.exec(url)
+      const kind = m?.[1]
+      const params = new URLSearchParams(m?.[2] ?? '')
+      const num = (k: string): number => Number(params.get(k))
+      if (kind !== 'select') {
+        settle({ ok: false, reason: 'canceled' })
+        return
+      }
+      settle({
+        ok: true,
+        region: {
+          x: num('x') - origin.x,
+          y: num('y') - origin.y,
+          width: num('width'),
+          height: num('height')
+        },
+        displayId: target.displayId,
+        crossDisplay: target.crossDisplay,
+        scaleFactor: target.scaleFactor
+      })
+    })
+
+    win.on('closed', () => settle({ ok: false, reason: 'canceled' }))
+
+    void win
+      .loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(overlayHtml(target)))
+      .then(() => win.show())
+      .catch(() => settle({ ok: false, reason: 'canceled' }))
+  })
+}
+
+function displayTarget(displayId: number | null): {
+  x: number
+  y: number
+  width: number
+  height: number
+  displayId: number
+  crossDisplay: boolean
+  scaleFactor: number
+} {
+  const all = screen.getAllDisplays()
+  const pick = displayId == null ? screen.getPrimaryDisplay() : all.find((d) => d.id === displayId)
+  if (!pick) throw new Error(`[RegionOverlay] display not found: ${displayId}`)
+  return { ...pick.bounds, displayId: pick.id, crossDisplay: false, scaleFactor: pick.scaleFactor }
+}
+
+function virtualTarget(): ReturnType<typeof displayTarget> {
+  const all = screen.getAllDisplays()
+  const x = Math.min(...all.map((d) => d.bounds.x))
+  const y = Math.min(...all.map((d) => d.bounds.y))
+  const right = Math.max(...all.map((d) => d.bounds.x + d.bounds.width))
+  const bottom = Math.max(...all.map((d) => d.bounds.y + d.bounds.height))
+  // 跨屏以 primary 的 scaleFactor 为准；多屏缩放比例不一致时由 renderer 侧再校正
+  const primary = screen.getPrimaryDisplay()
+  return {
+    x,
+    y,
+    width: right - x,
+    height: bottom - y,
+    displayId: primary.id,
+    crossDisplay: true,
+    scaleFactor: primary.scaleFactor
+  }
+}
+
+export class RegionOverlay {
+  /** PR-4 兼容入口：主显示器内框选。取消时 reject 'canceled'（IPC 层转提示） */
+  static async open(): Promise<RegionSelection> {
+    const r = await openOverlay(displayTarget(null))
+    if (!r.ok) throw new Error('canceled')
+    return r.region
+  }
+
+  static async openForDisplay(displayId: number): Promise<RegionSelectionResult> {
+    const r = await openOverlay(displayTarget(displayId))
+    if (!r.ok) throw new Error('canceled')
+    return {
+      region: r.region,
+      displayId: r.displayId,
+      crossDisplay: r.crossDisplay,
+      scaleFactor: r.scaleFactor
+    }
+  }
+
+  static async openCrossDisplay(): Promise<RegionSelectionResult> {
+    const r = await openOverlay(virtualTarget())
+    if (!r.ok) throw new Error('canceled')
+    return {
+      region: r.region,
+      displayId: r.displayId,
+      crossDisplay: r.crossDisplay,
+      scaleFactor: r.scaleFactor
+    }
+  }
+
+  /** 程序主动收尾（幂等） */
+  static cancel(): void {
+    closePending()
+  }
+}

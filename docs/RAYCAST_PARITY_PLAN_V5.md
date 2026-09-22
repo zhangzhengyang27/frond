@@ -672,6 +672,15 @@ npx electron-vite build && npx playwright test
 - 判异记录：旧子进程迟到的 `exit` 会误删新会话（界面显示已连接、调用报未连接）。修法是
   `sessions.get(id) === session` 守卫；把守卫删掉，那条竞态用例在 5s 处超时转红。
 
+### P-2④ 第二半：插件能压视图栈（✅ 判据单测 7 条，界面未验证）
+
+栈只在插件**明说** `push` 时生长。第一版想靠数据指纹猜「这是不是新的一层」，写完单测就把自己
+否了：搜索型插件的条目数一直在变，任何从条数/标题推的指纹都会把一次搜索的逐次重绘认成一路
+往下钻，用户按返回退的是上一次结果 —— 判据挪进 `shared/pluginViewStack.ts`（含当前层的栈、
+上限 8 层丢最底下、第一层不许弹），runtime 的 `declared*` 改成它的镜像（不动渲染端读法），
+新通道 `plugapi:popView` / `launcher:popPluginView`，胶囊的 ESC 与返回箭头先退插件的层再关插件。
+变异检查：`replaceLayer` 改成总生长 → 3 条红；`popLayer` 允许弹根层 → 那条红。
+
 ### P-2④「通用视图栈」第一批（✅ 注册表单测绿）
 
 `launcherPageViews.ts` 把 24 节 `v-if/v-else-if` 收成一个 `<component :is>`：少一条 def 就是编译错误。

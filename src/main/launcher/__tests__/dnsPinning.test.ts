@@ -1,14 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { createPinningLookup, type DnsResolver } from '../dnsPinning'
+import { createPinningLookup, type DnsResolver, type LookupAddress } from '../dnsPinning'
 
 /**
  * V4 审查 I3：DNS 钉住 lookup（重绑定防御核心，注入 resolver 纯测）。
  */
 function makeCallback(): {
-  result: { err: NodeJS.ErrnoException | null; address?: string; family?: number }
-  fn: (err: NodeJS.ErrnoException | null, address?: string, family?: number) => void
+  result: { err: NodeJS.ErrnoException | null; address?: string | LookupAddress[]; family?: number }
+  fn: (
+    err: NodeJS.ErrnoException | null,
+    address: string | LookupAddress[],
+    family?: number
+  ) => void
 } {
-  const result: { err: NodeJS.ErrnoException | null; address?: string; family?: number } = {
+  const result: {
+    err: NodeJS.ErrnoException | null
+    address?: string | LookupAddress[]
+    family?: number
+  } = {
     err: null
   }
   return {

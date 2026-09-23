@@ -6,7 +6,7 @@ import {
   tick,
   type TickDeps
 } from '../store'
-import type { AutomationTask } from '../../../../shared/automation'
+import type { AutomationAction, AutomationTask } from '../../../../shared/automation'
 
 /**
  * Automations 的清洗与调度（P-4④）。
@@ -26,7 +26,10 @@ const base: AutomationTask = {
 function harness(
   tasks: AutomationTask[],
   nowMs: number,
-  run = async (): Promise<{ ok: boolean }> => ({ ok: true })
+  run: (
+    action: AutomationAction,
+    pluginId: string | null
+  ) => Promise<{ ok: boolean; error?: string }> = async () => ({ ok: true })
 ): { deps: TickDeps; fired: () => string[]; saved: () => AutomationTask[]; runs: () => number } {
   let saved: AutomationTask[] = []
   let fired: string[] = []
@@ -37,9 +40,9 @@ function harness(
     save: (t) => {
       saved = t
     },
-    run: async (action) => {
+    run: async (action, pluginId) => {
       calls++
-      return run(action)
+      return run(action, pluginId)
     }
   }
   return {

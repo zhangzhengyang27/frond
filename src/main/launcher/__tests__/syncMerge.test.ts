@@ -101,7 +101,7 @@ describe('两边都改过', () => {
     const copy = r.copies[0]
     expect(r.copies).toHaveLength(1)
     expect(copy.id).not.toBe('n1')
-    expect(copy.id.startsWith('n1~c~')).toBe(true)
+    expect(String(copy.id).startsWith('n1~c~')).toBe(true)
     expect(copy.title).toContain('冲突副本')
     expect(copy.title).toContain('MacBook-Pro')
     expect(copy.__rev, '副本沿用输家自己的修订号，别伪装成刚改的').toBe(20)

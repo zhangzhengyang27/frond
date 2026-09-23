@@ -116,8 +116,6 @@ export type ParseImportResult =
   | { ok: true; snippets: ExportedSnippet[] }
   | { ok: false; error: string }
 
-const CONTENT_TYPES = new Set(['text', 'rich'])
-
 export function parseImportPayload(raw: unknown): ParseImportResult {
   let parsed: unknown
   try {

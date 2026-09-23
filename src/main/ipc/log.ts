@@ -16,6 +16,7 @@ import type { TelemetryMode } from '../../shared/types'
 export function registerLogIpcHandlers(): void {
   ipcMain.handle('log:export', async (): Promise<string | null> => {
     const filePath = await log.export()
+    if (!filePath) return null
     // 友好地弹一个「保存到…」对话框，让用户主动选路径
     const result = await dialog.showMessageBox({
       type: 'info',

@@ -18,12 +18,12 @@ export function registerMarkersIpcHandlers(): void {
   )
 
   // 清空标记
-  ipcMain.handle('marker:clearMarkers', (_event, recordingId: string) => {
+  typedHandle('marker:clearMarkers', (_event, { recordingId }) =>
     markerService.clearMarkers(recordingId)
-  })
+  )
 
   // 导出标记为 CSV
-  ipcMain.handle('marker:exportToCSV', (_event, recordingId: string) => {
-    return markerService.exportToCSV(recordingId)
-  })
+  typedHandle('marker:exportToCSV', (_event, { recordingId }) =>
+    markerService.exportToCSV(recordingId)
+  )
 }

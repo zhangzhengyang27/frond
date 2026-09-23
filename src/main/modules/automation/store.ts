@@ -405,9 +405,9 @@ export function startAutomationEngine(): void {
   const beat = async (): Promise<void> => {
     try {
       const fired = await tick(deps)
-      if (fired.length > 0) log.info(`[Automation] 触发 ${fired.join(', ')}`)
+      if (fired.length > 0) log.info('automation', `触发 ${fired.join(', ')}`)
     } catch (error) {
-      log.error('[Automation] 心跳失败', { error: (error as Error).message })
+      log.error('automation', '心跳失败', error)
     }
   }
   timer = setInterval(() => void beat(), TICK_MS)

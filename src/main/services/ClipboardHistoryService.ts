@@ -51,6 +51,8 @@ export interface ClipboardHistoryItem {
   createdAt: number
   /** 来源应用名（macOS 前台应用；旧数据 / 非 mac 缺失） */
   sourceApp?: string
+  /** P0-3：用户补的备注关键词，胶囊搜索可命中（渲染层读 item.keywords） */
+  keywords?: string[]
   /** P1-6：图片 OCR 提取的文字（异步填充，可搜索） */
   ocrText?: string
   /** P1-6：OCR 处理状态（pending/done/failed），避免重复处理 */
@@ -216,6 +218,17 @@ class ClipboardHistoryService {
     const item = this.items.find((i) => i.id === id)
     if (!item) return false
     item.pinned = !item.pinned
+    this.persist()
+    return true
+  }
+
+  /** P0-3：给条目写备注关键词（胶囊搜索据此命中）；空数组 = 清除 */
+  setKeywords(id: string, keywords: string[]): boolean {
+    const item = this.items.find((i) => i.id === id)
+    if (!item) return false
+    const cleaned = keywords.map((k) => k.trim()).filter(Boolean)
+    if (cleaned.length) item.keywords = cleaned
+    else delete item.keywords
     this.persist()
     return true
   }

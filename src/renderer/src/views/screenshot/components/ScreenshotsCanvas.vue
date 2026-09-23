@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
-import { useStore, getValue } from '../composables/useScreenshotsContext'
+import { useStore, useDispatcher, getValue } from '../composables/useScreenshotsContext'
 import { HistoryItemType, type Bounds } from '../types'
 import { getBoundsByPointsForCanvas, getPoints } from '../utils/getBoundsByPoints'
 import useEmiter from '../composables/useEmiter'
@@ -67,6 +67,7 @@ const bounds = computed(() => getValue(store.bounds))
 const history = computed(() => getValue(store.history))
 const operation = computed(() => getValue(store.operation))
 const cursor = computed(() => getValue(store.cursor))
+const dispatcher = useDispatcher()
 const emiter = useEmiter()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
@@ -141,7 +142,6 @@ const updateBounds = (e: MouseEvent): void => {
     return
   }
   const points = getPoints(e, resizeOrMoveRef.value, pointRef.value, boundsRef.value)
-  const dispatcher = useDispatcher()
   const boundsDispatcher = dispatcher.setBounds
   if (boundsDispatcher) {
     boundsDispatcher(

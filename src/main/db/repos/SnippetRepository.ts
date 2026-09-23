@@ -439,17 +439,6 @@ export class SnippetRepository {
   }
 
   /**
-   * FTS5 同步：
-   * - 5-6b 修复后由 migration 005 加的 trigger 自动同步 snip_snippets ↔ snip_snippets_fts
-   * - Repository 无需手动调用 sync
-   * - 保留本方法作 deprecated，给未来的「全量 rebuild」工具方法留位
-   */
-  // @ts-expect-error 保留为未来工具
-  private syncFts(_snippetId: string): void {
-    // no-op
-  }
-
-  /**
    * 批量导入（dataMigration 用）。
    *
    * 兼容旧 SnippetDataStore JSON 形态：snippets[] + 每条带 contents[]。

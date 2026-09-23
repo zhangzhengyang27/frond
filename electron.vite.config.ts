@@ -81,11 +81,13 @@ export default defineConfig({
       },
       rollupOptions: {
         // 多页入口：index = 主应用；launcher = 启动器胶囊窗；
-        // shield = 专注护盾遮罩（轻入口，命中屏蔽应用时即时创建）
+        // shield = 专注护盾遮罩（轻入口，命中屏蔽应用时即时创建）；
+        // screenshot = 截图覆盖窗（无 router / 无 AppShell 的独立入口）
         input: {
           index: resolve('src/renderer/index.html'),
           launcher: resolve('src/renderer/launcher.html'),
-          shield: resolve('src/renderer/shield.html')
+          shield: resolve('src/renderer/shield.html'),
+          screenshot: resolve('src/renderer/screenshot.html')
         }
       }
     }

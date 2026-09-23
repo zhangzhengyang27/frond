@@ -388,7 +388,9 @@ node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的
   十份的 `scopeName` 逐个核过，与 `languages.ts` 声明的一致（yaml 要挑 `yaml.tmLanguage.json`，
   同目录那几份 `yaml-1.x` 的 scope 是 `source.yaml.1.0` 之类，不匹配）。
   重跑命令：见本节上面几行的路径，`cp` 到 `grammars/textmate/` 并改小写名即可。
-- `example-plugin/` 目录仍缺（`plugin-manifest.test.ts` 收集错）。
+- ~~`example-plugin/` 目录仍缺~~ **已重建（`13f06e1`）**：清单 + 演示入口 + `launcher-api.d.ts`，
+  两条插件审计（manifest / api-parity）共 50 条全绿。顺带修掉 5 个内置插件把 `onEnter` 载荷读成
+  `data.command` 的错（runtime 发的是 `cmd`，见 `c2f76b0`）——那条 bug 的表现是「第二条命令打不开」。
 
 
 （上面这张「剩 12 个」的旧表已被 10.2 取代：`BackgroundSwitch`、5 个统计组件、`USkeleton`、

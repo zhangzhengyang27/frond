@@ -29,8 +29,8 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         {
           id: 'ai:translate',
           title: '翻译为中文',
-          subtitle: 'AI · 读取剪贴板',
-          icon: 'ri-translate',
+          subtitle: '把剪贴板文本交给 AI 处理',
+          icon: 'translate-2',
           category: 'ai',
           badge: 'AI',
           keywords: ['translate', '翻译', 'fanyi', '中译英', '英译中'],
@@ -39,8 +39,8 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         {
           id: 'ai:summarize',
           title: '总结文本',
-          subtitle: 'AI · 读取剪贴板',
-          icon: 'file-list',
+          subtitle: '把剪贴板文本交给 AI 处理',
+          icon: 'text-wrap',
           category: 'ai',
           badge: 'AI',
           keywords: ['summarize', '总结', 'zongjie', '摘要', 'zhaiyao'],
@@ -49,8 +49,8 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         {
           id: 'ai:rewrite',
           title: '润色改写',
-          subtitle: 'AI · 读取剪贴板',
-          icon: 'edit',
+          subtitle: '把剪贴板文本交给 AI 处理',
+          icon: 'edit-line',
           category: 'ai',
           badge: 'AI',
           keywords: ['rewrite', '润色', 'runse', '改写', 'gaixie', 'polish'],
@@ -89,18 +89,6 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         badge: '片段',
         keywords: ['snippet', '片段', 'pianduan', 'code', '代码', 'daima'],
         actions: [{ type: 'firstParty', page: 'snippets' }]
-      })
-
-      // ── 录屏 ──
-      commands.push({
-        id: 'recording:start',
-        title: '屏幕录制',
-        subtitle: '开始录制',
-        icon: 'video',
-        category: 'recording',
-        badge: '录屏',
-        keywords: ['record', '录制', 'luzhi', 'screen', '屏幕', 'pingmu', '录屏', 'luping'],
-        actions: [{ type: 'module', moduleId: 'screenRecorder', path: '/screenRecorder/record' }]
       })
 
       // ── 番茄钟 ──

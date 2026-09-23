@@ -442,7 +442,7 @@ node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的
 | `windowGeometry` 六分右列 | **测试侧**（基线 8446ff2 起就红，测试文本没被谁动过：实现算 `5×(1000/6)`=833.33…3，断言写 `1000−1000/6`=833.33…4，差 1 ULP，消费方一律 `roundRect` 取整后同为 833） | 断言拆成逐字段：`width/y/height` 精确等、`x` 用 `toBeCloseTo(...,6)`。探针（把 `5*sixth` 改成 `4*sixth`）确认仍会红 |
 | `hyperKey` | **测试环境**，非行为不符：`vi.mock('electron')` 对外部化的 `electron` 无效，命名导出取不到 → 拿不到 mock 的 `BrowserWindow` | **未动生产代码**。要修得先配 vitest 的 `deps.optimizer`/alias 让 electron 可 mock，属测试基建，另排 |
 
-**顺带被照出来的一条真重复（待拍板，没乱删）**：`mergeCommands.test.ts` 原本断言的是不存在的
+**顺带被照出来的真重复（2026-09-23 已拍板并清掉，见下）**：`mergeCommands.test.ts` 原本断言的是不存在的
 `STATIC_COMMANDS`，改成 `buildStaticCommands()` + 「firstParty 每条都必须在结果里」之后，
 `ai:translate` / `ai:summarize` / `ai:rewrite` 报为重复 ——
 `src/shared/commands.ts:332/340/348`（`FIRST_PARTY_COMMANDS`）与
@@ -454,6 +454,14 @@ node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的
 剩下 8 条**全是结构性缺件**，不在 H 类：`ipcContract` 6 条（G 类幽灵通道 + C 类缺页组件）、
 `renderer-api-parity` 1 条（C 类）、`mergeCommands` 1 条（上面那条重复）。
 
+
+**命令表重复的处置（2026-09-23 拍板：命令以 Provider 为准，模块行以 `MODULES` 为准）**：
+`ai:translate` / `ai:summarize` / `ai:rewrite` 从 `FIRST_PARTY_COMMANDS` 删掉（Provider 那三份留，
+图标名 `ri-translate`→`translate-2`、`file-list`→`text-wrap`、`edit`→`edit-line` —— 那个前缀重复会让
+`AppIcon` 拼成 `ri-ri-translate` 渲染成空；副标题取静态清单里更具体的那条）；
+`firstparty:ai`（与 `ai:chat` 同标题同动作）、`recording:start`（与 `module:screenRecorder` 同标题同动作，
+且它的 action 本来就是模块导航，注册顺序还压掉了模块行）两条整条删除。
+`mergeCommands.test.ts` 的「真数据不许有重复」现在 **5/5 全绿**，它的作用变成防止再长回来。
 
 ### 建议的处理顺序
 

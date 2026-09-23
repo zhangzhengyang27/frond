@@ -10,7 +10,8 @@ import { commandsToEntries } from '../../renderer/src/commands/CommandLoader'
  *
  * 分两层：合并规则本身（纯函数），以及**当下这套真数据合完不许有重复**——
  * 后者才是有价值的一半：`ai:translate` 等三条曾在静态清单与 Provider 里各写一份，
- * `firstparty:ai` 与 `ai:chat` 是两个 id 一件事，用户在搜索框里看到两行、v-for 的 key 还撞。
+ * `firstparty:ai` 与 `ai:chat`、`module:screenRecorder` 与 `recording:start` 各是两个 id 一件事
+ * ——2026-09-23 三处都清了（命令以 Provider 为准，模块行以 MODULES 为准），这条断言就是防止再长回来。
  */
 const entry = (over: Partial<CommandEntry> & { key: string }): CommandEntry =>
   ({

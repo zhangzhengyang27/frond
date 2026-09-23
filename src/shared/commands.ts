@@ -312,45 +312,12 @@ export const FIRST_PARTY_COMMANDS: CommandEntry[] = [
     action: { type: 'firstParty', page: 'settings' }
   },
   {
-    key: 'firstparty:ai',
-    icon: 'sparkling-2-line',
-    title: 'AI 对话',
-    subtitle: '胶囊内与 AI 对话（需配置 API Key）',
-    badge: 'AI',
-    action: { type: 'firstParty', page: 'ai' }
-  },
-  {
     key: 'firstparty:notes',
     icon: 'file-text-line',
     title: '笔记',
     subtitle: '轻量 Markdown 笔记，本地存储',
     badge: '动作',
     action: { type: 'firstParty', page: 'notes' }
-  },
-  // AI 预设命令（P0-3 增强：翻译/总结/改写，选中文本后快速处理）
-  {
-    key: 'ai:translate',
-    icon: 'translate-2',
-    title: '翻译为中文',
-    subtitle: '把剪贴板文本翻译为中文',
-    badge: 'AI',
-    action: { type: 'firstParty', page: 'ai' }
-  },
-  {
-    key: 'ai:summarize',
-    icon: 'text-wrap',
-    title: '总结文本',
-    subtitle: '总结剪贴板文本的核心要点',
-    badge: 'AI',
-    action: { type: 'firstParty', page: 'ai' }
-  },
-  {
-    key: 'ai:rewrite',
-    icon: 'edit-line',
-    title: '润色改写',
-    subtitle: '优化剪贴板文本的表达',
-    badge: 'AI',
-    action: { type: 'firstParty', page: 'ai' }
   },
   {
     key: 'ai:pomodoroReport',

@@ -3,7 +3,7 @@
  *
  * 为什么还要一层合并：命令**源**本来就不止一个（Registry 的 provider + 插件命令 +
  * 插件 searchable 条目 + Quicklinks），而它们曾在搜索框里同时出现同一件事的三份——
- * `ai:translate` 三条一模一样的行，外加 `firstparty:ai` 与 `ai:chat` 两个 id 一件事
+ * `ai:translate` 三条一模一样的行，外加 `firstparty:ai` 与 `ai:chat` 两个 id 一件事（两处均已于 2026-09-23 清掉）
  * （v-for 的 key 还会撞）。合一之后**同一件事不该再由两个源出**（系统命令那份已归一，
  * 见 `SystemCommandProvider`），这一层是那道规矩的执行者兼兜底。
  *

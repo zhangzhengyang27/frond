@@ -11,7 +11,12 @@ import type {
   ShotWindowListRes,
   ShotDeleteManyRes,
   ShotUsageRes,
-  ShotDirRes
+  ShotDirRes,
+  PinCreateRes,
+  PinOkRes,
+  PinListRes,
+  PinCountRes,
+  PinImageData
 } from './index.d'
 import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
@@ -386,6 +391,45 @@ const api: API = {
         ipcRenderer.invoke('screenshot:history:setSaveDirectory') as Promise<ShotDirRes>,
       getSaveDirectory: () =>
         ipcRenderer.invoke('screenshot:history:getSaveDirectory') as Promise<ShotDirRes>
+    },
+    pin: {
+      create: (options: { imagePath: string; imageBuffer?: string }) =>
+        ipcRenderer.invoke('pin:create', options) as Promise<PinCreateRes>,
+      createFromClipboard: () =>
+        ipcRenderer.invoke('pin:createFromClipboard') as Promise<PinCreateRes>,
+      close: (id: string) => ipcRenderer.invoke('pin:close', id) as Promise<PinOkRes>,
+      closeAll: () => ipcRenderer.invoke('pin:closeAll') as Promise<PinOkRes>,
+      getAll: () => ipcRenderer.invoke('pin:getAll') as Promise<PinListRes>,
+      getCount: () => ipcRenderer.invoke('pin:getCount') as Promise<PinCountRes>,
+      setScale: (id: string, scale: number) =>
+        ipcRenderer.invoke('pin:setScale', id, scale) as Promise<PinOkRes>,
+      setRotation: (id: string, rotation: number) =>
+        ipcRenderer.invoke('pin:setRotation', id, rotation) as Promise<PinOkRes>,
+      setOpacity: (id: string, opacity: number) =>
+        ipcRenderer.invoke('pin:setOpacity', id, opacity) as Promise<PinOkRes>,
+      toggleTransparent: (id: string) =>
+        ipcRenderer.invoke('pin:toggleTransparent', id) as Promise<PinOkRes>,
+      onSetImage: (cb: (data: PinImageData) => void) => {
+        const listener = (_e: Electron.IpcRendererEvent, data: PinImageData): void => cb(data)
+        ipcRenderer.on('pin:setImage', listener)
+        return () => ipcRenderer.removeListener('pin:setImage', listener)
+      },
+      onSetRotation: (cb: (rotation: number) => void) => {
+        const listener = (_e: Electron.IpcRendererEvent, rotation: number): void => cb(rotation)
+        ipcRenderer.on('pin:setRotation', listener)
+        return () => ipcRenderer.removeListener('pin:setRotation', listener)
+      },
+      onSetShortcuts: (cb: (shortcuts: { close?: string }) => void) => {
+        const listener = (_e: Electron.IpcRendererEvent, shortcuts: { close?: string }): void =>
+          cb(shortcuts)
+        ipcRenderer.on('pin:setShortcuts', listener)
+        return () => ipcRenderer.removeListener('pin:setShortcuts', listener)
+      },
+      removeListeners: (): void => {
+        ipcRenderer.removeAllListeners('pin:setImage')
+        ipcRenderer.removeAllListeners('pin:setRotation')
+        ipcRenderer.removeAllListeners('pin:setShortcuts')
+      }
     }
   },
   // 截图库 OCR 索引（V4 P1-10）

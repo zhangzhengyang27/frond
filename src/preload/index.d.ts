@@ -238,6 +238,37 @@ export interface ShotDeleteManyRes {
   filesRemoved?: number
   error?: string
 }
+export interface PinCreateRes {
+  success: boolean
+  id?: string
+  error?: string
+}
+export interface PinOkRes {
+  success: boolean
+  error?: string
+}
+export interface PinInfo {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  scale: number
+  rotation: number
+  opacity: number
+}
+export interface PinListRes extends PinOkRes {
+  pins: PinInfo[]
+}
+export interface PinCountRes extends PinOkRes {
+  count: number
+}
+export interface PinImageData {
+  id: string
+  imagePath: string
+  /** base64（不带 data: 前缀）；主进程没给时渲染端回退用 imagePath */
+  imageBuffer?: string
+}
 export interface ShotUsageRes {
   success: boolean
   totalSize: number
@@ -523,6 +554,27 @@ export interface API {
       storageUsage: () => Promise<ShotUsageRes>
       setSaveDirectory: () => Promise<ShotDirRes>
       getSaveDirectory: () => Promise<ShotDirRes>
+    }
+    /**
+     * 贴图（钉图窗）。主进程侧是 src/main/ipc/pin.ts 的 10 个 handler +
+     * PinService 的 3 条推送；这些通道按位置参数收（早于全仓单对象迁移），桥按现状转发。
+     */
+    pin: {
+      create: (options: { imagePath: string; imageBuffer?: string }) => Promise<PinCreateRes>
+      createFromClipboard: () => Promise<PinCreateRes>
+      close: (id: string) => Promise<PinOkRes>
+      closeAll: () => Promise<PinOkRes>
+      getAll: () => Promise<PinListRes>
+      getCount: () => Promise<PinCountRes>
+      setScale: (id: string, scale: number) => Promise<PinOkRes>
+      setRotation: (id: string, rotation: number) => Promise<PinOkRes>
+      setOpacity: (id: string, opacity: number) => Promise<PinOkRes>
+      toggleTransparent: (id: string) => Promise<PinOkRes>
+      onSetImage: (cb: (data: PinImageData) => void) => () => void
+      onSetRotation: (cb: (rotation: number) => void) => () => void
+      onSetShortcuts: (cb: (shortcuts: { close?: string }) => void) => () => void
+      /** 贴图窗是整窗重载的：重挂监听前先摘旧的，否则一次推送会跑两遍 */
+      removeListeners: () => void
     }
   }
   shotIndex: {

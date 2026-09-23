@@ -394,7 +394,26 @@ node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的
 （上面这张「剩 12 个」的旧表已被 10.2 取代：`BackgroundSwitch`、5 个统计组件、`USkeleton`、
 `RecordingSettingsDialog` 都已到位，同时暴露出更大的盘面。）
 
-**另记一笔待拍板**：`src/` 下与渲染层真身同名的那批**已提交**副本（`src/composables/`、`src/commands/`、
+#### 10.3 两处「账外」的坑（2026-09-23 同日清掉，记法以防再被误判）
+
+1. **`src/assets/main.css` 不是死副本，是放错层的唯一 CSS。** 三个入口
+   （`main.ts` / `launcher-entry.ts` / `screenshot-entry.ts`）都 `import './assets/main.css'`
+   → 真身路径是 `src/renderer/src/assets/main.css`，而盘上那份在 `src/renderer/assets/main.css`
+   （上一轮从 dev 缓存的 `__vite__css` 里取出时放高了一层），`src/assets/main.css` 则是**同一次
+   转储留下的编译后 JS 模块却叫 `.css`**（开头是 `import { createHotContext … }`）。
+   后果：**整个渲染层无样式** —— 这也解释了为什么这一轮之前任何「看界面」的验证都不成立。
+   现在：`git mv` 到真身路径 + 删掉那个假 `.css`。
+   留一笔：这份 main.css 是 **P-6 拆 tokens 之前**的版本（`styles/tokens.css` 的每条非空行都
+   能在它里面找到，即 tokens ⊆ main.css），所以两份现在重复定义同一组值；
+   要收尾就把 main.css 里的 token 段删掉、改成 `@import './styles/tokens.css'`（当前没有任何文件
+   import tokens.css，只有注释提到它）。
+2. **`src/` 下那批与真身同名的死副本已删（46 个文件）**。逐个解析过全仓 import/`import()`/配置串
+   （按 `electron.vite.config.ts` + `tsconfig.web.json` + `vitest.config.mts` 三套 alias 表实解）：
+   **0 处引用**，46 个全部在 `src/renderer/src/**` 有对应真身，无一是唯一副本，也没有哪个导出只在
+   浅层有。它们不在 `tsconfig.web.json` 的 include 里，也不在 vite 解析路径上。
+   （原先记成「待拍板」的那段 ↓ 已作废）
+
+~~**另记一笔待拍板**：`src/` 下与渲染层真身同名的那批**已提交**副本（`src/composables/`、`src/commands/`、
 `src/launcher/`、`src/router/`、`src/stores/`、`src/utils/`、`src/views/`、`src/constants/`、`src/components/`）
 既不在 `tsconfig.web.json` 的 include 里、也不在 vite 的解析路径上（真身是 `src/renderer/src/**`），
 是基线快照带进来的**死副本**——要不要清掉归用户定，本轮没动。

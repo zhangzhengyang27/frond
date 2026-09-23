@@ -692,13 +692,33 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 
 ### 剩下的账（2026-09-23 收工口径）
 
-- **文档层也有洞，但那是「写不写」不是「找回」**：6 个被链接指向的文件在基线 `8446ff2` 就没有、
-  各池也无副本（`docs/ROUTING.md` `DB_SCHEMA.md` `MIGRATIONS.md` `THEME_AND_VOICE.md`
-  `SIGNING_MAC.md` `PLUGIN_QA_CHECKLIST.md`，外加根 `LICENSE`）。
-  量出来的命令：扫全仓 md 的非 http 链接指向不存在文件（本次共 10 条悬空）。
-  `example-plugin/README.md` 同为此类：它是随 `example-plugin/` 整目录丢的，
-  两份文档还指着它 —— 已改成直接指模板三件本体，**没有代写教程**（字段表以代码为准，凭记忆写会误导）。
-  要不要照 migrations / 主题 token / D2 决策把上面那几份重生成一遍，属产品决定，等拍板。
+- **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、
+  各池也无副本的文档已全部从代码重写完毕 —— `docs/ROUTING.md`(232) `DB_SCHEMA.md`(243)
+  `MIGRATIONS.md` `SIGNING_MAC.md`(234) `THEME_AND_VOICE.md`(279) `PLUGIN_QA_CHECKLIST.md`。
+  口径：**每条结论带 `文件:行号`，没跑过的操作一律标 `【未跑】/未证实`，不许预填「已验证」**。
+  复核过的两件事：① 六份合计 656 条 `文件:行号` 引用，逐条对真树解析后**无一条越界**
+  （我第一次核错了：脚本用 `**/basename` 兜底解析相对路径，把 `src/main/index.ts` 撞到了
+  `references/ueli/` 下的同名文件上，误报 34 条 —— 别信那种 glob 兜底的审计）；
+  ② 两份文件一度「agent 回报已写入但磁盘上没有」，是等它们真正回报后才落盘核实的。
+  重生成过程真抓到一个用户可见缺陷（见下）。
+  **仍缺的两份不在拍板范围内**：`docs/modules/INDEX.md`（`docs/README.md` 末「模块文档」指着，
+  `docs/modules/` 整个目录不存在）与根 `LICENSE`（选许可证是法律决定，等人给）。
+- **内置插件 `com.leaf.currency` 有网也永远报「请检查网络连接」**（2026-09-23 由 QA 清单的读码复核抓到）：
+  `fetchRates` 取 `res.data`，而宿主 `proxyPluginFetch` 回的是 `{ok,status,body,contentType,error}`
+  —— 没有 `data` 字段，于是 `rates` 恒为 `undefined`，`index.html:156` 的守卫必然走失败分支。
+  已改为 `JSON.parse(res.body)` 并校验 `rates` 存在。**改完仍未真机验过**（要一张汇率图才算数）。
+  全 21 个内置插件里只有 currency 用 `api.fetch`，所以这一类形状错仅此一处（扫法：
+  `grep -rn "res\.data" plugins/*/index.html`）。
+- **macOS 签名的前置缺口（2026-09-23 拍板：先记账，等有证书时一并处理，今天不动）**：
+  `build/` 目录整个不存在，而 `electron-builder.yml:55` 的 `entitlementsInherit` 指着
+  `build/entitlements.mac.plist`，同时 `hardenedRuntime` 与 `notarize` 都开着，主 app 也没有
+  `mac.entitlements`。也就是「只差证书」这句**目前还差两件**：证书 + entitlements 四件套
+  （要按本应用实际用到的能力给：child_process 起 ffmpeg、uiohook 原生模块、网络、屏幕录制）。
+  顺带同批记的四处账实不符（都在 `docs/RELEASE.md`，2026-09-23 由 ROUTING/SIGNING 复核发现）：
+  `release:preflight` 没接进 `package.json` 的 scripts、`release.yml` 里没有 preflight 与
+  SHA256SUMS 步骤、`latest-mac.yml` 不在上传 glob 里、`:63` 注释写 electron-notarize 而实为
+  `@electron/notarize@2.5.0`。另有 `mac.identity`/`forceCodeSigning` 未设、mac 图标缺失
+  （`buildResources: build` 那目录本身是空的）。
 - `clipHist.setKeywords`：**读侧齐、写侧没入口**（渲染层两处搜索都消费 `item.keywords`，
   但没有任何 UI 调 `setKeywords`）。要不要给剪贴板条目加「备注关键词」的编辑入口是产品决定，
   不是恢复遗漏 —— 别顺手当 bug 修。

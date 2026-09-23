@@ -274,7 +274,12 @@
         var url = 'https://open.er-api.com/v6/latest/' + base
         return api.fetch(url).then(function (res) {
           if (!res || !res.ok) throw new Error('HTTP ' + (res ? res.status : 'error'))
-          ratesCache = res.data
+          // 宿主代理回的是 {ok, status, body, contentType}，body 是字符串；
+          // 这里以前取 res.data —— 那个字段不存在，rates 恒为 undefined，
+          // 于是有网也永远渲染成「请检查网络连接」
+          var parsed = JSON.parse(res.body)
+          if (!parsed || !parsed.rates) throw new Error('响应里没有 rates')
+          ratesCache = parsed
           ratesTime = now
           return ratesCache
         })

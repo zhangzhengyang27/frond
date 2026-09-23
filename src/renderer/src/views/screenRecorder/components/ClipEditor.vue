@@ -8,6 +8,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import ExportDialog from '@views/screenRecorder/components/ExportDialog.vue'
+import ClipTimeline from '@views/screenRecorder/components/ClipTimeline.vue'
 import { useVideoClip } from '@composables/useVideoClip'
 import { useToast } from '@composables/useToast'
 import type { Clip, ExportOptions, VideoInfo } from '@composables/useVideoClip'
@@ -261,15 +262,6 @@ const handleExport = async (options: Omit<ExportOptions, 'clips'>): Promise<void
 const videoSrc = computed(() => (props.videoPath ? `video://${encodeURI(props.videoPath)}` : ''))
 const totalDuration = computed(() => videoInfo.value?.duration ?? 0)
 
-const dragRange = ref<{ start: number; end: number } | null>(null)
-
-const timeFromEvent = (event: MouseEvent): number => {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  if (rect.width <= 0 || totalDuration.value <= 0) return 0
-  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
-  return ratio * totalDuration.value
-}
-
 const handleMetadata = (event: Event): void => {
   const video = event.target as HTMLVideoElement
   const info: VideoInfo = {
@@ -286,35 +278,6 @@ const togglePlay = (): void => {
   if (!video) return
   if (video.paused) void video.play()
   else video.pause()
-}
-
-const onTrackPointerDown = (event: MouseEvent): void => {
-  const time = timeFromEvent(event)
-  dragRange.value = { start: time, end: time }
-}
-
-const onTrackPointerMove = (event: MouseEvent): void => {
-  if (!dragRange.value) return
-  dragRange.value = { ...dragRange.value, end: timeFromEvent(event) }
-}
-
-const onTrackPointerUp = (): void => {
-  const range = dragRange.value
-  dragRange.value = null
-  if (!range) return
-  const start = Math.min(range.start, range.end)
-  const end = Math.max(range.start, range.end)
-  // 拖动不足 0.5 秒视为单击：跳转而不是新增片段
-  if (end - start < 0.5) {
-    handleSeek(start)
-    return
-  }
-  void handleAddClipFromTimeline(start, end)
-}
-
-const toPercent = (seconds: number): number => {
-  if (totalDuration.value <= 0) return 0
-  return Math.min(100, Math.max(0, (seconds / totalDuration.value) * 100))
 }
 </script>
 
@@ -393,39 +356,19 @@ const toPercent = (seconds: number): number => {
           <span>{{ formatTime(currentTime ?? 0) }}</span>
           <span>{{ formatTime(totalDuration) }}</span>
         </div>
-        <div
-          class="relative h-12 w-full cursor-pointer overflow-hidden rounded-lg bg-gray-100"
-          @mousedown="onTrackPointerDown"
-          @mousemove="onTrackPointerMove"
-          @mouseup="onTrackPointerUp"
-          @mouseleave="onTrackPointerUp"
-        >
-          <div
-            v-for="clip in clips"
-            :key="clip.id"
-            class="absolute bottom-0 top-0 rounded bg-brand-500/70"
-            :class="{ 'ring-2 ring-brand-600': selectedClip?.id === clip.id }"
-            :style="{
-              left: `${toPercent(clip.startTime)}%`,
-              width: `${Math.max(toPercent(clip.endTime - clip.startTime), 1)}%`
-            }"
-            @click.stop="handleClipSelect(clip)"
-          />
-          <div
-            v-if="dragRange"
-            class="pointer-events-none absolute bottom-0 top-0 bg-brand-500/25"
-            :style="{
-              left: `${toPercent(Math.min(dragRange.start, dragRange.end))}%`,
-              width: `${Math.abs(toPercent(dragRange.end) - toPercent(dragRange.start))}%`
-            }"
-          />
-          <div
-            class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-red-500"
-            :style="{ left: `${toPercent(currentTime ?? 0)}%` }"
-          />
-        </div>
+        <ClipTimeline
+          :clips="clips"
+          :selected-clip-id="selectedClip?.id ?? null"
+          :duration="totalDuration"
+          :current-time="currentTime ?? 0"
+          @seek="handleSeek"
+          @clip-select="handleClipSelect"
+          @add-clip="handleAddClipFromTimeline"
+          @update="handleClipUpdate"
+        />
         <p v-if="!clips.length" class="mt-3 text-sm text-gray-500">
-          在时间轴上按住拖动即可框选一个新片段；单击则跳转到该时刻。
+          在时间轴上按住拖动即可框选一个新片段；单击则跳转到该时刻；
+          拖动片段两端的浅色把手可直接改边界，不必打开编辑框。
         </p>
       </div>
 

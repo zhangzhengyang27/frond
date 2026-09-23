@@ -1,133 +1,176 @@
 <script setup lang="ts">
 /**
- * ClipTimeline · 剪辑时间轴（视频预览 + 片段条 + 点击跳转）
- * 2026-09-23 重建：原文件被截断，仅存 2 行真实代码，其余按 ClipEditor 的事件契约重建
+ * ClipTimeline · 剪辑时间轨（纯轨道，不含视频元素）
+ *
+ * 2026-09-23 重建 + 收拢：原件只存 2 行，先按 ClipEditor 存留的事件契约重建过一版
+ * （那时它自带一个 `<video>`，与 ClipEditor 自己那只重复）。现在把 ClipEditor 里
+ * 那套更强的内联轨道逻辑（单击跳转 / 按住拖框新增 / 播放头 / 选中环）搬进本件，
+ * 使剪辑页只有一份时间轴实现。
+ *
+ * 视频元素留在 ClipEditor：存留的原件脚本给它挂 timeupdate/play/pause 监听
+ * （ClipEditor.vue:96-107），说明原件就是父件持有播放元素。
+ *
+ * `update` 由片段条左右边界把手拖出来 —— 对应存留但此前无人调用的
+ * ClipEditor.handleClipUpdate（轴上改片段边界，不必开对话框）。
  */
-// 待核：props/emits 名单由 ClipEditor 现存 handler 反推，非原件
-import { computed, ref, watch } from 'vue'
-import type { Clip, VideoInfo } from '@composables/useVideoClip'
+import { computed, ref } from 'vue'
+import type { Clip } from '@composables/useVideoClip'
 
 interface Props {
-  videoPath: string
   clips?: Clip[]
   selectedClipId?: string | null
+  /** 视频总时长（秒）；<=0 时轨道不可交互（还没拿到 metadata） */
+  duration: number
+  /** 当前播放头位置（秒） */
+  currentTime?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   clips: () => [],
-  selectedClipId: null
+  selectedClipId: null,
+  currentTime: 0
 })
 
 const emit = defineEmits<{
   seek: [time: number]
   'clip-select': [clip: Clip]
   'add-clip': [startTime: number, endTime: number]
-  'video-info-loaded': [info: VideoInfo]
+  update: [clip: Clip]
 }>()
 
-const videoRef = ref<HTMLVideoElement | null>(null)
-const blobUrl = ref('')
+const trackRef = ref<HTMLDivElement | null>(null)
+const dragRange = ref<{ start: number; end: number } | null>(null)
+/** 正在拖哪一片段的哪一侧 */
+const resizeRef = ref<{ clip: Clip; edge: 'start' | 'end'; time: number } | null>(null)
 
-watch(
-  () => props.videoPath,
-  (path) => {
-    blobUrl.value = path ? `video://${encodeURI(path)}` : ''
-  },
-  { immediate: true }
-)
+/** 单击与拖框的分界：小于这个跨度按「跳转」处理，否则算「框选新增」 */
+const CLICK_SLACK_SEC = 0.4
 
-const duration = ref(0) // 使用 ref 存储时长，参考 PlaybackPanel.vue
+const toPercent = (seconds: number): number => {
+  if (props.duration <= 0) return 0
+  return (seconds / props.duration) * 100
+}
 
-// 计算视频源路径（video:// 协议流式 URL，主进程支持 Range 分片）
-const videoSrc = computed(() => blobUrl.value || '')
+const timeFromClientX = (clientX: number): number => {
+  const el = trackRef.value
+  if (!el || props.duration <= 0) return 0
+  const rect = el.getBoundingClientRect()
+  if (rect.width <= 0) return 0
+  const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width))
+  return ratio * props.duration
+}
 
-const currentTime = ref(0)
+const clamp = (t: number): number => Math.min(props.duration, Math.max(0, t))
 
-const clipPercent = (clip: Clip): { left: number; width: number } => {
-  if (duration.value <= 0) return { left: 0, width: 0 }
-  return {
-    left: (clip.startTime / duration.value) * 100,
-    width: ((clip.endTime - clip.startTime) / duration.value) * 100
+const onTrackPointerDown = (event: MouseEvent): void => {
+  // 还没拿到 metadata 时整条轨道不可动：否则一次空拖会发出 seek(0)，把播放头跳到开头
+  if (resizeRef.value || props.duration <= 0) return
+  const time = timeFromClientX(event.clientX)
+  dragRange.value = { start: time, end: time }
+}
+
+const onTrackPointerMove = (event: MouseEvent): void => {
+  const time = timeFromClientX(event.clientX)
+  if (resizeRef.value) {
+    resizeRef.value = { ...resizeRef.value, time }
+    return
   }
+  if (!dragRange.value) return
+  dragRange.value = { ...dragRange.value, end: time }
 }
 
-function handleLoadedMetadata(event: Event): void {
-  const video = event.target as HTMLVideoElement
-  duration.value = Number.isFinite(video.duration) ? video.duration : 0
-  const info: VideoInfo = {
-    duration: duration.value,
-    width: video.videoWidth,
-    height: video.videoHeight,
-    fps: 30
+const onTrackPointerUp = (): void => {
+  const resize = resizeRef.value
+  if (resize) {
+    resizeRef.value = null
+    const { clip, edge, time } = resize
+    const next =
+      edge === 'start'
+        ? { ...clip, startTime: Math.min(clamp(time), clip.endTime - 0.1) }
+        : { ...clip, endTime: Math.max(clamp(time), clip.startTime + 0.1) }
+    if (next.startTime !== clip.startTime || next.endTime !== clip.endTime) emit('update', next)
+    return
   }
-  emit('video-info-loaded', info)
+
+  const range = dragRange.value
+  dragRange.value = null
+  if (!range) return
+  const start = Math.min(range.start, range.end)
+  const end = Math.max(range.start, range.end)
+  if (end - start < CLICK_SLACK_SEC) {
+    emit('seek', start)
+    return
+  }
+  emit('add-clip', start, end)
 }
 
-function handleTimeUpdate(event: Event): void {
-  currentTime.value = (event.target as HTMLVideoElement).currentTime
+const onEdgePointerDown = (clip: Clip, edge: 'start' | 'end', event: MouseEvent): void => {
+  event.stopPropagation()
+  resizeRef.value = { clip, edge, time: timeFromClientX(event.clientX) }
 }
 
-function handleTrackClick(event: MouseEvent): void {
-  if (duration.value <= 0) return
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
-  const time = ratio * duration.value
-  if (videoRef.value) videoRef.value.currentTime = time
-  currentTime.value = time
-  emit('seek', time)
+const onBarClick = (clip: Clip): void => {
+  emit('clip-select', clip)
 }
 
-function handleAddSelection(clip: Clip): void {
-  emit('add-clip', clip.startTime, clip.endTime)
-}
-
-const format = (seconds: number): string => {
-  const total = Math.max(0, Math.floor(seconds))
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
-}
+/** 拖框或拖边界时的预览区间（边界拖动时显示在片段与光标之间） */
+const preview = computed<{ left: number; width: number } | null>(() => {
+  if (resizeRef.value) {
+    const { clip, edge, time } = resizeRef.value
+    const from = edge === 'start' ? clip.endTime : clip.startTime
+    return {
+      left: toPercent(Math.min(from, time)),
+      width: Math.abs(toPercent(Math.max(from, time)) - toPercent(Math.min(from, time)))
+    }
+  }
+  if (!dragRange.value) return null
+  const start = Math.min(dragRange.value.start, dragRange.value.end)
+  const end = Math.max(dragRange.value.start, dragRange.value.end)
+  return { left: toPercent(start), width: Math.abs(toPercent(end) - toPercent(start)) }
+})
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="relative w-full aspect-video bg-black rounded-xl overflow-hidden">
-      <video
-        ref="videoRef"
-        :src="videoSrc"
-        class="w-full h-full object-contain"
-        preload="metadata"
-        @loadedmetadata="handleLoadedMetadata"
-        @timeupdate="handleTimeUpdate"
-      ></video>
-    </div>
-
+  <div
+    ref="trackRef"
+    data-testid="clip-track"
+    class="relative h-12 w-full cursor-pointer overflow-hidden rounded-lg bg-gray-100"
+    @mousedown="onTrackPointerDown"
+    @mousemove="onTrackPointerMove"
+    @mouseup="onTrackPointerUp"
+    @mouseleave="onTrackPointerUp"
+  >
     <div
-      class="relative h-10 w-full cursor-pointer overflow-hidden rounded-lg bg-gray-100"
-      @click="handleTrackClick"
+      v-for="clip in clips"
+      :key="clip.id"
+      :data-clip-id="clip.id"
+      class="absolute bottom-0 top-0 rounded bg-brand-500/70"
+      :class="{ 'ring-2 ring-brand-600': selectedClipId === clip.id }"
+      :style="{
+        left: `${toPercent(clip.startTime)}%`,
+        width: `${Math.max(toPercent(clip.endTime - clip.startTime), 1)}%`
+      }"
+      @click.stop="onBarClick(clip)"
     >
-      <div
-        v-for="clip in clips"
-        :key="clip.id"
-        class="absolute top-0 bottom-0 rounded bg-brand-500/70"
-        :class="{ 'ring-2 ring-brand-600': selectedClipId === clip.id }"
-        :style="{
-          left: `${clipPercent(clip).left}%`,
-          width: `${Math.max(clipPercent(clip).width, 1)}%`
-        }"
-        @click.stop="emit('clip-select', clip)"
-      >
-        <button
-          class="h-full w-full px-1 text-left text-[11px] text-white"
-          type="button"
-          @click.stop="handleAddSelection(clip)"
-        >
-          {{ clip.label || `${format(clip.startTime)}–${format(clip.endTime)}` }}
-        </button>
-      </div>
-      <div
-        v-if="duration > 0"
-        class="pointer-events-none absolute top-0 bottom-0 w-0.5 bg-danger"
-        :style="{ left: `${(currentTime / duration) * 100}%` }"
+      <span
+        class="absolute bottom-0 left-0 top-0 w-1.5 cursor-ew-resize bg-white/40"
+        data-testid="clip-edge-start"
+        @mousedown="onEdgePointerDown(clip, 'start', $event)"
+      />
+      <span
+        class="absolute bottom-0 right-0 top-0 w-1.5 cursor-ew-resize bg-white/40"
+        data-testid="clip-edge-end"
+        @mousedown="onEdgePointerDown(clip, 'end', $event)"
       />
     </div>
+    <div
+      v-if="preview"
+      class="pointer-events-none absolute bottom-0 top-0 bg-brand-500/25"
+      :style="{ left: `${preview.left}%`, width: `${preview.width}%` }"
+    />
+    <div
+      class="pointer-events-none absolute bottom-0 top-0 w-0.5 bg-red-500"
+      :style="{ left: `${toPercent(currentTime)}%` }"
+    />
   </div>
 </template>

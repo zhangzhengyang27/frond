@@ -152,7 +152,7 @@
       var currentCmd = 'convert'
 
       api.onEnter(function (data) {
-        currentCmd = (data && data.command) || 'convert'
+        currentCmd = (data && data.cmd) || 'convert'
         if (currentCmd === 'palette') {
           api.setSubInput('搜索颜色名称…')
           renderPalette('')

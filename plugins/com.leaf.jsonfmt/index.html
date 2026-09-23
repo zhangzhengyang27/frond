@@ -10,7 +10,7 @@
       var currentCmd = 'format'
 
       api.onEnter(function (data) {
-        currentCmd = (data && data.command) || 'format'
+        currentCmd = (data && data.cmd) || 'format'
         var placeholders = {
           format: '粘贴或输入 JSON…',
           minify: '粘贴或输入 JSON…',

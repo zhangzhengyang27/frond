@@ -57,7 +57,7 @@
       }
 
       api.onEnter(function (data) {
-        currentCmd = (data && data.command) || 'encode'
+        currentCmd = (data && data.cmd) || 'encode'
         var placeholders = {
           encode: '粘贴或输入要编码的 HTML 文本…',
           decode: '粘贴或输入要解码的 HTML 实体…'

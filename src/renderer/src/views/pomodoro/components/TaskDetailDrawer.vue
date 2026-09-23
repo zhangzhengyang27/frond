@@ -126,13 +126,13 @@
             <h3>截图 / 录屏</h3>
           </header>
           <p class="hint-text">
-            截图与录屏请使用 Screenshot 与 Recording
-            模块；标题中包含本任务名称时会被自动索引（标题层匹配）。
+            截图按 ⌥⇧S（或下面的「开始截图」），录屏用「屏幕录制」模块；
+            标题中包含本任务名称时会被自动索引（标题层匹配）。
           </p>
           <div class="hint-actions">
-            <button class="action-btn" type="button" @click="goScreenshotView">
+            <button class="action-btn" type="button" @click="startScreenshot">
               <AppIcon icon="ri-camera-line" />
-              <span>打开截图</span>
+              <span>开始截图</span>
             </button>
             <button class="action-btn" type="button" @click="goRecordingView">
               <AppIcon icon="ri-movie-line" />
@@ -222,8 +222,12 @@ function close(): void {
   selectedRecordIdLocal.value = null
 }
 
-function goScreenshotView(): void {
-  window.location.hash = '#/screenshot'
+/**
+ * 真的开始一次截图。以前这里是 `window.location.hash = '#/screenshot'`，
+ * 而截图模块 2026-09-17 已下线、路由表里没有这条 → 主内容区整块空白。
+ */
+function startScreenshot(): void {
+  void window.api.screenshot.startCapture()
 }
 
 function goRecordingView(): void {

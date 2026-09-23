@@ -14,6 +14,9 @@ import type { Snippet } from '@preload/index.d'
 const props = defineProps<{ snippet: Snippet }>()
 const emit = defineEmits<{ close: [] }>()
 
+// 拆开来拼：script 块里出现「斜杠 + 闭合标签」的完整字面量会让 SFC 解析器就地结束本块
+const SCRIPT_CLOSE = '</' + 'script>'
+
 const PREVIEWABLE = new Set(['html', 'htm', 'css', 'javascript', 'js', 'typescript', 'ts'])
 
 const blocks = computed(() =>
@@ -36,7 +39,7 @@ const srcdoc = computed(() => {
     css ? `<style>${css}</style>` : '',
     '</head><body>',
     html,
-    js ? `<script>${js.replace(/<\/script>/gi, '<\\/script>')}<\/script>` : '',
+    js ? `<script>${js.replace(/<\/script>/gi, '<\\/script>')}${SCRIPT_CLOSE}` : '',
     '</body></html>'
   ].join('')
 })

@@ -23,6 +23,7 @@ import { database } from './database'
 import {
   prefRepository,
   tagRepository,
+  RECORDING_SETTINGS_KEY,
   pomodoroRepository,
   snippetRepository,
   folderRepository
@@ -102,6 +103,15 @@ export function runDataMigrations(): MigrationResult {
        updated_at INTEGER NOT NULL
      )`
   )
+
+  // electron-store 双栈收尾：这五个域各自带 leaf_meta 标志位、幂等且自包含，
+  // 必须**无条件**跑 —— 它们原先挂在下面 v1+v2 早退之后，于是凡是已经迁完 v1+v2 的机器
+  // （= 每台老机器）这五路永远不执行：别名 / AI 配置 / 剪辑 / 录屏设置 / 时间标记全留在旧 JSON 里。
+  migrateAliasesFromLegacyStore()
+  migrateAiFromLegacyStore()
+  migrateClipsFromLegacyStore()
+  migrateRecordingSettingsFromLegacyStore()
+  migrateMarkersFromLegacyStore()
 
   // 兼容旧 v1 标记：如果发现 v1 done，标记为 v2 done（v1 已包含的 4 类不再重复执行）
   const v1Done = db
@@ -309,13 +319,6 @@ export function runDataMigrations(): MigrationResult {
       `errors=${result.errors.length}`
   )
 
-  // electron-store 双栈收尾：这几个域迁 SQLite（config.json 其余键仍在用，只读不归档）
-  migrateAliasesFromLegacyStore()
-  migrateAiFromLegacyStore()
-  migrateClipsFromLegacyStore()
-  migrateRecordingSettingsFromLegacyStore()
-  migrateMarkersFromLegacyStore()
-
   return result
 }
 
@@ -448,8 +451,11 @@ export function migrateClipsFromLegacyStore(): void {
   }
 }
 
+/** 这一路曾经把值写到 'recording.settings'，而生产读的是 RECORDING_SETTINGS_KEY */
+const WRONG_RECORDING_SETTINGS_KEY = 'recording.settings'
+
 /**
- * 录屏设置：`recording-settings.json` 的 `settings` → pref "recording.settings"。
+ * 录屏设置：`recording-settings.json` 的 `settings` → pref `recording.default`。
  * **整份搬而不是按 repo 投影挑字段**：旧文件里有 audioCodec / systemAudio 等
  * RecordingSettingsDataStore 不认的项，挑着搬就等于把这些设置静默丢掉。
  */
@@ -459,11 +465,20 @@ export function migrateRecordingSettingsFromLegacyStore(): void {
     db.exec(
       `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
     )
+    // 先把写错 key 的那一份挪到生产真正读的那把钥匙上：已经打过下面标志位的机器
+    // 不会再走导入分支，不补这一步就永远看不见自己的录屏设置
+    const stranded = prefRepository.get(WRONG_RECORDING_SETTINGS_KEY)
+    if (stranded !== null && prefRepository.get(RECORDING_SETTINGS_KEY) === null) {
+      prefRepository.set(RECORDING_SETTINGS_KEY, stranded)
+      log.info('dataMigration', 'recording settings moved off the wrong pref key')
+    }
+    if (stranded !== null) prefRepository.delete(WRONG_RECORDING_SETTINGS_KEY)
+
     if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.recordingSettings)) return
     const file = readLegacyJson('recording-settings.json') as { settings?: unknown } | undefined
     const settings = file && typeof file === 'object' ? file.settings : undefined
-    if (settings !== undefined && prefRepository.get('recording.settings') === null) {
-      prefRepository.set('recording.settings', JSON.stringify(settings))
+    if (settings !== undefined && prefRepository.get(RECORDING_SETTINGS_KEY) === null) {
+      prefRepository.set(RECORDING_SETTINGS_KEY, JSON.stringify(settings))
       log.info('dataMigration', 'recording settings imported from legacy recording-settings.json')
     }
     writeMigrationFlag(db, LEGACY_MIGRATION_KEYS.recordingSettings)

@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { RECORDING_SETTINGS_KEY } from '../repos'
 
 /**
  * 录制设置存储迁移测试：electron-store 专用文件 recording-settings.json
- * 的 settings 键 → pref_preferences 'recording.settings'（全量字段 1:1）。
+ * 的 settings 键 → pref_preferences 里**生产真正读的那把钥匙**（RECORDING_SETTINGS_KEY）。
+ * 本测试原先把断言钉在 'recording.settings' 上，与实现里写错的 key 一模一样，
+ * 于是「迁移写了、设置页读不到」这个真缺陷被测试一路放行 —— 现在改成引用常量，钉不住就红。
  */
 vi.mock('electron', () => ({
   app: {
@@ -46,9 +49,9 @@ function freshDb(): Database.Database {
 }
 
 function prefSetting(db: Database.Database): string | undefined {
-  const row = db.prepare('SELECT value FROM pref_preferences WHERE key = ?').get('recording.settings') as
-    | { value: string }
-    | undefined
+  const row = db
+    .prepare('SELECT value FROM pref_preferences WHERE key = ?')
+    .get(RECORDING_SETTINGS_KEY) as { value: string } | undefined
   return row?.value
 }
 
@@ -114,7 +117,7 @@ describe('migrateRecordingSettingsFromLegacyStore', () => {
     migrateRecordingSettingsFromLegacyStore()
     db.prepare('UPDATE pref_preferences SET value = ? WHERE key = ?').run(
       JSON.stringify({ fps: 60 }),
-      'recording.settings'
+      RECORDING_SETTINGS_KEY
     )
     migrateRecordingSettingsFromLegacyStore()
     expect(JSON.parse(prefSetting(db) ?? '{}')).toEqual({ fps: 60 })

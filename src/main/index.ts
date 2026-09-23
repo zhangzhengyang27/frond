@@ -86,6 +86,7 @@ import { clipboardHistory } from './services/ClipboardHistoryService'
 import { reminderService } from './services/ReminderService'
 import { registerClipboardHistoryIpc } from './ipc/clipboardHistory'
 import { registerShotIndexIpc } from './ipc/shotIndex'
+import { registerScreenshotHandlers } from './modules/screenshot'
 import { registerCalendarIpc } from './ipc/calendar'
 import { registerDataSyncIpc } from './ipc/dataSync'
 import { calendarService } from './services/CalendarService'
@@ -396,6 +397,11 @@ app.whenReady().then(() => {
 
   // 截图库 OCR 索引（V4 P1-10，对齐 Raycast Search Screenshots）
   registerShotIndexIpc()
+
+  // 截图与标注（electron-screenshots 接管，见 modules/screenshot.ts 与 HANDOFF §11）。
+  // 这一行是补回来的：registerScreenshotHandlers() 此前全仓零调用方（基线里就是），
+  // 所以 screenshot:startCapture 这类 handler 从来没注册过 —— ⌥⇧S 与页面按钮都是空响。
+  registerScreenshotHandlers()
 
   // 系统日历只读（V4 P0-1 批次4：根搜索下一个会议）
   registerCalendarIpc()

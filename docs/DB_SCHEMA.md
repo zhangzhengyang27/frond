@@ -224,7 +224,7 @@ DROP 全部包在 `db.transaction(() => { … })()` 里、且一律 `IF EXISTS`�
 
 | # | 事实 | 依据 |
 | --- | --- | --- |
-| 1 | `ScreenshotRepository` 仍在读写**已被 028 删掉**的 `ss_screenshots`，且截图完成事件真会走到它（错误被嵌套 try/catch 吞成一行 `console.error`） | `src/main/db/repos/ScreenshotRepository.ts:6`（「Schema: ss_screenshots (已在 001_init.ts 中定义)」）、`:184`；`src/main/ipc/screenshotHistory.ts:33`、`:239`；`src/main/services/ScreenshotService.ts:507-515`；`028_remove_screenshot.ts:23`。另：`registerScreenshotHistoryHandlers`（`ipc/screenshotHistory.ts:29`）全仓无调用方 |
+| 1 | `ScreenshotRepository` 仍在读写**已被 028 删掉**的 `ss_screenshots`。2026-09-23 之后它**已经是纯死代码**：唯一的调用方（树内截图覆盖层 `ScreenshotService` 的 `SCREENSHOT:ok` 落盘分支）随编辑器一起删了，而 `registerScreenshotHistoryHandlers` 本来就全仓零调用方 → 那 10 个 `screenshot:history:*` handler 从来没注册过 | `src/main/db/repos/ScreenshotRepository.ts:6`（「Schema: ss_screenshots (已在 001_init.ts 中定义)」）、`:184`；`src/main/ipc/screenshotHistory.ts:29`（零调用方）、`:33`、`:239`；`028_remove_screenshot.ts:23`。清理账见 HANDOFF §11 末尾 |
 | 2 | `snip_folders` 建了、还挂在同步清单上，但无读写方；片段树走 `folder_folders` | `001:189-198`；`dataSync.ts:85`；`FolderRepository.ts:195-201` |
 | 3 | `geo_cache` 无任何读写方（017 为素材库建的 Nominatim 反地理编码缓存，`017:8`；photo 域已随 018 下线） | `017:8`、`:22-29`；`dataSync.ts:137`；全仓检索无其他命中 |
 | 4 | `tag_tags.usage_count` 今天没人维护：唯一的 `bumpUsage()` 零调用方，014 的那次刷新只统计已删掉的 `photo_tags` | `TagRepository.ts:193-199`；`014:92-96`；`018:25` |

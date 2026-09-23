@@ -72,6 +72,21 @@ export function parseShotQuery(
 
 /** 候选目录：桌面 + 系统截图保存位置（mac defaults 探测，读取失败跳过） */
 export async function screenshotDirs(): Promise<string[]> {
+  // e2e 覆盖：LEAF_SHOT_DIRS（JSON 数组或单路径）。持久化与扫描都走这一个函数，
+  // 覆盖后两边一致 —— 否则测试会往真实桌面写图，且扫整个桌面的图片去做 OCR
+  const envDirs = process.env.LEAF_SHOT_DIRS
+  if (envDirs) {
+    let parsed: unknown = envDirs
+    try {
+      parsed = JSON.parse(envDirs)
+    } catch {
+      /* 单路径写法 */
+    }
+    const dirs = Array.isArray(parsed)
+      ? parsed.filter((s): s is string => typeof s === 'string')
+      : [String(envDirs)]
+    return dirs.filter((d) => existsSync(d))
+  }
   const dirs = new Set<string>()
   dirs.add(app.getPath('desktop'))
   if (isMac()) {

@@ -277,9 +277,12 @@ function dispatchChord(spec: CommandHotkeySpec): void {
 
 /** 截图热键触发：延迟 import，理由同 globalShortcuts（避免模块初始化环） */
 function onScreenshotHotkey(): void {
-  void import('../modules/screenshot').then(({ triggerScreenshot }) => {
-    void triggerScreenshot()
-  })
+  void import('../modules/screenshot')
+    .then(({ triggerScreenshot }) => triggerScreenshot())
+    // 起不来时至少留一条原因（多半是没给屏幕录制授权）——以前这条链一路吞到 undefined
+    .then((res) => {
+      if (!res.ok) console.warn('[Hotkeys] 截图热键没起来:', res.error)
+    })
 }
 
 /** 注册主热键 + 全部命令热键；配置变更 / 快捷键恢复时复用 */

@@ -5,11 +5,7 @@ import type { McpToolArg } from '../shared/mcp'
 import type { McpToolCommand } from '../shared/mcp'
 import type { McpCallResult } from '../main/services/mcp/client'
 import type { PopToRootMode } from '../shared/popToRoot'
-import type {
-  Display as ScreenshotDisplay,
-  ScreenshotsData,
-  WindowInfo as ScreenshotWindowInfo
-} from '../main/services/ScreenshotService'
+import type { WindowInfo as ScreenshotWindowInfo } from '../main/services/windowSources'
 import type { ScreenshotFilter } from '../main/db/repos/ScreenshotRepository'
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
@@ -237,37 +233,6 @@ export interface ShotDeleteManyRes {
   count?: number
   filesRemoved?: number
   error?: string
-}
-export interface PinCreateRes {
-  success: boolean
-  id?: string
-  error?: string
-}
-export interface PinOkRes {
-  success: boolean
-  error?: string
-}
-export interface PinInfo {
-  id: string
-  x: number
-  y: number
-  width: number
-  height: number
-  scale: number
-  rotation: number
-  opacity: number
-}
-export interface PinListRes extends PinOkRes {
-  pins: PinInfo[]
-}
-export interface PinCountRes extends PinOkRes {
-  count: number
-}
-export interface PinImageData {
-  id: string
-  imagePath: string
-  /** base64（不带 data: 前缀）；主进程没给时渲染端回退用 imagePath */
-  imageBuffer?: string
 }
 export interface ShotUsageRes {
   success: boolean
@@ -522,20 +487,15 @@ export interface API {
     setCompactMode: (enabled: boolean) => Promise<boolean>
     onCompactModeChanged: (cb: (enabled: boolean) => void) => () => void
   }
-  // 截图库 OCR 索引（V4 P1-10）
   /**
-   * 截图：选区覆盖层协议 + 截图动作 + 历史。
-   * 类型直接指主进程的导出形状（`ScreenshotService` / `ScreenshotRepository`），
-   * 别在这里另抄一份 —— 上一轮「两处各写一遍就必然漂」已经犯过两次（插件快照、三档设置）。
+   * 截图：发起/结束 + 按窗口抓图 + 历史。类型直接指主进程的导出形状
+   * （`windowSources` / `ScreenshotRepository`），别在这里另抄一份 ——
+   * 上一轮「两处各写一遍就必然漂」已经犯过两次（插件快照、三档设置）。
+   *
+   * 树内自研覆盖层那套 `SCREENSHOT:*` 协议（ready/ok/save/cancel/onCapture/onReset）
+   * 随编辑器一起删了；截图现在是上游 `electron-screenshots`（HANDOFF §11）。
    */
   screenshot: {
-    ready: () => void
-    ok: (buffer: ArrayBuffer, data: ScreenshotsData) => void
-    save: (buffer: ArrayBuffer, data: ScreenshotsData) => void
-    cancel: () => void
-    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void) => () => void
-    onReset: (cb: () => void) => () => void
-    removeListeners: () => void
     startCapture: () => Promise<ShotOkRes>
     endCapture: () => Promise<ShotOkRes>
     /** 同上：主进程直接给数组，桥摊平成信封，视图按 success 分支走 */
@@ -554,27 +514,6 @@ export interface API {
       storageUsage: () => Promise<ShotUsageRes>
       setSaveDirectory: () => Promise<ShotDirRes>
       getSaveDirectory: () => Promise<ShotDirRes>
-    }
-    /**
-     * 贴图（钉图窗）。主进程侧是 src/main/ipc/pin.ts 的 10 个 handler +
-     * PinService 的 3 条推送；这些通道按位置参数收（早于全仓单对象迁移），桥按现状转发。
-     */
-    pin: {
-      create: (options: { imagePath: string; imageBuffer?: string }) => Promise<PinCreateRes>
-      createFromClipboard: () => Promise<PinCreateRes>
-      close: (id: string) => Promise<PinOkRes>
-      closeAll: () => Promise<PinOkRes>
-      getAll: () => Promise<PinListRes>
-      getCount: () => Promise<PinCountRes>
-      setScale: (id: string, scale: number) => Promise<PinOkRes>
-      setRotation: (id: string, rotation: number) => Promise<PinOkRes>
-      setOpacity: (id: string, opacity: number) => Promise<PinOkRes>
-      toggleTransparent: (id: string) => Promise<PinOkRes>
-      onSetImage: (cb: (data: PinImageData) => void) => () => void
-      onSetRotation: (cb: (rotation: number) => void) => () => void
-      onSetShortcuts: (cb: (shortcuts: { close?: string }) => void) => () => void
-      /** 贴图窗是整窗重载的：重挂监听前先摘旧的，否则一次推送会跑两遍 */
-      removeListeners: () => void
     }
   }
   shotIndex: {

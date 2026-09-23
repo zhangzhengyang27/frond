@@ -15,7 +15,7 @@
 - ✅ B17 幽灵类（见下文）
 - ✅ B18 photos 原生 alert/confirm + 非品牌色 `bg-blue-500`：替换为 UToast / UModal 二次确认 /
   UTabs 筛选，高度改 `calc(100vh - var(--shell-topbar-h))`
-- ✅ B1 贴图窗口：新增 PinPage + /screenshot/pin 路由 + preload onSetShortcuts（见下文）
+- ⛔ B1 贴图窗口：曾补 PinPage + /screenshot/pin 路由 + preload onSetShortcuts，**2026-09-23 随贴图功能整体撤销**（见下文）
 - ✅ B8 录制双轨：写入侧登记新 SQLite 记录（start/finalize）、删除走 recording.remove
   （带旧 JSON 回退）、统计改为本地计算（见下文）
 - ✅ B9 ESLint error：全量清零（渲染层 + 主进程 0 error）
@@ -158,20 +158,29 @@
 - `Layout.vue` 用 `as EventListener`（纯类型，运行时不存在）→ 去掉断言（eslint no-undef）
 - ClipPage 空态白字 → UEmpty
 
-### B1 贴图窗口空白（已修复）
-- 根因：`PinService` 加载 `#/screenshot/pin`，但路由表无此路由 → Vue Router 无匹配，窗口永远空白；
+### B1 贴图窗口空白（修过 → 2026-09-23 连同功能一起撤销）
+- 根因（当时）：`PinService` 加载 `#/screenshot/pin`，但路由表无此路由 → Vue Router 无匹配，窗口永远空白；
   `pin:setImage` / `pin:setRotation` 推送无组件接收，`pin:setShortcuts` 连 preload 封装都没有
-- 修复：新增 `views/screenshot/pages/PinPage.vue` + `/screenshot/pin` 路由（hideInSidebar）；
-  preload 补 `onSetShortcuts`，并让 `onSetImage` / `onSetRotation` 返回取消订阅函数；
-  index.d.ts 补齐 pin 的 on* 与 removeListeners 类型声明
-- 实现要点：无边框窗口拖拽需 `-webkit-app-region: drag`（只能写在 CSS 类里，
-  放内联 style 会被 vue-tsc 判为非法 CSSProperties 键）；控制条用 `no-drag`
+- 当时的修复：新增 `views/screenshot/pages/PinPage.vue` + `/screenshot/pin` 路由（hideInSidebar）；
+  preload 补 `onSetShortcuts`，并让 `onSetImage` / `onSetRotation` 返回取消订阅函数
+- **为什么又撤了**：① 这条链其实从来没有入口 —— `registerPinHandlers()`（`src/main/ipc/pin.ts`）
+  当时全仓零调用方，也就是说补上路由之后 `pin:create` 依然会 reject（与 §HANDOFF 里
+  「注册函数零调用方」是同一类缺陷）；② 2026-09-23 截图改由上游 `electron-screenshots` 承担后，
+  上游工具栏没有贴图按钮，用户当场拍板「不要这贴图、钉图的功能」。
+  于是 `PinService.ts` / `ipc/pin.ts` / `PinPage.vue` / `/screenshot/pin` 路由 / preload 的 `pin.*`
+  一并删除（HANDOFF §11）。
+- 留一条判据：**主进程 URL 里出现 `#/…` 字面量，路由表必须有同名 `path`；反之路由表里有 path，
+  也得确认真的有人 `loadURL` 它**，两头都要核。
 
 ### B23 截图主页为 demo 级页面（已重做）
 - 旧版仅一个标题 + 一个硬编码 `#1890ff` 按钮，且所有样式写死
 - 现提供：主 CTA、截图总数/占用空间/保存目录概览、最近截图宫格（悬浮操作：打开 / 在访达中显示）、
   存储用量与目录设置、截图完成后自动刷新列表
-- 注意：`screenshot.onCapture` 未返回取消函数，重复进出会叠加监听 → 用模块级标记保证只注册一次
+- 注意（当时的坑）：`screenshot.onCapture` 未返回取消函数，重复进出会叠加监听 → 用模块级标记保证只注册一次
+- **2026-09-23 撤销**：这一页与整套树内截图编辑器一起删除（截图改由上游 `electron-screenshots`
+  承担，HANDOFF §11）。主应用内不再有截图页；`views/screenshot/` 与 `screenshot.html` 入口、
+  preload 的 `SCREENSHOT:*` 覆盖层协议全部移除。截图库（`shot_index` + 启动器内联页
+  `ShotsIndexPage.vue`）不受影响，它读的是目录扫描 + OCR，与编辑器无关
 
 ### B8 录制新旧双轨（已收敛；剩余项已登记）
 - 现状澄清：RecordingHistory 的**读取早已走新通道** `recording.list`（带 JSON fallback），

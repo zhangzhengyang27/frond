@@ -4,8 +4,10 @@ import { useRouter } from 'vue-router'
 import { findModule, type ModuleMeta } from '../constants/modules'
 import type { FirstPartyPage } from '@shared/commands'
 import AppIcon from '@components/AppIcon.vue'
+import { useToast } from '@composables/useToast'
 
 const router = useRouter()
+const toast = useToast()
 const searchQuery = ref('')
 const searchInput = ref<HTMLInputElement | null>(null)
 
@@ -26,8 +28,10 @@ const navigate = (m: ModuleMeta): void => {
 }
 
 // 常用功能（固定展示）
-const quickActions = [
-  { label: '截图', icon: 'camera-line', path: '/screenshot' },
+const quickActions: Array<{ label: string; icon: string; path?: string; action?: string }> = [
+  // 截图不是一条路由：它是主进程发起的一次覆盖层截图（`screenshot:startCapture`）。
+  // 这里曾写 `path: '/screenshot'` —— 路由表从来没这条，点下去主内容区整块空白
+  { label: '截图', icon: 'camera-line', action: 'screenshot' },
   { label: '录屏', icon: 'video-line', path: '/screenRecorder/record' },
   { label: '番茄钟', icon: 'timer-line', path: '/pomodoro' },
   { label: '代码片段', icon: 'code-s-slash-line', path: '/snippets' },
@@ -38,6 +42,13 @@ const quickActions = [
 ]
 
 function onQuickAction(action: { path?: string; action?: string }): void {
+  if (action.action === 'screenshot') {
+    // 覆盖层由主进程起，失败要说得出来（没给屏幕录制授权时以前是静默的）
+    void window.api.screenshot.startCapture().then((res) => {
+      if (!res.success) toast.error(res.error ?? '截图启动失败')
+    })
+    return
+  }
   if (action.path) {
     router.push(action.path)
   } else if (action.action) {

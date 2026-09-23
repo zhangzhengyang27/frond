@@ -180,6 +180,7 @@ import ProjectChip from './ProjectChip.vue'
 import PomodoroDetailPanel from './PomodoroDetailPanel.vue'
 import { usePomodoroStore } from '../../../stores/pomodoro'
 import { exportTaskRecordsAsCSV, exportTaskRecordsAsMarkdown } from '../utils/exportTaskRecords'
+import { useToast } from '@composables/useToast'
 
 interface Props {
   open: boolean
@@ -191,6 +192,7 @@ const emit = defineEmits<{
 }>()
 
 const store = usePomodoroStore()
+const toast = useToast()
 
 const detail = computed(() => store.taskDetail)
 const summary = computed(() => store.taskDetail?.summary ?? null)
@@ -227,7 +229,9 @@ function close(): void {
  * 而截图模块 2026-09-17 已下线、路由表里没有这条 → 主内容区整块空白。
  */
 function startScreenshot(): void {
-  void window.api.screenshot.startCapture()
+  void window.api.screenshot.startCapture().then((res) => {
+    if (!res.success) toast.error(res.error ?? '截图启动失败')
+  })
 }
 
 function goRecordingView(): void {

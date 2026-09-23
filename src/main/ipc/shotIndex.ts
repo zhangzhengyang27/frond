@@ -10,6 +10,7 @@
  */
 import { ipcMain } from 'electron'
 import { screenshotIndexService } from '../services/ScreenshotIndexService'
+import { typedHandle } from './typedIpc'
 
 const SEARCH_LIMIT = 60
 
@@ -25,12 +26,15 @@ export function registerShotIndexIpc(): void {
     }
   })
 
-  ipcMain.handle('shotidx:search', (_e, query: unknown, ensure: unknown) => {
+  typedHandle('shotidx:search', (_e, { query, ensure }) => {
+    // 契约是单对象（ipc-contract 里 req 就是 { query?, ensure? }），而这里此前还是
+    // 位置参数签名 —— preload 把 { query, ensure } 整个当第一个参数传进来，
+    // typeof 守卫判它不是 string，于是**从渲染层搜索永远等于空查询**。
     const q = typeof query === 'string' ? query : ''
     // 空查询首开时自动建索引（幂等；有查询不阻塞搜索，先返回现有结果）
     if (ensure === true) void screenshotIndexService.ensureScanned()
     return {
-      success: true,
+      success: true as const,
       items: screenshotIndexService.search(q, SEARCH_LIMIT)
     }
   })

@@ -11,22 +11,13 @@ import type {
   ShotWindowListRes,
   ShotDeleteManyRes,
   ShotUsageRes,
-  ShotDirRes,
-  PinCreateRes,
-  PinOkRes,
-  PinListRes,
-  PinCountRes,
-  PinImageData
+  ShotDirRes
 } from './index.d'
 import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
 import type { McpToolArg } from '../shared/mcp'
 import type { PopToRootMode } from '../shared/popToRoot'
-import type {
-  Display as ScreenshotDisplay,
-  ScreenshotsData,
-  WindowInfo as ScreenshotWindowInfo
-} from '../main/services/ScreenshotService'
+import type { WindowInfo as ScreenshotWindowInfo } from '../main/services/windowSources'
 import type { ScreenshotFilter } from '../main/db/repos/ScreenshotRepository'
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
@@ -300,47 +291,19 @@ const api: API = {
     }
   },
   /**
-   * 截图（V4 P1-4 起）。这一段在恢复事故里整块丢失，症状是「截图页画得出来、
-   * 任何按钮按下去都 reject」——主进程 `ScreenshotService` 与 `screenshotHistory.ts`
-   * 的 17 个注册一直都在，只是没有桥过来。
+   * 截图。覆盖层协议（`SCREENSHOT:*` 那一组）随树内自研编辑器一起删了 ——
+   * 截图现在是上游 `electron-screenshots`（HANDOFF §11），渲染端只需要「发起/结束」
+   * 与「按窗口抓图」这几条。
    *
    * 为什么这里是裸 `ipcRenderer` 而不是 typedInvoke：**这些通道不在登记册里**
    * （ipc-contract 没有 screenshot:* 条目），且主进程签名是位置参数
-   * （`list(filter, limit, offset)`、`ok(buffer, data)`），单对象约定套不上。
-   * 迁移它们 = 主进程 17 个 handler 与 4 个渲染页一起改，属 §8 的剩余清单，
-   * 不在「把断掉的桥接回来」这一格里。
+   * （`list(filter, limit, offset)`、`captureWindow(windowId, scaleFactor)`），
+   * 单对象约定套不上 —— 属 §8 的剩余清单。
    */
   screenshot: {
-    // ── 选区覆盖层协议（SCREENSHOT:*，主进程 ScreenshotService）──
-    ready: (): void => ipcRenderer.send('SCREENSHOT:ready'),
-    ok: (buffer: ArrayBuffer, data: ScreenshotsData): void =>
-      ipcRenderer.send('SCREENSHOT:ok', buffer, data),
-    /** 只保存不关闭：主进程走另一条落盘分支，不回 resolve 当前这轮截图 */
-    save: (buffer: ArrayBuffer, data: ScreenshotsData): void =>
-      ipcRenderer.send('SCREENSHOT:save', buffer, data),
-    cancel: (): void => ipcRenderer.send('SCREENSHOT:cancel'),
-    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void): (() => void) => {
-      const listener = (
-        _e: Electron.IpcRendererEvent,
-        display: ScreenshotDisplay,
-        imageUrl: string
-      ): void => cb(display, imageUrl)
-      ipcRenderer.on('SCREENSHOT:capture', listener)
-      return () => ipcRenderer.removeListener('SCREENSHOT:capture', listener)
-    },
-    onReset: (cb: () => void): (() => void) => {
-      const listener = (): void => cb()
-      ipcRenderer.on('SCREENSHOT:reset', listener)
-      return () => ipcRenderer.removeListener('SCREENSHOT:reset', listener)
-    },
-    /** 覆盖层是整页重载的：重新挂监听前必须摘掉旧的，否则一次推送会跑两遍 */
-    removeListeners: (): void => {
-      ipcRenderer.removeAllListeners('SCREENSHOT:capture')
-      ipcRenderer.removeAllListeners('SCREENSHOT:reset')
-    },
-    // ── 截图动作与窗口源 ──
     startCapture: (): Promise<ShotOkRes> => ipcRenderer.invoke('screenshot:startCapture'),
     endCapture: (): Promise<ShotOkRes> => ipcRenderer.invoke('screenshot:endCapture'),
+    // ── 按窗口抓图（上游没有这个能力；渲染端暂无入口，账见 §11）──
     getWindowList: async (): Promise<ShotWindowListRes> => {
       try {
         const windows = (await ipcRenderer.invoke(
@@ -397,45 +360,6 @@ const api: API = {
         ipcRenderer.invoke('screenshot:history:setSaveDirectory') as Promise<ShotDirRes>,
       getSaveDirectory: () =>
         ipcRenderer.invoke('screenshot:history:getSaveDirectory') as Promise<ShotDirRes>
-    },
-    pin: {
-      create: (options: { imagePath: string; imageBuffer?: string }) =>
-        ipcRenderer.invoke('pin:create', options) as Promise<PinCreateRes>,
-      createFromClipboard: () =>
-        ipcRenderer.invoke('pin:createFromClipboard') as Promise<PinCreateRes>,
-      close: (id: string) => ipcRenderer.invoke('pin:close', id) as Promise<PinOkRes>,
-      closeAll: () => ipcRenderer.invoke('pin:closeAll') as Promise<PinOkRes>,
-      getAll: () => ipcRenderer.invoke('pin:getAll') as Promise<PinListRes>,
-      getCount: () => ipcRenderer.invoke('pin:getCount') as Promise<PinCountRes>,
-      setScale: (id: string, scale: number) =>
-        ipcRenderer.invoke('pin:setScale', id, scale) as Promise<PinOkRes>,
-      setRotation: (id: string, rotation: number) =>
-        ipcRenderer.invoke('pin:setRotation', id, rotation) as Promise<PinOkRes>,
-      setOpacity: (id: string, opacity: number) =>
-        ipcRenderer.invoke('pin:setOpacity', id, opacity) as Promise<PinOkRes>,
-      toggleTransparent: (id: string) =>
-        ipcRenderer.invoke('pin:toggleTransparent', id) as Promise<PinOkRes>,
-      onSetImage: (cb: (data: PinImageData) => void) => {
-        const listener = (_e: Electron.IpcRendererEvent, data: PinImageData): void => cb(data)
-        ipcRenderer.on('pin:setImage', listener)
-        return () => ipcRenderer.removeListener('pin:setImage', listener)
-      },
-      onSetRotation: (cb: (rotation: number) => void) => {
-        const listener = (_e: Electron.IpcRendererEvent, rotation: number): void => cb(rotation)
-        ipcRenderer.on('pin:setRotation', listener)
-        return () => ipcRenderer.removeListener('pin:setRotation', listener)
-      },
-      onSetShortcuts: (cb: (shortcuts: { close?: string }) => void) => {
-        const listener = (_e: Electron.IpcRendererEvent, shortcuts: { close?: string }): void =>
-          cb(shortcuts)
-        ipcRenderer.on('pin:setShortcuts', listener)
-        return () => ipcRenderer.removeListener('pin:setShortcuts', listener)
-      },
-      removeListeners: (): void => {
-        ipcRenderer.removeAllListeners('pin:setImage')
-        ipcRenderer.removeAllListeners('pin:setRotation')
-        ipcRenderer.removeAllListeners('pin:setShortcuts')
-      }
     }
   },
   // 截图库 OCR 索引（V4 P1-10）

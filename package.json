@@ -44,6 +44,7 @@
     "codemirror": "^5.65.18",
     "codemirror-textmate": "^1.1.0",
     "dom-to-image": "^2.6.0",
+    "electron-screenshots": "0.6.2",
     "electron-store": "8.2.0",
     "electron-updater": "^6.3.9",
     "fsevents": "^2.3.3",

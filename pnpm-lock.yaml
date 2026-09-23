@@ -38,6 +38,9 @@ importers:
       dom-to-image:
         specifier: ^2.6.0
         version: 2.6.0
+      electron-screenshots:
+        specifier: 0.6.2
+        version: 0.6.2(electron@38.8.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       electron-store:
         specifier: 8.2.0
         version: 8.2.0
@@ -2062,6 +2065,11 @@ packages:
   electron-publish@25.1.7:
     resolution: {integrity: sha512-+jbTkR9m39eDBMP4gfbqglDd6UvBC7RLh5Y0MhFSsc6UkGHj9Vj9TWobxevHYMMqmoujL11ZLjfPpMX+Pt6YEg==}
 
+  electron-screenshots@0.6.2:
+    resolution: {integrity: sha512-7AxeYNLhnRApFKT8pKcYH4CExVrSRj+957fyz083VNywOsWR2t9Wivol1imBPayf4C7OTOT/UNtHEyrvR7kVTg==}
+    peerDependencies:
+      electron: '>=20'
+
   electron-store@8.2.0:
     resolution: {integrity: sha512-ukLL5Bevdil6oieAOXz3CMy+OgaItMiVBg701MNlG6W5RaC0AHN7rvlqTCmeb6O7jP0Qa1KKYTE0xV0xbhF4Hw==}
 
@@ -3177,6 +3185,68 @@ packages:
     resolution: {integrity: sha512-x0InOIyzgdk+eyaWaRJFH5snEtiImgBgblZ2CyPrLmqqcuMQkEvcDPHbzqbD8eDsSeJbVOjn+crzyzHaM4D+/A==}
     engines: {node: '>=18'}
 
+  node-screenshots-darwin-arm64@0.2.8:
+    resolution: {integrity: sha512-CEJE47gG2ceTc1fQRE3T/8lBwCGFJ+0iJiP+CQgCUAll4kKd32DQ7lCANqUseo96/xi6HuDOlrjLkAp7x2TzFw==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [arm64]
+    os: [darwin]
+
+  node-screenshots-darwin-x64@0.2.8:
+    resolution: {integrity: sha512-3WIw4QaEP3pIUtSYh2NThwmzQl00H1bTPwPS7sYRLihAzB3NA/FOnIqRmvtadI0KEnnRGX4apdZgIhfXtgbNZA==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [x64]
+    os: [darwin]
+
+  node-screenshots-linux-arm64-gnu@0.2.8:
+    resolution: {integrity: sha512-aXJKtekSzQLJX6hh/VT5gilyloiN3DE4oE5xu9z7nLcTPyfC089dqVoERXJxnT+aqSQzx0KkI2te8BZNkjaMtQ==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  node-screenshots-linux-loong64-gnu@0.2.8:
+    resolution: {integrity: sha512-+982Yn7L7XID/FhYR6W6S2IVTLiueOBcHs/BP1Te5W6MtwlIIRg593zFh5HPQp7G+IaHqEXQzQj6D7kjJhXzsQ==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [loong64]
+    os: [linux]
+    libc: [glibc]
+
+  node-screenshots-linux-x64-gnu@0.2.8:
+    resolution: {integrity: sha512-xF0hLfPMm9NEF4WtiQnbCyCUxU15M25lFkBzK4WS1CGOcxM7e30tvvwyYfmrMp3OtW/hESQFtiTb4cjKcOdaSA==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  node-screenshots-linux-x64-musl@0.2.8:
+    resolution: {integrity: sha512-mu/sVwDMt2yQM5ql2rtyQm+mq6Im2ycQLzQxXFXVJOB+k5A+Hk9h65J+G+Iy3rn1uNrYVDjgUQGvIkgpkIonCg==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  node-screenshots-win32-arm64-msvc@0.2.8:
+    resolution: {integrity: sha512-g7nnuoJO2yjO8Ovr+Uz9e+LYJMlYc5eqoGPQq7U7NK1LVc2DpyCJ18VT8WdP2f098lfHvE12D3X7Es8NLFjiPg==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [arm64]
+    os: [win32]
+
+  node-screenshots-win32-ia32-msvc@0.2.8:
+    resolution: {integrity: sha512-Qsh4Ggs7MzO2XuDPFMRcRxRuiUGxxtHEFuqAfLFL1DiOfBIhLpukZ8JUHlEBdzjPxMFFRJw/4nOm0tnyHP/fiQ==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [ia32]
+    os: [win32]
+
+  node-screenshots-win32-x64-msvc@0.2.8:
+    resolution: {integrity: sha512-DdFORB74FghM1L6UtE1TltIR2H0CCCmfQEa8gp2CTSdtBr2b0TKL7ZlbEV6x/wVKRFT59w7Kd6BULdeMmp0X2w==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+    cpu: [x64]
+    os: [win32]
+
+  node-screenshots@0.2.8:
+    resolution: {integrity: sha512-7O2ab89hkUgiXkrYj9iYCbJjY1iFJqIyZt0vuVtHFKlnajeFoyW+hur4CPxwwrnCUK0ahr0WLWQ5A6rCzF8rWQ==}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+
   nopt@10.0.1:
     resolution: {integrity: sha512-df3sBr/6ax9hSGuC3CspvLlbnX8cP5L5nZwXF8cGN8l0zSWR6BvzmQ6jPUKjvo6+/xdpkNvEcucBNUdBeeV13g==}
     engines: {node: ^22.22.2 || ^24.15.0 || >=26.0.0}
@@ -3528,11 +3598,22 @@ packages:
     resolution: {integrity: sha512-WuyALRjWPDGtt/wzJiadO5AXY+8hZ80hVpe6MyivgraREW751X3SbhRvG3eLKOYN+8VEvqLcf3wdnt44Z4S4SA==}
     engines: {node: '>=10'}
 
+  react-dom@19.3.0:
+    resolution: {integrity: sha512-JDk8dgif51OjFoDE70+OT9ICyYr+69HlmihNwp1+Nsfbna3t5sIiCa9ZJktDmQ4/1b/rn26hIAR2uYXDMr5r0Q==}
+    peerDependencies:
+      react: ^19.3.0
+
   react-reconciler@0.34.0:
     resolution: {integrity: sha512-eVibvB1fc9j5Qf1KRkiM3GzRPBdjg2P6G6QV2f3P6Eb3OGMxRBhdg2rrUwjbV5JrQaJj8nOa8uajmmJA5tJWjQ==}
     engines: {node: '>=0.10.0'}
     peerDependencies:
       react: ^19.3.0
+
+  react-screenshots@0.6.1:
+    resolution: {integrity: sha512-DsIuxuYrNFX6IQAeHxUiUMaf+OjHOp2HKkrO9HULPBYQGFujh0KyMm4T/ZW93tZPcV//PGwd8+DlH4aXv1XuQg==}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
 
   react@19.3.0:
     resolution: {integrity: sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog==}
@@ -6082,6 +6163,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  electron-screenshots@0.6.2(electron@38.8.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      debug: 4.4.3
+      electron: 38.8.6
+      fs-extra: 11.4.0
+      node-screenshots: 0.2.8
+      react-screenshots: 0.6.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    transitivePeerDependencies:
+      - react
+      - react-dom
+      - supports-color
+
   electron-store@8.2.0:
     dependencies:
       conf: 10.2.0
@@ -7282,6 +7375,45 @@ snapshots:
 
   node-releases@2.0.56: {}
 
+  node-screenshots-darwin-arm64@0.2.8:
+    optional: true
+
+  node-screenshots-darwin-x64@0.2.8:
+    optional: true
+
+  node-screenshots-linux-arm64-gnu@0.2.8:
+    optional: true
+
+  node-screenshots-linux-loong64-gnu@0.2.8:
+    optional: true
+
+  node-screenshots-linux-x64-gnu@0.2.8:
+    optional: true
+
+  node-screenshots-linux-x64-musl@0.2.8:
+    optional: true
+
+  node-screenshots-win32-arm64-msvc@0.2.8:
+    optional: true
+
+  node-screenshots-win32-ia32-msvc@0.2.8:
+    optional: true
+
+  node-screenshots-win32-x64-msvc@0.2.8:
+    optional: true
+
+  node-screenshots@0.2.8:
+    optionalDependencies:
+      node-screenshots-darwin-arm64: 0.2.8
+      node-screenshots-darwin-x64: 0.2.8
+      node-screenshots-linux-arm64-gnu: 0.2.8
+      node-screenshots-linux-loong64-gnu: 0.2.8
+      node-screenshots-linux-x64-gnu: 0.2.8
+      node-screenshots-linux-x64-musl: 0.2.8
+      node-screenshots-win32-arm64-msvc: 0.2.8
+      node-screenshots-win32-ia32-msvc: 0.2.8
+      node-screenshots-win32-x64-msvc: 0.2.8
+
   nopt@10.0.1:
     dependencies:
       abbrev: 5.0.0
@@ -7577,10 +7709,20 @@ snapshots:
 
   quick-lru@5.1.1: {}
 
+  react-dom@19.3.0(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      scheduler: 0.28.0
+
   react-reconciler@0.34.0(react@19.3.0):
     dependencies:
       react: 19.3.0
       scheduler: 0.28.0
+
+  react-screenshots@0.6.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   react@19.3.0: {}
 

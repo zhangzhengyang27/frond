@@ -51,7 +51,6 @@ import type { InstalledPlugin } from '../main/launcher/pluginStore'
 import type { PermissionId, PermissionState, PermissionStatus } from '../main/ipc/permissions'
 import type { AutomationTaskView } from '../shared/automation'
 import type { McpCallResult, McpServerView } from '../main/services/mcp/client'
-import type { FrontmostContext } from '../main/utils/screenAwareness'
 import type { McpToolCommand } from './mcp'
 import type { McpOverview, McpServerPublic } from '../main/services/mcp/store'
 import type {
@@ -135,7 +134,6 @@ import type { FileSearchOptions } from '../main/modules/fileSearch'
 import type { BrowserTab } from '../main/services/BrowserTabsService'
 import type { DictionaryDefinition } from '../main/services/DictionaryService'
 import type { WindowInfo } from '../main/services/WindowSwitcherService'
-import type { RegionSelection } from '../main/services/recording/RegionOverlay'
 
 /** 插件运行上下文（plugapi:getContext 的字段从这里派生，避免第二次定义形状） */
 type PluginCtx = NonNullable<ReturnType<typeof getContextBySender>>
@@ -1197,8 +1195,6 @@ export interface IpcContract {
   'system:openPath': { req: { p: string }; res: boolean }
   'system:openExternal': { req: { url: string }; res: boolean }
   'system:frontmostApp': { req: void; res: string | null }
-  /** P-4⑤：前台应用 + 窗口标题（只到「标题」这一层，不抓屏、不动剪贴板） */
-  'system:frontmostContext': { req: void; res: FrontmostContext }
 
   'notification:show': {
     req: { type: NotificationType; title: string; body: string; options?: NotificationOptions }
@@ -1441,9 +1437,6 @@ export interface IpcContract {
 
   'windows:list': { req: void; res: WindowInfo[] }
   'windows:activate': { req: { pid: number; title: string }; res: boolean }
-
-  'region-overlay:submit': { req: { region: RegionSelection }; res: void }
-  'region-overlay:cancel': { req: void; res: void }
 
   'screen-recorder:getSources': {
     req: {

@@ -1111,12 +1111,6 @@ if (process.contextIsolated) {
   try {
     // 不暴露 @electron-toolkit/preload 的 electronAPI（含原始 ipcRenderer，通道名任意）
     contextBridge.exposeInMainWorld('api', api)
-    // PR-4: region overlay 专用桥（主窗口 / overlay 窗口均可使用）
-    contextBridge.exposeInMainWorld('regionOverlayAPI', {
-      submit: (region: { x: number; y: number; width: number; height: number }) =>
-        typedInvoke('region-overlay:submit', { region }),
-      cancel: () => typedInvoke('region-overlay:cancel')
-    })
     // PR-4: cursor 位置推送（main → renderer 单向事件）
     // 用 window.dispatchEvent 把 IPC 消息桥到 DOM CustomEvent，
     // 因为 contextBridge 不能直接 expose ipcRenderer.on。

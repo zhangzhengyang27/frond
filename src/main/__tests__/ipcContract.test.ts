@@ -114,7 +114,6 @@ function collectPreloadUsedChannels(): Set<string> {
   return used
 }
 
-
 /** 收集目录下所有 .ts 文件 */
 function walkTsFiles(dir: string): string[] {
   const out: string[] = []
@@ -276,6 +275,9 @@ describe('IPC contract (E2E 烟雾测试)', () => {
       'app:openCommandPalette',
       'app:openSettings',
       'app:openAbout',
+      // 这两条同样经 appMenu 的 sendToRenderer 转发（静态扫不到 send 的字面量）
+      'app:goHome',
+      'pomodoro:focusProject',
       'ai:stream-chunk',
       'clip:exportProgress',
       'cursor:position',

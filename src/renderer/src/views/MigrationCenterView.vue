@@ -1,82 +1,84 @@
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
-~~~ 第 30 行未留存 ~~~
-~~~ 第 31 行未留存 ~~~
-~~~ 第 32 行未留存 ~~~
-~~~ 第 33 行未留存 ~~~
-~~~ 第 34 行未留存 ~~~
-~~~ 第 35 行未留存 ~~~
-~~~ 第 36 行未留存 ~~~
-~~~ 第 37 行未留存 ~~~
-~~~ 第 38 行未留存 ~~~
-~~~ 第 39 行未留存 ~~~
-~~~ 第 40 行未留存 ~~~
-~~~ 第 41 行未留存 ~~~
-~~~ 第 42 行未留存 ~~~
-~~~ 第 43 行未留存 ~~~
-~~~ 第 44 行未留存 ~~~
-~~~ 第 45 行未留存 ~~~
-~~~ 第 46 行未留存 ~~~
-~~~ 第 47 行未留存 ~~~
-~~~ 第 48 行未留存 ~~~
-~~~ 第 49 行未留存 ~~~
-~~~ 第 50 行未留存 ~~~
-~~~ 第 51 行未留存 ~~~
-~~~ 第 52 行未留存 ~~~
-~~~ 第 53 行未留存 ~~~
-~~~ 第 54 行未留存 ~~~
-~~~ 第 55 行未留存 ~~~
-~~~ 第 56 行未留存 ~~~
-~~~ 第 57 行未留存 ~~~
-~~~ 第 58 行未留存 ~~~
-~~~ 第 59 行未留存 ~~~
-~~~ 第 60 行未留存 ~~~
-~~~ 第 61 行未留存 ~~~
-~~~ 第 62 行未留存 ~~~
-~~~ 第 63 行未留存 ~~~
-~~~ 第 64 行未留存 ~~~
-~~~ 第 65 行未留存 ~~~
-~~~ 第 66 行未留存 ~~~
-~~~ 第 67 行未留存 ~~~
-~~~ 第 68 行未留存 ~~~
-~~~ 第 69 行未留存 ~~~
-~~~ 第 70 行未留存 ~~~
-~~~ 第 71 行未留存 ~~~
-~~~ 第 72 行未留存 ~~~
-~~~ 第 73 行未留存 ~~~
-~~~ 第 74 行未留存 ~~~
-~~~ 第 75 行未留存 ~~~
-~~~ 第 76 行未留存 ~~~
-~~~ 第 77 行未留存 ~~~
-~~~ 第 78 行未留存 ~~~
-~~~ 第 79 行未留存 ~~~
+<!-- 2026-09-23 重建：原文件被截断，仅存 133 行真实代码（脚本主体），脚本头部与模板为重建 -->
+<script setup lang="ts">
+/**
+ * Leaf · 数据迁移中心
+ *
+ * SettingsView 之外的「数据治理」专属页，让用户对所有持久化数据有完整掌控：
+ * - 导出 / 导入 / 恢复出厂：leaf.db 整体备份还原
+ * - legacy-backup：旧 electron-store JSON 归档的时间线，可还原 / 删除
+ *
+ * 危险操作走应用内二次确认（UModal），不用原生 window.confirm。
+ * 待核：以下 state / requestConfirm / fmtSize 由存留调用反推（结构与同名早期副本一致）
+ */
+import { computed, onMounted, ref } from 'vue'
+import AppIcon from '@components/AppIcon.vue'
+import UButton from '@components/ui/UButton.vue'
+import UEmpty from '@components/ui/UEmpty.vue'
+import UModal from '@components/ui/UModal.vue'
+
+interface ArchiveInfo {
+  /** archive 目录的绝对路径 */
+  path: string
+  /** 时间戳（与目录名一致，ISO 格式） */
+  ts: string
+  /** 每个 JSON 文件名 + 字节数 */
+  files: Array<{ name: string; size: number }>
+  /** 目录总字节数 */
+  totalSize: number
+}
+
+const archives = ref<ArchiveInfo[]>([])
+const loading = ref(false)
+const busyKey = ref<string | null>(null)
+const lastMessage = ref<{ kind: 'ok' | 'err'; text: string } | null>(null)
+
+// ---- 应用内二次确认（替代 window.confirm）----
+interface ConfirmRequest {
+  title: string
+  body: string
+  confirmLabel: string
+  variant: 'primary' | 'danger'
+  action: () => Promise<void>
+}
+
+const pendingConfirm = ref<ConfirmRequest | null>(null)
+const confirming = ref(false)
+
+const confirmVisible = computed({
+  get: () => pendingConfirm.value !== null,
+  set: (open: boolean) => {
+    if (!open) pendingConfirm.value = null
+  }
+})
+
+function requestConfirm(
+  title: string,
+  body: string,
+  confirmLabel: string,
+  action: () => Promise<void>,
+  variant: 'primary' | 'danger' = 'danger'
+): void {
+  pendingConfirm.value = { title, body, confirmLabel, variant, action }
+}
+
+async function runConfirmed(): Promise<void> {
+  const req = pendingConfirm.value
+  if (!req) return
+  confirming.value = true
+  try {
+    await req.action()
+  } finally {
+    confirming.value = false
+    pendingConfirm.value = null
+  }
+}
+
+function fmtSize(b: number): string {
+  if (b < 1024) return `${b} B`
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`
+  return `${(b / 1024 / 1024).toFixed(2)} MB`
+}
+
 function fmtTs(ts: string): string {
   // ts 形如 "2026-07-26T10-30-00-000Z"，替换 - 为 : 让 Date 能解析
   const normalized = ts.replace(/T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z$/, 'T$1:$2:$3.$4Z')
@@ -89,9 +91,9 @@ function fmtTs(ts: string): string {
 const totalArchiveBytes = computed(() => archives.value.reduce((sum, a) => sum + a.totalSize, 0))
 
 async function loadArchives(): Promise<void> {
-~~~ 第 92 行未留存 ~~~
-~~~ 第 93 行未留存 ~~~
-~~~ 第 94 行未留存 ~~~
+  loading.value = true
+  try {
+    archives.value = await window.api.migration.listArchives()
   } catch (e) {
     lastMessage.value = { kind: 'err', text: `读取归档失败：${(e as Error).message}` }
   } finally {
@@ -212,3 +214,125 @@ async function doDeleteArchive(a: ArchiveInfo): Promise<void> {
 
 function onDeleteArchive(a: ArchiveInfo): void {
   requestConfirm('删除归档', `删除归档 ${fmtTs(a.ts)}？该操作不可撤销。`, '删除', () =>
+    doDeleteArchive(a)
+  )
+}
+</script>
+
+<template>
+  <div class="mx-auto w-full max-w-[760px] px-10 py-12">
+    <header class="mb-8">
+      <h1 class="text-xl font-semibold tracking-tight text-fg-primary">数据迁移中心</h1>
+      <p class="mt-1 text-sm leading-relaxed text-fg-secondary">
+        导出 / 导入整库、恢复出厂，以及旧版 JSON 归档的时间线。危险操作会先在这里二次确认。
+      </p>
+    </header>
+
+    <p
+      v-if="lastMessage"
+      class="mb-6 rounded-md border px-4 py-3 text-sm"
+      :class="
+        lastMessage.kind === 'ok'
+          ? 'border-line-subtle bg-surface-1 text-fg-secondary'
+          : 'border-danger/30 bg-danger/5 text-danger'
+      "
+    >
+      {{ lastMessage.text }}
+    </p>
+
+    <!-- 整库备份还原 -->
+    <section class="mb-10">
+      <h2 class="mb-3 text-xs font-medium tracking-wider text-fg-muted uppercase">SQLite 整库</h2>
+      <div
+        class="flex flex-wrap items-center gap-2 rounded-lg border border-line-subtle bg-surface-1 p-5 shadow-sm"
+      >
+        <UButton :loading="busyKey === 'export'" @click="onExport">
+          <AppIcon icon="ri-download-line" :size="14" />
+          <span>导出数据库</span>
+        </UButton>
+        <UButton variant="secondary" :loading="busyKey === 'import'" @click="onImport">
+          <AppIcon icon="ri-upload-line" :size="14" />
+          <span>导入数据库</span>
+        </UButton>
+        <UButton variant="danger" :loading="busyKey === 'reset'" @click="onFactoryReset">
+          <AppIcon icon="ri-delete-bin-line" :size="14" />
+          <span>恢复出厂</span>
+        </UButton>
+        <span class="ml-auto text-xs text-fg-muted">导入与恢复出厂后应用会自动重启</span>
+      </div>
+    </section>
+
+    <!-- 旧版归档时间线 -->
+    <section>
+      <div class="mb-3 flex items-center gap-3">
+        <h2 class="text-xs font-medium tracking-wider text-fg-muted uppercase">
+          旧版 JSON 归档（{{ archives.length }}）
+        </h2>
+        <span v-if="archives.length" class="text-xs text-fg-faint">
+          共 {{ fmtSize(totalArchiveBytes) }}
+        </span>
+        <button
+          class="ml-auto flex items-center gap-1 text-xs text-fg-secondary hover:text-fg-primary"
+          type="button"
+          :disabled="loading"
+          @click="loadArchives"
+        >
+          <AppIcon icon="ri-refresh-line" :size="13" />
+          <span>重新扫描</span>
+        </button>
+      </div>
+
+      <div
+        class="rounded-lg border border-line-subtle bg-surface-1 p-5 shadow-sm"
+        :class="loading ? 'text-fg-muted' : ''"
+      >
+        <p v-if="loading" class="m-0 text-sm">扫描归档目录…</p>
+        <UEmpty v-else-if="archives.length === 0" title="没有待处理的旧版归档">
+          <template #icon>
+            <AppIcon icon="ri-archive-line" :size="22" />
+          </template>
+        </UEmpty>
+        <ul v-else class="m-0 flex list-none flex-col gap-2 p-0">
+          <li
+            v-for="a in archives"
+            :key="a.path"
+            class="flex items-center gap-3 rounded-md border border-line-subtle px-3 py-2.5"
+          >
+            <AppIcon icon="ri-folder-archive-line" :size="16" class="text-fg-tertiary" />
+            <div class="min-w-0 flex-1">
+              <p class="m-0 truncate text-sm text-fg-primary">{{ fmtTs(a.ts) }}</p>
+              <p class="m-0 mt-0.5 text-xs text-fg-muted">
+                {{ a.files.length }} 个文件 · {{ fmtSize(a.totalSize) }}
+              </p>
+            </div>
+            <UButton
+              size="sm"
+              :loading="busyKey === `restore-${a.path}`"
+              @click="onRestoreArchive(a)"
+            >
+              还原
+            </UButton>
+            <UButton size="sm" variant="ghost" @click="onDeleteArchive(a)">删除</UButton>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 二次确认 -->
+    <UModal v-model="confirmVisible" :title="pendingConfirm?.title || '确认操作'" size="sm">
+      <p class="text-sm leading-relaxed text-fg-secondary">{{ pendingConfirm?.body }}</p>
+      <template #footer>
+        <UButton variant="ghost" :disabled="confirming" @click="confirmVisible = false">
+          取消
+        </UButton>
+        <UButton
+          :variant="pendingConfirm?.variant === 'primary' ? 'primary' : 'danger'"
+          :loading="confirming"
+          @click="runConfirmed"
+        >
+          {{ pendingConfirm?.confirmLabel || '确认' }}
+        </UButton>
+      </template>
+    </UModal>
+  </div>
+</template>

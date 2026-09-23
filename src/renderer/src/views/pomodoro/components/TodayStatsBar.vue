@@ -1,3 +1,18 @@
+<template>
+  <!-- 待核：模板头部与 goal 条样式为 2026-09-23 重建（原件仅存 goal-fill 起的 4 行模板） -->
+  <div class="zf-stats-bar" :class="{ active: streak.activeToday }">
+    <div class="zf-stats-row">
+      <span class="zf-stat-item" :title="`最长连续 ${streak.longest} 天`">
+        <AppIcon icon="ri-fire-line" />
+        <span>连续专注 {{ streak.current }} 天</span>
+      </span>
+      <span class="zf-stat-item">
+        <AppIcon icon="ri-time-line" />
+        <span>今日 {{ focusMinutes }} 分钟</span>
+      </span>
+      <span class="zf-stat-item">{{ workCount }} / {{ DAILY_GOAL }} 个</span>
+    </div>
+    <div class="zf-stats-goal" :title="`今日目标 ${DAILY_GOAL} 个番茄`">
       <div class="zf-stats-goal-fill" :style="{ width: `${goalPct}%` }" />
     </div>
   </div>
@@ -57,3 +72,19 @@ const goalPct = computed(() => Math.min(100, (props.workCount / DAILY_GOAL) * 10
   color: var(--pomo-text-soft);
   white-space: nowrap;
 }
+
+.zf-stats-goal {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--pomo-surface-variant);
+  overflow: hidden;
+}
+
+.zf-stats-goal-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pomo-accent);
+  transition: width 0.2s;
+}
+</style>

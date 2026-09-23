@@ -78,3 +78,40 @@ const sizeCls: Record<string, string> = {
           <!-- 顶部 1px 内高光 -->
           <div
             class="pointer-events-none absolute inset-x-0 top-0 h-px bg-glass-highlight"
+            aria-hidden="true"
+          />
+          <header
+            v-if="title"
+            class="flex items-center justify-between gap-3 border-b border-line-default px-5 py-3.5"
+          >
+            <h2 class="truncate text-sm font-semibold text-fg-primary">{{ title }}</h2>
+            <button
+              type="button"
+              aria-label="关闭"
+              class="rounded-sm p-1 text-fg-muted transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary focus-visible:shadow-ring-focus focus-visible:outline-none"
+              @click="close"
+            >
+              <svg class="size-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </header>
+          <div class="max-h-[70vh] overflow-y-auto px-5 py-4">
+            <slot />
+          </div>
+          <footer
+            v-if="$slots.footer"
+            class="flex items-center justify-end gap-2 border-t border-line-default px-5 py-3.5"
+          >
+            <slot name="footer" />
+          </footer>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>

@@ -270,3 +270,34 @@ watch(isDark, (value) => {
           class="control-btn"
           title="下一页"
           @click="onPrevNext('next')"
+        >
+          <AppIcon icon="ri-arrow-right-line" />
+        </button>
+        <span v-if="showNavigation" class="page-indicator">
+          {{ currentIndex + 1 }} / {{ mdSnippetIds.length }}
+        </span>
+      </div>
+
+      <div class="controls-right">
+        <button
+          class="control-btn"
+          :class="{ active: isLaserPointerActive }"
+          title="激光笔（⌘/Ctrl + L）"
+          @click="toggleLaserPointer"
+        >
+          <AppIcon icon="ri-focus-2-line" />
+        </button>
+        <button class="control-btn" title="缩小" @click="onZoom('out')">
+          <AppIcon icon="ri-subtract-line" />
+        </button>
+        <span class="scale-display">{{ scaleToShow }}</span>
+        <button class="control-btn" title="放大" @click="onZoom('in')">
+          <AppIcon icon="ri-add-line" />
+        </button>
+      </div>
+    </div>
+
+    <!-- 待核：控制条右半与激光笔挂载点为重建（原件此处起丢失） -->
+    <LaserPointer :is-active="isLaserPointerActive" :offset-bottom="56" />
+  </div>
+</template>

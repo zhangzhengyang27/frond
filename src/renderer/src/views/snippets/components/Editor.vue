@@ -1097,3 +1097,419 @@ onMounted(() => {
             @change="(e) => updateTrigger((e.target as HTMLInputElement).value.trim())"
           />
           <span class="min-w-0 flex-1 truncate text-[11px] text-fg-faint">
+            <!-- 待核：以下 416 行模板与样式由 2026-09-23 按同文件较早副本（_recovery-partials/zcode-older）回填，本 revision 若在此区间另有改动需人工比对 -->
+            在任意应用键入该关键词再按空格/回车即展开第一块内容；支持占位符
+            <code class="font-mono">{date}</code>
+            <code class="font-mono">{time}</code>
+            <code class="font-mono">{clipboard}</code>（需在启动器管理页开启）
+          </span>
+        </div>
+      </div>
+
+      <!-- 描述区域 -->
+      <div
+        v-if="isShowDescription || snippet?.description"
+        class="border-b border-line-subtle bg-surface-0 px-4 py-2.5"
+      >
+        <textarea
+          :value="snippet?.description || ''"
+          class="max-h-[200px] min-h-[60px] w-full resize-none border-none bg-transparent font-sans text-[13px] leading-relaxed text-fg-secondary outline-none placeholder:text-fg-muted"
+          placeholder="添加描述…"
+          @blur="(e) => updateDescription((e.target as HTMLTextAreaElement).value)"
+        />
+      </div>
+
+      <!-- 标签区域 -->
+      <div class="border-b border-line-subtle bg-surface-0 px-4 py-2.5">
+        <TagInput
+          :model-value="snippetTags"
+          :suggestions="allTags"
+          @update:model-value="updateTags"
+        />
+      </div>
+
+      <!-- 代码块标签栏 -->
+      <div
+        v-if="snippet?.contents && snippet.contents.length > 1"
+        class="scrollbar-thin flex items-center gap-1 overflow-x-auto border-b border-line-subtle bg-surface-0 px-4 py-2"
+      >
+        <div
+          v-for="(content, index) in snippet.contents"
+          :key="content.id || index"
+          class="group flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 transition-all duration-fast"
+          :class="
+            currentContentIndex === index
+              ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+              : 'border-transparent text-fg-secondary hover:bg-surface-hover hover:text-fg-primary'
+          "
+          @click="switchContent(index)"
+          @contextmenu.prevent="(e) => showTabContextMenu(e, index)"
+        >
+          <input
+            v-if="editingTabIndex === index"
+            :value="content.label"
+            :class="`tab-label-input tab-label-input-${index}`"
+            @click.stop
+            @blur="
+              (e) => {
+                updateContentLabel(index, (e.target as HTMLInputElement).value)
+                endEditTab()
+              }
+            "
+            @keydown.esc="endEditTab"
+            @keydown.enter="(e) => (e.target as HTMLInputElement).blur()"
+          />
+          <span v-else class="cursor-text select-none text-xs" @dblclick.stop="startEditTab(index)">
+            {{ content.label }}
+          </span>
+          <button
+            v-if="snippet.contents.length > 1"
+            type="button"
+            class="flex size-4 items-center justify-center rounded-sm text-fg-muted transition-colors duration-fast hover:bg-surface-active hover:text-fg-primary"
+            @click.stop="removeContent(index)"
+          >
+            <AppIcon icon="ri-close-line" :size="12" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab 右键菜单 -->
+      <div
+        v-if="showContextMenu"
+        class="fixed z-[1000] min-w-36 overflow-hidden rounded-md border border-line-subtle bg-surface-3 py-1 shadow-lg"
+        :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
+        @click.stop
+      >
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] text-fg-secondary transition-colors duration-instant hover:bg-surface-hover hover:text-fg-primary"
+          @click="handleRenameTab"
+        >
+          <AppIcon icon="ri-edit-line" :size="14" />
+          <span>重命名</span>
+        </button>
+        <div class="my-1 h-px bg-line-subtle" />
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] text-danger transition-colors duration-instant hover:bg-danger/8"
+          @click="handleDeleteTab"
+        >
+          <AppIcon icon="ri-delete-bin-line" :size="14" />
+          <span>删除</span>
+        </button>
+      </div>
+
+      <!-- 编辑器区域 -->
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <!-- 代码预览 -->
+        <div
+          v-if="isShowCodePreview && hasPreviewContent && snippet"
+          class="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <CodePreview :snippet="snippet" @close="isShowCodePreview = false" />
+        </div>
+
+        <!-- Markdown 预览 -->
+        <div
+          v-else-if="isShowMarkdown && hasMarkdownContent"
+          class="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <MarkdownPreview :content="selectedSnippetContent" @close="isShowMarkdown = false" />
+        </div>
+
+        <!-- JSON 可视化 -->
+        <div
+          v-else-if="isShowJsonVisualizer && hasJsonContent"
+          class="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <JsonVisualizer
+            :content="
+              selectedSnippetContent
+                ? {
+                    id: selectedSnippetContent.id,
+                    label: selectedSnippetContent.label,
+                    value: selectedSnippetContent.value,
+                    language: selectedSnippetContent.language
+                  }
+                : null
+            "
+            @close="isShowJsonVisualizer = false"
+          />
+        </div>
+
+        <!-- 代码截图 -->
+        <div v-else-if="isShowCodeScreenshot" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <CodeScreenshot
+            :content="
+              selectedSnippetContent
+                ? {
+                    id: selectedSnippetContent.id,
+                    label: selectedSnippetContent.label,
+                    value: selectedSnippetContent.value,
+                    language: selectedSnippetContent.language
+                  }
+                : null
+            "
+            @close="isShowCodeScreenshot = false"
+          />
+        </div>
+
+        <!-- 编辑器 -->
+        <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <!-- 搜索框 -->
+          <div
+            v-if="searchQuery || isFocusedSearch"
+            class="flex items-center gap-2 border-b border-line-subtle bg-surface-0 px-4 py-2"
+          >
+            <!-- 保持原生 input：脚本通过 searchInputRef 调 focus()/select()，
+                 换成组件实例后 ref 不再指向 DOM 元素会导致聚焦失效 -->
+            <input
+              ref="searchInputRef"
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索…"
+              class="h-8 min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-3 text-[13px] text-fg-primary outline-none transition-all duration-fast focus-visible:border-brand-500/50 focus-visible:shadow-ring-focus"
+              @blur="isFocusedSearch = false"
+              @keydown.esc="clearSearch"
+            />
+            <button
+              type="button"
+              class="flex size-8 shrink-0 items-center justify-center rounded-md text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+              @click="clearSearch"
+            >
+              <AppIcon icon="ri-close-line" :size="16" />
+            </button>
+          </div>
+
+          <div v-if="selectedSnippetContent" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <!-- 工具条 -->
+            <div
+              class="flex flex-wrap items-center gap-1.5 border-b border-line-subtle bg-surface-0 px-4 py-2"
+            >
+              <USelect
+                :model-value="selectedSnippetContent.language"
+                :options="languageOptions"
+                class="w-36"
+                @update:model-value="updateLanguage(String($event))"
+              />
+
+              <USelect
+                :model-value="selectedSnippetContent.contentType ?? 'text'"
+                :options="[
+                  { label: '纯文本', value: 'text' },
+                  { label: '富文本 (HTML)', value: 'rich' }
+                ]"
+                class="w-36"
+                @update:model-value="updateContentType($event as 'text' | 'rich')"
+              />
+
+              <div
+                class="flex items-center gap-1 rounded-md border border-line-subtle bg-surface-1 px-1 py-0.5"
+              >
+                <button
+                  type="button"
+                  title="减小字体"
+                  class="flex size-6 items-center justify-center rounded-sm text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+                  @click="decreaseFontSize"
+                >
+                  <AppIcon icon="ri-subtract-line" :size="14" />
+                </button>
+                <span class="min-w-8 text-center font-mono text-[11px] text-fg-secondary">
+                  {{ settings.fontSize }}px
+                </span>
+                <button
+                  type="button"
+                  title="增大字体"
+                  class="flex size-6 items-center justify-center rounded-sm text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+                  @click="increaseFontSize"
+                >
+                  <AppIcon icon="ri-add-line" :size="14" />
+                </button>
+              </div>
+
+              <div class="mx-1 h-5 w-px bg-line-subtle" />
+
+              <UTooltip content="代码预览" position="bottom">
+                <button
+                  v-if="hasPreviewContent"
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md border transition-colors duration-fast"
+                  :class="
+                    isShowCodePreview
+                      ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+                      : 'border-transparent text-fg-tertiary hover:bg-surface-hover hover:text-fg-primary'
+                  "
+                  @click="toggleCodePreview"
+                >
+                  <AppIcon icon="ri-eye-line" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="Markdown 预览" position="bottom">
+                <button
+                  v-if="hasMarkdownContent"
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md border transition-colors duration-fast"
+                  :class="
+                    isShowMarkdown
+                      ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+                      : 'border-transparent text-fg-tertiary hover:bg-surface-hover hover:text-fg-primary'
+                  "
+                  @click="toggleMarkdown"
+                >
+                  <AppIcon icon="ri-markdown-line" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="演示模式" position="bottom">
+                <button
+                  v-if="hasMarkdownContent"
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md border transition-colors duration-fast"
+                  :class="
+                    isShowMarkdownPresentation
+                      ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+                      : 'border-transparent text-fg-tertiary hover:bg-surface-hover hover:text-fg-primary'
+                  "
+                  @click="toggleMarkdownPresentation"
+                >
+                  <AppIcon icon="ri-slideshow-line" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="JSON 可视化" position="bottom">
+                <button
+                  v-if="hasJsonContent"
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md border transition-colors duration-fast"
+                  :class="
+                    isShowJsonVisualizer
+                      ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+                      : 'border-transparent text-fg-tertiary hover:bg-surface-hover hover:text-fg-primary'
+                  "
+                  @click="toggleJsonVisualizer"
+                >
+                  <AppIcon icon="ri-node-tree" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="代码截图" position="bottom">
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md border transition-colors duration-fast"
+                  :class="
+                    isShowCodeScreenshot
+                      ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+                      : 'border-transparent text-fg-tertiary hover:bg-surface-hover hover:text-fg-primary'
+                  "
+                  @click="toggleCodeScreenshot"
+                >
+                  <AppIcon icon="ri-image-line" :size="16" />
+                </button>
+              </UTooltip>
+
+              <div class="mx-1 h-5 w-px bg-line-subtle" />
+
+              <UTooltip content="切换主题" position="bottom">
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+                  @click="toggleTheme"
+                >
+                  <AppIcon :icon="isDark ? 'ri-sun-line' : 'ri-moon-line'" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="搜索 (⌘/Ctrl+F)" position="bottom">
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+                  @click="isFocusedSearch = true"
+                >
+                  <AppIcon icon="ri-search-line" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="格式化代码 (⌘/Ctrl+Shift+F)" position="bottom">
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+                  @click="formatCode"
+                >
+                  <AppIcon icon="ri-code-s-slash-line" :size="16" />
+                </button>
+              </UTooltip>
+              <UTooltip content="复制" position="bottom">
+                <button
+                  type="button"
+                  class="flex size-8 items-center justify-center rounded-md text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-primary"
+                  @click="copyCode"
+                >
+                  <AppIcon icon="ri-file-copy-line" :size="16" />
+                </button>
+              </UTooltip>
+            </div>
+
+            <div ref="editorRef" class="min-h-0 flex-1 overflow-hidden" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 底部状态栏 -->
+      <div
+        class="flex shrink-0 items-center justify-between border-t border-line-subtle bg-surface-0 px-4 py-2 text-xs text-fg-tertiary"
+      >
+        <span class="capitalize">{{ selectedSnippetContent?.language || 'Plain Text' }}</span>
+        <span class="font-mono">
+          行 {{ cursorPosition.row + 1 }}, 列 {{ cursorPosition.column + 1 }}
+        </span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+/* Tab 内联重命名输入框（宽度约束，其余样式走 token） */
+.tab-label-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  padding: 0;
+  min-width: 60px;
+  max-width: 120px;
+  color: inherit;
+}
+</style>
+
+<style>
+/* CodeMirror 容器：旧版写死 white !important，导致暗色主题下编辑器仍是白底
+   （主题切换只换了 CodeMirror 主题类，背景被这条规则覆盖）→ 改为跟随 token */
+.CodeMirror {
+  font-size: var(--editor-font-size, 14px);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  line-height: calc(var(--editor-font-size, 14px) * 1.5);
+  height: 100%;
+  background-color: var(--surface-1) !important;
+  color: var(--text-primary) !important;
+}
+
+.CodeMirror-gutters {
+  background-color: var(--surface-0) !important;
+  border-right: 1px solid var(--border-subtle) !important;
+}
+
+.CodeMirror-linenumber {
+  color: var(--text-muted) !important;
+}
+
+.CodeMirror-cursor {
+  border-left: 2px solid var(--text-primary) !important;
+  background-color: transparent !important;
+}
+
+.CodeMirror-selected {
+  background-color: var(--surface-active) !important;
+}
+
+.CodeMirror .cm-searching {
+  background-color: var(--warning) !important;
+  color: var(--surface-0) !important;
+  border-radius: 2px;
+  padding: 1px 2px;
+}
+</style>

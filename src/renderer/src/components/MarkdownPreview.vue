@@ -198,3 +198,4 @@ watch(isDark, (value) => {
   align-items: center;
   gap: 8px;
 }
+</style>

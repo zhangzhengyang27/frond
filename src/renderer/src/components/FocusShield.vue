@@ -4,13 +4,12 @@
       <div class="shield-icon">🍅</div>
       <div class="shield-title">专注时间</div>
       <p class="shield-text">
-        「<span class="shield-app">{{ appName }}</span>」在专注屏蔽清单中。
+        「<span class="shield-app">{{ appName }}</span
+        >」在专注屏蔽清单中。
       </p>
       <p class="shield-sub">切回其他应用遮罩会自动消失；也可以短暂放行。</p>
       <div class="shield-actions">
-        <button type="button" class="shield-btn primary" @click="allow">
-          放行 60 秒
-        </button>
+        <button type="button" class="shield-btn primary" @click="allow">放行 60 秒</button>
       </div>
       <div class="shield-hint">按 Esc 同样放行</div>
     </div>
@@ -68,3 +67,5 @@ onUnmounted(() => {
 .shield-card {
   text-align: center;
   padding: 48px 64px;
+}
+</style>

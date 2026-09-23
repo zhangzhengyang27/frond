@@ -53,3 +53,12 @@ const onChange = (e: Event): void => {
           :disabled="opt.disabled"
         >
           {{ opt.label }}
+        </option>
+      </select>
+      <i
+        class="ri-arrow-down-s-line pointer-events-none absolute right-3 text-base text-fg-muted"
+        aria-hidden="true"
+      />
+    </div>
+  </div>
+</template>

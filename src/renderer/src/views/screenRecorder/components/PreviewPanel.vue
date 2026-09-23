@@ -1,122 +1,109 @@
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
-~~~ 第 30 行未留存 ~~~
-~~~ 第 31 行未留存 ~~~
-~~~ 第 32 行未留存 ~~~
-~~~ 第 33 行未留存 ~~~
-~~~ 第 34 行未留存 ~~~
-~~~ 第 35 行未留存 ~~~
-~~~ 第 36 行未留存 ~~~
-~~~ 第 37 行未留存 ~~~
-~~~ 第 38 行未留存 ~~~
-~~~ 第 39 行未留存 ~~~
-~~~ 第 40 行未留存 ~~~
-~~~ 第 41 行未留存 ~~~
-~~~ 第 42 行未留存 ~~~
-~~~ 第 43 行未留存 ~~~
-~~~ 第 44 行未留存 ~~~
-~~~ 第 45 行未留存 ~~~
-~~~ 第 46 行未留存 ~~~
-~~~ 第 47 行未留存 ~~~
-~~~ 第 48 行未留存 ~~~
-~~~ 第 49 行未留存 ~~~
-~~~ 第 50 行未留存 ~~~
-~~~ 第 51 行未留存 ~~~
-~~~ 第 52 行未留存 ~~~
-~~~ 第 53 行未留存 ~~~
-~~~ 第 54 行未留存 ~~~
-~~~ 第 55 行未留存 ~~~
-~~~ 第 56 行未留存 ~~~
-~~~ 第 57 行未留存 ~~~
-~~~ 第 58 行未留存 ~~~
-~~~ 第 59 行未留存 ~~~
-~~~ 第 60 行未留存 ~~~
-~~~ 第 61 行未留存 ~~~
-~~~ 第 62 行未留存 ~~~
-~~~ 第 63 行未留存 ~~~
-~~~ 第 64 行未留存 ~~~
-~~~ 第 65 行未留存 ~~~
-~~~ 第 66 行未留存 ~~~
-~~~ 第 67 行未留存 ~~~
-~~~ 第 68 行未留存 ~~~
-~~~ 第 69 行未留存 ~~~
-~~~ 第 70 行未留存 ~~~
-~~~ 第 71 行未留存 ~~~
-~~~ 第 72 行未留存 ~~~
-~~~ 第 73 行未留存 ~~~
-~~~ 第 74 行未留存 ~~~
-~~~ 第 75 行未留存 ~~~
-~~~ 第 76 行未留存 ~~~
-~~~ 第 77 行未留存 ~~~
-~~~ 第 78 行未留存 ~~~
-~~~ 第 79 行未留存 ~~~
-~~~ 第 80 行未留存 ~~~
-~~~ 第 81 行未留存 ~~~
-~~~ 第 82 行未留存 ~~~
-~~~ 第 83 行未留存 ~~~
-~~~ 第 84 行未留存 ~~~
-~~~ 第 85 行未留存 ~~~
-~~~ 第 86 行未留存 ~~~
-~~~ 第 87 行未留存 ~~~
-~~~ 第 88 行未留存 ~~~
-~~~ 第 89 行未留存 ~~~
-~~~ 第 90 行未留存 ~~~
-~~~ 第 91 行未留存 ~~~
-~~~ 第 92 行未留存 ~~~
-~~~ 第 93 行未留存 ~~~
-~~~ 第 94 行未留存 ~~~
-~~~ 第 95 行未留存 ~~~
-~~~ 第 96 行未留存 ~~~
-~~~ 第 97 行未留存 ~~~
-~~~ 第 98 行未留存 ~~~
-~~~ 第 99 行未留存 ~~~
-~~~ 第 100 行未留存 ~~~
-~~~ 第 101 行未留存 ~~~
-~~~ 第 102 行未留存 ~~~
-~~~ 第 103 行未留存 ~~~
-~~~ 第 104 行未留存 ~~~
-~~~ 第 105 行未留存 ~~~
-~~~ 第 106 行未留存 ~~~
-~~~ 第 107 行未留存 ~~~
-~~~ 第 108 行未留存 ~~~
-~~~ 第 109 行未留存 ~~~
-~~~ 第 110 行未留存 ~~~
-~~~ 第 111 行未留存 ~~~
-~~~ 第 112 行未留存 ~~~
-~~~ 第 113 行未留存 ~~~
-~~~ 第 114 行未留存 ~~~
-~~~ 第 115 行未留存 ~~~
-~~~ 第 116 行未留存 ~~~
-~~~ 第 117 行未留存 ~~~
-~~~ 第 118 行未留存 ~~~
-~~~ 第 119 行未留存 ~~~
+<!-- 2026-09-23 重建：原文件被截断，仅存 39 行真实代码（脚本尾 + 空的 style 头），其余为重建 -->
+<template>
+  <div class="flex h-full flex-col gap-4 rounded-2xl bg-surface-1 p-6 shadow-lg">
+    <!-- 待核：模板与样式整体重建，绑定名一律取自存留脚本与 RecordPage 的传参 -->
+    <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+      <video
+        ref="previewVideoRef"
+        class="h-full w-full object-contain"
+        autoplay
+        muted
+        playsinline
+        @loadedmetadata="onVideoLoaded"
+        @error="onVideoError"
+      ></video>
+      <video
+        v-if="showPipCamera"
+        ref="pipCameraRef"
+        class="absolute bottom-3 right-3 w-32 rounded-lg object-cover shadow-lg"
+        autoplay
+        muted
+        playsinline
+      ></video>
+      <p
+        v-if="!hasPreview"
+        class="absolute inset-0 flex items-center justify-center text-sm text-white/70"
+      >
+        选择录制源后可在此预览
+      </p>
+      <div
+        v-if="isRecording"
+        class="preview-badge absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1 text-xs text-white"
+      >
+        <span
+          class="size-2 rounded-full"
+          :class="isPaused ? 'bg-yellow-400' : 'animate-pulse bg-red-500'"
+        />
+        <span>{{ isPaused ? '已暂停' : '录制中' }} {{ formatTime(recordingTime) }}</span>
+      </div>
+    </div>
+
+    <p v-if="showRecordingModeHint" class="m-0 text-xs text-gray-500">
+      区域录制：先在系统选区里拖出范围再开始；跨显示器录制要求各屏缩放一致。
+    </p>
+
+    <div class="mt-auto flex flex-wrap items-center gap-2">
+      <button
+        v-if="!isRecording"
+        class="rounded-lg bg-brand-500 px-5 py-2 text-sm text-white transition-colors hover:bg-brand-400 disabled:opacity-50"
+        type="button"
+        :disabled="!canRecord || loading"
+        @click="$emit('start-recording')"
+      >
+        开始录制
+      </button>
+      <button
+        v-else
+        class="rounded-lg bg-red-500 px-5 py-2 text-sm text-white transition-colors hover:bg-red-400"
+        type="button"
+        @click="$emit('stop-recording')"
+      >
+        停止录制
+      </button>
+      <button
+        v-if="isRecording"
+        class="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
+        type="button"
+        @click="$emit('toggle-pause')"
+      >
+        <AppIcon :icon="isPaused ? 'ri-play-line' : 'ri-pause-line'" />
+        <span>{{ isPaused ? '继续' : '暂停' }}</span>
+      </button>
+      <button
+        class="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+        type="button"
+        :disabled="isRecording"
+        @click="$emit('select-save-path')"
+      >
+        <AppIcon icon="ri-folder-line" />
+        <span>保存位置</span>
+      </button>
+      <button
+        class="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
+        type="button"
+        @click="$emit('open-settings')"
+      >
+        <AppIcon icon="ri-settings-3-line" />
+        <span>设置</span>
+      </button>
+      <span v-if="loading" class="flex items-center gap-1 text-xs text-gray-500">
+        <AppIcon icon="ri-loader-4-line" class="animate-spin" />
+        <span>准备中…</span>
+      </span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+/**
+ * PreviewPanel · 录屏预览与控制（RecordPage 中间列）
+ * 预览流由父组件经 defineExpose 的 previewVideoRef / pipCameraRef 直接挂 srcObject
+ */
+import { ref } from 'vue'
+import AppIcon from '@components/AppIcon.vue'
+
+interface Props {
+  hasPreview: boolean
   isRecording: boolean
   isPaused?: boolean // PR-3
   recordingTime: number
@@ -141,11 +128,11 @@ defineEmits<Emits>()
 const previewVideoRef = ref<HTMLVideoElement | null>(null)
 const pipCameraRef = ref<HTMLVideoElement | null>(null)
 
-const onVideoLoaded = () => {
-  // 视频加载完成
+const onVideoLoaded = (): void => {
+  // 原件此处丢失，没留下可依据的调用点：不猜行为，先只保住 @loadedmetadata 的绑定点
 }
 
-const onVideoError = (event: Event) => {
+const onVideoError = (event: Event): void => {
   console.error('视频元素错误:', event)
 }
 
@@ -154,4 +141,10 @@ defineExpose({
   previewVideoRef,
   pipCameraRef
 })
-</script><style scoped>
+</script>
+<style scoped>
+/* 2026-09-23 重建：原件样式未留存，以下仅覆盖本模板用到的类 */
+.preview-badge {
+  font-variant-numeric: tabular-nums;
+}
+</style>

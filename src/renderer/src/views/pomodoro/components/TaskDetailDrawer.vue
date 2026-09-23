@@ -357,3 +357,5 @@ function showExportResult(ok: boolean, msg: string): void {
 
 .drawer-title h2 {
   flex: 1;
+}
+</style>

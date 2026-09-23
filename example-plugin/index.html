@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>示例插件</title>
+  </head>
+  <body>
+    <script>
+      // 官方示例：四条命令各演示一类能力。写法与 plugins/ 下的内置插件一致
+      // （纯 ES5 脚本 + window.launcherApi），照着改就能起步。
+      var api = window.launcherApi
+      var currentCmd = 'list'
+      var prefs = { author: 'Leaf', theme: '原生质感', notifyOnCopy: true }
+
+      function item(o) {
+        return o
+      }
+
+      function listFor(cmd, subText) {
+        if (cmd === 'prefs') return prefsList()
+        if (cmd === 'net') return netList()
+        if (cmd === 'misc') return miscList()
+        return declarativeList(subText)
+      }
+
+      // ─── 1. 声明式列表：图标 / 副标题 / 配件 / 详情 / 三类动作 ───
+      function declarativeList(keyword) {
+        var rows = [
+          item({
+            title: 'copy 动作：交给宿主复制',
+            subtitle: 'actions[].type = "copy"，插件不经手剪贴板',
+            icon: 'file-copy-line',
+            accessories: ['copy'],
+            detail:
+              '宿主直接写剪贴板。适合「结果就是一段文本」的命令：\n颜色值、Base64、格式化后的 JSON。',
+            actions: [{ type: 'copy', payload: 'com.leaf.example 的复制内容' }]
+          }),
+          item({
+            title: 'open 动作：交给系统打开',
+            subtitle: 'actions[].type = "open"，URL 走浏览器、路径走默认程序',
+            icon: 'external-link',
+            accessories: ['open'],
+            detail: '需要 net 权限（openUrl 归到网络类，因为它把链接交给外部去取）。',
+            actions: [{ type: 'open', payload: 'https://github.com' }]
+          }),
+          item({
+            title: 'callback 动作：回到插件自己',
+            subtitle: 'actions[].type = "callback" → onAction({ item, action, … })',
+            icon: 'terminal-box-line',
+            keywords: ['callback', 'onaction'],
+            accessories: ['callback'],
+            detail: '下面这条会写一条本地存储，再把结果用 toast 报回来。',
+            actions: [{ label: '记一笔', type: 'callback', payload: 'ping' }]
+          })
+        ]
+        if (!keyword) return rows
+        var k = keyword.toLowerCase()
+        return rows.filter(function (r) {
+          return (
+            r.title.toLowerCase().indexOf(k) >= 0 ||
+            r.subtitle.toLowerCase().indexOf(k) >= 0 ||
+            (r.keywords || []).join(' ').toLowerCase().indexOf(k) >= 0
+          )
+        })
+      }
+
+      // ─── 2. 偏好：读、写、一次取回声明过的全部 ───
+      function prefsList() {
+        return [
+          item({
+            title: '当前作者名：' + prefs.author,
+            subtitle: 'api.preferences.get("author")',
+            icon: 'user-line',
+            detail:
+              '偏好键必须先在 plugin.json 的 preferences 里声明，否则 set 会报 preference not declared。',
+            actions: [{ label: '改成 Ada', type: 'callback', payload: 'author=Ada' }]
+          }),
+          item({
+            title: '当前主题：' + prefs.theme,
+            subtitle: 'select 类型，选项也在清单里声明',
+            icon: 'palette-line',
+            actions: [{ label: '换下一个', type: 'callback', payload: 'theme=cycle' }]
+          }),
+          item({
+            title: '复制后发通知：' + (prefs.notifyOnCopy ? '开' : '关'),
+            subtitle: 'checkbox 类型，值是 boolean',
+            icon: prefs.notifyOnCopy ? 'notification-3-line' : 'notification-off-line',
+            actions: [{ label: '切换', type: 'callback', payload: 'notify=toggle' }]
+          })
+        ]
+      }
+
+      // ─── 3. 网络：只有 api.fetch，且经宿主代理 ───
+      function netList() {
+        return [
+          item({
+            title: '请求 https://api.github.com/zen',
+            subtitle: 'api.fetch(url) → { ok, status, body, contentType }',
+            icon: 'cloud-line',
+            detail:
+              '红线：仅 http(s)；localhost / 内网 / 链路本地地址一律拒绝。\n' +
+              '返回体超限时 error 会说明，别把 fetch 当文件下载用。',
+            actions: [{ label: '发请求', type: 'callback', payload: 'fetch' }]
+          })
+        ]
+      }
+
+      // ─── 4. 通知 / 剪贴板 / 对话框 / 本地存储 ───
+      function miscList() {
+        return [
+          item({
+            title: '发一条系统通知',
+            subtitle: 'api.notify(body)，标题自动用插件名',
+            icon: 'notification-3-line',
+            actions: [{ type: 'callback', label: '发', payload: 'notify-now' }]
+          }),
+          item({
+            title: '把剪贴板内容存进本插件的库',
+            subtitle: 'readText() + db.put(id, data)：需 clipboard.read 权限',
+            icon: 'database-2-line',
+            actions: [{ type: 'callback', label: '存', payload: 'clip-save' }]
+          }),
+          item({
+            title: '看看本插件存了什么',
+            subtitle: 'db.list() 按更新时间倒序',
+            icon: 'list-check-2',
+            actions: [{ type: 'callback', label: '列', payload: 'db-list' }]
+          }),
+          item({
+            title: '弹一个宿主原生对话框',
+            subtitle: 'api.alert({ title, message, actions }) → 选中项或 null',
+            icon: 'chat-check-line',
+            actions: [{ type: 'callback', label: '弹', payload: 'alert' }]
+          })
+        ]
+      }
+
+      function render() {
+        var rows = listFor(currentCmd, subText)
+        if (!rows.length) {
+          api.renderList([
+            item({
+              title: '没有匹配项',
+              subtitle: '换个关键词，或从 ⌘K 重新进这条命令',
+              icon: 'search-line'
+            })
+          ])
+          return
+        }
+        api.renderList(rows)
+      }
+
+      var subText = ''
+
+      api.onEnter(function (data) {
+        currentCmd = (data && data.cmd) || 'list'
+        subText = ''
+        api.preferences.all().then(function (res) {
+          if (res && res.ok && res.values) {
+            prefs = res.values
+            prefs.notifyOnCopy = prefs.notifyOnCopy !== false
+          }
+        })
+        api.setSubInput(
+          currentCmd === 'list' ? '过滤示例条目…' : '这条命令不需要输入，直接回车执行'
+        )
+        render()
+      })
+
+      api.onSubInputChange(function (data) {
+        subText = data && typeof data.text === 'string' ? data.text : ''
+        render()
+      })
+
+      api.onAction(function (data) {
+        var payload = (data && data.action && data.action.payload) || ''
+        var title = (data && data.item && data.item.title) || ''
+
+        if (payload.indexOf('author=') === 0) {
+          var name = payload.slice('author='.length)
+          api.preferences.set('author', name).then(function () {
+            prefs.author = name
+            api.notify('作者名已改为 ' + name)
+            render()
+          })
+          return
+        }
+        if (payload === 'theme=cycle') {
+          var all = ['原生质感', '高对比', '护眼']
+          var next = all[(all.indexOf(prefs.theme) + 1) % all.length]
+          api.preferences.set('theme', next).then(function () {
+            prefs.theme = next
+            render()
+          })
+          return
+        }
+        if (payload === 'notify=toggle') {
+          prefs.notifyOnCopy = !prefs.notifyOnCopy
+          api.preferences.set('notifyOnCopy', prefs.notifyOnCopy).then(render)
+          return
+        }
+        if (payload === 'ping') {
+          api.db.put('ping-' + Date.now(), { from: '示例插件', title: title })
+          api.notify('已写入本插件存储')
+          return
+        }
+        if (payload === 'fetch') {
+          api.fetch('https://api.github.com/zen').then(function (res) {
+            if (!res || !res.ok) {
+              api.notify('请求失败：' + ((res && res.error) || '未知原因'))
+              return
+            }
+            api.copyText(String(res.body).trim()).then(function (ok) {
+              if (ok && prefs.notifyOnCopy) api.notify('已复制：' + String(res.body).trim())
+              else if (ok) api.notify('已复制到剪贴板')
+            })
+          })
+          return
+        }
+        if (payload === 'notify-now') {
+          api.notify('这条通知来自示例插件')
+          return
+        }
+        if (payload === 'clip-save') {
+          api.readText().then(function (text) {
+            if (!text) {
+              api.notify('剪贴板是空的')
+              return
+            }
+            api.db.put('clip-' + Date.now(), { text: text }).then(function () {
+              api.notify('已存入本插件存储')
+            })
+          })
+          return
+        }
+        if (payload === 'db-list') {
+          api.db.list().then(function (rows) {
+            api.renderList(
+              (rows || []).slice(0, 20).map(function (row, i) {
+                return item({
+                  title: '记录 ' + (i + 1),
+                  subtitle: JSON.stringify(row.data).slice(0, 120),
+                  icon: 'file-list-line',
+                  actions: [{ type: 'copy', payload: JSON.stringify(row.data) }]
+                })
+              })
+            )
+          })
+          return
+        }
+        if (payload === 'alert') {
+          api
+            .alert({
+              title: '示例插件',
+              message: '这是宿主原生对话框，不是 window.confirm',
+              actions: ['好', '算了']
+            })
+            .then(function (choice) {
+              api.notify(choice ? '你点了「' + choice + '」' : '已取消')
+            })
+        }
+      })
+    </script>
+  </body>
+</html>

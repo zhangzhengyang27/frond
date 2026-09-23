@@ -1,0 +1,52 @@
+{
+  "id": "com.leaf.example",
+  "name": "示例插件",
+  "version": "0.1.0",
+  "description": "官方示例：声明式列表 / 偏好设置 / 受控 API 全演示",
+  "author": "Leaf",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "list",
+      "title": "声明式列表",
+      "description": "用 renderList 交给宿主渲染：图标、副标题、配件、详情面板与三类动作"
+    },
+    {
+      "code": "prefs",
+      "title": "偏好设置",
+      "description": "读取并修改 plugin.json 里声明的偏好（preferences.get / set / all）"
+    },
+    {
+      "code": "net",
+      "title": "网络请求",
+      "description": "经宿主代理发一次 https 请求（api.fetch，需 net 权限）"
+    },
+    {
+      "code": "misc",
+      "title": "通知与剪贴板",
+      "description": "系统通知、读写剪贴板、原生对话框与本地存储"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "author",
+      "label": "列表里显示的作者名",
+      "type": "text",
+      "default": "Leaf"
+    },
+    {
+      "name": "theme",
+      "label": "示例主题",
+      "type": "select",
+      "default": "原生质感",
+      "options": ["原生质感", "高对比", "护眼"]
+    },
+    {
+      "name": "notifyOnCopy",
+      "label": "复制后发系统通知",
+      "type": "checkbox",
+      "default": true
+    }
+  ],
+  "permissions": ["clipboard.read", "clipboard.write", "net"]
+}

@@ -7,7 +7,7 @@ const app = await electron.launch({
   env: {
     ...process.env,
     ELECTRON_RUN_AS_NODE: '',
-    LEAF_USER_DATA_DIR: join(ROOT, 'test-results', 'probe-userdata')
+    FROND_USER_DATA_DIR: join(ROOT, 'test-results', 'probe-userdata')
   }
 })
 const ctx = app.context()

@@ -16,6 +16,7 @@
  */
 
 import { app } from 'electron'
+import type Database from 'better-sqlite3'
 import { join } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
 import { database } from './database'
@@ -107,8 +108,7 @@ export function runDataMigrations(): MigrationResult {
     .prepare('SELECT value FROM leaf_meta WHERE key = ?')
     .get('data_migration_v1') as { value: string } | undefined
   const v2Done = db.prepare('SELECT value FROM leaf_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   // 两段都完成才跳过；任一段上次因导入失败未标记，本次都要补跑
   // （importMany 均为 ON CONFLICT(id) DO UPDATE，重跑幂等）
   if (v1Done?.value === 'done' && v2Done?.value === 'done') {
@@ -309,8 +309,12 @@ export function runDataMigrations(): MigrationResult {
       `errors=${result.errors.length}`
   )
 
-  // electron-store 双栈收尾：别名域迁 SQLite（config.json 其余键仍在用，只读不归档）
+  // electron-store 双栈收尾：这几个域迁 SQLite（config.json 其余键仍在用，只读不归档）
   migrateAliasesFromLegacyStore()
+  migrateAiFromLegacyStore()
+  migrateClipsFromLegacyStore()
+  migrateRecordingSettingsFromLegacyStore()
+  migrateMarkersFromLegacyStore()
 
   return result
 }
@@ -362,3 +366,159 @@ export function migrateAliasesFromLegacyStore(): void {
   }
 }
 
+/** 幂等标志位前缀：每个域一个键，跑成功才落，失败下次启动重试 */
+const LEGACY_MIGRATION_KEYS = {
+  ai: 'data_migration_ai',
+  clips: 'data_migration_clips',
+  recordingSettings: 'data_migration_recording_settings',
+  markers: 'data_migration_markers'
+} as const
+
+/** 读 <userData>/<file> 的 JSON；文件不存在或坏了都返回 undefined（按无旧数据处理） */
+function readLegacyJson(file: string, key?: string): unknown {
+  try {
+    const raw = readFileSync(join(app.getPath('userData'), file), 'utf-8')
+    const parsed = JSON.parse(raw) as unknown
+    return key === undefined ? parsed : (parsed as Record<string, unknown>)[key]
+  } catch {
+    return undefined
+  }
+}
+
+function readMigrationFlag(db: Database.Database, key: string): boolean {
+  return (
+    (db.prepare('SELECT value FROM leaf_meta WHERE key = ?').get(key) as
+      { value: string } | undefined) !== undefined
+  )
+}
+
+function writeMigrationFlag(db: Database.Database, key: string): void {
+  db.prepare(
+    `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
+  ).run(key, 'done', Date.now())
+}
+
+/**
+ * AI 配置与会话：electron-store config.json 的 `ai.config` / `ai.sessions` → pref_preferences。
+ * **密文原样搬运**：apiKey 存的就是 `enc:` 开头的密文，这里不解密也不重加密
+ * （解密要用本机 .leaf-key，两台机器之间搬不动）。
+ */
+export function migrateAiFromLegacyStore(): void {
+  const db = database.handle
+  try {
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+    )
+    if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.ai)) return
+    const legacy = readLegacyJson('config.json') as Record<string, unknown> | undefined
+    if (legacy && typeof legacy === 'object') {
+      for (const key of ['ai.config', 'ai.sessions']) {
+        if (legacy[key] === undefined) continue
+        // 现值优先：用户已经在本机配过就不动他的
+        if (prefRepository.get(key) === null) prefRepository.set(key, JSON.stringify(legacy[key]))
+      }
+      log.info('dataMigration', 'ai config/sessions imported from legacy electron-store')
+    }
+    writeMigrationFlag(db, LEGACY_MIGRATION_KEYS.ai)
+  } catch (e) {
+    log.warn('dataMigration', `ai migration failed: ${(e as Error).message}`)
+  }
+}
+
+/**
+ * 录屏片段（clips）：`clips.json`（Record<videoId, Clip[]>）整坨搬进 pref "clips"。
+ * 结构由消费方自己解释，这里不摊平 —— 摊平一次就要维护两套形状。
+ */
+export function migrateClipsFromLegacyStore(): void {
+  const db = database.handle
+  try {
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+    )
+    if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.clips)) return
+    const legacy = readLegacyJson('clips.json')
+    if (legacy !== undefined && prefRepository.get('clips') === null) {
+      prefRepository.set('clips', JSON.stringify(legacy))
+      log.info('dataMigration', 'clips imported from legacy clips.json')
+    }
+    writeMigrationFlag(db, LEGACY_MIGRATION_KEYS.clips)
+  } catch (e) {
+    log.warn('dataMigration', `clips migration failed: ${(e as Error).message}`)
+  }
+}
+
+/**
+ * 录屏设置：`recording-settings.json` 的 `settings` → pref "recording.settings"。
+ * **整份搬而不是按 repo 投影挑字段**：旧文件里有 audioCodec / systemAudio 等
+ * RecordingSettingsDataStore 不认的项，挑着搬就等于把这些设置静默丢掉。
+ */
+export function migrateRecordingSettingsFromLegacyStore(): void {
+  const db = database.handle
+  try {
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+    )
+    if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.recordingSettings)) return
+    const file = readLegacyJson('recording-settings.json') as { settings?: unknown } | undefined
+    const settings = file && typeof file === 'object' ? file.settings : undefined
+    if (settings !== undefined && prefRepository.get('recording.settings') === null) {
+      prefRepository.set('recording.settings', JSON.stringify(settings))
+      log.info('dataMigration', 'recording settings imported from legacy recording-settings.json')
+    }
+    writeMigrationFlag(db, LEGACY_MIGRATION_KEYS.recordingSettings)
+  } catch (e) {
+    log.warn('dataMigration', `recording settings migration failed: ${(e as Error).message}`)
+  }
+}
+
+/**
+ * 时间标记：`markers.json`（`Record<recordingId, Marker[]>`，timestamp 单位**秒**）
+ * → `rec_markers` 表（time_ms 单位**毫秒**）。
+ * - id 原样保留（片段/标记之间靠它互相引用）
+ * - recordingId 缺失时用外层 key；label 空串按 null 存（列表渲染时不显示空标签）
+ * - 幂等靠 leaf_meta 标志：表里没有可判「是不是旧数据」的字段，只能记账
+ */
+export function migrateMarkersFromLegacyStore(): void {
+  const db = database.handle
+  try {
+    db.exec(
+      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+    )
+    if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.markers)) return
+    const legacy = readLegacyJson('markers.json') as
+      Record<string, Array<Record<string, unknown>>> | undefined
+    if (legacy && typeof legacy === 'object') {
+      const insert = db.prepare(
+        `INSERT OR IGNORE INTO rec_markers (id, recording_id, time_ms, label, color, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      let n = 0
+      const tx = db.transaction(() => {
+        for (const [recordingId, list] of Object.entries(legacy)) {
+          if (!Array.isArray(list)) continue
+          for (const m of list) {
+            const id = typeof m.id === 'string' ? m.id : ''
+            if (!id) continue
+            const seconds = Number(m.timestamp ?? 0)
+            if (!Number.isFinite(seconds)) continue
+            insert.run(
+              id,
+              typeof m.recordingId === 'string' && m.recordingId ? m.recordingId : recordingId,
+              Math.round(seconds * 1000),
+              typeof m.label === 'string' && m.label !== '' ? m.label : null,
+              typeof m.color === 'string' ? m.color : null,
+              Date.now()
+            )
+            n++
+          }
+        }
+      })
+      tx()
+      if (n > 0) log.info('dataMigration', `${n} markers imported from legacy markers.json`)
+    }
+    writeMigrationFlag(db, LEGACY_MIGRATION_KEYS.markers)
+  } catch (e) {
+    log.warn('dataMigration', `markers migration failed: ${(e as Error).message}`)
+  }
+}

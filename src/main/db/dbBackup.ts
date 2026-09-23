@@ -20,8 +20,9 @@ import { log } from '../services/LogService'
 /**
  * 校验文件是可用的 SQLite 库：魔数头 + quick_check。
  * 返回 null 表示通过，否则返回人话错误信息。
+ * 导出给云端整库还原用：坏备份在换库前就该拦下，而不是重启后才发现。
  */
-function validateSqliteFile(src: string): string | null {
+export function validateSqliteFile(src: string): string | null {
   try {
     // 只读头部 16 字节：readFileSync 全量读会把几百 MB 的库整个拉进内存
     const fd = openSync(src, 'r')
@@ -130,34 +131,45 @@ export async function importDb(getMainWindow: () => BrowserWindow | null): Promi
   if (confirm.response !== 0) return { imported: false, filePath: null }
 
   try {
-    // 关 db + 清 WAL/SHM + 备份现库 + 拷贝 + 重启
-    database.close()
-    // 覆盖前备份当前库：万一导入后发现问题，还能手动救回
-    if (existsSync(dbPath)) {
-      const safetyBak = `${dbPath}.pre-import.${Date.now()}`
-      try {
-        copyFileSync(dbPath, safetyBak)
-        log.info('dbBackup', `pre-import safety backup at ${safetyBak}`)
-      } catch (e) {
-        log.warn('dbBackup', `safety backup failed, continue import: ${(e as Error).message}`)
-      }
-    }
-    const walPath = `${dbPath}-wal`
-    const shmPath = `${dbPath}-shm`
-    if (existsSync(walPath)) rmSync(walPath)
-    if (existsSync(shmPath)) rmSync(shmPath)
-    copyFileSync(src, dbPath)
-    log.info('dbBackup', `imported db from ${src}, relaunching`)
-    // 延后重启（让 IPC response 回去）
-    setTimeout(() => {
-      app.relaunch()
-      app.exit(0)
-    }, 100)
+    applyDbFile(src)
     return { imported: true, filePath: src }
   } catch (e) {
     log.error('dbBackup', `import failed: ${(e as Error).message}`, e)
     throw e
   }
+}
+
+/**
+ * 换库并重启：关连接 → 备份现库 → 清 WAL/SHM → 覆盖 → 延后重启。
+ *
+ * 从 `importDb` 里抽出来的（两处要用同一段动作：设置页导入 .db、云端整库还原
+ * `cloudBackup.restoreFullDb`）。**必须是同步的**：云端还原那边在 `finally` 里就删临时文件，
+ * 复制若拖到异步会踩空。重启延后 100ms 是让 IPC 的 response 先回去。
+ */
+export function applyDbFile(sourcePath: string): void {
+  const dbPath = database.path()
+  database.close()
+  // 覆盖前备份当前库：万一导入后发现问题，还能手动救回
+  if (existsSync(dbPath)) {
+    const safetyBak = `${dbPath}.pre-import.${Date.now()}`
+    try {
+      copyFileSync(dbPath, safetyBak)
+      log.info('dbBackup', `pre-import safety backup at ${safetyBak}`)
+    } catch (e) {
+      log.warn('dbBackup', `safety backup failed, continue import: ${(e as Error).message}`)
+    }
+  }
+  // WAL/SHM 是旧库的：留着会让新库读到错位的页
+  const walPath = `${dbPath}-wal`
+  const shmPath = `${dbPath}-shm`
+  if (existsSync(walPath)) rmSync(walPath)
+  if (existsSync(shmPath)) rmSync(shmPath)
+  copyFileSync(sourcePath, dbPath)
+  log.info('dbBackup', `applied db from ${sourcePath}, relaunching`)
+  setTimeout(() => {
+    app.relaunch()
+    app.exit(0)
+  }, 100)
 }
 
 /**
@@ -197,4 +209,3 @@ export async function factoryReset(getMainWindow: () => BrowserWindow | null): P
     throw e
   }
 }
-

@@ -82,6 +82,27 @@ export function renderExpansionTemplate(text: string, ctx: ExpansionTemplateCont
 }
 
 /**
+ * 渲染 + 定位 `{cursor}`（V4 P-1-6）。
+ *
+ * 算法是「按 {cursor} 切成两半分别渲染」而不是渲染完再找位置 —— 占位符替换会改长度，
+ * 事后换算必然要重算一遍同样的规则，切两半则前半渲染出的长度天然就是光标位。
+ * 索引按**码点**计（不是 UTF-16 单元）：消费方拿 `[...text].length - cursorIndex` 算回删几次，
+ * 两边不同尺子的话，emoji 开头的模板会把光标删到正文里。
+ * 多个 `{cursor}` 只认第一个（与 Raycast 一致，第二个当普通文本渲染掉）。
+ */
+export function renderExpansionWithCursor(
+  text: string,
+  ctx: ExpansionTemplateContext
+): { text: string; cursorIndex: number | null } {
+  const MARK = '{cursor}'
+  const at = text.indexOf(MARK)
+  if (at < 0) return { text: renderExpansionTemplate(text, ctx), cursorIndex: null }
+  const head = renderExpansionTemplate(text.slice(0, at), ctx)
+  const tail = renderExpansionTemplate(text.slice(at + MARK.length), ctx)
+  return { text: head + tail, cursorIndex: [...head].length }
+}
+
+/**
  * 提取用户输入动态参数（{{paramName}} 格式）
  * 对标 Raycast Snippet Dynamic Placeholders：展开时弹出表单让用户填写。
  * 返回去重后的参数名列表（按出现顺序）。

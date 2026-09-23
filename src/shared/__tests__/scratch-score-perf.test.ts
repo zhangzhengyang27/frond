@@ -1,11 +1,12 @@
 // 一次性测量脚本（跑完即删）：打分侧每键多少钱
 import { describe, it, expect } from 'vitest'
 import { searchEntries } from '../search'
-import { FIRST_PARTY_COMMANDS, BUILTIN_COMMANDS } from '../commands'
+import { buildStaticCommands } from '../commands'
 
 describe('scratch 打分成本', () => {
   it('量', () => {
-    const pool = [...BUILTIN_COMMANDS, ...FIRST_PARTY_COMMANDS] as never[]
+    // buildStaticCommands() 已经把 FIRST_PARTY_COMMANDS 收进去了，别再拼一遍
+    const pool = buildStaticCommands() as never[]
     const out: Record<string, number> = { pool: pool.length }
     for (const q of ['a', 'e', 'safari', 'clip', 'zzzz']) {
       // 预热

@@ -328,10 +328,10 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 | ~~`diffPermissions`~~ **已补（2026-09-23）** | `pluginConfirm.test.ts` 6/6 绿 | P-3④：连带把「更新时重一档问法」的分支也接回 `confirmPluginImport`（`!fresh && added.length>0` → warning + 按钮「保留当前版本/仍要更新」且默认拒绝） |
 | ~~`mapAuthStatus` / `extractAndSortMeetings`~~ **已补** | `CalendarService.test.ts` 5/5 绿 | **这是条活 bug 不是缺测试**：`CalendarService` 解析侧仍写 `parsed.status !== 2`，而 JXA 那边 gate 的是 3 —— 已授权用户走进去被判 notDetermined 且 events 返空，日历整块空。改完两处共用同一个映射函数，单位也统一（raw 存秒，不再一处 *1000） |
 | ~~`argPrefixMatch`~~ **已补** | `searchArgPrefix.test.ts` 5/5 绿 | P-1.6b：连带 `searchEntries` 的接入（只给 `acceptsArgs` 条目吃前缀命中、整条匹配排前面） |
-| `BUILTIN_COMMANDS` | `scratch-score-perf.test.ts` | 收藏/打分基线 |
-| `applyDbFile` | `cloudBackup` 生产代码 import | 整库恢复 |
-| `migrate{Ai,Clips,Markers,RecordingSettings}FromLegacyStore` | 4 个 `dataMigrations*.test.ts` | V4 数据迁移 |
-| `renderExpansionWithCursor` | 生产代码 import | 文本扩展 |
+| ~~`BUILTIN_COMMANDS`~~ **已了结** | `scratch-score-perf.test.ts` | 全盘无踪迹：真名是 `buildStaticCommands()`。该文件自己写着「一次性测量脚本（跑完即删）」——**不为此多造一个重复导出**，改测试指向真函数 |
+| ~~`applyDbFile`（连带 `validateSqliteFile`）~~ **已补** | `cloudBackup.restoreFullDb` 生产 import | 从 `importDb` 抽出「关连接→备份现库→清 WAL/SHM→覆盖→延后重启」两处共用；**必须同步**（云端还原在 `finally` 里就删临时文件，异步复制会踩空） |
+| ~~`migrate{Ai,Clips,Markers,RecordingSettings}FromLegacyStore`~~ **已补** | 4 个 `dataMigrations*.test.ts` → **24/24 绿** | AI 密文原样搬运（apiKey 是 `enc:`，跨机搬不动）；clips 整坨；录屏设置**整份**搬（按 repo 投影挑字段会把 systemAudio 这类静默丢掉）；markers 秒→毫秒且保留 id。幂等各记各的 leaf_meta 标志，失败下次启动重试 |
+| ~~`renderExpansionWithCursor`~~ **已补 + 4 条新用例** | `textExpansion.renderTemplate` 生产 import | 补之前 `{cursor}` **全树无人处理**（`expansionTemplate.ts` 里连 'cursor' 字样都没有）。索引按**码点**算：消费方是 `[...payload].length - cursorIndex`，两边不同尺子时 emoji 开头的模板会把光标删进正文 |
 
 ### F 类 · 掐头件（同一文件头被吞，`TS18004` + `TS2304` 是签名）
 

@@ -129,7 +129,6 @@ export const SYNC_EXCLUDED_TABLES: Record<string, string> = {
   photo_embeddings: '向量是可重建的派生数据，同步过去也没法比',
   photo_tags: '标签关系挂在 lib_files 上',
   shot_index: '截图索引：文件路径 + OCR 结果，均可本机重建',
-  ss_screenshots: '截图分享记录，本机临时态',
   rec_recordings: '录屏产物是文件',
   rec_segments: '录屏分段，随文件走',
   rec_clips: '录屏剪辑产物，随文件走',

@@ -6,7 +6,6 @@ import type { McpToolCommand } from '../shared/mcp'
 import type { McpCallResult } from '../main/services/mcp/client'
 import type { PopToRootMode } from '../shared/popToRoot'
 import type { WindowInfo as ScreenshotWindowInfo } from '../main/services/windowSources'
-import type { ScreenshotFilter } from '../main/db/repos/ScreenshotRepository'
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
 import type { BrowserTab } from '../main/services/BrowserTabsService'
@@ -43,7 +42,6 @@ import type {
 import type { focusShield } from '../main/modules/focusShield'
 import type { MainAction } from '../main/launcher/actionHandlers'
 import type { SystemInfo as FrondSystemInfo } from '../main/ipc/system'
-import type { Screenshot } from '../main/db/repos/ScreenshotRepository'
 import type { SystemInfo as HardwareInfoType } from '../main/services/SystemInfoService'
 
 // 渲染端经由 '@preload/index.d' 取用主进程类型（既有惯例），这里转发而不是再抄一份：
@@ -192,26 +190,12 @@ export interface LauncherPluginState {
 }
 
 /**
- * 截图历史的返回信封 —— 逐条对齐主进程 `screenshotHistory.ts` 各 handler 的 return。
- * 只定这一处：preload 实现按这些名字断言、d.ts 按它们声明，
- * 免得「两处各写一遍就必然漂」（插件快照、三档设置都犯过）。
+ * 截图相关返回信封。
+ *
+ * `ShotListRes` / `ShotItemRes` / `ShotItemsRes` / `ShotDeleteManyRes` /
+ * `ShotUsageRes` / `ShotDirRes` 已删除：它们只服务于 `screenshot.history.*`，
+ * 而那组方法指向的通道主进程从未注册过。
  */
-export interface ShotListRes {
-  success: boolean
-  items: Screenshot[]
-  total: number
-  error?: string
-}
-export interface ShotItemRes {
-  success: boolean
-  item?: Screenshot
-  error?: string
-}
-export interface ShotItemsRes {
-  success: boolean
-  items: Screenshot[]
-  error?: string
-}
 export interface ShotWindowListRes {
   success: boolean
   windows: ScreenshotWindowInfo[]
@@ -226,24 +210,6 @@ export interface ShotWindowCaptureRes {
 }
 export interface ShotOkRes {
   success: boolean
-  error?: string
-}
-export interface ShotDeleteManyRes {
-  success: boolean
-  count?: number
-  filesRemoved?: number
-  error?: string
-}
-export interface ShotUsageRes {
-  success: boolean
-  totalSize: number
-  count: number
-  error?: string
-}
-export interface ShotDirRes {
-  success: boolean
-  directory?: string
-  canceled?: boolean
   error?: string
 }
 
@@ -488,12 +454,15 @@ export interface API {
     onCompactModeChanged: (cb: (enabled: boolean) => void) => () => void
   }
   /**
-   * 截图：发起/结束 + 按窗口抓图 + 历史。类型直接指主进程的导出形状
-   * （`windowSources` / `ScreenshotRepository`），别在这里另抄一份 ——
+   * 截图：发起/结束 + 按窗口抓图。类型直接指主进程的导出形状
+   * （`windowSources`），别在这里另抄一份 ——
    * 上一轮「两处各写一遍就必然漂」已经犯过两次（插件快照、三档设置）。
    *
    * 树内自研覆盖层那套 `SCREENSHOT:*` 协议（ready/ok/save/cancel/onCapture/onReset）
    * 随编辑器一起删了；截图现在是上游 `electron-screenshots`（HANDOFF §11）。
+   *
+   * `history.*` 一组已删除（连同 `ScreenshotRepository` 类型引用）：
+   * 主进程 handler 从未注册、renderer 也无调用方。
    */
   screenshot: {
     startCapture: () => Promise<ShotOkRes>
@@ -502,19 +471,6 @@ export interface API {
     getWindowList: () => Promise<ShotWindowListRes>
     /** 主进程那边是 `WindowCaptureResult | null`，桥这一侧摊平成信封：视图按 success 分支走 */
     captureWindow: (windowId: string, scaleFactor?: number) => Promise<ShotWindowCaptureRes>
-    history: {
-      list: (filter?: ScreenshotFilter, limit?: number, offset?: number) => Promise<ShotListRes>
-      get: (id: string) => Promise<ShotItemRes>
-      recent: (limit?: number) => Promise<ShotItemsRes>
-      delete: (id: string) => Promise<ShotOkRes>
-      deleteMany: (ids: string[]) => Promise<ShotDeleteManyRes>
-      showInFolder: (filePath: string) => Promise<ShotOkRes>
-      copyImage: (filePath: string) => Promise<ShotOkRes>
-      openFile: (filePath: string) => Promise<ShotOkRes>
-      storageUsage: () => Promise<ShotUsageRes>
-      setSaveDirectory: () => Promise<ShotDirRes>
-      getSaveDirectory: () => Promise<ShotDirRes>
-    }
   }
   shotIndex: {
     status: () => Promise<{

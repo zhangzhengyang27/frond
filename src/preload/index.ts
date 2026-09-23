@@ -3,22 +3,15 @@ import type {
   API,
   PomodoroTraySnapshot,
   TelemetryMode,
-  ShotListRes,
-  ShotItemRes,
-  ShotItemsRes,
   ShotOkRes,
   ShotWindowCaptureRes,
-  ShotWindowListRes,
-  ShotDeleteManyRes,
-  ShotUsageRes,
-  ShotDirRes
+  ShotWindowListRes
 } from './index.d'
 import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
 import type { McpToolArg } from '../shared/mcp'
 import type { PopToRootMode } from '../shared/popToRoot'
 import type { WindowInfo as ScreenshotWindowInfo } from '../main/services/windowSources'
-import type { ScreenshotFilter } from '../main/db/repos/ScreenshotRepository'
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
 import { typedInvoke } from './typedIpc'
@@ -297,8 +290,11 @@ const api: API = {
    *
    * 为什么这里是裸 `ipcRenderer` 而不是 typedInvoke：**这些通道不在登记册里**
    * （ipc-contract 没有 screenshot:* 条目），且主进程签名是位置参数
-   * （`list(filter, limit, offset)`、`captureWindow(windowId, scaleFactor)`），
-   * 单对象约定套不上 —— 属 §8 的剩余清单。
+   * （`captureWindow(windowId, scaleFactor)`），单对象约定套不上 —— 属 §8 的剩余清单。
+   *
+   * `history.*` 那一整组（11 个方法）已删除：它们指向的 `screenshot:history:*`
+   * 通道，主进程 `registerScreenshotHistoryHandlers` 从来没有被调用过（handler
+   * 从未注册），renderer 也没有任何调用方。留着就是 11 个「调用即永久挂起」的悬空 API。
    */
   screenshot: {
     startCapture: (): Promise<ShotOkRes> => ipcRenderer.invoke('screenshot:startCapture'),
@@ -330,36 +326,6 @@ const api: API = {
       } | null
       if (!captured) return { success: false, error: '未捕获到该窗口的图像' }
       return { success: true, ...captured }
-    },
-    // ── 截图历史（OCR 索引与文件都在这一层）──
-    history: {
-      list: (filter?: ScreenshotFilter, limit?: number, offset?: number) =>
-        ipcRenderer.invoke(
-          'screenshot:history:list',
-          filter,
-          limit,
-          offset
-        ) as Promise<ShotListRes>,
-      get: (id: string) => ipcRenderer.invoke('screenshot:history:get', id) as Promise<ShotItemRes>,
-      recent: (limit = 10) =>
-        ipcRenderer.invoke('screenshot:history:recent', limit) as Promise<ShotItemsRes>,
-      delete: (id: string) =>
-        ipcRenderer.invoke('screenshot:history:delete', id) as Promise<ShotOkRes>,
-      deleteMany: (ids: string[]) =>
-        ipcRenderer.invoke('screenshot:history:deleteMany', ids) as Promise<ShotDeleteManyRes>,
-      showInFolder: (filePath: string) =>
-        ipcRenderer.invoke('screenshot:history:showInFolder', filePath) as Promise<ShotOkRes>,
-      copyImage: (filePath: string) =>
-        ipcRenderer.invoke('screenshot:history:copyImage', filePath) as Promise<ShotOkRes>,
-      openFile: (filePath: string) =>
-        ipcRenderer.invoke('screenshot:history:openFile', filePath) as Promise<ShotOkRes>,
-      storageUsage: () =>
-        ipcRenderer.invoke('screenshot:history:storageUsage') as Promise<ShotUsageRes>,
-      /** 弹系统目录选择框，返回改后的目录（取消时 success:false） */
-      setSaveDirectory: () =>
-        ipcRenderer.invoke('screenshot:history:setSaveDirectory') as Promise<ShotDirRes>,
-      getSaveDirectory: () =>
-        ipcRenderer.invoke('screenshot:history:getSaveDirectory') as Promise<ShotDirRes>
     }
   },
   // 截图库 OCR 索引（V4 P1-10）

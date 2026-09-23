@@ -35,12 +35,6 @@ export {
   type Folder,
   type FolderWithChildren
 } from './FolderRepository'
-export {
-  ScreenshotRepository,
-  screenshotRepository,
-  type Screenshot,
-  type ScreenshotFilter
-} from './ScreenshotRepository'
 export { UsageRepository, usageRepository } from './UsageRepository'
 export {
   RecordingRepository,

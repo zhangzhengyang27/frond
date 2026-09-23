@@ -348,7 +348,7 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 （`McpToolCommand` 真身在那儿，`preload/mcp.ts` 从来不存在）。
 **main 与 preload 现在已经能 build**，卡在渲染层。
 
-读数（第二轮）：`typecheck:web` **58 → 26**、`typecheck:node` **30 → 27**、
+读数（第二轮）：`typecheck:web` **58 → 26**（补语法 JSON 后再降到 **15**）、`typecheck:node` **30 → 27**、
 单测 **846 passed / 8 failed**（失败集仍是结构性缺件那 8 条 + 3 个收集错误文件）。
 
 #### 10.2 剩下多少，怎么量（这两条命令是权威口径，别再凭 §10 旧表推算）
@@ -380,8 +380,15 @@ node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的
 - 二进制资产：`resources/icon.png` 整个目录不在树里（`tray.ts` / `windows.ts` / 协议图标 3 处 import）。
   本机只有同作者 `leaf-library` 那份 512×512 脚手架默认图，**我把它当占位放进了 `resources/`（未提交）**，
   换不换、用哪张图待拍板。
-- 另有 10 份 `textmate/*.tmLanguage.json` 与 `example-plugin/` 目录没回来（`languages.ts` 10 条 +
-  `plugin-manifest.test.ts` 收集错）。
+- **10 份 `textmate/*.tmLanguage.json` 已补回**（`src/renderer/src/components/editor/grammars/textmate/`，
+  2026-09-23）：js/ts/css/html/python 取 `node_modules/.pnpm/codemirror-textmate@1.1.0` 自带 demo
+  （消费方就是 codemirror-textmate，用它自己的样例最稳），json/markdown/yaml/shell-unix-bash/sql
+  取本机 `/Applications/Visual Studio Code.app/Contents/Resources/app/extensions/*/syntaxes/`
+  （仓库原来的文件名 `shell-unix-bash.tmLanguage.json` 与 VS Code 一致，说明当初就是这么来的）。
+  十份的 `scopeName` 逐个核过，与 `languages.ts` 声明的一致（yaml 要挑 `yaml.tmLanguage.json`，
+  同目录那几份 `yaml-1.x` 的 scope 是 `source.yaml.1.0` 之类，不匹配）。
+  重跑命令：见本节上面几行的路径，`cp` 到 `grammars/textmate/` 并改小写名即可。
+- `example-plugin/` 目录仍缺（`plugin-manifest.test.ts` 收集错）。
 
 
 （上面这张「剩 12 个」的旧表已被 10.2 取代：`BackgroundSwitch`、5 个统计组件、`USkeleton`、

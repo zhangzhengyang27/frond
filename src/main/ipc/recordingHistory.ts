@@ -1,4 +1,5 @@
 import { ipcMain, shell } from 'electron'
+import { readFile } from 'node:fs/promises'
 import { RecordingHistoryService, type RecordingHistory } from '../services/RecordingHistoryService'
 import { safeOpenablePath } from '../utils/openPathGuard'
 
@@ -69,6 +70,17 @@ export function registerRecordingHistoryIpcHandlers(): void {
       console.error('打开文件失败:', error)
       return { success: false, error: (error as Error).message }
     }
+  })
+
+  /**
+   * 回放读文件（2026-09-23 补）：PlaybackPanel 要把录像读进内存再挂 blob URL。
+   * 路径来自渲染端，所以只认「录制历史里记过的路径」——否则这条通道就是任意文件读取。
+   */
+  ipcMain.handle('video:readFile', async (_event, filePath: string): Promise<ArrayBuffer> => {
+    const known = recordingHistoryService.getHistory().some((r) => r.filePath === filePath)
+    if (!known) throw new Error('只能读取录制历史中记录的录像文件')
+    const buf = await readFile(filePath)
+    return new Uint8Array(buf).buffer as ArrayBuffer
   })
 
   // 在文件夹中显示文件

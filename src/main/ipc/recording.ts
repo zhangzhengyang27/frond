@@ -17,7 +17,6 @@ import {
   type RecordingFilter,
   type RecordingRow
 } from '../db/repos/RecordingRepository'
-import { markerRepository } from '../db/repos/MarkerRepository'
 import { recordingSegmentRepository } from '../db/repos/RecordingSegmentRepository'
 import {
   recordingSettingsRepository,
@@ -133,48 +132,6 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
       }
       // 物理文件删除留由调用方（渲染层 / 后台调度器）决定；此处不引入 fs
       return { ok: true }
-    })
-  )
-
-  // ── Markers ────────────────────────────────────────────────
-  ipcMain.handle(
-    'recording.markers.list',
-    wrap((req: { recordingId: string }) => {
-      const items = markerRepository.listByRecording(req.recordingId).map((m) => ({
-        id: m.id,
-        timeMs: m.time_ms,
-        label: m.label,
-        createdAt: m.created_at
-      }))
-      return { items }
-    })
-  )
-
-  ipcMain.handle(
-    'recording.markers.add',
-    wrap((req: { recordingId: string; timeMs: number; label?: string | null }) => {
-      const markerId = randomUUID()
-      markerRepository.add({
-        id: markerId,
-        recording_id: req.recordingId,
-        time_ms: req.timeMs,
-        label: req.label ?? null
-      })
-      return { markerId }
-    })
-  )
-
-  ipcMain.handle(
-    'recording.markers.remove',
-    wrap((req: { markerId: string }) => {
-      return { ok: markerRepository.remove(req.markerId) }
-    })
-  )
-
-  ipcMain.handle(
-    'recording.markers.rename',
-    wrap((req: { markerId: string; label: string }) => {
-      return { ok: markerRepository.rename(req.markerId, req.label) }
     })
   )
 

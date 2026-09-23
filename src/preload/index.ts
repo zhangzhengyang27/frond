@@ -500,6 +500,17 @@ const api: API = {
     openExternal: (url) => typedInvoke('system:openExternal', { url }),
     frontmostApp: () => typedInvoke('system:frontmostApp')
   },
+  // Dock 角标 / 进度条 / 请求注意（macOS）。这三条主进程一直有 handler，
+  // 之前只有 PomodoroIntegrationService 在主进程内部直调，渲染层驱动不了。
+  // 通道按位置参数收（早于全仓单对象迁移），且不在 ipc-contract 里，故走裸 ipcRenderer。
+  platform: {
+    setDockBadge: (text: string | number | null): Promise<void> =>
+      ipcRenderer.invoke('platform:setDockBadge', text),
+    setProgressBar: (fraction: number): Promise<void> =>
+      ipcRenderer.invoke('platform:setProgressBar', fraction),
+    requestUserAttention: (level: 'critical' | 'informational' = 'informational'): Promise<void> =>
+      ipcRenderer.invoke('platform:requestUserAttention', level)
+  },
   // macOS 权限面板（P-3.5）：状态 / 申请 / 跳转系统设置
   permissions: {
     probe: () => typedInvoke('permissions:probe'),
@@ -1065,6 +1076,11 @@ const api: API = {
       typedInvoke('marker:updateMarker', { recordingId, markerId, updates }),
     clearMarkers: (recordingId: string) => typedInvoke('marker:clearMarkers', { recordingId }),
     exportToCSV: (recordingId: string) => typedInvoke('marker:exportToCSV', { recordingId })
+  },
+  /** 录屏回放：把录像文件读成 ArrayBuffer（主进程只认录制历史里的路径） */
+  video: {
+    readFile: (filePath: string): Promise<ArrayBuffer> =>
+      ipcRenderer.invoke('video:readFile', filePath) as Promise<ArrayBuffer>
   },
   // 视频剪辑相关 API
   clip: {

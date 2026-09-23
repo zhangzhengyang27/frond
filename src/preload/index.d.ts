@@ -696,6 +696,14 @@ export interface API {
     openExternal: (url: string) => Promise<boolean>
     frontmostApp: () => Promise<string | null>
   }
+  /** Dock 角标 / 任务栏进度 / 请求用户注意（macOS 弹 Dock、Windows 闪任务栏） */
+  platform: {
+    /** null / '' 清除角标 */
+    setDockBadge: (text: string | number | null) => Promise<void>
+    /** -1 清除；0..1 进度；2 = 不确定态（Windows） */
+    setProgressBar: (fraction: number) => Promise<void>
+    requestUserAttention: (level?: 'critical' | 'informational') => Promise<void>
+  }
   permissions: {
     probe: () => Promise<
       Array<{
@@ -1337,6 +1345,11 @@ export interface API {
     exportToCSV: (recordingId: string) => Promise<string>
   }
   // 视频剪辑相关 API
+  /** 录屏回放读文件 */
+  video: {
+    readFile: (filePath: string) => Promise<ArrayBuffer>
+  }
+
   clip: {
     addClip: (videoId: string, startTime: number, endTime: number, label?: string) => Promise<Clip>
     removeClip: (videoId: string, clipId: string) => Promise<boolean>

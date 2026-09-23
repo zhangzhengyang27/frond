@@ -638,12 +638,23 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 （`span` 宽 0）。改成「一类一行、不用 mixin」后 `content` 解析为真字符（私有区码点）。
 `[class^='icon-']` 那条通配依旧刻意不搬。
 
-#### 10.8 根目录那 11 个未跟踪的旧散件（不是本会话产物，别当源码）
+#### 10.8 根目录那 11 个未跟踪的旧散件（2026-09-23 已移出仓库）
 
 `commands/ composables/ launcher/ utils/`（仓库根，未跟踪，mtime 全部 2026-09-22 08:46）
-是更早一次恢复会话把 `src/renderer/src/**` 按「去掉前缀」写歪到根目录的残渣，量了 11 个文件：
-**每一个都与树上同名文件不同**（是更早的一版），对 `git add -A` 是真实风险。
-本会话**没有动它们**（不是我的东西，也不确定别处的会话是否还指着它们）——要清就整体移出仓库，别就地删。
+是更早一次恢复会话把 `src/renderer/src/**` 按「去掉前缀」写歪到根目录的残渣，共 11 个文件。
+**每一个都比树上的同名文件旧**，其中两条值得单记：
+
+- `commands/SystemCommandProvider.ts` 散件 204 行 / 树上 51 行 —— 不是树上少了，
+  树上那份是 P-7② 的重做（头注释写着：以前是 340 行手写清单，同一批命令在
+  `SYSTEM_CMD_META` 又写一遍，导致音量五档这类成对出现）；散件正是**被淘汰的那一版**。
+- `commands/FirstPartyCommandProvider.ts` 散件 353 行 / 树上 343 行 —— 差的就是 09-23
+  从静态清单里删掉的 `ai:translate` / `ai:summarize` / `ai:rewrite` 那三条（§10 H 类）。
+
+**处置**：整体移出仓库（没有就地删），落在
+`~/Documents/leaf-desktop-baseline-2026-09-22/recovery-material/root-scratch--2026-09-23/`，
+11 个文件全在。移出前核过：tsconfig / eslint / vitest / playwright / electron-builder
+没有任何一处引用这四个根目录路径；移出后 `git status` 未跟踪项归零，已跟踪文件一处未动。
+复现口径（下回再有这类残渣）：`git status --porcelain -unormal | grep '^??'`。
 
 ### 剩下的账（2026-09-23 收工口径）
 

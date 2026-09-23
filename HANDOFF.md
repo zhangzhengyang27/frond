@@ -325,9 +325,9 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 
 | 少的导出 | 谁要 | 归属 |
 | --- | --- | --- |
-| `diffPermissions(before, after, hasInstalled)` | `pluginConfirm.test.ts` 6 条用例 | **P-3④ 本会话功能，又被回退了一半** |
-| `mapAuthStatus` / `extractAndSortMeetings` | `CalendarService.test.ts` | P-3⑤ 权限分档（`2` 是 denied 不是 authorized，那条用例专门防它） |
-| `argPrefixMatch` | `searchArgPrefix.test.ts` | P-1 前缀命中 |
+| ~~`diffPermissions`~~ **已补（2026-09-23）** | `pluginConfirm.test.ts` 6/6 绿 | P-3④：连带把「更新时重一档问法」的分支也接回 `confirmPluginImport`（`!fresh && added.length>0` → warning + 按钮「保留当前版本/仍要更新」且默认拒绝） |
+| ~~`mapAuthStatus` / `extractAndSortMeetings`~~ **已补** | `CalendarService.test.ts` 5/5 绿 | **这是条活 bug 不是缺测试**：`CalendarService` 解析侧仍写 `parsed.status !== 2`，而 JXA 那边 gate 的是 3 —— 已授权用户走进去被判 notDetermined 且 events 返空，日历整块空。改完两处共用同一个映射函数，单位也统一（raw 存秒，不再一处 *1000） |
+| ~~`argPrefixMatch`~~ **已补** | `searchArgPrefix.test.ts` 5/5 绿 | P-1.6b：连带 `searchEntries` 的接入（只给 `acceptsArgs` 条目吃前缀命中、整条匹配排前面） |
 | `BUILTIN_COMMANDS` | `scratch-score-perf.test.ts` | 收藏/打分基线 |
 | `applyDbFile` | `cloudBackup` 生产代码 import | 整库恢复 |
 | `migrate{Ai,Clips,Markers,RecordingSettings}FromLegacyStore` | 4 个 `dataMigrations*.test.ts` | V4 数据迁移 |

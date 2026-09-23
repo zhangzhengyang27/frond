@@ -19,6 +19,32 @@ import { isMac } from '../utils/platform'
 
 const execFileAsync = promisify(execFile)
 
+/**
+ * EKAuthorizationStatus → 语义。**authorized 是 3，不是 2**。
+ *
+ * 这条曾被解析侧按 2 判，结果「已授权用户日历整体失效」（代码审查 Critical）。
+ * 未知值一律 notDetermined（fail-safe：宁可显示「未决定」让用户去授权，
+ * 也不要因为苹果哪天加个枚举值就把拒绝当成允许）。
+ */
+export function mapAuthStatus(status: number): 'authorized' | 'denied' | 'notDetermined' {
+  if (status === 3) return 'authorized'
+  if (status === 1 || status === 2) return 'denied'
+  return 'notDetermined'
+}
+
+/**
+ * 从今天起挑出「还没结束的非全天事件」，按开始时间升序。
+ *
+ * 单位由调用方与事件保持一致（这里存的是秒）：函数只管同一把尺子上的先后，
+ * 不做 *1000 这种换算 —— 换算过一次，测试与真实数据就会各信一套。
+ */
+export function extractAndSortMeetings<T extends { start: number; end: number; allDay: boolean }>(
+  events: T[],
+  now: number
+): T[] {
+  return events.filter((e) => !e.allDay && e.end > now).sort((a, b) => a.start - b.start)
+}
+
 export type CalendarAuth = 'authorized' | 'denied' | 'notDetermined' | 'unsupported'
 
 export interface CalendarEventView {
@@ -141,9 +167,7 @@ class CalendarService {
     }
     const nowSec = Math.floor(Date.now() / 1000)
     const { auth, events } = await this.queryEvents(nowSec, nowSec + QUERY_WINDOW_HOURS * 3600, 20)
-    const meetings = events
-      .filter((e) => !e.allDay && e.end * 1000 > Date.now())
-      .sort((a, b) => a.start - b.start)
+    const meetings = extractAndSortMeetings(events, nowSec)
     const next = meetings[0] ? toView(meetings[0]) : null
     this.cached = { at: Date.now(), auth, next }
     return { auth, next }
@@ -248,14 +272,11 @@ JSON.stringify({ ok: !!ok })
         status: number
         events: RawEvent[]
       }
-      if (parsed.status !== 2) {
+      const auth = mapAuthStatus(parsed.status)
+      if (auth !== 'authorized') {
         // notDetermined：顺手把授权弹窗拉起来（下次查询生效）
         if (parsed.status === 0) void this.requestAccess()
-        return {
-          auth:
-            parsed.status === 2 ? 'authorized' : parsed.status === 1 ? 'denied' : 'notDetermined',
-          events: []
-        }
+        return { auth, events: [] }
       }
       return { auth: 'authorized', events: parsed.events ?? [] }
     } catch (error) {
@@ -267,4 +288,3 @@ JSON.stringify({ ok: !!ok })
 }
 
 export const calendarService = new CalendarService()
-

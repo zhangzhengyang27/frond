@@ -115,6 +115,8 @@ export interface SearchEntryBase {
   subtitle: string
   /** 别名（拼音首字母等，M1.1）；命中得分略低于标题直击 */
   aliases?: string[]
+  /** 参数化命令（P-1.6b）：只有声明了它的条目才吃「命令 + 尾部参数」的前缀命中 */
+  acceptsArgs?: boolean
 }
 
 /** 统一的搜索条目：模块 / 系统页 / 动作 / 插件命令 / 本机应用共用 */
@@ -131,6 +133,28 @@ export interface ScoredEntry<T = SearchEntry> {
   highlight: NormalizedMatch | null
   score: number
 }
+
+/**
+ * 「命令 + 尾部参数」的前缀命中（对标 Raycast 的行内补全）。
+ *
+ * 旧规则要求整条查询作为子串/子序列命中标题，于是 `正则测试 \d+` 选不中命令「正则测试」，
+ * 参数表单永远只能空着打开 —— argPrefill 成了走不到的死路。
+ *
+ * 判定卡在三件事上，少一件就是误命中：标题要**整词**开头（`Github x` 不许匹配命令 `Git`）、
+ * 标题之后紧跟空白、查询比标题长（等于标题走普通命中，不该在这里加分）。
+ * 区间给的是原文坐标（start=0、end=标题末位下标），高亮只盖住命令名那一段。
+ */
+export function argPrefixMatch(query: string, title: string): NormalizedMatch | null {
+  const q = query.trimStart()
+  const offset = query.length - q.length
+  if (!title || q.length <= title.length) return null
+  if (q.slice(0, title.length).toLowerCase() !== title.toLowerCase()) return null
+  if (!/\s/.test(q[title.length])) return null
+  return { contiguous: true, start: offset, end: offset + title.length - 1 }
+}
+
+/** 前缀命中的降档值：参数化命令排到整条匹配之后，但仍在「没别的命中」时兜得住 */
+const ARG_PREFIX_PENALTY = 25
 
 /**
  * 在一组条目上执行归一化搜索，按分数降序截断。
@@ -159,6 +183,22 @@ export function searchEntries<T extends SearchEntryBase>(
         score: matchScore(nameMatch, true) + (boost?.(entry) ?? 0)
       })
       continue
+    }
+
+    // 参数化命令：「命令 + 空格 + 参数」的写法在前缀命中里排到整条匹配之后
+    if (entry.acceptsArgs) {
+      const prefix = argPrefixMatch(query, entry.title)
+      if (prefix) {
+        scored.push({
+          entry,
+          highlight: prefix,
+          score:
+            matchScore({ ...prefix, contiguous: true }, true) -
+            ARG_PREFIX_PENALTY +
+            (boost?.(entry) ?? 0)
+        })
+        continue
+      }
     }
 
     // 别名（拼音首字母等）：按标题级打分略降档，无高亮区间

@@ -14,6 +14,10 @@ vibe_images/
 # Agent 工作区临时目录
 .zcode/
 
+# WorkBuddy 的项目数据目录（评审报告、工作记忆等）。不是缓存，不要删；
+# 也不该进版本库（内容是会话产物，不是仓库资产）。
+.workbuddy-ai/
+
 # OCR 训练数据（运行时下载，不入库）
 *.traineddata
 

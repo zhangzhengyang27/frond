@@ -1,6 +1,0 @@
-import { createHotContext as __vite__createHotContext } from "/@vite/client";import.meta.hot = __vite__createHotContext("/src/views/OnboardingView.vue?vue&type=style&index=0&scoped=2a9bae0d&lang.css");import { updateStyle as __vite__updateStyle, removeStyle as __vite__removeStyle } from "/@vite/client"
-const __vite__id = "/Users/xiaoye/Desktop/electron-tools/src/renderer/src/views/OnboardingView.vue?vue&type=style&index=0&scoped=2a9bae0d&lang.css"
-const __vite__css = "\n.slide-forward-enter-active[data-v-2a9bae0d],\n.slide-forward-leave-active[data-v-2a9bae0d],\n.slide-back-enter-active[data-v-2a9bae0d],\n.slide-back-leave-active[data-v-2a9bae0d] {\n  transition: all var(--motion-slow) cubic-bezier(0.16, 1, 0.3, 1);\n}\n.slide-forward-enter-from[data-v-2a9bae0d] {\n  opacity: 0;\n  transform: translateX(40px);\n}\n.slide-forward-leave-to[data-v-2a9bae0d] {\n  opacity: 0;\n  transform: translateX(-40px);\n}\n.slide-back-enter-from[data-v-2a9bae0d] {\n  opacity: 0;\n  transform: translateX(-40px);\n}\n.slide-back-leave-to[data-v-2a9bae0d] {\n  opacity: 0;\n  transform: translateX(40px);\n}\n"
-__vite__updateStyle(__vite__id, __vite__css)
-import.meta.hot.accept()
-import.meta.hot.prune(() => __vite__removeStyle(__vite__id))

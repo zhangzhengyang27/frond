@@ -5,16 +5,12 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   main: {
     plugins: [
+      // include 只列「不在 package.json dependencies 里、但必须保持 external」的包。
+      // 2026-09-23 清理：这里原本还列了 onnxruntime-node（include）与 p-queue / sharp-phash
+      // （exclude），三者全仓零 import、package.json 也零声明 —— 是被移除功能的残留，
+      // 留着会让后来者以为项目还在用它们。sanitize-html 是真依赖（见下方 renderer 段），保留。
       externalizeDepsPlugin({
-        include: [
-          'electron',
-          '@electron-toolkit/utils',
-          '@electron-toolkit/preload',
-          'better-sqlite3',
-          'onnxruntime-node'
-        ],
-        // ESM-only 包打进 bundle：externalize 后 CJS require 拿到的是 namespace，无法 new / 直接调用
-        exclude: ['p-queue', 'sharp-phash']
+        include: ['electron', '@electron-toolkit/utils', '@electron-toolkit/preload', 'better-sqlite3']
       })
     ],
     resolve: {

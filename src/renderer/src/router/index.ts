@@ -115,6 +115,13 @@ const router = createRouter({
       meta: { window: 'floating' }
     },
     {
+      // 贴图悬浮窗：PinService 以 hash 直接加载（无此路由则窗口空白，见 PinPage 头注释）
+      path: '/screenshot/pin',
+      name: 'screenshotPin',
+      component: () => import('../views/screenshot/pages/PinPage.vue'),
+      meta: { window: 'floating' }
+    },
+    {
       path: '/snippets',
       name: 'snippets',
       component: () => import('../views/snippets/index.vue')

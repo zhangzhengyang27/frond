@@ -6,13 +6,12 @@
 > **本文的事实来源**（本轮逐行读过，结论后均给 `文件:行号`）：
 > `src/renderer/src/router/index.ts` · `src/renderer/src/App.vue` · `src/renderer/src/main.ts` ·
 > `src/main/modules/windows.ts` · `src/main/modules/miniWindow.ts` · `src/main/modules/floatingNote.ts` ·
-> `src/main/services/PinService.ts` · `src/main/services/ScreenshotService.ts` ·
 > `src/main/launcher/window.ts` · `src/main/launcher/hotkeys.ts` · `src/main/modules/focusShield.ts` ·
 > `src/main/index.ts` · `src/shared/modules.ts` · `src/shared/commands.ts` ·
 > `src/renderer/src/constants/modules.ts` · `src/renderer/src/utils/commandRunner.ts` ·
 > `src/renderer/src/composables/useAppMenu.ts` · `src/renderer/src/composables/useModuleShortcuts.ts` ·
 > `electron.vite.config.ts` · `src/renderer/{index,launcher,shield,screenshot}.html` ·
-> `src/renderer/src/{main,launcher-entry,shield-entry,screenshot-entry}.ts`
+> `src/renderer/src/{main,launcher-entry,shield-entry}.ts`
 >
 > **分工**：信息架构的唯一真理源是 `docs/IA_V2.md`——它在 `IA_V2.md:4` 与 `IA_V2.md:66` 两处把
 > 「窗口语义细节」指给本文。本文只写**路由表 / 入口页 / 窗口装载**的实现约定，
@@ -27,8 +26,8 @@
 | --- | --- |
 | 路由表**只有一份**，属于主应用入口 `index.html`；hash 模式 | `router/index.ts:45`（`createWebHashHistory`），入口挂载 `main.ts:7,11` |
 | 一条路由属于四类窗口语义之一，由 `meta.window` 声明，缺省 `shell` | `router/index.ts:16-23`（类型声明与缺省注释 `:18`） |
-| 主进程可以用 URL hash **直接开出某个路由**的独立窗口，不需要为它写第二个 HTML | `miniWindow.ts:55-61`、`floatingNote.ts:137-143`、`PinService.ts:184-188`、`windows.ts:109-119` |
-| 有四个渲染端入口页；只有 `index.html` 带路由表 | `electron.vite.config.ts:86-91` 的 `build.rollupOptions.input`；`launcher-entry.ts`/`shield-entry.ts`/`screenshot-entry.ts` 均无 `router` import |
+| 主进程可以用 URL hash **直接开出某个路由**的独立窗口，不需要为它写第二个 HTML | `miniWindow.ts:55-61`、`floatingNote.ts:137-143`、`windows.ts:109-119` |
+| 有三个渲染端入口页；只有 `index.html` 带路由表 | `electron.vite.config.ts:86-90` 的 `build.rollupOptions.input`；`launcher-entry.ts`/`shield-entry.ts` 均无 `router` import。（曾有第四个 `screenshot.html`，随树内截图编辑器于 2026-09-23 删除，见 §5） |
 | 导航可见性不由路由表决定，由 `src/shared/modules.ts` 决定 | `router/index.ts:8-10`、`IA_V2.md:62` |
 | 启动守卫：onboarding 未完成 → 除白名单外一律重定向 `/onboarding`，带 3s 超时放行 | `router/index.ts:161-203` |
 
@@ -86,12 +85,12 @@
 `createWebHashHistory()`（`router/index.ts:45`）⇒ URL 形如 `<base>/index.html#/mini-timer`，
 **同一份 `index.html` 服务任意路由**，所以主进程无需为新窗口新增构建入口。
 
-两种等价写法（新窗口二选一）：
+写法（新窗口照这个抄）：
 
 | 写法 | 出现处 |
 | --- | --- |
-| `loadURL(\`${ELECTRON_RENDERER_URL}#/xxx\`)` / `file://…/index.html#/xxx` | `PinService.ts:184-188`（生产分支自己拼 `file://`，`:186`） |
 | `is.dev` 用 `loadURL(…/#/xxx)`，否则 `loadFile(index.html, { hash: '#/xxx' })` | `miniWindow.ts:55-61`、`floatingNote.ts:137-143` |
+| ~~生产分支自己拼 `file://…/index.html#/xxx`~~ | 原先只有贴图窗一处（旧 `PinService.ts`，已删），该功能 2026-09-23 整体撤销，本仓已无此写法；新增浮窗请走上一行 |
 
 主窗 / 沉浸窗走公共装载器 `windows.ts:109-119`：dev 拼 `#${route}`（`:111`），prod `loadFile(..., { hash: route })`（`:118`），
 注释 `:116-117` 说明「直接带目标 hash，避免沉浸窗先闪一帧 Hub」，`navigate-to-route` 退为兜底。
@@ -111,41 +110,54 @@
 | `index.html`（主应用，`<title>Leaf</title>` `index.html:5`） | `electron.vite.config.ts:87` | `windows.ts:109-119`；主窗由 `main/index.ts:483` 创建（`autoShow=false`，注释 `:482`） | dev `ELECTRON_RENDERER_URL` / prod `loadFile` | **有**（`main.ts:7,11`） |
 | `launcher.html` | `:88` | `launcher/window.ts:55-61`（`loadLauncherPage`） | `loadURL(…/launcher.html)` / `loadFile('../renderer/launcher.html')` | 无（`launcher-entry.ts:11-23`，只 `createApp(LauncherApp)`） |
 | `shield.html` | `:89` | `focusShield.ts:290` | **只有 `loadFile` 一条**，无 dev 分支（该行未判 `ELECTRON_RENDERER_URL`）；加载失败即关窗退化，注释 `:291-293` | 无（`shield-entry.ts:5-8`） |
-| `screenshot.html` | `:90` | `ScreenshotService.ts:192-197` | `…/screenshot.html` 两条路都在（`:192-194`），崩溃后重载同一 URL（`:200-203`） | 无（`screenshot-entry.ts:13-19`，只 `createApp(CapturePage)` + `app.use(createPinia())`） |
+产物实盘（2026-09-23 跑过 `npx electron-vite build`）：`out/renderer/{index,launcher,shield}.html`。
+`launcher.html` / `shield.html` 各自带独立 CSP `<meta>`。
 
-产物实盘（本轮只 `ls`，**未跑构建**）：`out/renderer/{index,launcher,screenshot,shield}.html`。
-两个入口页各自带独立 CSP `<meta>`，`screenshot.html:11-14` 为 tesseract.js 放行 `jsdelivr`/`unpkg`/`tessdata`——
-这解释了为什么这类页面不能复用 `index.html` 的头。
+> 第四个入口页 `screenshot.html`（连同 `screenshot-entry.ts`、`views/screenshot/` 整套移植副本）
+> 已在 2026-09-23 删除，见 §5。它当年为 tesseract.js 放行过 `jsdelivr`/`unpkg`/`tessdata`；
+> 现在 OCR 在主进程跑（`ScreenshotIndexService.ts:218`），不再有页面需要这条 CSP。
 
 ---
 
-## 5. 为什么截图编辑器**不**在路由表里
+## 5. 截图这一层现在归上游 `electron-screenshots`（2026-09-23 起）
 
-结论：截图（含标注编辑器）走**独立入口页**，路由表里没有 `/screenshot` 这条，这是刻意设计而非遗漏。代码为证：
+结论：**本仓库不再有截图编辑器代码**。树内那套移植副本（`views/screenshot/` 60 个文件 +
+`screenshot.html` / `screenshot-entry.ts` 独立入口 + `src/main/services/ScreenshotService.ts`
+覆盖层类 + preload 的 `SCREENSHOT:*` 协议）整体删除，截图与标注改由 npm 包
+`electron-screenshots`（内含 `react-screenshots` 预构建页）承担；贴图/钉图
+（`PinService` / `ipc/pin.ts` / `PinPage.vue` / `/screenshot/pin` 路由）按同一次拍板**整体撤销**。
+决策与验收记录见 `HANDOFF.md` §11。
 
-| 证据 | 内容 |
+不变的那条判断仍然成立，而且现在是上游在遵守：**截图覆盖层不进路由表**。
+`node_modules/electron-screenshots/lib/index.js:174` 把 `BrowserView` 用 `setBrowserView()`
+挂到一个无边框 kiosk 承载窗上，加载的是 `require.resolve('react-screenshots/dist/electron.html')`
+——一个自带产物、不经 Vue Router、也不在本仓构建入口里的页面。原因和当年一样：
+覆盖层要「秒开」，路由表 + 全局守卫 + AppShell 全是纯开销（`electron-screenshots/lib/index.js:36-42`
+的 `SCREENSHOTS:ready` 一次性握手，`startCapture()` 在 `:57` 等它）。
+
+代码为证（本仓侧只剩这三处）：
+
+| 位置 | 事实 |
 | --- | --- |
-| `ScreenshotService.ts:55-65` | 服务设计契约第 6 条原文（`:64`）：「截图页面是独立 HTML 入口（无路由/无守卫/无全局状态），确保能立即加载」；第 1、3 条同段（`:59`、`:61`） |
-| `ScreenshotService.ts:158-166` | `BrowserView` 在**构造期**创建、永不销毁；`:192-197` 紧接 `loadURL(screenshot.html)` |
-| `ScreenshotService.ts:169-179` | 一次性 `isReady`：等渲染进程 `onMounted` 发 `SCREENSHOT:ready`，带 30s 超时——这条握手要求页面**秒开**，路由表与全局守卫是纯开销 |
-| `ScreenshotService.ts:281-295` | `startCapture` 才 `createWindow` 并 `send('SCREENSHOT:capture', …)` 推图；窗口是隐藏承载窗（`:210-229`，`type: 'panel'`） |
-| `screenshot-entry.ts:1-9` | 头注释：与 `index.html` 完全隔离、无 router、无 AppShell，只挂 `CapturePage`。（**口径修正**：注释 `:4` 写「无 pinia」，代码 `:18` 实际 `app.use(createPinia())` —— 以代码为准：**pinia 有、router 没有**） |
-| `CapturePage.vue:65-76` | 编辑器本体 `Screenshots.vue` 及 `operations/` 全套组件都挂在 `views/screenshot/` 下，但**只被这个入口页引用**，不经路由 |
-| `e2e/screenshot-overlay.spec.mjs:41` | 测试用 `url` 含 `screenshot.html` 找窗口，不是靠路由名；`:111` 标题「推来的图进编辑器，拖选区后工具栏出现」 |
+| `src/main/modules/screenshot.ts:72` | `new Screenshots({ singleWindow: true, lang: LANG })` —— 全仓唯一实例化点 |
+| `src/main/index.ts:404` | `registerScreenshotHandlers()` 在启动序列里（这一行是补回来的：它此前全仓零调用方） |
+| `src/main/launcher/hotkeys.ts:280` | ⌥⇧S 走 `triggerScreenshot()`，延迟 import |
 
-代价（写代码时会撞上）：编辑器页面拿不到 `router.push`、不过 §2 的启动守卫、不进 `routeWindows` 复用表、
-也没有主应用的任何全局 composable。贴图窗（`#/screenshot/pin`）恰好相反——它是**借主应用路由表**开的浮窗，见 §8 坑 1。
+被删掉的那套「为什么不走路由表」的老证据（旧 `ScreenshotService.ts` 的设计契约、
+`screenshot-entry.ts` 的头注释、`CapturePage.vue` 的组件挂载、
+`e2e/screenshot-overlay.spec.mjs` 的按 `screenshot.html` 找窗）随代码一起没了；
+替代它的运行时验收是 `e2e/screenshot-upstream.spec.mjs` 四条（handler 注册 → 起的是上游那层 →
+拖选点「确定」后落进截图库并被索引 → 点「取消」不落盘）。
 
----
 
 ## 6. 什么情况该用 `floating` 而不是 `shell`
 
 | 判据 | 走 `floating` 的代码事实 | 走 `shell` |
 | --- | --- | --- |
-| 必须跨窗口 / 跨工作区常驻置顶 | `miniWindow.ts:52-53`、`floatingNote.ts:134-135`（`setAlwaysOnTop(…, 'floating')` + `setVisibleOnAllWorkspaces`）；`PinService.ts:172-173` | 主窗无置顶语义，且启动即不自动显示、只作后台支撑（`main/index.ts:482-483`） |
-| 不该进任务栏 / 程序切换列表 | `skipTaskbar: true` + `minimizable/maximizable/fullscreenable: false`（`miniWindow.ts:37-40`、`floatingNote.ts:121-124`、`PinService.ts:169-173`） | shell 页天然受 AppShell 约束 |
-| 无边框、全透明底的小窗（形状自己画） | `frame:false, transparent:true, backgroundColor:'#00000000', hasShadow:false`（`miniWindow.ts:34,42-44`、`PinService.ts:165-175`） | — |
-| 生命周期归**主进程服务**拥有，渲染端不决定何时创建 | `ensureMiniWindow()`/`showMiniWindow()`/`toggleMiniWindow()`（`miniWindow.ts:21-94`）、`floatingNote.ts:110-148`、`PinService.createPin()`（`PinService.ts:146-188`），IPC 开关 `miniWindow.ts:100-114` | shell 页由 `router.push` 驱动 |
+| 必须跨窗口 / 跨工作区常驻置顶 | `miniWindow.ts:52-53`、`floatingNote.ts:134-135`（`setAlwaysOnTop(…, 'floating')` + `setVisibleOnAllWorkspaces`） | 主窗无置顶语义，且启动即不自动显示、只作后台支撑（`main/index.ts:482-483`） |
+| 不该进任务栏 / 程序切换列表 | `skipTaskbar: true` + `minimizable/maximizable/fullscreenable: false`（`miniWindow.ts:37-40`、`floatingNote.ts:121-124`） | shell 页天然受 AppShell 约束 |
+| 无边框、全透明底的小窗（形状自己画） | `frame:false, transparent:true, backgroundColor:'#00000000', hasShadow:false`（`miniWindow.ts:34,42-44`） | — |
+| 生命周期归**主进程服务**拥有，渲染端不决定何时创建 | `ensureMiniWindow()`/`showMiniWindow()`/`toggleMiniWindow()`（`miniWindow.ts:21-94`）、`floatingNote.ts:110-148`，IPC 开关 `miniWindow.ts:100-114` | shell 页由 `router.push` 驱动 |
 | 需要被侧边栏 / ⌘K / dock / tray「导航进去」 | ✗ 做不到（不在 `MODULES` 就不进导航，`router/index.ts:9-10`） | ✓ 只需在 `shared/modules.ts` 有条目（`modules.ts:44-81`） |
 | 需要持久工作区（历史 / 收藏 / 草稿） | ✗ | ✓（`IA_V2.md:29-36` 的「家」侧职责） |
 
@@ -194,9 +206,9 @@
 
 | # | 坑 / 症状 | 事实与证据 |
 | --- | --- | --- |
-| 1 | **`#/screenshot/pin` 曾长期空白**（2026-09-23 才修）：贴图窗弹出来是空的 | 主进程侧早就在加载这个 hash（`PinService.ts:184-188`），`PinPage.vue` 也早写好并监听了 `pin:setImage` / `pin:setShortcuts`，其头注释直陈因果：「主进程 PinService 会创建无边框透明置顶窗口并加载 `#/screenshot/pin`，**但此前路由表没有该路由 → 窗口永远空白，快捷键提示与缩放/旋转推送全部落空**」（`PinPage.vue:5-6`）。修复于 2026-09-23 提交 `650fd1b`「fix(screenshot): 补回 /screenshot/pin 路由 —— 贴图窗此前一定是空白的」（`git log` 实测）。路由表现在补了注释挡后人：「无此路由则窗口空白，见 PinPage 头注释」（`router/index.ts:118`）。**判据：主进程 URL 里出现 `#/…` 字面量，路由表必须有同名 `path`。** |
-| 2 | 同类隐患**仍在树里**：`window.location.hash = '#/screenshot'` | `TaskDetailDrawer.vue:225-227`；路由表无 `/screenshot`（截图模块 2026-09-17 下线，`DECISIONS.md:105` Decision-008）→ 按坑 1 机制必空白。同一文件 `:230-231` 的注释已经承认踩过：「路由表中录屏模块是 `/screenRecorder`（`#/recording` 不存在 → 主内容区空白）」。**这是记账，不是修**（本文不改代码）。 |
-| 3 | floating 窗**也过启动守卫** | 三个浮窗加载的都是同一份 `index.html`（`miniWindow.ts:58`、`floatingNote.ts:140`、`PinService.ts:186`），守卫不区分窗口语义（`router/index.ts:161-203`），而 floating 路由都没设 `bypassOnboarding` → 引导未完成时创建它们，按代码会被换成 `/onboarding`。实际三者都由模块内动作触发，此路径**未复现**（未证实），新增 floating 路由时按 §7-B 第 4 步处理。 |
+| 1 | **`#/screenshot/pin` 曾长期空白 → 该功能已整体撤销** | 当年主进程在加载这个 hash（旧 `PinService.ts`，已删），而路由表没有这条 → 窗口永远空白；补路由的修复在 `650fd1b`。但同一批还查出更根本的一环：`registerPinHandlers()` 全仓**零调用方**，也就是说补完路由 `pin:create` 依然 reject。2026-09-23 截图改由上游承担、上游工具栏没有贴图按钮，用户拍板「不要这贴图、钉图的功能」，`PinService` / `ipc/pin.ts` / `PinPage.vue` / 该路由 / preload `pin.*` 全部删除（HANDOFF §11）。**判据留两条**：主进程 URL 里出现 `#/…` 字面量，路由表必须有同名 `path`；反过来路由表补了 `path` 也要确认有人真的注册过那条 IPC —— 两头都核，别只核一头。 |
+| 2 | ~~同类隐患仍在树里：`window.location.hash = '#/screenshot'`~~ **已修**（2026-09-23） | 该写法在 `TaskDetailDrawer.vue` 里曾是「按了没反应」：路由表无 `/screenshot`（截图模块 2026-09-17 下线，`DECISIONS.md:105` Decision-008）。现在那里改调 `window.api.screenshot.startCapture()`（`TaskDetailDrawer.vue:227-230`）；`Home.vue` 的「截图」快捷卡同一批从 `path: '/screenshot'` 改成 `action: 'screenshot'` 并走同一个调用。**判据**：入口写的是「跳转」还是「动作」，得和路由表/IPC 两头对得上。 |
+| 3 | floating 窗**也过启动守卫** | 浮窗加载的都是同一份 `index.html`（`miniWindow.ts:58`、`floatingNote.ts:140`），守卫不区分窗口语义（`router/index.ts:161-203`），而 floating 路由都没设 `bypassOnboarding` → 引导未完成时创建它们，按代码会被换成 `/onboarding`。实际两者都由模块内动作触发，此路径**未复现**（未证实），新增 floating 路由时按 §7-B 第 4 步处理。 |
 | 4 | 滚动复位不能声明式返回 | 存在两个自定义滚动容器 `.App-router` / `.app-scroll`，window 本身不可滚，`{ top: 0 }` / `savedPosition` 对自定义容器无效 → `scrollBehavior` 必须命令式取节点（`router/index.ts:46-59`，成因注释 `:47-49` 记为 B3 修复）。 |
 | 5 | 同 route 反复开窗导致渲染进程堆积 | 复用 + 进程内导航（`windows.ts:25-46`，注释记为 BUGS.md B2），兜底导航在 `:83-92`，接收端 `main.ts:41-46`。 |
 | 6 | 生产加载必须先带目标 hash | 否则会闪一帧 Hub（`windows.ts:116-117`），`navigate-to-route` 只作兜底保留（`:117`）。 |
@@ -213,7 +225,7 @@
 | 侧边栏三分组的语义与「非模块页不进导航」的**约定** | `IA_V2.md:52-62` |
 | 「启动器 / 禁用 fastSearch」命名规范 | `IA_V2.md:69-72` |
 | `meta.window` 四类清单、运行时到底谁消费、与 `?immersive=1` 的正交关系 | 本文 §1 |
-| hash 直开窗口、装载器、入口页与截图编辑器为什么独立 | 本文 §3–§5 |
+| hash 直开窗口、装载器、入口页与「截图为什么不在路由表里」 | 本文 §3–§5 |
 | 新增页面 / 新增浮窗的操作步骤、已踩的坑 | 本文 §7–§8 |
 | 任何键位（Alt+Space / ⌘K / ⌘2-4 / 参数槽按键） | `docs/SHORTCUTS.md` |
 
@@ -222,7 +234,7 @@
 ## 10. 未证实清单（本文没找到代码依据的点，列明而非编）
 
 1. `floating` / `capsule` 两个枚举值无运行时消费点（§1 表）——是否有计划让它们真正驱动分派：未证实。
-2. `App.vue:27` 把「截图捕获」列为 overlay，与 §5「截图页不走路由表」不符，属注释遗迹；无代码按该说法分支。
+2. `App.vue:27` 仍把「截图捕获」列为 overlay 举例。2026-09-23 之后截图覆盖层已不在本仓（上游 `electron-screenshots` 自带页面，不经过 Vue Router），这句例子已过时；无代码按该说法分支，留作下轮清理。
 3. 坑 3 的引导期浮窗路径未实跑复现：未证实。
 4. `router/index.ts:12-13` 的注释只举了 `/mini-timer` 一例，另两个 floating 窗（`/floating-note`、`/screenshot/pin`）未写进该注释——注释落后于表，语义无冲突。
 5. `IA_V2.md:126` 指向 `RAYCAST_GAP_ANALYSIS.md` / `RAYCAST_PARITY_PLAN.md`，仓内实名为

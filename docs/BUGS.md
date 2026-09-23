@@ -27,13 +27,14 @@
 
 ## 🔴 高严重度
 
-### B1 贴图（pin）功能整体断裂
+### B1 贴图（pin）功能整体断裂 —— ⛔ 2026-09-23 功能整体撤销，不再修
 - 现象：截图编辑器点「贴图」创建的置顶窗口永远空白
-- 根因：`PinService.ts:175` 加载 `#/screenshot/pin`，但 `router/index.ts` 无此路由（hash 模式无 catch-all）；
+- 根因：旧 `PinService.ts`（已删）加载 `#/screenshot/pin`，但 `router/index.ts` 无此路由（hash 模式无 catch-all）；
   主进程推送的 `pin:setImage` 无人接收（`onSetImage` 全仓库 0 调用）；
   `pin:setShortcuts` 连 preload 封装都没有；9 个 pin 通道闲置
-- 修复：补 `/screenshot/pin` 路由 + PinWindow 组件（onMounted 调 `onSetImage`），preload 补 `onSetShortcuts`；
-  或移除贴图入口
+- 当时列的两个出路里走了第二个：**移除贴图入口**。补路由只是让窗口不空白，`registerPinHandlers()`
+  仍全仓零调用方 → `pin:create` 照样 reject。2026-09-23 截图换成上游 `electron-screenshots`
+  （工具栏没有贴图按钮）后，用户拍板「不要这贴图、钉图的功能」，整条链删除，详见下文 B1 修复记录与 HANDOFF §11
 
 ### B2 窗口无限堆积
 - 根因：`main/index.ts:149` 的 `create-new-window` 无条件 `new BrowserWindow`（`modules/windows.ts:6`），

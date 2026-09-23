@@ -120,7 +120,7 @@
 | --- | --- | --- |
 | `com.apple.security.cs.allow-jit` / `allow-unsigned-executable-memory` | Electron + V8 的常规要求 | 通用约束，本仓库无记录 → 未证实 |
 | `com.apple.security.cs.disable-library-validation` | hardened runtime 的库校验会挡住**从 asar 外单独加载的原生模块**：`better-sqlite3`（注释 `electron-builder.yml:29-30` 明写「.node 不能从 asar 内加载」）、`uiohook-napi`（全局键盘钩子，`:28`）、`@ffmpeg-installer`（自带的 ffmpeg 可执行文件，`:27`）；三者全在 `asarUnpack`（`:25-32`） | 高，但**没跑过就不算**：electron-builder 是否已替 unpacked 二进制逐个签名，未证实 |
-| `com.apple.security.network.client` | OCR 的 worker 与语言包要从公网拉（`cdn.jsdelivr.net` / `unpkg.com` / `tessdata.projectnaptha.com`）。这条现在发生在**主进程**：`src/main/services/ScreenshotIndexService.ts:218` 与 `src/main/services/ClipboardHistoryService.ts:531` 的 `createWorker('chi_sim+eng')`（tesseract.js 缺省即从上述 CDN 取）。原引用 `screenshot.html:6-13` 的 CSP 随树内截图编辑器一起删了（2026-09-23，HANDOFF §11） | 中 |
+| `com.apple.security.network.client` | OCR 的 worker 与语言包要从公网拉（`cdn.jsdelivr.net` / `unpkg.com` / `tessdata.projectnaptha.com`）。这条现在发生在**主进程**：`src/main/services/ScreenshotIndexService.ts:218` 与 `src/main/services/ClipboardHistoryService.ts:531` 的 `createWorker('chi_sim+eng')`（tesseract.js 缺省即从上述 CDN 取）。原引用 `screenshot.html` 的 CSP（已删）随树内截图编辑器一起删了（2026-09-23，HANDOFF §11） | 中 |
 | `com.apple.security.files.user-selected.read-write` + `downloads.read-write` | 与 §5.2 的 Downloads/Documents 两条用途串配套；保存对话框与录像落盘 | 中 |
 | `com.apple.security.device.camera` + `audio-input` | §5.2 前两条的沙箱侧对应物 | 中（仅当相关窗口在 App Sandbox 内才需要，本项目未开 `com.apple.security.app-sandbox`，见下） |
 | （刻意**不**开）`com.apple.security.app-sandbox` | 全文没出现该键；开了上述文件/网络项都得重排 | 结论：本项目走「hardened runtime + 非沙箱」这一支，与 Mac App Store 分发互斥——**未证实**是否刻意为之 |

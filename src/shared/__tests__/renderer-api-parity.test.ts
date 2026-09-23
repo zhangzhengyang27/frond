@@ -67,7 +67,7 @@ function collectRendererFiles(dir: string): string[] {
   return out
 }
 
-describe('渲染端 window.api 奇偶校验', () => {
+describe('渲染端 window.api 奇偶校验', { timeout: 120_000 }, () => {
   it('renderer 调用的每个 api 路径都在 preload 暴露面中存在', () => {
     const exposed = extractExposedApiSurface()
     // 少了这一行整个测试就是「扫了个空目录」——恢复事故里它被吞过一次，正例计数兜住

@@ -26,6 +26,28 @@ import { execSync } from 'node:child_process'
 const REPO_ROOT = join(__dirname, '../../..')
 
 /**
+ * 扫描结果缓存（2026-09-23）。
+ *
+ * 本文件有 7 个用例各自遍历一遍 `src/main` 全树并逐个 readFileSync。全量跑时
+ * 本文件耗时 106.7s（solo 14.4s，慢 7.4 倍），超过 vitest 默认 5s 用例超时后报
+ * `STACK_TRACE_ERROR`（vitest 的超时占位错误）——8 条红全是超时，不是契约不符。
+ *
+ * 测试运行期没有任何用例会写这些源文件，故进程内缓存安全。缓存的是「磁盘内容」
+ * 而不是「判定结果」：每个用例仍然各自跑正则与断言，判别性不变。
+ */
+const dirCache = new Map<string, string[]>()
+const srcCache = new Map<string, string>()
+
+/** 读源文件（进程内缓存：避免 7 个用例重复读同一批文件） */
+function readSource(filePath: string): string {
+  const hit = srcCache.get(filePath)
+  if (hit !== undefined) return hit
+  const src = readFileSync(filePath, 'utf-8')
+  srcCache.set(filePath, src)
+  return src
+}
+
+/**
  * 提取文件里主进程注册的所有 channel，分离请求频道与推送频道：
  * - request：ipcMain.handle/on + typedHandle(typedHandleLogged) 展开
  * - push：webContents.send（主进程 → 渲染端推事件）
@@ -34,7 +56,7 @@ function extractMainChannelsDetailed(filePath: string): {
   request: string[]
   push: string[]
 } {
-  const src = readFileSync(filePath, 'utf-8')
+  const src = readSource(filePath)
   // 先剥离整行注释：防止文档注释里的示例文本被当作注册
   // （历史案例：index.ts 注释里的 "ipcMain.on('ping') 已删除" 曾被抓成注册）
   const code = src
@@ -69,7 +91,7 @@ function extractMainChannels(filePath: string): string[] {
  * 提取文件里所有 ipcRenderer.invoke('channel', ...) 的 channel 名
  */
 function extractPreloadInvokes(filePath: string): string[] {
-  const src = readFileSync(filePath, 'utf-8')
+  const src = readSource(filePath)
   const re = /(?:ipcRenderer\.invoke|typedInvoke)\(\s*['"`]([^'"`]+)['"`]/g
   const out: string[] = []
   let m: RegExpExecArray | null
@@ -81,7 +103,7 @@ function extractPreloadInvokes(filePath: string): string[] {
  * 提取文件里所有 ipcRenderer.on('channel', ...) 的 channel 名
  */
 function extractPreloadOns(filePath: string): string[] {
-  const src = readFileSync(filePath, 'utf-8')
+  const src = readSource(filePath)
   const re = /ipcRenderer\.on\(\s*['"`]([^'"`]+)['"`]/g
   const out: string[] = []
   let m: RegExpExecArray | null
@@ -94,7 +116,7 @@ function extractPreloadOns(filePath: string): string[] {
  * （ipcMain.on 的对端）
  */
 function extractPreloadSends(filePath: string): string[] {
-  const src = readFileSync(filePath, 'utf-8')
+  const src = readSource(filePath)
   const re = /ipcRenderer\.send\(\s*['"`]([^'"`]+)['"`]/g
   const out: string[] = []
   let m: RegExpExecArray | null
@@ -114,8 +136,10 @@ function collectPreloadUsedChannels(): Set<string> {
   return used
 }
 
-/** 收集目录下所有 .ts 文件 */
+/** 收集目录下所有 .ts 文件（进程内缓存：7 个用例复用同一份目录树） */
 function walkTsFiles(dir: string): string[] {
+  const hit = dirCache.get(dir)
+  if (hit) return hit
   const out: string[] = []
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, e.name)
@@ -131,6 +155,7 @@ function walkTsFiles(dir: string): string[] {
       out.push(full)
     }
   }
+  dirCache.set(dir, out)
   return out
 }
 
@@ -148,11 +173,11 @@ function walkTsFiles(dir: string): string[] {
  * feedback.exportLog）在代码里根本不存在，而且 preferences.getTheme 的 res 写成了
  * 'system'（实际 'auto'）、setTheme 写成了对象入参（实际位置参数）。
  */
-describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', () => {
+describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', { timeout: 120_000 }, () => {
   const CONTRACT_FILE = join(REPO_ROOT, 'src/shared/ipc-contract.ts')
 
   function contractKeys(): string[] {
-    const src = readFileSync(CONTRACT_FILE, 'utf8')
+    const src = readSource(CONTRACT_FILE)
     const body = src.slice(
       src.indexOf('export interface IpcContract'),
       src.indexOf('\nexport type IpcKey')
@@ -160,11 +185,14 @@ describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', () =>
     return [...body.matchAll(/^ {2}'([^']+)':\s*\{/gm)].map((m) => m[1])
   }
 
+  let realChannelsCache: Set<string> | null = null
   function realChannels(): Set<string> {
+    if (realChannelsCache) return realChannelsCache
     const all = new Set<string>(collectPreloadUsedChannels())
     for (const f of walkTsFiles(join(REPO_ROOT, 'src/main'))) {
       for (const ch of extractMainChannels(f)) all.add(ch)
     }
+    realChannelsCache = all
     return all
   }
 
@@ -182,14 +210,17 @@ describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', () =>
   })
 
   /** 主进程通过 typedHandle(typedHandleLogged 同理) 注册的通道 = 已按单对象入参改造 */
+  let typedRegisteredCache: Set<string> | null = null
   function typedRegistered(): Set<string> {
+    if (typedRegisteredCache) return typedRegisteredCache
     const out = new Set<string>()
     for (const f of walkTsFiles(join(REPO_ROOT, 'src/main'))) {
-      const src = readFileSync(f, 'utf-8')
+      const src = readSource(f)
       for (const m of src.matchAll(/typedHandle(?:Logged)?\(\s*['"`]([^'"`]+)['"`]/g)) {
         if (m[1]) out.add(m[1])
       }
     }
+    typedRegisteredCache = out
     return out
   }
 
@@ -200,7 +231,7 @@ describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', () =>
     const typed = typedRegistered()
     const skewed: string[] = []
     for (const f of ['src/preload/index.ts', 'src/preload/plugin.ts']) {
-      const src = readFileSync(join(REPO_ROOT, f), 'utf-8')
+      const src = readSource(join(REPO_ROOT, f))
       for (const m of src.matchAll(/ipcRenderer\.invoke\(\s*['"`]([^'"`]+)['"`]/g)) {
         const ch = m[1]
         if (ch && typed.has(ch)) skewed.push(`${f} → ${ch}`)
@@ -219,7 +250,7 @@ describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', () =>
   })
 })
 
-describe('IPC contract (E2E 烟雾测试)', () => {
+describe('IPC contract (E2E 烟雾测试)', { timeout: 120_000 }, () => {
   it('主进程 IPC handler channel 列表', () => {
     const files = walkTsFiles(join(REPO_ROOT, 'src/main'))
     const all = new Set<string>()
@@ -390,7 +421,7 @@ describe('IPC contract (E2E 烟雾测试)', () => {
 describe('路由表组件完整性', () => {
   it('router/index.ts 里所有 lazy import 都对应真实文件', () => {
     const routerFile = join(REPO_ROOT, 'src/renderer/src/router/index.ts')
-    const src = readFileSync(routerFile, 'utf-8')
+    const src = readSource(routerFile)
     const re = /import\(\s*['"`]([^'"`]+)['"`]\s*\)/g
     const imports: string[] = []
     let m: RegExpExecArray | null
@@ -424,14 +455,14 @@ describe('shared/modules.ts 与 router 路径一致', () => {
     const modFile = join(REPO_ROOT, 'src/shared/modules.ts')
     const routerFile = join(REPO_ROOT, 'src/renderer/src/router/index.ts')
 
-    const modSrc = readFileSync(modFile, 'utf-8')
+    const modSrc = readSource(modFile)
     // 抓 path: '/xxx' 字面量
     const pathRe = /path:\s*['"`]([^'"`]+)['"`]/g
     const paths = new Set<string>()
     let m: RegExpExecArray | null
     while ((m = pathRe.exec(modSrc))) paths.add(m[1])
 
-    const routerSrc = readFileSync(routerFile, 'utf-8')
+    const routerSrc = readSource(routerFile)
     // 收集 router 里出现的所有 path / redirect 目标 / children path
     // - path: 'xxx' 或 '/xxx'
     // - redirect: '/xxx' 或 redirect: 'xxx'

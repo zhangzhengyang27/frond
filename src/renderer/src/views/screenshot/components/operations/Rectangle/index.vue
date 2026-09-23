@@ -88,7 +88,7 @@ const setColor = (newColor: string) => {
   color.value = newColor
 }
 
-const checked = computed(() => operation === 'Rectangle')
+const checked = computed(() => operation.value === 'Rectangle')
 
 const selectRectangle = () => {
   operationDispatcher.set('Rectangle')

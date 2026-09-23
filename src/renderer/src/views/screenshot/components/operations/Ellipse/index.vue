@@ -88,7 +88,7 @@ const setColor = (newColor: string): void => {
   color.value = newColor
 }
 
-const checked = computed(() => operation === 'Ellipse')
+const checked = computed(() => operation.value === 'Ellipse')
 
 const selectEllipse = (): void => {
   operationDispatcher.set('Ellipse')

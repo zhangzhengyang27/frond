@@ -610,6 +610,41 @@ grep -rl "2026-09-2[23] 重建" src --include="*.vue" --include="*.ts" --include
 **边界**：带标记 ≠ 行为与原件有差；**没标记也 ≠ 一定是原件** —— 见到漏标的按同格式补，
 别默默当原件用。
 
+#### 10.7 截图标注「所有工具按下去都没反应」的根因（2026-09-23，`e2e/screenshot-overlay.spec.mjs` 抓出）
+
+`views/screenshot/` 里 7 处写成 `const dispatcher = (store as any).dispatcher`
+（`useOperation` `useCursor` `useHistory` `useBounds` + `operations/{Ok,Save,Undo,Redo}.vue`）。
+但 provider（`Screenshots.vue:145-151`）给的 context 是 `{ store, dispatcher }` **两件平级**，
+store 上从来没有 `dispatcher` 这个键 → 取到的永远是 `undefined`，
+于是 `setOperation` / `setHistory` / `setCursor` **全部静默空转**：
+点矩形/椭圆/箭头/画笔/马赛克/文字不进模式，撤销/重做/确定前清选中态也不生效。
+另两处同类伤：`useOperation`/`useCursor`/`useBounds` 返回的是 `xxx.value` **那一刻的快照**
+（`useHistory` 早已改成 getter，注释还写着为什么必须用 getter —— 这三件被漏了），
+所以即便写通了，工具按钮的选中态也永远不会亮。
+
+**这不代表是我们弄坏的**：缓存里事故前那一份同样写着 `(store as any).dispatcher`
+（`/tmp/cache-dump/src/views/screenshot/composables/useOperation.ts` 与树上只差注释与 `: void`）。
+也就是说这条链在**删除事故之前就是死的**，而它此前从没被构建校验过（见 §10.5 入口页缺失），
+所以也从没被测出。修法统一：改 `useDispatcher()`（与 `ScreenshotsBackground` 一致），
+并把 computed 交出去让消费者的 `checked` 是活值。
+
+**判据（新增断言的判别性已核）**：`e2e/screenshot-overlay.spec.mjs` 第 3 条
+「选工具 → 在选区内画一个矩形 → 撤销从禁用变可用 → 点撤销又变回禁用」。
+把 `useHistory` 的 dispatcher 那一行退回 `(store as any).dispatcher` 重算一遍：第 3 条红、
+第 1/2 条不受影响（撤销按钮停在 `screenshots-button-disabled`）→ 断言咬的就是这一处。
+
+**同一条 spec 还顺手抓到我自己的一处错**：`iconfont.less` 初版用 Less mixin 传 `'\eb7f'`，
+Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工具按钮全是不占宽的空白
+（`span` 宽 0）。改成「一类一行、不用 mixin」后 `content` 解析为真字符（私有区码点）。
+`[class^='icon-']` 那条通配依旧刻意不搬。
+
+#### 10.8 根目录那 11 个未跟踪的旧散件（不是本会话产物，别当源码）
+
+`commands/ composables/ launcher/ utils/`（仓库根，未跟踪，mtime 全部 2026-09-22 08:46）
+是更早一次恢复会话把 `src/renderer/src/**` 按「去掉前缀」写歪到根目录的残渣，量了 11 个文件：
+**每一个都与树上同名文件不同**（是更早的一版），对 `git add -A` 是真实风险。
+本会话**没有动它们**（不是我的东西，也不确定别处的会话是否还指着它们）——要清就整体移出仓库，别就地删。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层也有洞，但那是「写不写」不是「找回」**：6 个被链接指向的文件在基线 `8446ff2` 就没有、

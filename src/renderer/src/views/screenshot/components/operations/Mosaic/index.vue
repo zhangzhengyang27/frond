@@ -63,7 +63,7 @@ const size = ref(3)
 const imageDataRef = ref<ImageData | null>(null)
 const mosaicRef = ref<import('../../../types').HistoryItemSource<MosaicData, null> | null>(null)
 
-const checked = computed(() => operation === 'Mosaic')
+const checked = computed(() => operation.value === 'Mosaic')
 
 const selectMosaic = (): void => {
   operationDispatcher.set('Mosaic')

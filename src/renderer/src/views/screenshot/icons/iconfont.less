@@ -3,52 +3,63 @@
  *
  * 2026-09-23 重建：原 icons/iconfont.less 及其字体文件（woff2/woff/ttf）随 2026-09-22
  * 删除事故丢失，二进制在 dev-server 缓存与各副本池中均无存。类名与「类 → 字形」的
- * 对应关系按缓存里 Screenshots.vue 的已编译样式逐一还原（11 个 .icon-* 类，见下），
+ * 对应关系按缓存里 Screenshots.vue 的已编译样式（`__vite__css`）逐条还原（11 个 .icon-*），
  * 字形改用本入口已经在用的 remixicon（screenshot-entry.ts 引入了 remixicon.css），
  * 因此不再自带字体文件。
  *
  * 刻意不写 `[class^='icon-']` 通配：原件那条会连到无关的 .icon-btn 等类上。
+ * 也刻意不用 mixin 传 content：Less 把 `'\eb7b'` 当关键字传参再展开会把 content 弄成空串
+ * （e2e/screenshot-overlay.spec.mjs 第 2 条就是这么抓到的），每个类各写一行才稳。
  */
 
-.si(@code) {
+.icon-ok,
+.icon-cancel,
+.icon-save,
+.icon-redo,
+.icon-undo,
+.icon-mosaic,
+.icon-text,
+.icon-brush,
+.icon-arrow,
+.icon-ellipse,
+.icon-rectangle {
   font-family: 'remixicon';
   font-style: normal;
   line-height: 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  content: @code;
 }
 
 .icon-ok::before {
-  .si('\eb7b'); // ri-check-line
+  content: '\eb7b'; // ri-check-line
 }
 .icon-cancel::before {
-  .si('\eb99'); // ri-close-line
+  content: '\eb99'; // ri-close-line
 }
 .icon-save::before {
-  .si('\f0b3'); // ri-save-line
+  content: '\f0b3'; // ri-save-line
 }
 .icon-redo::before {
-  .si('\ea5a'); // ri-arrow-go-forward-line
+  content: '\ea5a'; // ri-arrow-go-forward-line
 }
 .icon-undo::before {
-  .si('\ea58'); // ri-arrow-go-back-line
+  content: '\ea58'; // ri-arrow-go-back-line
 }
 .icon-mosaic::before {
-  .si('\f68d'); // ri-mosaic-line
+  content: '\f68d'; // ri-mosaic-line
 }
 .icon-text::before {
-  .si('\f201'); // ri-text
+  content: '\f201'; // ri-text
 }
 .icon-brush::before {
-  .si('\eaff'); // ri-brush-4-line
+  content: '\eaff'; // ri-brush-4-line
 }
 .icon-arrow::before {
-  .si('\ea70'); // ri-arrow-right-up-line
+  content: '\ea70'; // ri-arrow-right-up-line
 }
 .icon-ellipse::before {
-  .si('\eb7d'); // ri-checkbox-blank-circle-line
+  content: '\eb7d'; // ri-checkbox-blank-circle-line
 }
 .icon-rectangle::before {
-  .si('\eb7f'); // ri-checkbox-blank-line
+  content: '\eb7f'; // ri-checkbox-blank-line
 }

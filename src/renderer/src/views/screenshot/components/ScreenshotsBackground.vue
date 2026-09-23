@@ -15,6 +15,8 @@ import { computed } from 'vue'
 import ScreenshotsMagnifier from './ScreenshotsMagnifier.vue'
 
 const store = useStore()
+// inject 型 composable 只能在 setup 期取，不能挪进下面的拖拽回调里
+const dispatcher = useDispatcher()
 const url = computed(() => store.url)
 const image = computed(() => getValue(store.image))
 const width = computed(() => store.width)
@@ -30,7 +32,6 @@ const updateBounds = (p1: Point, p2: Point): void => {
     return
   }
   const { x, y } = elRef.value.getBoundingClientRect()
-  const dispatcher = useDispatcher()
   const boundsDispatcher = dispatcher.setBounds
   if (boundsDispatcher) {
     boundsDispatcher(

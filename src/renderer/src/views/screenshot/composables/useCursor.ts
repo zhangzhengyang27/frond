@@ -1,31 +1,26 @@
-import { computed } from 'vue'
-import { useStore, getValue } from './useScreenshotsContext'
+import { computed, type ComputedRef } from 'vue'
+import { useStore, useDispatcher, getValue } from './useScreenshotsContext'
 
 export interface CursorDispatcher {
   set: (cursor: string) => void
   reset: () => void
 }
 
-export function useCursor(): [string | undefined, CursorDispatcher] {
+export function useCursor(): [ComputedRef<string | undefined>, CursorDispatcher] {
   const store = useStore()
   const cursor = computed(() => getValue(store.cursor))
-  // 历史遗留取法：从 store 上取 dispatcher（保持既有运行时行为不变）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dispatcher = (store as any).dispatcher
+  // 与 useOperation 同一处修法：dispatcher 在 context 里与 store 平级，
+  // 从 (store as any).dispatcher 取永远是 undefined
+  const dispatcher = useDispatcher()
 
   const set = (newCursor: string): void => {
-    dispatcher?.setCursor(newCursor)
+    dispatcher.setCursor?.(newCursor)
   }
 
   const reset = (): void => {
-    dispatcher?.setCursor('move')
+    dispatcher.setCursor?.('move')
   }
 
-  return [
-    cursor.value,
-    {
-      set,
-      reset
-    }
-  ]
+  // 交 computed，不交那一刻的快照（否则消费者拿到的选中态永不更新）
+  return [cursor, { set, reset }]
 }

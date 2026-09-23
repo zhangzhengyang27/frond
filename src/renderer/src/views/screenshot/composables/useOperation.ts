@@ -1,31 +1,27 @@
-import { computed } from 'vue'
-import { useStore, getValue } from './useScreenshotsContext'
+import { computed, type ComputedRef } from 'vue'
+import { useStore, useDispatcher, getValue } from './useScreenshotsContext'
 
 export interface OperationDispatcher {
   set: (operation: string) => void
   reset: () => void
 }
 
-export function useOperation(): [string | undefined, OperationDispatcher] {
+export function useOperation(): [ComputedRef<string | undefined>, OperationDispatcher] {
   const store = useStore()
   const operation = computed(() => getValue(store.operation))
-  // 历史遗留取法：从 store 上取 dispatcher（保持既有运行时行为不变）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dispatcher = (store as any).dispatcher
+  // dispatcher 是 context 里与 store 平级的那一份；从前写成 (store as any).dispatcher
+  // 取到的是 undefined，于是 setOperation 静默空转 —— 点任何工具都没有反应
+  const dispatcher = useDispatcher()
 
   const set = (newOperation: string): void => {
-    dispatcher?.setOperation(newOperation)
+    dispatcher.setOperation?.(newOperation)
   }
 
   const reset = (): void => {
-    dispatcher?.setOperation(undefined)
+    dispatcher.setOperation?.(undefined)
   }
 
-  return [
-    operation.value,
-    {
-      set,
-      reset
-    }
-  ]
+  // 必须把 computed 交出去：早先是 `return [operation.value, ...]`，
+  // 组件在 setup 期拿到的就是那一刻的字符串，此后选中态永远不再变
+  return [operation, { set, reset }]
 }

@@ -62,7 +62,7 @@ const brushEditRef = ref<import('../../../types').HistoryItemEdit<BrushEditData,
   null
 )
 
-const checked = computed(() => operation === 'Brush')
+const checked = computed(() => operation.value === 'Brush')
 
 const selectBrush = (): void => {
   operationDispatcher.set('Brush')

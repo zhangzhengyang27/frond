@@ -4,12 +4,13 @@
 
 <script setup lang="ts">
 import { computed, onUnmounted } from 'vue'
-import { useStore, getValue } from '../../composables/useScreenshotsContext'
+import { useStore, useDispatcher, getValue } from '../../composables/useScreenshotsContext'
 import composeImage from '../../utils/composeImage'
-import type { Bounds } from '../../types'
+import { HistoryItemType, type Bounds } from '../../types'
 import ScreenshotsButton from '../ScreenshotsButton.vue'
 
 const store = useStore()
+const dispatcher = useDispatcher()
 const image = computed(() => getValue(store.image))
 const width = computed(() => store.width)
 const height = computed(() => store.height)
@@ -25,21 +26,15 @@ const emit = defineEmits<{
 let composeTimer: ReturnType<typeof setTimeout> | null = null
 
 const handleClick = async (): Promise<void> => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const historyDispatcher = (store as any).dispatcher?.setHistory
-  if (historyDispatcher) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    historyDispatcher((prev: any) => {
-      const newHistory = { ...prev }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      newHistory.stack.forEach((item: any) => {
-        if (item.type === 1) {
-          item.isSelected = false
-        }
-      })
-      return newHistory
+  // 落盘前取消所有图形的选中态，否则存进去的图带着控制点
+  dispatcher.setHistory?.((prev) => {
+    prev.stack.forEach((item) => {
+      if (item.type === HistoryItemType.Source) {
+        item.isSelected = false
+      }
     })
-  }
+    return { ...prev }
+  })
 
   // Bug#9: 明确延迟时间 + try-catch 错误处理
   composeTimer = setTimeout(async () => {

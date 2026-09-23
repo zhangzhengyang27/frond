@@ -93,7 +93,7 @@ const textEditRef = ref<import('../../../types').HistoryItemEdit<TextEditData, T
 const textareaBounds = ref<TextareaBounds | null>(null)
 const text = ref<string>('')
 
-const checked = computed(() => operation === 'Text')
+const checked = computed(() => operation.value === 'Text')
 
 const selectText = () => {
   operationDispatcher.set('Text')

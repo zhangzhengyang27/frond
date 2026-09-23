@@ -4,11 +4,12 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useStore, getValue } from '../../composables/useScreenshotsContext'
+import { useStore, useDispatcher, getValue } from '../../composables/useScreenshotsContext'
 import { HistoryItemType } from '../../types'
 import ScreenshotsButton from '../ScreenshotsButton.vue'
 
 const store = useStore()
+const dispatcher = useDispatcher()
 const history = computed(() => getValue(store.history))
 
 const disabled = computed(
@@ -16,10 +17,6 @@ const disabled = computed(
 )
 
 const handleClick = (): void => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const historyDispatcher = (store as any).dispatcher?.setHistory
-  if (!historyDispatcher) return
-
   const { index, stack } = history.value
   const item = stack[index + 1]
 
@@ -32,7 +29,7 @@ const handleClick = (): void => {
     }
   }
 
-  historyDispatcher({
+  dispatcher.setHistory?.({
     index: index >= stack.length - 1 ? stack.length - 1 : index + 1,
     stack
   })

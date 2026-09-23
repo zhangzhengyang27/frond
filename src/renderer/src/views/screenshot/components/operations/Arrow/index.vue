@@ -90,7 +90,7 @@ const setColor = (newColor: string): void => {
   color.value = newColor
 }
 
-const checked = computed(() => operation === 'Arrow')
+const checked = computed(() => operation.value === 'Arrow')
 
 const selectArrow = (): void => {
   operationDispatcher.set('Arrow')

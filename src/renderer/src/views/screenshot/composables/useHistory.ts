@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import type { History, HistoryItem } from '../types'
 import { HistoryItemType } from '../types'
-import { useStore, getValue } from './useScreenshotsContext'
+import { useStore, useDispatcher, getValue } from './useScreenshotsContext'
 
 export interface HistoryValue extends History {
   top?: HistoryItem<unknown, unknown>
@@ -21,9 +21,9 @@ export interface HistoryDispatcher {
 export function useHistory(): [HistoryValue, HistoryDispatcher] {
   const store = useStore()
   const history = computed(() => getValue(store.history))
-  // 历史遗留取法：从 store 上取 dispatcher（保持既有运行时行为不变）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dispatcher = (store as any).dispatcher
+  // dispatcher 在 context 里与 store 平级；写成 (store as any).dispatcher 永远取到
+  // undefined，于是 push/undo/redo 全是空转（工具画不出图形、撤销按钮永不自检）
+  const dispatcher = useDispatcher()
 
   const push = <S, E>(action: HistoryItem<S, E>): void => {
     const { index, stack } = history.value
@@ -43,7 +43,7 @@ export function useHistory(): [HistoryValue, HistoryDispatcher] {
     const newStack = stack.slice(0, index + 1)
     newStack.push(action)
 
-    dispatcher?.setHistory({
+    dispatcher.setHistory?.({
       index: newStack.length - 1,
       stack: newStack
     })
@@ -54,7 +54,7 @@ export function useHistory(): [HistoryValue, HistoryDispatcher] {
     const newStack = stack.slice()
     newStack.pop()
 
-    dispatcher?.setHistory({
+    dispatcher.setHistory?.({
       index: newStack.length - 1,
       stack: newStack
     })
@@ -73,7 +73,7 @@ export function useHistory(): [HistoryValue, HistoryDispatcher] {
       }
     }
 
-    dispatcher?.setHistory({
+    dispatcher.setHistory?.({
       index: index <= 0 ? -1 : index - 1,
       stack: newStack
     })
@@ -92,14 +92,14 @@ export function useHistory(): [HistoryValue, HistoryDispatcher] {
       }
     }
 
-    dispatcher?.setHistory({
+    dispatcher.setHistory?.({
       index: index >= newStack.length - 1 ? newStack.length - 1 : index + 1,
       stack: newStack
     })
   }
 
   const set = (newHistory: History): void => {
-    dispatcher?.setHistory({ ...newHistory })
+    dispatcher.setHistory?.({ ...newHistory })
   }
 
   const select = <S, E>(action: HistoryItem<S, E>): void => {
@@ -114,7 +114,7 @@ export function useHistory(): [HistoryValue, HistoryDispatcher] {
         }
       }
     })
-    dispatcher?.setHistory({ ...history.value, stack: newStack })
+    dispatcher.setHistory?.({ ...history.value, stack: newStack })
   }
 
   const clearSelect = (): void => {
@@ -126,11 +126,11 @@ export function useHistory(): [HistoryValue, HistoryDispatcher] {
       }
     })
 
-    dispatcher?.setHistory({ ...history.value, stack: newStack })
+    dispatcher.setHistory?.({ ...history.value, stack: newStack })
   }
 
   const reset = (): void => {
-    dispatcher?.setHistory({
+    dispatcher.setHistory?.({
       index: -1,
       stack: []
     })

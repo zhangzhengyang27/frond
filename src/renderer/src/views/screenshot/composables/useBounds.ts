@@ -1,32 +1,25 @@
-import { computed } from 'vue'
+import { computed, type ComputedRef } from 'vue'
 import type { Bounds } from '../types'
-import { useStore, getValue } from './useScreenshotsContext'
+import { useStore, useDispatcher, getValue } from './useScreenshotsContext'
 
 export interface BoundsDispatcher {
   set: (bounds: Bounds | null) => void
   reset: () => void
 }
 
-export function useBounds(): [Bounds | null, BoundsDispatcher] {
+export function useBounds(): [ComputedRef<Bounds | null>, BoundsDispatcher] {
   const store = useStore()
   const bounds = computed(() => getValue(store.bounds))
-  // 历史遗留取法：从 store 上取 dispatcher（保持既有运行时行为不变）
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dispatcher = (store as any).dispatcher
+  // 与 useOperation/useHistory 同一处修法：dispatcher 在 context 里与 store 平级
+  const dispatcher = useDispatcher()
 
   const set = (newBounds: Bounds | null): void => {
-    dispatcher?.setBounds(newBounds)
+    dispatcher.setBounds?.(newBounds)
   }
 
   const reset = (): void => {
-    dispatcher?.setBounds(null)
+    dispatcher.setBounds?.(null)
   }
 
-  return [
-    bounds.value,
-    {
-      set,
-      reset
-    }
-  ]
+  return [bounds, { set, reset }]
 }

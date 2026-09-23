@@ -729,10 +729,50 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 - `clipHist.setKeywords`：**读侧齐、写侧没入口**（渲染层两处搜索都消费 `item.keywords`，
   但没有任何 UI 调 `setKeywords`）。要不要给剪贴板条目加「备注关键词」的编辑入口是产品决定，
   不是恢复遗漏 —— 别顺手当 bug 修。
-- 截图标注整条链路（工具栏 11 个操作、马赛克/画笔/文字/图形）在事故后**第一次进构建**，
-  运行时没验过：真开一次截图窗、逐个工具点一遍才算数。
+- 截图标注整条链路：2026-09-23 已由 `e2e/screenshot-overlay.spec.mjs` 三条真跑过（3/3 绿，
+  并抓到两处静默空转的真缺陷，见 §10.7）—— 但这条面**即将整体退役**，见 §11。
 - e2e 全量重跑（配置地雷已排除，读数要重新取）。
 - `src/main/ipc/typedIpc.ts.alt-from-snapshot` 仍被跟踪在 git 里（某次恢复留下的另一份 typedIpc），
   没进编译（后缀不是 `.ts`），属清理项。
 - `hyperKey` 那 5 条要真验，得先给 vitest 配 electron 的可 mock 路径（测试基建，另排）。
 
+
+## 11. 2026-09-23 拍板：截图与标注改用上游模块，自研那套进入退役流程
+
+**决定**：不再自己维护那 59 个文件 / 7354 行的移植副本，改用 **`electron-screenshots@0.6.2`**
+（依赖已声明于 `a88b85a`，尚未接线）。路径是 **先并存 → 真跑通 → 一个提交删干净**。
+
+**触发这个决定的核查**（都带行号，别再回头查）：
+- 迁移 `028` 已 `DROP TABLE ss_screenshots`（`db/migrations/028_remove_screenshot.ts:21-22`），
+  但 `ScreenshotRepository` 仍在读写这张表（`db/repos/ScreenshotRepository.ts:87/125/163`），
+  而 `ScreenshotService` 每次确认截图都会调它落历史（`services/ScreenshotService.ts:507-517`）
+  → 抛「no such table」被 try/catch 只打成日志。
+- 更关键的是**两套目录本来就不搭**：自研截图存 `userData/screenshots`
+  （`ipc/screenshotHistory.ts:19-26`），而截图库读的 `shot_index` 只扫**桌面 + macOS 系统截图位置**
+  （`services/ScreenshotIndexService.ts:74-91`）。净效果：**用自己标注工具截的图，
+  文件在盘上，但永远不进截图库、也不进 OCR**。所以「修好自研那套的历史落库」并不是终点。
+- 树内这套的出身也已经坐实是移植：`ScreenshotService.ts:58/271/428` 的注释写着
+  「与参考项目一一对应 / 完全对齐参考项目 startCapture」，而 11 个 iconfont 类名与码点
+  （`e001`-`e00b`）与 `electron-screenshots` 上游完全同形。
+
+**接线时已经查清的两件事**（省得再翻包）：
+- 渲染端不用我们自己造：`node_modules/electron-screenshots/lib/index.js:43` 自己
+  `loadURL(file:// + require.resolve('react-screenshots/dist/electron.html'))`，
+  预构建页（`electron.html` + `static/`）就在 `react-screenshots` 包里。
+  打包时仍要核它落得进 asar 与否（`file://` 读 asar 内页面在 Electron 里可行，路径要实跑确认）。
+- 采集侧不用 `electron-rebuild`：`node-screenshots` 走平台预编译
+  （`node_modules/.pnpm/node-screenshots-darwin-arm64@0.2.8/…darwin-arm64.node`，N-API 与 Electron ABI 无关）。
+  但打包要把它加进 `asarUnpack`（与 better-sqlite3 / uiohook-napi 同列）。
+
+**一个环境坑，与本次装包无关**：`pnpm install` 的 postinstall（`electron-builder install-app-deps`）
+在这台机器上必失败 —— node-gyp 9.4.1 撞 Python 3.14，炸的是 `@parcel/watcher`
+（这次改动之前的 `pnpm-lock.yaml` 里它就出现 39 次，且树内从未有过它的 `.node`）。
+所以装包要 `--ignore-scripts`；谁在这台机器上跑 `pnpm install` 都会撞到同一处。
+
+**别做这几件事**：
+- 别再去「修好自研标注的历史落库」——那是给要退役的一侧续命；要修就修新链路。
+- `e2e/screenshot-overlay.spec.mjs` 三条与 `views/screenshot/*` 同批退役（它钉的是被替换那套的行为：
+  拖选区、工具栏字形、选工具画矩形让撤销解锁）。新链路跑通后要另立断言：
+  **「⌥⇧S 能起第三方覆盖层，确认后文件落进截图库扫得到的目录」**，
+  否则这次替换又是一次「构建过、没跑过」。
+- ⌥⇧S 那套可配置热键与本次替换无关，**保留**（`launcher/hotkeys.ts` 的注册链就是新实现要用的入口）。

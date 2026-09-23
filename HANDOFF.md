@@ -299,17 +299,18 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 
 | 功能域 | 缺的调用 | 证据 |
 | --- | --- | --- |
-| 截图库 | 16 处：`screenshot.history.{list,recent,openFile,showInFolder,storageUsage,setSaveDirectory,getSaveDirectory,delete}`、`screenshot.{startCapture,captureWindow,endCapture,getWindowList}` | 主进程 `src/main/ipc/screenshotHistory.ts` + `src/main/modules/screenshot.ts` 共注册 14 个 `screenshot:*` handler —— **已接回**（本行留作判定样例） |
+| 截图库 | 16 处：`screenshot.history.{list,recent,openFile,showInFolder,storageUsage,setSaveDirectory,getSaveDirectory,delete}`、`screenshot.{startCapture,captureWindow,endCapture,getWindowList}` | 主进程 `src/main/ipc/screenshotHistory.ts` + `src/main/modules/screenshot.ts` 共注册 14 个 `screenshot:*` handler —— **已接回**（本行留作判定样例）。**2026-09-23 变更**：`screenshot.history.*` 那 10 个从来没注册过（`registerScreenshotHistoryHandlers` 零调用方），且渲染端已无消费方，整条待清理（§11 待清账 1）；`screenshot.{startCapture,endCapture}` 现在打到上游 `electron-screenshots`；`{getWindowList,captureWindow}` 留在 `services/windowSources.ts` 但渲染端无入口 |
 | （已修，同类参照） | 密度档 / 玻璃档 / 紧凑模式 9 个方法 | `f63fd57` 就是这一类的先例：store 与 ipc-contract 都在，只有 handler + preload 那截没了 |
 
 涉及渲染端文件：`views/screenshot/{index.vue,components/HistoryPanel.vue,components/WindowPicker.vue,pages/CapturePage.vue}`。
+**（2026-09-23 追注：这四个文件连同整套树内截图编辑器已删，见 §11.1 —— 本行只留作判定样例，别再照它去「复原」。）**
 **现在的症状不是报错列表，是「界面画得出来、一点就 TypeError」**——所以它比 146 条类型错更靠近用户。
 
 ### B 类 · 两头都没 —— 要按现存调用点重建两侧协议
 
 | 缺 | 用在哪 | 说明 |
 | --- | --- | --- |
-| ~~`screenshot.{ready,ok,cancel,save,onCapture,onReset,removeListeners}`~~ **已解决（2026-09-23）** | `views/screenshot/pages/CapturePage.vue` | 原判「两头都没」是**错的**：主进程一直有这些通道，只是名字叫**大写** `SCREENSHOT:ready/ok/save/cancel` 与推送 `SCREENSHOT:capture/reset`（`ScreenshotService.ts`）。桥已按真名接回 preload |
+| ~~`screenshot.{ready,ok,cancel,save,onCapture,onReset,removeListeners}`~~ **已解决（2026-09-23）→ 同批又删掉（§11.1）** | `views/screenshot/pages/CapturePage.vue`（已删） | 原判「两头都没」是**错的**：主进程一直有这些通道，只是名字叫**大写** `SCREENSHOT:ready/ok/save/cancel` 与推送 `SCREENSHOT:capture/reset`（`ScreenshotService.ts`）。桥已按真名接回 preload |
 | `screenshot.pin.create` | `views/screenshot/components/Screenshots.vue` | 钉图 |
 | `video.readFile` | `views/screenRecorder/components/PlaybackPanel.vue` | 录屏回放读文件 |
 
@@ -729,8 +730,9 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 - `clipHist.setKeywords`：**读侧齐、写侧没入口**（渲染层两处搜索都消费 `item.keywords`，
   但没有任何 UI 调 `setKeywords`）。要不要给剪贴板条目加「备注关键词」的编辑入口是产品决定，
   不是恢复遗漏 —— 别顺手当 bug 修。
-- 截图标注整条链路：2026-09-23 已由 `e2e/screenshot-overlay.spec.mjs` 三条真跑过（3/3 绿，
-  并抓到两处静默空转的真缺陷，见 §10.7）—— 但这条面**即将整体退役**，见 §11。
+- 截图标注整条链路：2026-09-23 曾由 `e2e/screenshot-overlay.spec.mjs` 三条真跑过（3/3 绿，
+  并抓到两处静默空转的真缺陷，见 §10.7）—— 那条面**已整体退役并删除**，验收换成
+  `e2e/screenshot-upstream.spec.mjs` 四条，见 §11 末尾的接线结果。
 - e2e 全量重跑（配置地雷已排除，读数要重新取）。
 - `src/main/ipc/typedIpc.ts.alt-from-snapshot` 仍被跟踪在 git 里（某次恢复留下的另一份 typedIpc），
   没进编译（后缀不是 `.ts`），属清理项。
@@ -768,6 +770,66 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 在这台机器上必失败 —— node-gyp 9.4.1 撞 Python 3.14，炸的是 `@parcel/watcher`
 （这次改动之前的 `pnpm-lock.yaml` 里它就出现 39 次，且树内从未有过它的 `.node`）。
 所以装包要 `--ignore-scripts`；谁在这台机器上跑 `pnpm install` 都会撞到同一处。
+
+---
+
+### 11.1 接线结果（2026-09-23，本批）
+
+**已经跑通并删干净。** 验收 = `e2e/screenshot-upstream.spec.mjs` 四条真跑全绿（4-6 秒）：
+① `screenshot:startCapture` 的 handler 真在启动序列里注册（`main/index.ts:404` 那行是补的）；
+② 起来的是上游预构建页（`react-screenshots/dist/electron.html`）；
+③ 覆盖层里**真拖一个选区、真点「确定」**，图落进 `shot_index` 扫得到的目录并被搜到
+（正例 `name:Leaf-` + 反例 `name:zzz-绝对不存在-xyz` 成对）；
+④ 点「取消」不落盘。工具栏 11 个 `title` 断言顺带证明 `lang` 传进了上游页面。
+
+**这一批探到的四个坑，下次别重新踩**：
+- `win.getViews()` 只列新 API 的 `WebContentsView`，上游用 `setBrowserView()` 挂的是 **legacy
+  `BrowserView`** → 要 `win.getBrowserViews()`。拿错访问器会得出「覆盖层没起来」的**假结论**
+  （我据此误判了一轮，还写进过 commit message）。
+- `view.webContents.send('SCREENSHOTS:ok', …)` 是**主 → 渲**，永远不会触发 `ipcMain.on` 上
+  同名监听（上游的监听在 `electron-screenshots/lib/index.js:265`）。要让页面自己发：
+  它自己的 preload 暴露了 `window.screenshots.ok/save/cancel`（`lib/preload.js:15-26`），
+  或者直接点工具栏按钮 —— 后者才是真 UI 路径。
+- Playwright 的 `electronApp.windows()` **把 BrowserView 的 webContents 也列成 Page**，
+  所以覆盖层能 `mouse.move/down/up` 真拖、`getByTitle('确定')` 真点，不必从主进程伪造事件。
+- 两个断言写法坑：`expect.poll(数组).toContain('子串')` 比的是「数组含该元素」，元素是整条
+  `file://` URL → 永远假阴；`main.evaluate(() => api.x().total)` 是在 **Promise** 上取属性，
+  恒 `undefined`（要 `async () => (await api.x()).total`）。
+
+**覆盖层要等图接上才能按**：`startCapture` 之后立刻 `mousedown`，选区起点会丢（只剩放大镜、
+没有尺寸）。判据取放大镜文本 `坐标:`（它来自我们传的 `lang`，顺带证 `setLang` 生效），
+并且每个轮询周期要重发一次 `mousemove`。
+
+**新增 env 覆盖 `LEAF_SHOT_DIRS`**（`services/ScreenshotIndexService.ts:74-90`，套路同
+`LEAF_FILE_INDEX_SCOPES`）：截图落盘与索引扫描都走 `screenshotDirs()`，覆盖后两边一致。
+不加这条，e2e 会**往真实桌面写图**并扫整个桌面做 OCR —— 本次接线前确实这么污染过一次
+（`~/Desktop/Leaf-20260923101813.png`，已移出桌面）。
+
+**贴图/钉图按拍板整体撤销**（「不要这贴图、钉图的功能」）。顺带查清一条事实：
+`registerPinHandlers()` 全仓**零调用方** → 贴图从来就没通过，`650fd1b` 补的 `/screenshot/pin`
+路由只是让窗口不空白，`pin:create` 照样 reject。删的是：`services/PinService.ts`、
+`ipc/pin.ts`、`views/screenshot/pages/PinPage.vue`、路由 `/screenshot/pin`、preload 的 `pin.*`
+与 6 个 `Pin*Res` 类型。
+
+**同批删除**（编辑器侧，共 67 个 git 跟踪文件）：`views/screenshot/**`（59）、`screenshot.html`、
+`screenshot-entry.ts`、`renderer/src/services/OcrService.ts`、`views/screenshot/icons/iconfont.less`、
+`main/services/ScreenshotService.ts`（覆盖层类）、preload 的 `SCREENSHOT:*` 协议、
+`e2e/screenshot-overlay.spec.mjs`、`electron.vite.config.ts` 的第四个入口。
+→ **§10 的复原账本里 `screenshot.html` / `iconfont.less` / `OcrService.ts` 这几条现在作废**，
+它们是这次删的，不是又丢了 —— 别再去 dev-server 缓存里挖。
+
+**留下来的**：`listWindowSources` / `captureWindowSource` 搬进 `services/windowSources.ts`
+（上游没有「按窗口抓图」）。
+
+**待清账（本批刻意没做）**：
+1. `ipc/screenshotHistory.ts` 的 10 个 handler + `db/repos/ScreenshotRepository`：唯一调用方
+   （旧覆盖层的 `ok` 分支）已删，且 `registerScreenshotHistoryHandlers` 本就零调用方 → 整条死代码，
+   而它读的 `ss_screenshots` 已被迁移 028 drop。删它要连 `db/repos/index.ts` 桶导出、
+   preload `screenshot.history.*`、5 个 `Shot*Res`、`docs/{DB_SCHEMA,MIGRATIONS}.md` 两行一起动 → 另开一批。
+2. `shot_index` 的 OCR 把「图里没有字」记成 `failed`（`ScreenshotIndexService.ts:224`
+   `text ? 'done' : 'failed'`）。e2e 那张选区图就是 `failed:1`。语义上应是 `done` + 空文本。
+3. 打包：`node-screenshots*` 进 `electron-builder.yml` 的 `asarUnpack`（上面记过，**仍未做**）。
+4. 能力差：上游工具栏没有「贴图」，也没有窗口截图模式 —— 按拍板这是**取消**，不是回归。
 
 **别做这几件事**：
 - 别再去「修好自研标注的历史落库」——那是给要退役的一侧续命；要修就修新链路。

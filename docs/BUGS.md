@@ -86,7 +86,9 @@
 - `ClipEditor.vue:307-316`：removeEventListener 传新匿名函数引用，no-op（video 元素销毁兜底，低危）
 
 ### B12 snippets 条件性监听泄漏
-- `snippets/Sidebar.vue:201`、`SnippetList.vue:196`、`Editor.vue:615`：菜单展开时卸载组件，document 监听存活到下次全局点击（自愈型）
+- `SnippetList.vue:231/242`、`Editor.vue:677/652`：菜单展开时卸载组件，document 监听存活到下次全局点击（自愈型）
+  - 2026-09-23 对行号：这一条原先还列着 `snippets/Sidebar.vue` 的第 201 行，而该文件今天只有 169 行、
+    也没有任何 document 监听 —— 那一腿已不成立，删掉。（是 `scripts/recovery/scan-doc-citations.cjs` 扫出来的：它把全仓文档的 file:行号 逐条对真树核一遍）
 
 ### B13 死通道 ~40 个
 - 主进程注册但渲染端 0 调用：usage.toggleFavorite/isFavorite/clearRecent/removeFavorite、

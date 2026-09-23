@@ -696,9 +696,16 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   各池也无副本的文档已全部从代码重写完毕 —— `docs/ROUTING.md`(232) `DB_SCHEMA.md`(243)
   `MIGRATIONS.md` `SIGNING_MAC.md`(234) `THEME_AND_VOICE.md`(279) `PLUGIN_QA_CHECKLIST.md`。
   口径：**每条结论带 `文件:行号`，没跑过的操作一律标 `【未跑】/未证实`，不许预填「已验证」**。
-  复核过的两件事：① 六份合计 656 条 `文件:行号` 引用，逐条对真树解析后**无一条越界**
-  （我第一次核错了：脚本用 `**/basename` 兜底解析相对路径，把 `src/main/index.ts` 撞到了
-  `references/ueli/` 下的同名文件上，误报 34 条 —— 别信那种 glob 兜底的审计）；
+  复核过的两件事：① 全仓 25 份文档共 729 条 `文件:行号` 引用，逐条对真树解析**0 条越界**，
+  六份新文档另抽 6 条核内容（行号真、说法也对得上）。核对已固化成
+  **`scripts/recovery/scan-doc-citations.cjs`**（exit 1 即有越界）—— 我此前手搓一次性脚本
+  连错两次：一次用 basename 递归 glob 兜底，把 `src/main/index.ts` 撞进 `references/ueli/`
+  的同名文件，误报 34 条「编行号」；一次不认「首次给全路径、后文用简写 `miniWindow.ts:55`」
+  的写法，误报 345 条。**别再用临时 glob 核引用**。
+  顺带被它抓到一处真过期引用：`docs/BUGS.md` 的 B12 还列着 `snippets/Sidebar.vue` 第 201 行，
+  而该文件今天 169 行且根本没有 document 监听 —— 那一腿已删。
+  （B11 那一格也早已修好：ClipEditor 现在用的是具名 handler，注释里就写着 BUGS.md B11；
+  文档还挂着「未修」，下次动 BUGS.md 时一并清。）
   ② 两份文件一度「agent 回报已写入但磁盘上没有」，是等它们真正回报后才落盘核实的。
   重生成过程真抓到一个用户可见缺陷（见下）。
   **仍缺的两份不在拍板范围内**：`docs/modules/INDEX.md`（`docs/README.md` 末「模块文档」指着，

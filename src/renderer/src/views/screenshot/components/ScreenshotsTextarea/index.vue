@@ -1,32 +1,32 @@
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
+<template>
+  <Teleport to="body">
+    <textarea
+      ref="textareaRef"
+      class="screenshots-textarea"
+      :style="{
+        color,
+        width: `${width}px`,
+        height: `${height}px`,
+        maxWidth: `${maxWidth}px`,
+        maxHeight: `${maxHeight}px`,
+        fontSize: `${size}px`,
+        lineHeight: `${size}px`,
+        transform: `translate(${x}px, ${y}px)`
+      }"
+      :value="value"
+      @input="handleChange"
+      @blur="handleBlur"
+    />
+  </Teleport>
+</template>
+
+<script setup lang="ts">
+import { ref, watch, onMounted, nextTick } from 'vue'
+import calculateNodeSize from './calculateNodeSize'
+
+const props = defineProps<{
+  x: number
+  y: number
   maxWidth: number
   maxHeight: number
   size: number
@@ -77,3 +77,25 @@ onMounted(() => {
 })
 </script>
 
+<style scoped>
+.screenshots-textarea {
+  box-sizing: border-box;
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border: 2px solid var(--shot-accent);
+  resize: none;
+  outline: none;
+  white-space: nowrap;
+  word-break: break-all;
+  overflow: hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans',
+    sans-serif;
+  text-align: left;
+  z-index: 10001;
+}
+</style>

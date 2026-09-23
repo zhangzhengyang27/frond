@@ -5,6 +5,7 @@ import AppIcon from '@components/AppIcon.vue'
 import { AI_PROVIDERS, findProvider, type AIProviderPreset } from '@shared/ai'
 import { DENSITY_VALUES, normalizeDensity, type Density } from '@shared/density'
 import { CAPSULE_GLASS_VALUES, normalizeGlass, type CapsuleGlass } from '@shared/capsuleGlass'
+import { ownerPluginId } from '@shared/automation'
 import PermissionPanel from '@components/PermissionPanel.vue'
 import UBadge from '@components/ui/UBadge.vue'
 import UButton from '@components/ui/UButton.vue'
@@ -449,7 +450,7 @@ async function saveAutomations(): Promise<void> {
 }
 
 /** 任务归属（只认 `plugin:<id>` 这一种形态，认不出的不当用户的任务来标） */
-function automationOwner(t: AutomationRow): string {
+function automationOwner(t: AutomationView): string {
   const id = ownerPluginId(t.owner)
   return id ? `来自插件 ${id}` : ''
 }
@@ -458,10 +459,16 @@ function automationOwner(t: AutomationRow): string {
  * 动作那一栏的文案。插件命令要单独写：宿主只能看到「投递到了插件」，
  * 插件里那条命令跑成什么样看不到——写「成功」是替插件撒的谎。
  */
-function automationActionLabel(t: AutomationRow): string {
+function automationActionLabel(t: AutomationView): string {
   const a = t.action
   if (a.type === 'plugin') return `插件命令 ${'cmd' in a ? a.cmd : ''}`.trim()
   return a.type
+}
+
+/** 上次触发的结果。只在 `lastFiredAt` 存在时渲染，所以 null 那档只会是「跑过但没记结果」 */
+function automationResultLabel(t: AutomationView): string {
+  if (t.lastOk) return '成功'
+  return `失败：${t.lastError ?? '未知错误'}`
 }
 
 async function runAutomationNow(id: string): Promise<void> {
@@ -482,96 +489,6 @@ async function toggleAutomation(task: AutomationView): Promise<void> {
     autoTasks.value = await window.api.ai.automationSetEnabled(task.id, !task.enabled)
   } finally {
     autoBusyId.value = null
-  }
-}
-
-// ── MCP 客户端（P-4②）──
-type McpOverviewT = Awaited<ReturnType<typeof window.api.ai.mcpOverview>>
-const mcp = ref<McpOverviewT | null>(null)
-/** 编辑器里是「公开形态」，所以永远不含 env 值——保存时主进程按 id 沿用本机原值 */
-const mcpJson = ref('[]')
-const mcpBusyId = ref<string | null>(null)
-const mcpMsg = ref('')
-const mcpCallResult = ref<Record<string, string>>({})
-
-async function loadMcp(): Promise<void> {
-  try {
-    const view = await window.api.ai.mcpOverview()
-    mcp.value = view
-    mcpJson.value = JSON.stringify(
-      view.servers.map((x) => ({
-        id: x.id,
-        label: x.label,
-        command: x.command,
-        args: x.args,
-        enabled: x.enabled
-      })),
-      null,
-      2
-    )
-  } catch {
-    mcpMsg.value = '读取 MCP 配置失败'
-  }
-}
-
-async function saveMcpJson(): Promise<void> {
-  mcpMsg.value = ''
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(mcpJson.value)
-  } catch (error) {
-    mcpMsg.value = `JSON 不合法：${(error as Error).message}`
-    return
-  }
-  const res = await window.api.ai.mcpSetServers(parsed)
-  if (res.rejected.length > 0) {
-    mcpMsg.value = `已保存 ${res.servers.length} 个，拒绝 ${res.rejected.length} 个：` +
-      res.rejected.map((r) => `第 ${r.index + 1} 条 ${r.reason}`).join('；')
-  } else {
-    mcpMsg.value = `已保存 ${res.servers.length} 个`
-  }
-  await loadMcp()
-}
-
-async function mcpConnect(id: string): Promise<void> {
-  mcpBusyId.value = id
-  mcpMsg.value = ''
-  try {
-    const view = await window.api.ai.mcpConnect(id)
-    mcpMsg.value =
-      view.status === 'ready'
-        ? `${view.serverName ?? id} 已连接，${view.tools.length} 个工具${
-            view.skipped > 0 ? `（${view.skipped} 个非法条目已忽略）` : ''
-          }`
-        : `连不上：${view.error ?? view.status}`
-    await loadMcp()
-  } finally {
-    mcpBusyId.value = null
-  }
-}
-
-async function mcpStop(id: string): Promise<void> {
-  mcpBusyId.value = id
-  try {
-    await window.api.ai.mcpStop(id)
-    await loadMcp()
-  } finally {
-    mcpBusyId.value = null
-  }
-}
-
-async function mcpCall(id: string, tool: string): Promise<void> {
-  mcpBusyId.value = `${id}:${tool}`
-  try {
-    const res = await window.api.ai.mcpCallTool(id, tool, {})
-    mcpCallResult.value = {
-      ...mcpCallResult.value,
-      [`${id}:${tool}`]: res.ok
-        ? res.text + (res.ignoredContent > 0 ? `\n（忽略了 ${res.ignoredContent} 段非文本内容）` : '')
-        : `失败：${res.error ?? '未知错误'}`
-    }
-  } finally {
-    mcpBusyId.value = null
   }
 }
 

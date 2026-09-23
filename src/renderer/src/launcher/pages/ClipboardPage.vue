@@ -237,29 +237,6 @@ async function removeSelected(): Promise<void> {
   }
 }
 
-  const item = selected.value
-  if (!item) return
-  const ok = await window.api.clipHist.copy(item.id)
-  if (ok) flash('已复制到剪贴板')
-
-async function pinSelected(): Promise<void> {
-  const item = selected.value
-  if (!item) return
-  await window.api.clipHist.togglePin(item.id)
-  item.pinned = !item.pinned
-  flash(item.pinned ? '已置顶' : '已取消置顶')
-}
-
-async function removeSelected(): Promise<void> {
-  const item = selected.value
-  if (!item) return
-  await window.api.clipHist.remove(item.id)
-  items.value = items.value.filter((i) => i.id !== item.id)
-  if (selectedIndex.value >= filtered.value.length) {
-    selectedIndex.value = Math.max(0, filtered.value.length - 1)
-  }
-}
-
 /** 识别图片条目二维码：成功后文本已在剪贴板（主进程回填），flash 提示 */
 async function decodeQrOf(item: ClipItem): Promise<void> {
   if (!item.filePath) return
@@ -276,6 +253,30 @@ async function decodeQrOf(item: ClipItem): Promise<void> {
 /** 按条目类型组装 AI 加工提示词（仅发送单条内容） */
 function aiProcess(item: ClipItem): void {
   if (item.kind === 'image') {
+    const ocr = (item.ocrText ?? '').trim()
+    if (!ocr) {
+      flash('图片暂无识别文本（OCR 未完成或无文字）')
+      return
+    }
+    emit('ask-ai', `以下是图片 OCR 识别的文本，请概括要点：\n\n${ocr}`)
+    return
+  }
+  if (item.kind === 'link') {
+    emit('ask-ai', `请仅凭 URL 推断并说明这个链接的用途（中文，两三句）：${item.text ?? ''}`)
+    return
+  }
+  if (item.kind === 'files') {
+    emit('ask-ai', `请分析这些文件路径并给出整理建议：\n\n${(item.paths ?? []).join('\n')}`)
+    return
+  }
+  emit('ask-ai', `请加工以下剪贴板内容：先用一句话概括，再列出要点：\n\n${item.text ?? ''}`)
+}
+
+function openLink(url: string): void {
+  void window.api.system.openExternal(url)
+}
+
+function moveSelection(delta: number): void {
   if (filtered.value.length === 0) return
   selectedIndex.value =
     (selectedIndex.value + delta + filtered.value.length) % filtered.value.length

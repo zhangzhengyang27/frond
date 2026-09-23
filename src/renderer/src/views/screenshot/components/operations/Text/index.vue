@@ -1,62 +1,62 @@
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
-~~~ 第 30 行未留存 ~~~
-~~~ 第 31 行未留存 ~~~
-~~~ 第 32 行未留存 ~~~
-~~~ 第 33 行未留存 ~~~
-~~~ 第 34 行未留存 ~~~
-~~~ 第 35 行未留存 ~~~
-~~~ 第 36 行未留存 ~~~
-~~~ 第 37 行未留存 ~~~
-~~~ 第 38 行未留存 ~~~
-~~~ 第 39 行未留存 ~~~
-~~~ 第 40 行未留存 ~~~
-~~~ 第 41 行未留存 ~~~
-~~~ 第 42 行未留存 ~~~
-~~~ 第 43 行未留存 ~~~
-~~~ 第 44 行未留存 ~~~
-~~~ 第 45 行未留存 ~~~
-~~~ 第 46 行未留存 ~~~
-~~~ 第 47 行未留存 ~~~
-~~~ 第 48 行未留存 ~~~
-~~~ 第 49 行未留存 ~~~
-~~~ 第 50 行未留存 ~~~
-~~~ 第 51 行未留存 ~~~
-~~~ 第 52 行未留存 ~~~
-~~~ 第 53 行未留存 ~~~
-~~~ 第 54 行未留存 ~~~
-~~~ 第 55 行未留存 ~~~
-~~~ 第 56 行未留存 ~~~
-~~~ 第 57 行未留存 ~~~
-~~~ 第 58 行未留存 ~~~
-~~~ 第 59 行未留存 ~~~
+<template>
+  <div>
+    <ScreenshotsButton
+      :title="lang.operation_text_title"
+      icon="icon-text"
+      :checked="checked"
+      @click="handleSelectText"
+    >
+      <template #option>
+        <ScreenshotsSizeColor
+          :size="size"
+          :color="color"
+          @size-change="handleSizeChange"
+          @color-change="handleColorChange"
+        />
+      </template>
+    </ScreenshotsButton>
+    <ScreenshotsTextarea
+      v-if="checked && textareaBounds"
+      :x="textareaBounds.x"
+      :y="textareaBounds.y"
+      :max-width="textareaBounds.maxWidth"
+      :max-height="textareaBounds.maxHeight"
+      :size="sizes[size]"
+      :color="color"
+      :value="text"
+      @change="handleTextareaChange"
+      @blur="handleTextareaBlur"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useStore, getValue } from '../../../composables/useScreenshotsContext'
+import { useHistory } from '../../../composables/useHistory'
+import { useOperation } from '../../../composables/useOperation'
+import { useCursor } from '../../../composables/useCursor'
+import { useCanvasContextRef } from '../../../composables/useCanvasContextRef'
+import useCanvasMousedown from '../../../composables/useCanvasMousedown'
+import useCanvasMousemove from '../../../composables/useCanvasMousemove'
+import useCanvasMouseup from '../../../composables/useCanvasMouseup'
+import useDrawSelect from '../../../composables/useDrawSelect'
+import { HistoryItemType } from '../../../types'
+import ScreenshotsButton from '../../ScreenshotsButton.vue'
+import ScreenshotsSizeColor from '../../ScreenshotsSizeColor.vue'
+import ScreenshotsTextarea from '../../ScreenshotsTextarea/index.vue'
+import { draw, isHit } from './draw'
+
+export interface TextData {
+  size: number
+  color: string
+  fontFamily: string
+  x: number
+  y: number
+  text: string
+}
+
+export interface TextEditData {
   x1: number
   x2: number
   y1: number
@@ -225,4 +225,3 @@ useCanvasMousedown(onMousedown)
 useCanvasMousemove(onMousemove)
 useCanvasMouseup(onMouseup)
 </script>
-

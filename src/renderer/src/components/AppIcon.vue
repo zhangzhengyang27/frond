@@ -1,29 +1,31 @@
-/**
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
+<script setup lang="ts">
+import { computed, useAttrs } from 'vue'
+
+interface Props {
+  icon: string
+  size?: string | number
+  color?: string
+  rotate?: number
+  flip?: 'horizontal' | 'vertical' | 'both'
+  inline?: boolean
+  variant?: 'line' | 'fill'
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  size: '1em',
+  color: 'currentColor',
+  rotate: 0,
+  inline: false,
+  variant: 'line'
 })
 
 const attrs = useAttrs()
 
 // 将图标名称转换为 remixicon 类名
-// 如果已经是 ri- 开头（完整类名），直接使用；否则添加 ri- 前缀和 -line/-fill 后缀
+// 如果已经是 ri- 开头（完整类名），直接使用；否则添加 ri- 前缀和 -line/-fill 后缀。
+// 审查修复：调用方大量传入自带 '-line' 后缀的名字（如 'play-line'、'menu-line'、'link'），
+// 直接拼接会产出不存在的双重后缀类（ri-play-line-line）导致图标静默空白——
+// 统一先剥离尾缀再拼变体，存量与本批新增一并修复。
 const iconClass = computed(() => {
   const iconName = props.icon
 
@@ -32,8 +34,8 @@ const iconClass = computed(() => {
     return iconName
   }
 
-  // 否则添加 ri- 前缀和变体后缀
-  return `ri-${iconName}-${props.variant}`
+  const base = iconName.replace(/-(line|fill)$/, '')
+  return `ri-${base}-${props.variant}`
 })
 
 // 合并传入的 class 和图标类名
@@ -86,4 +88,3 @@ const iconStyle = computed(() => {
 <template>
   <i :class="mergedClass" :style="iconStyle" />
 </template>
-

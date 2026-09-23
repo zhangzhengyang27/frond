@@ -1,97 +1,98 @@
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
-~~~ 第 30 行未留存 ~~~
-~~~ 第 31 行未留存 ~~~
-~~~ 第 32 行未留存 ~~~
-~~~ 第 33 行未留存 ~~~
-~~~ 第 34 行未留存 ~~~
-~~~ 第 35 行未留存 ~~~
-~~~ 第 36 行未留存 ~~~
-~~~ 第 37 行未留存 ~~~
-~~~ 第 38 行未留存 ~~~
-~~~ 第 39 行未留存 ~~~
-~~~ 第 40 行未留存 ~~~
-~~~ 第 41 行未留存 ~~~
-~~~ 第 42 行未留存 ~~~
-~~~ 第 43 行未留存 ~~~
-~~~ 第 44 行未留存 ~~~
-~~~ 第 45 行未留存 ~~~
-~~~ 第 46 行未留存 ~~~
-~~~ 第 47 行未留存 ~~~
-~~~ 第 48 行未留存 ~~~
-~~~ 第 49 行未留存 ~~~
-~~~ 第 50 行未留存 ~~~
-~~~ 第 51 行未留存 ~~~
-~~~ 第 52 行未留存 ~~~
-~~~ 第 53 行未留存 ~~~
-~~~ 第 54 行未留存 ~~~
-~~~ 第 55 行未留存 ~~~
-~~~ 第 56 行未留存 ~~~
-~~~ 第 57 行未留存 ~~~
-~~~ 第 58 行未留存 ~~~
-~~~ 第 59 行未留存 ~~~
-~~~ 第 60 行未留存 ~~~
-~~~ 第 61 行未留存 ~~~
-~~~ 第 62 行未留存 ~~~
-~~~ 第 63 行未留存 ~~~
-~~~ 第 64 行未留存 ~~~
-~~~ 第 65 行未留存 ~~~
-~~~ 第 66 行未留存 ~~~
-~~~ 第 67 行未留存 ~~~
-~~~ 第 68 行未留存 ~~~
-~~~ 第 69 行未留存 ~~~
-~~~ 第 70 行未留存 ~~~
-~~~ 第 71 行未留存 ~~~
-~~~ 第 72 行未留存 ~~~
-~~~ 第 73 行未留存 ~~~
-~~~ 第 74 行未留存 ~~~
-~~~ 第 75 行未留存 ~~~
-~~~ 第 76 行未留存 ~~~
-~~~ 第 77 行未留存 ~~~
-~~~ 第 78 行未留存 ~~~
-~~~ 第 79 行未留存 ~~~
-~~~ 第 80 行未留存 ~~~
-~~~ 第 81 行未留存 ~~~
-~~~ 第 82 行未留存 ~~~
-~~~ 第 83 行未留存 ~~~
-~~~ 第 84 行未留存 ~~~
-~~~ 第 85 行未留存 ~~~
-~~~ 第 86 行未留存 ~~~
-~~~ 第 87 行未留存 ~~~
-~~~ 第 88 行未留存 ~~~
-~~~ 第 89 行未留存 ~~~
-~~~ 第 90 行未留存 ~~~
-~~~ 第 91 行未留存 ~~~
-~~~ 第 92 行未留存 ~~~
-~~~ 第 93 行未留存 ~~~
-~~~ 第 94 行未留存 ~~~
+<template>
+  <CapsulePage :hints="hints">
+    <div class="files-page">
+      <div class="files-toolbar">
+        <div class="files-mode">
+          <button
+            type="button"
+            class="files-mode-btn"
+            :class="{ active: mode === 'name' }"
+            @click="mode = 'name'"
+          >
+            文件名
+          </button>
+          <button
+            type="button"
+            class="files-mode-btn"
+            :class="{ active: mode === 'content' }"
+            @click="mode = 'content'"
+          >
+            全文
+          </button>
+        </div>
+        <input
+          v-model="onlyIn"
+          class="files-dir"
+          type="text"
+          placeholder="限定目录（可选）"
+          spellcheck="false"
+        />
+      </div>
+      <div v-if="!supported" class="files-empty">文件搜索当前仅支持 macOS</div>
+      <div v-else-if="!query.trim()" class="files-empty">
+        {{
+          mode === 'content'
+            ? '输入关键词搜索文件内容（较慢）'
+            : '输入文件名开始搜索（Spotlight 索引）'
+        }}
+      </div>
+      <div v-else-if="loading" class="files-empty">搜索中…</div>
+      <div v-else-if="items.length === 0" class="files-empty">没有匹配「{{ query }}」的文件</div>
+      <div v-else class="files-list">
+        <div
+          v-for="(item, index) in items"
+          :key="item.path"
+          class="files-item"
+          :class="{ selected: index === selectedIndex }"
+          @mouseenter="selectedIndex = index"
+          @click="openSelected()"
+        >
+          <div class="files-icon">
+            <AppIcon :icon="fileIcon(item.name)" :size="16" />
+          </div>
+          <div class="files-text">
+            <div class="files-title">{{ item.name }}</div>
+            <div class="files-sub">
+              <span>{{ item.dir }}</span>
+              <span v-if="item.size !== undefined" class="files-meta">{{
+                formatSize(item.size)
+              }}</span>
+              <span v-if="item.modifiedAt" class="files-meta">{{
+                formatTime(item.modifiedAt)
+              }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Detail：选中文件的完整路径 -->
+    <template #detail>
+      <div v-if="selected" class="files-detail">
+        <div class="files-detail-name">{{ selected.name }}</div>
+        <pre class="files-detail-path">{{ selected.path }}</pre>
+      </div>
+      <div v-else class="files-empty">选择左侧文件查看路径</div>
+    </template>
+  </CapsulePage>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import AppIcon from '@components/AppIcon.vue'
+import CapsulePage from './CapsulePage.vue'
+import { formatSmartDate } from '@utils/format'
+
+interface FileHit {
+  path: string
+  name: string
+  dir: string
+  size?: number
+  modifiedAt?: number
+}
+
+const props = defineProps<{ query: string }>()
+
+const items = ref<FileHit[]>([])
 const loading = ref(false)
 const supported = ref(true)
 const selectedIndex = ref(0)
@@ -217,15 +218,7 @@ function formatSize(bytes?: number): string {
 }
 
 /** 格式化修改时间 */
-function formatTime(ts?: number): string {
-  if (!ts) return ''
-  const d = new Date(ts)
-  const now = new Date()
-  if (d.toDateString() === now.toDateString()) {
-    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  }
-  return d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
-}
+const formatTime = (ts?: number): string => (ts ? formatSmartDate(ts) : '')
 
 watch([() => props.query, mode, onlyIn], ([q]) => {
   selectedIndex.value = 0
@@ -240,19 +233,27 @@ watch([() => props.query, mode, onlyIn], ([q]) => {
   }, 300)
 })
 
+// 过期请求守卫：mode/关键词切换后，慢的旧响应不得覆盖新结果
+let searchSeq = 0
+
 async function runSearch(q: string): Promise<void> {
+  const seq = ++searchSeq
   loading.value = true
   try {
     const result = await window.api.fileSearch.query(q, 30, {
       mode: mode.value,
       onlyIn: onlyIn.value.trim() || undefined
     })
+    if (seq !== searchSeq) return
     supported.value = result.supported
     items.value = result.items ?? []
   } catch {
+    if (seq !== searchSeq) return
     items.value = []
   } finally {
-    loading.value = false
+    if (seq === searchSeq) {
+      loading.value = false
+    }
   }
 }
 
@@ -312,3 +313,172 @@ function handleKey(e: KeyboardEvent): boolean {
 }
 
 defineExpose({ handleKey })
+
+onMounted(() => {
+  // 挂载时主进程探测平台支持（清空 items 即显示不支持文案）
+  void window.api.fileSearch.query('', 1).then((r) => {
+    supported.value = r.supported
+  })
+})
+</script>
+
+<style scoped>
+.files-page {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.files-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.files-mode {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--launcher-border);
+  border-radius: 8px;
+  background: var(--launcher-bg-elevated);
+}
+
+.files-mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--launcher-text-dim);
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.files-mode-btn.active {
+  background: var(--launcher-accent-soft);
+  color: var(--launcher-accent);
+}
+
+.files-dir {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--launcher-border);
+  border-radius: 8px;
+  background: var(--launcher-bg-elevated);
+  color: var(--launcher-text);
+  font-size: 11px;
+  outline: none;
+}
+
+.files-dir::placeholder {
+  color: var(--launcher-text-muted);
+}
+
+.files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.files-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.files-item.selected {
+  background: var(--launcher-accent-soft);
+}
+
+.files-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--launcher-bg-elevated);
+  color: var(--launcher-text-dim);
+  flex-shrink: 0;
+}
+
+.files-item.selected .files-icon {
+  color: var(--launcher-accent);
+}
+
+.files-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.files-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--launcher-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.files-sub {
+  font-size: 11px;
+  color: var(--launcher-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  direction: rtl;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.files-meta {
+  flex-shrink: 0;
+  color: var(--launcher-text-faint);
+  direction: ltr;
+}
+
+.files-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.files-detail-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--launcher-text);
+  word-break: break-all;
+}
+
+.files-detail-path {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--launcher-border);
+  background: var(--launcher-bg-elevated);
+  font-family: var(--font-mono, ui-monospace, Menlo, monospace);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--launcher-text-dim);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.files-empty {
+  padding: 22px 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--launcher-text-muted);
+}
+</style>

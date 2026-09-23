@@ -263,10 +263,10 @@ d6695e6 feat: 借鉴清单落地——模糊容错/多参数命令/pop-to-root �
 测量口径（随时可重跑）：
 
 ```bash
-npm run typecheck:web   # 146 条（2026-09-22 起是真数；此前 95 条全 TS1xxx、0 条语义错 = 被语法错屏蔽）
-npm run typecheck:node  # 43 条
-npx vitest run src/shared/__tests__/renderer-api-parity.test.ts   # 28 处幽灵 API 调用
-npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条归因）
+npm run typecheck:web   # 58 条（2026-09-23 C 类回灌后；本会话起点 146 → A/E/F 批 122 → C 类回灌 58）
+npm run typecheck:node  # 30 条
+npx vitest run src/shared/__tests__/renderer-api-parity.test.ts   # 2 处幽灵 API 调用
+npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcContract 6 + renderer-api-parity 1 + mergeCommands 1）
 ```
 
 ### A 类 · 主进程在、preload 桥没了 —— 补桥即恢复（**代价最低、功能量最大**）
@@ -301,15 +301,47 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 | `screenshot.pin.create` | `views/screenshot/components/Screenshots.vue` | 钉图 |
 | `video.readFile` | `views/screenRecorder/components/PlaybackPanel.vue` | 录屏回放读文件 |
 
-### C 类 · 文件盘上不存在、全盘无副本 —— 只能重写
+### C 类 · 2026-09-23 **翻盘**：dev-server 缓存里捞回 522 个原始件
 
-| 缺 | 谁在等它 |
-| --- | --- |
-| 10 个胶囊页组件：`AIChatPage` `BrowserTabsPage` `CalendarPage` `DictionaryPage` `NotesPage` `ReminderPage` `SettingsPage` `SystemInfoPage` `TrashPage` `WindowSwitcherPage`（均在 `src/renderer/src/launcher/pages/`） | `LauncherApp.vue` 与 `launcherPageViews.ts` 注册表；**同时挡住 `electron-vite build` 与全部 e2e** |
-| `ClipboardPage.vue` 存在但**没有默认导出**（且内部 `delta` / `moveSelection` 未定义） | 同上；8 条类型错 |
-| `example-plugin/` 整个目录 | `src/shared/__tests__/plugin-manifest.test.ts`（ENOENT scandir） |
-| 10 份 TextMate 语法 `src/renderer/src/components/editor/grammars/textmate/*.tmLanguage.json` | 代码编辑器语法高亮（`languages.ts` 10 条错） |
-| `@composables/useMarkers`、`@composables/useVideoClip` | 截图标记 / 剪辑面板 |
+原判「全盘无副本、只能重写」是**错的**。`~/Library/Application Support/leaf-desktop/Cache/Cache_Data/`
+（909 个 entry，50MB）里存着开发期 vite dev server 的响应体，**其中 522 条带内联
+`//# sourceMappingURL=…base64` 且 `sourcesContent` 是原始 `.vue` / `.ts` 全文**。
+`_compiled-from-cache/` 那份转储只留下了 `?vue&type=style` 的样式分片，所以此前误判为「无副本」。
+
+取法（可重跑，一条命令）：对每个 entry 取 `createHotContext("/src/…")` 里的 URL 当真实路径
+（`__vite__id` 只有样式分片才有，两者互斥），再把内联 map 的 `sourcesContent[0]` 解出来。
+按这个办法落盘到 `/tmp/cache-dump/src/`，**128 个原始件**（含 `.vue` 与 `.ts`；同一模块被访问过多次时取最长的那份）。
+
+已回灌的（都是缓存里的原件，不是重写）：
+
+| 类别 | 数量 | 明细 |
+| --- | --- | --- |
+| 启动器页组件 | **10 全部回来** | AIChat/BrowserTabs/Calendar/Dictionary/Notes/Reminder/Settings/SystemInfo/Trash/WindowSwitcher；另有老名 `FocusStatsPage` `SnippetsPage`（注册表仍引用） |
+| 缺的 `.vue` 组件 | 8 | `ui/{UBadge,UButton,UEmpty,UProgress,UToastProvider,UTooltip}`、`RouteLoading`、`shell/TopBar`、`EmojiSuggest` —— **缺 `.vue` 在 typecheck 里是静默的**（`declare module '*.vue'` 兜住了），只在 build 时才炸，所以 §10 之前只数到 10 个页组件 |
+| 截图区组件 | 7 | `CaptureModeBar` `CountdownDisplay` `ScreenshotsMagnifier` `operations/{Ok,Redo,Save,Undo}` |
+| 「机械还原」件换回原件 | 7 | `useCommandPalette` `useModuleShortcuts` `useTrackpadGesture` `utils/routePerf` `operations/Brush/draw` `utils/composeImage` `utils/getBoundsByPoints` —— 类型标注全回来了 |
+| 顶格 `~~~ 第 N 行未留存 ~~~` 占位件换回原件 | 6 | `AppIcon`（19 处洞）`FilesPage`（94 处）`DelaySelector`（44）`WindowPicker`（54）`ScreenshotsTextarea/index`（29）`operations/Text/index`（59） |
+| 录屏 composable | 2 | `useMarkers` `useVideoClip`（`_recovered-usable` 之外在 `partials--zcode-older` 里有完整副本） |
+| 掐头件重建 | 2 | `FormPage.vue`（盘上那份从 `<template>` 中段开始）← 缓存原件 374 行；`ClipboardPage.vue` 手工缝合：删掉被贴了两遍的 `pinSelected`/`removeSelected` 与孤立的 `copySelected` 尾巴，`aiProcess`/`openLink`/`moveSelection` 三件套换回原件 |
+| 丢的渲染层类型模块 | 2 | `types/system.ts` `types/log.ts` —— **写成对 `@preload/index.d` 的转发**，不手抄字段（该文件自己的注释就说过手抄副本漂过一次） |
+
+读数：`typecheck:web` **122 → 58**；幽灵 API 仍是 2（新装的页没引入新幽灵）；
+单测 **836 passed / 8 failed**（失败集不变）；`prettier --check` 对新装文件全过。
+
+**C 类剩下的（缓存里没有，得按消费方重建）**：
+`components/BackgroundSwitch` `components/CodePreview` `components/TagInput` `ui/USkeleton`
+`views/pomodoro/components/{HourHeatmap,ProjectChip,ProjectDonut,TaskCompletionStats,TrendChart}`
+`views/screenRecorder/components/{RecordingSettingsDialog,TransitionSelector}` `views/snippets/components/Sidebar`
+—— 共 12 个，每个都有 1 个 importer，**build 仍会停在它们上面**；
+外加两个占位件无原件：`views/MigrationCenterView.vue`（82 处洞）、
+`views/screenRecorder/components/PreviewPanel.vue`（119 处洞），以及 `example-plugin/` 目录、
+10 份 `textmate/*.tmLanguage.json`（`node_modules/.pnpm/codemirror-textmate@1.1.0` 的 demo 里有 5 份同类语法可借）。
+
+**另记一笔待拍板**：`src/` 下与渲染层真身同名的那批**已提交**副本（`src/composables/`、`src/commands/`、
+`src/launcher/`、`src/router/`、`src/stores/`、`src/utils/`、`src/views/`、`src/constants/`、`src/components/`）
+既不在 `tsconfig.web.json` 的 include 里、也不在 vite 的解析路径上（真身是 `src/renderer/src/**`），
+是基线快照带进来的**死副本**——要不要清掉归用户定，本轮没动。
+
 
 ### D 类 · ✅ **已做完（`8f4dc68`）** —— 回拷 19 个内置插件
 

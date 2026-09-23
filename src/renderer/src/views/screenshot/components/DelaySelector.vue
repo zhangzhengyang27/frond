@@ -1,47 +1,47 @@
-~~~ 第 1 行未留存 ~~~
-~~~ 第 2 行未留存 ~~~
-~~~ 第 3 行未留存 ~~~
-~~~ 第 4 行未留存 ~~~
-~~~ 第 5 行未留存 ~~~
-~~~ 第 6 行未留存 ~~~
-~~~ 第 7 行未留存 ~~~
-~~~ 第 8 行未留存 ~~~
-~~~ 第 9 行未留存 ~~~
-~~~ 第 10 行未留存 ~~~
-~~~ 第 11 行未留存 ~~~
-~~~ 第 12 行未留存 ~~~
-~~~ 第 13 行未留存 ~~~
-~~~ 第 14 行未留存 ~~~
-~~~ 第 15 行未留存 ~~~
-~~~ 第 16 行未留存 ~~~
-~~~ 第 17 行未留存 ~~~
-~~~ 第 18 行未留存 ~~~
-~~~ 第 19 行未留存 ~~~
-~~~ 第 20 行未留存 ~~~
-~~~ 第 21 行未留存 ~~~
-~~~ 第 22 行未留存 ~~~
-~~~ 第 23 行未留存 ~~~
-~~~ 第 24 行未留存 ~~~
-~~~ 第 25 行未留存 ~~~
-~~~ 第 26 行未留存 ~~~
-~~~ 第 27 行未留存 ~~~
-~~~ 第 28 行未留存 ~~~
-~~~ 第 29 行未留存 ~~~
-~~~ 第 30 行未留存 ~~~
-~~~ 第 31 行未留存 ~~~
-~~~ 第 32 行未留存 ~~~
-~~~ 第 33 行未留存 ~~~
-~~~ 第 34 行未留存 ~~~
-~~~ 第 35 行未留存 ~~~
-~~~ 第 36 行未留存 ~~~
-~~~ 第 37 行未留存 ~~~
-~~~ 第 38 行未留存 ~~~
-~~~ 第 39 行未留存 ~~~
-~~~ 第 40 行未留存 ~~~
-~~~ 第 41 行未留存 ~~~
-~~~ 第 42 行未留存 ~~~
-~~~ 第 43 行未留存 ~~~
-~~~ 第 44 行未留存 ~~~
+<template>
+  <div class="delay-overlay">
+    <div class="delay-panel">
+      <div class="delay-title">延时截图</div>
+      <div class="delay-options">
+        <button
+          v-for="sec in options"
+          :key="sec"
+          class="delay-option"
+          :class="{ active: selected === sec && !useCustom }"
+          @click="select(sec)"
+        >
+          {{ sec }}秒
+        </button>
+      </div>
+      <div class="delay-custom">
+        <label class="custom-label">自定义：</label>
+        <input
+          v-model.number="customSeconds"
+          type="number"
+          class="custom-input"
+          :class="{ active: useCustom }"
+          min="1"
+          max="60"
+          placeholder="1-60"
+          @focus="useCustom = true"
+          @input="useCustom = true"
+        />
+        <span class="custom-unit">秒</span>
+      </div>
+      <div class="delay-actions">
+        <button class="cancel-btn" @click="$emit('cancel')">取消</button>
+        <button class="start-btn" :disabled="finalSeconds <= 0" @click="start">开始</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+
+const props = withDefaults(
+  defineProps<{
+    defaultSeconds?: number
   }>(),
   {
     defaultSeconds: 3
@@ -73,7 +73,9 @@ const select = (sec: number) => {
 const start = () => {
   emit('start', finalSeconds.value)
 }
-</script><style scoped>
+</script>
+
+<style scoped>
 .delay-overlay {
   position: fixed;
   top: 0;
@@ -100,3 +102,116 @@ const start = () => {
   font-weight: 600;
   color: var(--shot-text);
   text-align: center;
+  margin-bottom: 20px;
+}
+
+.delay-options {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.delay-option {
+  flex: 1;
+  padding: 12px 16px;
+  background: var(--shot-panel-raised);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  color: var(--shot-text-dim);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delay-option:hover {
+  background: var(--shot-panel-hover);
+  color: var(--shot-text);
+}
+
+.delay-option.active {
+  border-color: var(--shot-accent);
+  background: var(--shot-accent-soft);
+  color: var(--shot-text);
+}
+
+.delay-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.custom-label {
+  font-size: 13px;
+  color: var(--shot-text-muted);
+  white-space: nowrap;
+}
+
+.custom-input {
+  flex: 1;
+  background: var(--shot-panel-raised);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--shot-text);
+  font-size: 14px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.custom-input:focus,
+.custom-input.active {
+  border-color: var(--shot-accent);
+  background: var(--shot-accent-softer);
+}
+
+.custom-input::placeholder {
+  color: var(--shot-text-faint);
+}
+
+.custom-unit {
+  font-size: 13px;
+  color: var(--shot-text-muted);
+}
+
+.delay-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.delay-actions button {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn {
+  background: var(--shot-panel-raised);
+  border: none;
+  color: var(--shot-text-dim);
+}
+
+.cancel-btn:hover {
+  background: var(--shot-panel-hover);
+  color: var(--shot-text);
+}
+
+.start-btn {
+  background: var(--shot-accent);
+  border: none;
+  color: var(--shot-text);
+}
+
+.start-btn:hover:not(:disabled) {
+  background: var(--shot-accent-hover);
+}
+
+.start-btn:disabled {
+  background: var(--shot-panel-raised);
+  color: var(--shot-text-faint);
+  cursor: not-allowed;
+}
+</style>

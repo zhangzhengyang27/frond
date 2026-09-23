@@ -16,11 +16,6 @@ process.env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
 // 文件索引（#9）：范围覆盖到测试专用目录（spec 播种后验证索引/增量/排除链路），
 // 同时避免 e2e 触发 home 全量扫描
 process.env.LEAF_FILE_INDEX_SCOPES = join(process.cwd(), 'test-results', 'file-index-scopes')
-// e2e 跳过内置插件自动安装：避免污染结果行序与冷启动基线，测试自行精确播种插件
-process.env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
-// 文件索引（#9）：范围覆盖到测试专用目录（spec 播种后验证索引/增量/排除链路），
-// 同时避免 e2e 触发 home 全量扫描
-process.env.LEAF_FILE_INDEX_SCOPES = join(process.cwd(), 'test-results', 'file-index-scopes')
 
 export default defineConfig({
   testDir: './e2e',

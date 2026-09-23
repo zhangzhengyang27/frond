@@ -525,7 +525,74 @@ e2e 侧另有一类损坏，**不是渲染层的**：
 且它的 action 本来就是模块导航，注册顺序还压掉了模块行）两条整条删除。
 `mergeCommands.test.ts` 的「真数据不许有重复」现在 **5/5 全绿**，它的作用变成防止再长回来。
 
-### 建议的处理顺序
+#### 10.5 缓存里连 html 都有，外加一个让 `.ts` 配置空转的地雷（`79d4835`）
 
-~~D 已做完~~ → **A（screenshot 桥，照 `f63fd57` 的打法）→ E（少导出）** 是当前性价比最高的两格→ E（少导出，用例即规格，含我这两次被回退的 `diffPermissions`/`mapAuthStatus`）→ F → B/C。
-C 类里的 10 个页组件是**唯一会同时卡住 build 与 e2e 的一格**；它不归谁"顺手"做，得单独排。
+**截图窗的入口页整页不存在**：`ScreenshotService` 生产的
+`file://…/renderer/screenshot.html` 和开发的 `:5173/screenshot.html` 都指向空气，
+所以事故后截图标注 UI 从没被构建校验过。原件在 `Cache_Data` 里（键
+`http://localhost:517X/screenshot.html`，响应体就是 vite 加工后的 html，**不需要 sourcemap**）：
+去掉注入的 `/@vite/client` 那行即可原样回灌，连 OCR 走 CDN 的 CSP 注释都在。
+枚举「还有哪些页丢了」用这条（只找到 launcher / screenshot 两页被 HTTP 请求过，其余走 file:）：
+
+```bash
+cd "$HOME/Library/Application Support/leaf-desktop/Cache/Cache_Data" && python3 -c "
+import os,re,collections
+hits=collections.Counter()
+for n in os.listdir('.'):
+    if not (n.endswith('_0') or n.endswith('_1')): continue
+    for m in re.finditer(rb'http://localhost:\d+/([A-Za-z0-9_\-./]+\.html)', open(n,'rb').read()):
+        hits[m.group(1).decode()]+=1
+print(dict(hits))"
+```
+
+**地雷：未被跟踪的 `electron.vite.config.js` 抢在 `.ts` 前面**（electron-vite 找配置是
+js→mjs→cjs→ts 的顺序）。它是 09-22 恢复时按 `.ts` 格式化出来的副本，此后所有对 `.ts` 的
+改动全部空转 —— 表现就是「input 明明加了四页，build 只出三页 html」且不报任何错。
+副本留在 `/tmp/electron.vite.config.js.shadowing-copy` 备查；**下次 build 页数对不上，先 `ls electron.vite.config.*`**。
+
+**iconfont 是唯一确认拿不回来的东西**：`views/screenshot/icons/`（`.less` + woff2/woff/ttf）
+不在 git、不在任何池、字体二进制也不在缓存。类名与「类→字形」的对应从缓存里 `Screenshots.vue`
+的已编译样式（`__vite__css`）逐条还原，11 个 `.icon-*` 全部改用本入口已加载的 remixicon 码点。
+原件那条 `[class^='icon-']` 通配**故意没搬**：它会连到无关的 `.icon-btn`（TaskDetailDrawer 在用）。
+
+**semantic 层首次全放行后露出的 23 条 `typecheck:node`** —— 全部文件当时都 `clean@HEAD`，
+即**存量缺陷而非本轮改出来的**（此前被一个语法错整层屏蔽）。逐条：
+
+| 位置 | 真相 | 处置 |
+| --- | --- | --- |
+| `ipc/shotIndex.ts:45-118` | 尾部粘着 `recordingSettings.ts` 的整份字节相同副本（接缝没切干净） | 切除；真件在 `ipc/recordingSettings.ts`，router 注册的是它 |
+| `ipc/markers.ts` `clearMarkers`/`exportToCSV` | 契约与 preload 都发单对象，这两个还挂在裸 `ipcMain.handle` 的位置参数上（且 `ipcMain` 根本没 import）| 转 `typedHandle`，与其它四个一致 |
+| `cliphist:setKeywords` | handler 调 `clipboardHistory.setKeywords`，服务侧没这方法 → 每次调用必 TypeError；而**两处渲染层搜索都在读 `item.keywords`** | 补 `keywords?: string[]` 字段 + setter（JSON 索引 `...i` 落盘，无需迁移）。**写侧 UI 仍无人调，见下** |
+| `ipc/log.ts` | `log.export()` 写失败返回 null，直接塞进 `detail` / `showItemInFolder` | null 早返回 |
+| `automation/store.ts` | 按另一套 logger 签名写的（`info(msg)` / `error(scope, {obj})`） | 改 `info('automation', msg)` / `error('automation', msg, err)` |
+| `automation.test.ts` | harness 的 `run` 默认实现 0 参，`TickDeps.run` 是 2 参 | 参型对齐，调用点不动 |
+| `dnsPinning.test.ts` ×9 | 没 import `LookupAddress`，回调类型与 `net.LookupFunction` 不一致 | 类型补全 |
+| `syncMerge.test.ts:104` | `MergeRow = Record<string, unknown>` → `copy.id.startsWith` 打在 unknown 上 | `String(copy.id)` |
+| `SnippetTransferService` / `renderer-api-parity` | 死常量 `CONTENT_TYPES`（内联三元已做同判据）/ 未用 `statSync` | 删 |
+| `SnippetRepository.syncFts` | `@ts-expect-error` 守着一个 0 引用的 no-op「留位」方法 | 整删（web 程序里 `noUnusedLocals` 关着，故 directive 变「多余」） |
+| `ScreenshotsCanvas.updateBounds` | 在事件回调里调 `useDispatcher()`（inject 型 composable 只能 setup 期跑）—— 原件为此用 `(store as any).dispatcher` 绕 | 提到 setup 顶层，`any` 与注释一并去掉 |
+
+**读数（同日，配置地雷排除后）**：`typecheck:web` 与 `:node` **双 0 error**（事故后第一次），
+单测 **110 文件 / 866 例**绿，`electron-vite build` **exit 0 且产出 4 个 html**。
+`scan-vue-imports` / `scan-vue-parse` 均 **0**；`scan-main-imports` 剩 1 条是 `?asset` 查询串
+（`windows.ts:3` 的 `resources/icon.png?asset`，文件在、env.d.ts 有声明）—— 扫描器不去查询串，假阳性。
+
+**上一轮 e2e 读数不作数**：那 39 分钟是在 `.js` 配置空转下跑的（没有 screenshot 页，
+`4 passed / 1 skipped / 9 did not run`，且 `playwright.config.mjs` 里 `LEAF_SKIP_BUILTIN_PLUGINS`
++ `LEAF_FILE_INDEX_SCOPES` 两行被贴了两遍 —— 已去重）。全量重跑读数待补在下一节。
+
+**e2e 里目前唯一没被排除的窗口**：`e2e/launcher.spec.mjs` 内容在基线之前就被毁（见 §10.4），
+显式 `test.skip`，不是「测过了」。
+
+### 剩下的账（2026-09-23 收工口径）
+
+- `clipHist.setKeywords`：**读侧齐、写侧没入口**（渲染层两处搜索都消费 `item.keywords`，
+  但没有任何 UI 调 `setKeywords`）。要不要给剪贴板条目加「备注关键词」的编辑入口是产品决定，
+  不是恢复遗漏 —— 别顺手当 bug 修。
+- 截图标注整条链路（工具栏 11 个操作、马赛克/画笔/文字/图形）在事故后**第一次进构建**，
+  运行时没验过：真开一次截图窗、逐个工具点一遍才算数。
+- e2e 全量重跑（配置地雷已排除，读数要重新取）。
+- `src/main/ipc/typedIpc.ts.alt-from-snapshot` 仍被跟踪在 git 里（某次恢复留下的另一份 typedIpc），
+  没进编译（后缀不是 `.ts`），属清理项。
+- `hyperKey` 那 5 条要真验，得先给 vitest 配 electron 的可 mock 路径（测试基建，另排）。
+

@@ -584,6 +584,32 @@ js→mjs→cjs→ts 的顺序）。它是 09-22 恢复时按 `.ts` 格式化出�
 **e2e 里目前唯一没被排除的窗口**：`e2e/launcher.spec.mjs` 内容在基线之前就被毁（见 §10.4），
 显式 `test.skip`，不是「测过了」。
 
+#### 10.6 「重建件台账」—— 37 个文件不是原件，别当原件信（2026-09-23）
+
+恢复出的文件分两种，混在一起就会把重建件当原件信：
+**找回原件**（可当原件用，只是 prettier 后可能有格式差）与**重建**（只按调用方契约对齐过，
+没逐字还原过，行为细节可能是我猜的）。标记方式是文件头一行 `2026-09-23 重建件（…）`。
+
+权威口径（别凭记忆数）：
+
+```bash
+grep -rl "2026-09-2[23] 重建" src --include="*.vue" --include="*.ts" --include="*.less" | wc -l
+# 37 —— 渲染层 34 / 主进程 3
+```
+
+**本轮补的漏**：番茄钟那 7 个重建组件（`TimerRing` `ModeSelector` `FocusRecordPanel`
+`TaskListPanel` `TaskEditDialog` `SettingsDialog` `FocusAssets`）**原先一点标记都没有**，
+在树上与原件长得一样 —— 是我上一批重建的，却漏了记号。已按同格式补上。
+这 7 个只按 `views/pomodoro/index.vue` 的 props/emits 绑定核对过（`@create` 在 357 行、
+`:default-project-id` 在 353 行），**没跟事故前画面对过**。
+
+**这 37 个里最该逐条真跑的（按「一旦我猜错就用户立刻看得见」排序）**：
+截图标注整条链（首次进构建，见 §10.5）、录屏剪辑三件（`ClipEditor` / `ClipTimeline` /
+`ExportDialog`）、`PreviewPanel`、`MigrationCenterView`、`OcrService`（新写）、`iconfont.less`（字形是我选的）。
+
+**边界**：带标记 ≠ 行为与原件有差；**没标记也 ≠ 一定是原件** —— 见到漏标的按同格式补，
+别默默当原件用。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - `clipHist.setKeywords`：**读侧齐、写侧没入口**（渲染层两处搜索都消费 `item.keywords`，

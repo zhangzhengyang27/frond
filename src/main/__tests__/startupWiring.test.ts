@@ -60,4 +60,35 @@ describe('主进程启动接线（index.ts）', () => {
     expect(adjacent, `重复的清理语句：${JSON.stringify(adjacent)}`).toEqual([])
     expect(countOf(willQuitBody(source), 'stopAllMcpServers()'), 'MCP 子进程只该被杀一次').toBe(1)
   })
+
+  it('截图 handler 真的被注册，且只注册一次', () => {
+    // 这一条钉的是一个「静态看不见」的缺陷：registerScreenshotHandlers() 定义得好好的，
+    // 但全仓零调用方 → `screenshot:startCapture` 从来没注册过，热键和按钮按下去都是空响。
+    // 只数代码行：注释里就写着「这一行是补回来的：registerScreenshotHandlers() 此前…」，
+    // 拿整份源码去数会被自己的注释骗到（第一版就被骗了一次）。
+    const code = codeLines(source).join('\n')
+    expect(
+      countOf(code, 'registerScreenshotHandlers()'),
+      '零调用方 = 截图整条链空转；多于一次 = 重复注册（同类事故见 permissions:probe）'
+    ).toBe(1)
+  })
+})
+
+describe('截图热键（launcher/hotkeys.ts）', () => {
+  const hotkeys = readFileSync(join(repoRoot, 'src/main/launcher/hotkeys.ts'), 'utf-8')
+
+  it('截图热键注册成功后要进 registeredAccelerators，否则 unregisterAll 漏掉它', () => {
+    // 漏进这张表 = 改热键/重挂时旧加速器解绑不掉：⌥⇧S 会同时命中新旧两条回调。
+    // 「注册了却没人记账」正是本仓反复出现的那一类，写死成断言而不是靠读。
+    const shot = hotkeys.slice(
+      hotkeys.indexOf('if (config.screenshot'),
+      hotkeys.indexOf('for (const [accel, spec] of Object.entries(config.commands)')
+    )
+    expect(shot.length, '找不到截图热键的注册段').toBeGreaterThan(0)
+    expect(
+      countOf(shot, 'registeredAccelerators.push(config.screenshot)'),
+      '截图热键没被登记 → unregisterAll() 不会解绑它'
+    ).toBe(1)
+    expect(countOf(shot, 'screenshotConflict = true'), '注册失败与抛异常两条都要记冲突').toBe(2)
+  })
 })

@@ -366,9 +366,15 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 #### 10.2 剩下多少，怎么量（这两条命令是权威口径，别再凭 §10 旧表推算）
 
 ```bash
-node scripts/recovery/scan-vue-imports.cjs   # 全树里 import 了但不存在的 .vue → 11 个
-node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的 .vue → 22 个
+node scripts/recovery/scan-vue-imports.cjs   # 全树里 import 了但不存在的 .vue → 现在 0 个
+node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的 .vue → 现在 1 个
+npx electron-vite build                      # main 229 / preload 3 模块已过；renderer 卡在那 1 个
 ```
+
+**2026-09-23 第三轮末的实测**：缺件 11 → **0**（`TagInput` `CodePreview` `TransitionSelector`
+`snippets/Sidebar` 与番茄钟那 7 个都已按调用点重建，文件头都标了「重建件」）；
+解析不过 22 → **1**（只剩 `views/snippets/components/SnippetList.vue`，13 行掐头件，全树最大的一格）。
+`typecheck:web` 15 → **6**。build 第一次跑到 renderer 深处（main + preload 全绿）。
 （脚本已收进 `scripts/recovery/`，还有一个 `scan-main-imports.cjs` 管主进程侧；口径：前者按 alias 表把 `from '*.vue'` 解析到磁盘路径、再看缓存有没有原件；
 后者逐个 `parse()` 报第一个语法错。**别只看 typecheck —— 缺 `.vue` 被 `declare module '*.vue'` 兜住，
 截断的 `.vue` 在 vue-tsc 里也常不出错，只有 build 会炸**。）

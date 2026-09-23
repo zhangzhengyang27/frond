@@ -1,3 +1,77 @@
+<template>
+  <ScreenshotsButton
+    :title="lang.operation_rectangle_title"
+    icon="icon-rectangle"
+    :checked="checked"
+    @click="handleSelectRectangle"
+  >
+    <template #option>
+      <ScreenshotsSizeColor
+        :size="size"
+        :color="color"
+        @size-change="setSize"
+        @color-change="setColor"
+      />
+    </template>
+  </ScreenshotsButton>
+</template>
+
+<script lang="ts">
+export interface RectangleData {
+  size: number
+  color: string
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
+export enum RectangleEditType {
+  Move,
+  ResizeTop,
+  ResizeRightTop,
+  ResizeRight,
+  ResizeRightBottom,
+  ResizeBottom,
+  ResizeLeftBottom,
+  ResizeLeft,
+  ResizeLeftTop
+}
+
+export interface RectangleEditData {
+  type: RectangleEditType
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+</script>
+
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useStore } from '../../../composables/useScreenshotsContext'
+import { useHistory } from '../../../composables/useHistory'
+import { useOperation } from '../../../composables/useOperation'
+import { useCursor } from '../../../composables/useCursor'
+import { useCanvasContextRef } from '../../../composables/useCanvasContextRef'
+import useCanvasMousedown from '../../../composables/useCanvasMousedown'
+import useCanvasMousemove from '../../../composables/useCanvasMousemove'
+import useCanvasMouseup from '../../../composables/useCanvasMouseup'
+import useDrawSelect from '../../../composables/useDrawSelect'
+import { HistoryItemType } from '../../../types'
+import { isHit, isHitCircle } from '../../../utils/drawUtils'
+import ScreenshotsButton from '../../ScreenshotsButton.vue'
+import ScreenshotsSizeColor from '../../ScreenshotsSizeColor.vue'
+import draw, { getEditedRectangleData } from './draw'
+
+const store = useStore()
+const lang = computed(() => store.lang)
+const [history, historyDispatcher] = useHistory()
+const [operation, operationDispatcher] = useOperation()
+const [, cursorDispatcher] = useCursor()
+const canvasContextRef = useCanvasContextRef()
+
+const size = ref(3)
 const color = ref('#ee5126')
 const rectangleRef = ref<
   import('../../../types').HistoryItemSource<RectangleData, RectangleEditData> | null
@@ -6,22 +80,22 @@ const rectangleEditRef = ref<
   import('../../../types').HistoryItemEdit<RectangleEditData, RectangleData> | null
 >(null)
 
-const setSize = (newSize: number): void => {
+const setSize = (newSize: number) => {
   size.value = newSize
 }
 
-const setColor = (newColor: string): void => {
+const setColor = (newColor: string) => {
   color.value = newColor
 }
 
 const checked = computed(() => operation === 'Rectangle')
 
-const selectRectangle = (): void => {
+const selectRectangle = () => {
   operationDispatcher.set('Rectangle')
   cursorDispatcher.set('crosshair')
 }
 
-const handleSelectRectangle = (): void => {
+const handleSelectRectangle = () => {
   if (checked.value) {
     return
   }
@@ -32,7 +106,7 @@ const handleSelectRectangle = (): void => {
 const onDrawSelect = (
   action: import('../../../types').HistoryItemSource<unknown, unknown>,
   e: MouseEvent
-): void => {
+) => {
   if (action.name !== 'Rectangle' || !canvasContextRef.value) {
     return
   }
@@ -119,7 +193,7 @@ const onDrawSelect = (
   historyDispatcher.select(action)
 }
 
-const onMousedown = (e: MouseEvent): void => {
+const onMousedown = (e: MouseEvent) => {
   if (!checked.value || !canvasContextRef.value || rectangleRef.value) {
     return
   }
@@ -144,7 +218,7 @@ const onMousedown = (e: MouseEvent): void => {
   }
 }
 
-const onMousemove = (e: MouseEvent): void => {
+const onMousemove = (e: MouseEvent) => {
   if (!checked.value || !canvasContextRef.value) {
     return
   }
@@ -172,7 +246,7 @@ const onMousemove = (e: MouseEvent): void => {
   }
 }
 
-const onMouseup = (): void => {
+const onMouseup = () => {
   if (!checked.value) {
     return
   }
@@ -188,3 +262,5 @@ const onMouseup = (): void => {
 useDrawSelect(onDrawSelect)
 useCanvasMousedown(onMousedown)
 useCanvasMousemove(onMousemove)
+useCanvasMouseup(onMouseup)
+</script>

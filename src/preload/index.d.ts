@@ -2,7 +2,7 @@ import type { UpdateEvent, UpdateStatus } from '../renderer/src/types/update'
 import type { ArchiveInfo } from '../main/db/legacyArchive'
 import type { FirstPartyPage } from '../shared/commands'
 import type { McpToolArg } from '../shared/mcp'
-import type { McpToolCommand } from './mcp'
+import type { McpToolCommand } from '../shared/mcp'
 import type { McpCallResult } from '../main/services/mcp/client'
 import type { PopToRootMode } from '../shared/popToRoot'
 import type {
@@ -47,6 +47,7 @@ import type {
 import type { focusShield } from '../main/modules/focusShield'
 import type { MainAction } from '../main/launcher/actionHandlers'
 import type { SystemInfo as LeafSystemInfo } from '../main/ipc/system'
+import type { Screenshot } from '../main/db/repos/ScreenshotRepository'
 import type { SystemInfo as HardwareInfoType } from '../main/services/SystemInfoService'
 
 // 渲染端经由 '@preload/index.d' 取用主进程类型（既有惯例），这里转发而不是再抄一份：
@@ -201,18 +202,30 @@ export interface LauncherPluginState {
  */
 export interface ShotListRes {
   success: boolean
-  items: unknown[]
+  items: Screenshot[]
   total: number
   error?: string
 }
 export interface ShotItemRes {
   success: boolean
-  item?: unknown
+  item?: Screenshot
   error?: string
 }
 export interface ShotItemsRes {
   success: boolean
-  items: unknown[]
+  items: Screenshot[]
+  error?: string
+}
+export interface ShotWindowListRes {
+  success: boolean
+  windows: ScreenshotWindowInfo[]
+  error?: string
+}
+export interface ShotWindowCaptureRes {
+  success: boolean
+  imageUrl?: string
+  bounds?: { x: number; y: number; width: number; height: number }
+  scaleFactor?: number
   error?: string
 }
 export interface ShotOkRes {
@@ -225,9 +238,17 @@ export interface ShotDeleteManyRes {
   filesRemoved?: number
   error?: string
 }
-export interface ShotLooseRes {
+export interface ShotUsageRes {
   success: boolean
-  [k: string]: unknown
+  totalSize: number
+  count: number
+  error?: string
+}
+export interface ShotDirRes {
+  success: boolean
+  directory?: string
+  canceled?: boolean
+  error?: string
 }
 
 export interface API {
@@ -484,10 +505,12 @@ export interface API {
     onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void) => void
     onReset: (cb: () => void) => void
     removeListeners: () => void
-    startCapture: () => Promise<unknown>
-    endCapture: () => Promise<unknown>
-    getWindowList: () => Promise<ScreenshotWindowInfo[]>
-    captureWindow: (windowId: string, scaleFactor?: number) => Promise<unknown>
+    startCapture: () => Promise<ShotOkRes>
+    endCapture: () => Promise<ShotOkRes>
+    /** 同上：主进程直接给数组，桥摊平成信封，视图按 success 分支走 */
+    getWindowList: () => Promise<ShotWindowListRes>
+    /** 主进程那边是 `WindowCaptureResult | null`，桥这一侧摊平成信封：视图按 success 分支走 */
+    captureWindow: (windowId: string, scaleFactor?: number) => Promise<ShotWindowCaptureRes>
     history: {
       list: (filter?: ScreenshotFilter, limit?: number, offset?: number) => Promise<ShotListRes>
       get: (id: string) => Promise<ShotItemRes>
@@ -497,9 +520,9 @@ export interface API {
       showInFolder: (filePath: string) => Promise<ShotOkRes>
       copyImage: (filePath: string) => Promise<ShotOkRes>
       openFile: (filePath: string) => Promise<ShotOkRes>
-      storageUsage: () => Promise<ShotLooseRes>
-      setSaveDirectory: () => Promise<ShotLooseRes>
-      getSaveDirectory: () => Promise<ShotLooseRes>
+      storageUsage: () => Promise<ShotUsageRes>
+      setSaveDirectory: () => Promise<ShotDirRes>
+      getSaveDirectory: () => Promise<ShotDirRes>
     }
   }
   shotIndex: {
@@ -1424,6 +1447,7 @@ export interface Clip {
 
 // 两个同名 SystemInfo（系统路径信息 vs 硬件信息）分别来自 system.ts 与
 // SystemInfoService.ts：手抄副本已经漂过一次，这里只转发不做第二份定义
+export type { BrowserTab } from '../main/services/BrowserTabsService'
 export type { SystemInfo } from '../main/ipc/system'
 export type { SystemInfo as HardwareInfo } from '../main/services/SystemInfoService'
 

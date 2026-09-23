@@ -98,12 +98,6 @@ export interface LauncherPageDef {
    * 运行时不看它。
    */
   name: string
-  /**
-   * 组件名。只为**测试与开发态自检**存在：钉住「这个 id 渲染的是哪一页」时，断言方
-   * 不必 import 24 个 SFC（单测环境解析不了 `@components/*` 这类渲染端别名）。
-   * 运行时不看它。
-   */
-  name: string
   props?: (ctx: LauncherViewCtx) => Record<string, unknown>
   on?: (ctx: LauncherViewCtx) => Record<string, ViewHandler>
   ready?: (ctx: LauncherViewCtx) => boolean

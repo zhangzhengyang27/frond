@@ -33,15 +33,10 @@
 import { ref, computed, onMounted } from 'vue'
 import PageFooterBar from './PageFooterBar.vue'
 import AppIcon from '@components/AppIcon.vue'
+import type { BrowserTab } from '@preload/index.d'
 
-interface Tab {
-  id: string
-  browser: 'chrome' | 'safari'
-  title: string
-  url: string
-  windowId: number
-  tabIndex: number
-}
+/** 形状就是桥上那一份，不另抄（activate 直接按它传） */
+type Tab = BrowserTab
 
 const tabs = ref<Tab[]>([])
 const loading = ref(true)
@@ -76,7 +71,7 @@ async function loadTabs(): Promise<void> {
 
 async function activate(tab: Tab): Promise<void> {
   try {
-    await window.api.browserTabs.activate(tab as unknown as Record<string, unknown>)
+    await window.api.browserTabs.activate(tab)
   } catch {
     /* 激活失败静默 */
   }

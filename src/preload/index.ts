@@ -7,8 +7,11 @@ import type {
   ShotItemRes,
   ShotItemsRes,
   ShotOkRes,
+  ShotWindowCaptureRes,
+  ShotWindowListRes,
   ShotDeleteManyRes,
-  ShotLooseRes
+  ShotUsageRes,
+  ShotDirRes
 } from './index.d'
 import type { UpdateEvent } from '../renderer/src/types/update'
 import type { FirstPartyPage } from '../shared/commands'
@@ -325,12 +328,35 @@ const api: API = {
       ipcRenderer.removeAllListeners('SCREENSHOT:reset')
     },
     // ── 截图动作与窗口源 ──
-    startCapture: (): Promise<unknown> => ipcRenderer.invoke('screenshot:startCapture'),
-    endCapture: (): Promise<unknown> => ipcRenderer.invoke('screenshot:endCapture'),
-    getWindowList: (): Promise<ScreenshotWindowInfo[]> =>
-      ipcRenderer.invoke('screenshot:getWindowList'),
-    captureWindow: (windowId: string, scaleFactor?: number): Promise<unknown> =>
-      ipcRenderer.invoke('screenshot:captureWindow', windowId, scaleFactor),
+    startCapture: (): Promise<ShotOkRes> => ipcRenderer.invoke('screenshot:startCapture'),
+    endCapture: (): Promise<ShotOkRes> => ipcRenderer.invoke('screenshot:endCapture'),
+    getWindowList: async (): Promise<ShotWindowListRes> => {
+      try {
+        const windows = (await ipcRenderer.invoke(
+          'screenshot:getWindowList'
+        )) as ScreenshotWindowInfo[]
+        return { success: true, windows }
+      } catch (error) {
+        return { success: false, windows: [], error: (error as Error).message }
+      }
+    },
+    captureWindow: async (
+      windowId: string,
+      scaleFactor?: number
+    ): Promise<ShotWindowCaptureRes> => {
+      // 主进程只给「有内容」或 null，失败原因在这层补齐：视图要能说明为什么没截到
+      const captured = (await ipcRenderer.invoke(
+        'screenshot:captureWindow',
+        windowId,
+        scaleFactor
+      )) as {
+        imageUrl: string
+        bounds: { x: number; y: number; width: number; height: number }
+        scaleFactor: number
+      } | null
+      if (!captured) return { success: false, error: '未捕获到该窗口的图像' }
+      return { success: true, ...captured }
+    },
     // ── 截图历史（OCR 索引与文件都在这一层）──
     history: {
       list: (filter?: ScreenshotFilter, limit?: number, offset?: number) =>
@@ -354,12 +380,12 @@ const api: API = {
       openFile: (filePath: string) =>
         ipcRenderer.invoke('screenshot:history:openFile', filePath) as Promise<ShotOkRes>,
       storageUsage: () =>
-        ipcRenderer.invoke('screenshot:history:storageUsage') as Promise<ShotLooseRes>,
+        ipcRenderer.invoke('screenshot:history:storageUsage') as Promise<ShotUsageRes>,
       /** 弹系统目录选择框，返回改后的目录（取消时 success:false） */
       setSaveDirectory: () =>
-        ipcRenderer.invoke('screenshot:history:setSaveDirectory') as Promise<ShotLooseRes>,
+        ipcRenderer.invoke('screenshot:history:setSaveDirectory') as Promise<ShotDirRes>,
       getSaveDirectory: () =>
-        ipcRenderer.invoke('screenshot:history:getSaveDirectory') as Promise<ShotLooseRes>
+        ipcRenderer.invoke('screenshot:history:getSaveDirectory') as Promise<ShotDirRes>
     }
   },
   // 截图库 OCR 索引（V4 P1-10）

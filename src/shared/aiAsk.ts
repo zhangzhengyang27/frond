@@ -11,7 +11,8 @@
  */
 
 export interface AiAskSource {
-  title: string
+  /** 可以缺：拼问题时按「(无标题)」兜底（见 buildEntryAsk），调用方不必先自己补空串 */
+  title?: string
   subtitle?: string
   badge?: string
   action?: { type?: string; path?: string; url?: string; content?: string }

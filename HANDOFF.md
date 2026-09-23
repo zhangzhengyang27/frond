@@ -328,14 +328,64 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 读数：`typecheck:web` **122 → 58**；幽灵 API 仍是 2（新装的页没引入新幽灵）；
 单测 **836 passed / 8 failed**（失败集不变）；`prettier --check` 对新装文件全过。
 
-**C 类剩下的（缓存里没有，得按消费方重建）**：
-`components/BackgroundSwitch` `components/CodePreview` `components/TagInput` `ui/USkeleton`
-`views/pomodoro/components/{HourHeatmap,ProjectChip,ProjectDonut,TaskCompletionStats,TrendChart}`
-`views/screenRecorder/components/{RecordingSettingsDialog,TransitionSelector}` `views/snippets/components/Sidebar`
-—— 共 12 个，每个都有 1 个 importer，**build 仍会停在它们上面**；
-外加两个占位件无原件：`views/MigrationCenterView.vue`（82 处洞）、
-`views/screenRecorder/components/PreviewPanel.vue`（119 处洞），以及 `example-plugin/` 目录、
-10 份 `textmate/*.tmLanguage.json`（`node_modules/.pnpm/codemirror-textmate@1.1.0` 的 demo 里有 5 份同类语法可借）。
+#### 10.1 第二轮（同日，接上）：主进程与渲染层都跑通到 build
+
+补装/重建：`RecordingSettingsDialog`（zcode-older 完整 796 行，**清单此前把它记成「无副本」是错的**）、
+`ui/USkeleton`（同作者另一 electron-vite 项目 `~/Desktop/leaf-library` 里有完整件，本树 token 已具备）、
+`views/AboutView.vue` 与 `views/pomodoro/index.vue`（zcode-older）、`useMultiPomodoroTimer.ts`
+（盘上那份是 **12 行桩**，缓存里是 628 行原件 —— 番茄钟引擎整个是空的）、
+`operations/Rectangle/index.vue`、`ScreenshotsOperations.vue`（两份都是「盘上短、缓存长」）。
+另新建 6 个重建件：`BackgroundSwitch` + 5 个统计组件（`TrendChart`/`ProjectDonut`/`HourHeatmap`/
+`TaskCompletionStats`/`ProjectChip`）—— 缓存与所有池内都无副本，形状按调用点与 store 类型对齐，
+文件头已写明「重建件」。`CodeScreenshot.vue` 的五档渐变改成 `--code-shot-*` 变量发布，重建的
+`BackgroundSwitch` 靠继承取同一组色值，不抄第二遍。
+
+主进程侧三个缺口（`electron-vite build` 实测出来的，typecheck 看不见）：
+`src/main/modules/pomodoroShortcuts.ts`（重建：全局键 + `pomodoro:shortcut` 只发主窗 +
+顺手把幽灵通道 `pomodoro:dispatchShortcut` 的主进程半边接上）、
+`src/main/utils/imageConvert.ts`（重建：`sips` 转 HEIC，与 `ipc/applications.ts` 同一手法，按
+「路径+mtime+size」缓存）、`src/preload/index.d.ts` 里 `from './mcp'` 改指 `../shared/mcp`
+（`McpToolCommand` 真身在那儿，`preload/mcp.ts` 从来不存在）。
+**main 与 preload 现在已经能 build**，卡在渲染层。
+
+读数（第二轮）：`typecheck:web` **58 → 26**、`typecheck:node` **30 → 27**、
+单测 **846 passed / 8 failed**（失败集仍是结构性缺件那 8 条 + 3 个收集错误文件）。
+
+#### 10.2 剩下多少，怎么量（这两条命令是权威口径，别再凭 §10 旧表推算）
+
+```bash
+node scripts/recovery/scan-vue-imports.cjs   # 全树里 import 了但不存在的 .vue → 11 个
+node scripts/recovery/scan-vue-parse.cjs     # @vue/compiler-sfc 解析不过的 .vue → 22 个
+```
+（脚本已收进 `scripts/recovery/`，还有一个 `scan-main-imports.cjs` 管主进程侧；口径：前者按 alias 表把 `from '*.vue'` 解析到磁盘路径、再看缓存有没有原件；
+后者逐个 `parse()` 报第一个语法错。**别只看 typecheck —— 缺 `.vue` 被 `declare module '*.vue'` 兜住，
+截断的 `.vue` 在 vue-tsc 里也常不出错，只有 build 会炸**。）
+
+- **缺组件 11**：`CodePreview` `TagInput`（都只被 `snippets/Editor.vue` import，模板里没有 —— 该文件的
+  模板被削掉 0…N 行，见下）、`TransitionSelector`（`ExportDialog.vue` 的整个 `<template>` 块没了）、
+  `snippets/components/Sidebar.vue`（真用，带 4 个 v-model/props）、
+  以及 `views/pomodoro/` 的 7 个（`FocusAssets` `FocusRecordPanel` `ModeSelector` `SettingsDialog`
+  `TaskEditDialog` `TaskListPanel` `TimerRing`）—— **这 7 个是回灌老版 `views/pomodoro/index.vue`
+  之后才暴露的**：盘上现存的那批 pomodoro 碎片（`PomodoroDetailPanel` 14 行、`TaskList` 24 行、
+  `TodayStatsBar` 60 行）与它们同属一代。`FocusAssets.vue` 本会话早些时候当死代码删过，
+  它唯一的调用方就是这代页面 —— 删早了。
+- **解析不过 22**：`FocusShield` `LaserPointer` `MarkdownPresentation` `MarkdownPreview`
+  `ui/UModal` `ui/USelect` `MigrationCenterView` `shell/Sidebar` `views/launcher/index.vue`
+  `pomodoro/{PomodoroDetailPanel,TaskDetailDrawer,TaskList,TodayStatsBar}`
+  `screenRecorder/{ClipEditor,ClipTimeline,PreviewPanel,RecordingHistory,SourceSelector,ClipPage}`
+  `screenshot/OcrResult` `snippets/{Editor,SnippetList}`。形态是**掐头或去尾**：
+  例如 `TodayStatsBar` 从模板中段开始、`FocusShield` 的 `<style scoped>` 被切在半条规则里、
+  `Editor.vue` 停在第 1099 行的一个 `<span>` 上。缓存里只有 `shell/Sidebar.vue` 与
+  `views/launcher/index.vue` 两份原件。
+- 二进制资产：`resources/icon.png` 整个目录不在树里（`tray.ts` / `windows.ts` / 协议图标 3 处 import）。
+  本机只有同作者 `leaf-library` 那份 512×512 脚手架默认图，**我把它当占位放进了 `resources/`（未提交）**，
+  换不换、用哪张图待拍板。
+- 另有 10 份 `textmate/*.tmLanguage.json` 与 `example-plugin/` 目录没回来（`languages.ts` 10 条 +
+  `plugin-manifest.test.ts` 收集错）。
+
+
+（上面这张「剩 12 个」的旧表已被 10.2 取代：`BackgroundSwitch`、5 个统计组件、`USkeleton`、
+`RecordingSettingsDialog` 都已到位，同时暴露出更大的盘面。）
 
 **另记一笔待拍板**：`src/` 下与渲染层真身同名的那批**已提交**副本（`src/composables/`、`src/commands/`、
 `src/launcher/`、`src/router/`、`src/stores/`、`src/utils/`、`src/views/`、`src/constants/`、`src/components/`）

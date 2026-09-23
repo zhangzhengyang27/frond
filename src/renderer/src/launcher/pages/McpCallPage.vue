@@ -74,7 +74,11 @@ async function run(): Promise<void> {
   running.value = true
   error.value = ''
   try {
-    const r = await window.api.ai.mcpRunTool(props.serverId, props.tool, props.args ?? {})
+    const r = await window.api.ai.mcpRunTool({
+      id: props.serverId,
+      tool: props.tool,
+      args: props.args ?? {}
+    })
     text.value = r.text
     ignored.value = r.ignoredContent
     if (!r.ok) error.value = r.error || '服务器返回失败'

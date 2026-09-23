@@ -282,7 +282,13 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* 五档渐变的唯一出处：BackgroundSwitch 的小色块靠继承拿同一组变量，不再抄一遍色值 */
 .code-screenshot-container {
+  --code-shot-disco: linear-gradient(90deg, #fc466b 0%, #3f5efb 100%);
+  --code-shot-salad: linear-gradient(90deg, #00c9ff 0%, #92fe9d 100%);
+  --code-shot-cucumber: linear-gradient(90deg, #e3ffe7 0%, #d9e7ff 100%);
+  --code-shot-aqua: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
+  --code-shot-lovely: linear-gradient(90deg, #efd5ff 0%, #515ada 100%);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -566,23 +572,23 @@ onBeforeUnmount(() => {
 }
 
 .gradient-disco {
-  background: linear-gradient(90deg, #fc466b 0%, #3f5efb 100%);
+  background: var(--code-shot-disco);
 }
 
 .gradient-salad {
-  background: linear-gradient(90deg, #00c9ff 0%, #92fe9d 100%);
+  background: var(--code-shot-salad);
 }
 
 .gradient-cucumber {
-  background: linear-gradient(90deg, #e3ffe7 0%, #d9e7ff 100%);
+  background: var(--code-shot-cucumber);
 }
 
 .gradient-aqua {
-  background: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
+  background: var(--code-shot-aqua);
 }
 
 .gradient-lovely {
-  background: linear-gradient(90deg, #efd5ff 0%, #515ada 100%);
+  background: var(--code-shot-lovely);
 }
 
 :deep(.CodeMirror),

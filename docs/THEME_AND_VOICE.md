@@ -238,12 +238,12 @@ A 与 B 是**正交**的：一套用户主题自带 `appearance`，激活时设�
 | # | 倾向（归纳，非规范） | 正例（`文件:行号`） | 反例 / 边界 |
 | --- | --- | --- | --- |
 | 1 | 空态 = "没有 X" + 下一步做什么，主语是内容不是用户 | `launcher/pages/ClipboardPage.vue:161`「还没有历史——复制任意内容后这里就会出现」；`launcher/pages/NotesPage.vue:76`「暂无笔记，点击上方新建」；`launcher/pages/BrowserTabsPage.vue:7-8`「没有打开的浏览器标签」+「在 Chrome 或 Safari 中打开一些标签页后重试」 | 也存在纯陈述不带动作的：`launcher/pages/CalendarPage.vue:50`「当天暂无提醒」、`views/screenRecorder/components/MarkersPanel.vue:98`「暂无标记」 |
-| 2 | 权限/失败类文案说**事实 + 路径 + 键名**，不评价用户 | `launcher/pages/SchedulePage.vue:5`「日历访问被拒绝：系统设置 → 隐私与安全性 → 日历，允许本应用后重试」、`:10`「日历尚未授权：回车或点击下方按钮发起授权」；`views/launcher/index.vue:945`「打开授权设置，把 Leaf 加入辅助功能列表后重试」 | — |
+| 2 | 权限/失败类文案说**事实 + 路径 + 键名**，不评价用户 | `launcher/pages/SchedulePage.vue:5`「日历访问被拒绝：系统设置 → 隐私与安全性 → 日历，允许本应用后重试」、`:10`「日历尚未授权：回车或点击下方按钮发起授权」；`views/launcher/index.vue:984`「打开授权设置，把 Leaf 加入辅助功能列表后重试」 | — |
 | 3 | 「请重试」式甩锅话**不成立为禁令**：`后重试` 是主流写法，光秃的「请重试」也有 | 上面 `:5` 与 `BrowserTabsPage.vue:8` 都是 `…后重试` | **反例**：`views/screenRecorder/pages/RecordPage.vue:516,524`「无法创建合成流，请重试」「合成流无效，请重试」；`launcher/pages/McpCallPage.vue:24` 直接有一颗「重试」按钮 |
 | 4 | 中文全角标点、拉丁词与中文之间留半角空格、成对引用用 `「」`、省略号用 `…` | `ClipboardPage.vue:258`「图片暂无识别文本（OCR 未完成或无文字）」；`useSourceSelection.ts:213`「摄像头无法启动，可能被其他应用占用。请关闭其他使用摄像头的应用后重试」；`launcher/pages/SnippetsPage.vue:7`「没有匹配「${query}」的片段」；`BrowserTabsPage.vue:3`「正在读取浏览器标签…」、`SchedulePage.vue:7`「加载日程中…」 | 例外不少：`launcher/pages/AIChatPage.vue:47`「暂无预设，在设置中添加模型预设」（无空格需求）、个别页仍写 `...`（未逐页统计，**未证实**是否系统性） |
 | 5 | 按钮/动作条目用**动词开头**（与 `UI_ALIGNMENT_CHECKLIST.md:89` 的动宾基准同向） | `views/SettingsView.vue:822`「导入主题文件…」、`:839`「打开主题目录」；`SchedulePage.vue:18`「发起日历授权」；插件侧同样：`plugins/com.leaf.quickfolders/index.html:57-59`「打开 / 复制路径 / 移除」 | 底栏主按钮历史上是固定「↵ 执行」（`UI_ALIGNMENT_CHECKLIST.md:90-91` 把它记为待改项），"动词随选中项变"这条**当时未落地** |
-| 6 | 错误提示分两层：短标题（多为「X失败」）+ 原因进 `description` | `composables/useToast.ts:6-12`（用法示例就是 `toast.error('导出失败', { description: '磁盘已满' })`）；`views/launcher/index.vue:539,584,665,705` | 也有只给标题不给原因的：`views/launcher/index.vue:525`「读取插件列表失败」、`:795`「偏好保存失败」 |
-| 7 | 状态陈述用完成态短语，不用感叹号、不用"哦/啦" | `views/launcher/index.vue:793`「偏好已保存」；`example-plugin/index.html:183`「作者名已改为 …」；`launcher/pages/SettingsPage.vue:60,67`「已开启 / 已关闭 / 当前平台不支持」；胶囊 `hints` 用「选择 / 切换 / 调节 / 返回」两字动词（`SettingsPage.vue:32-36`，页脚同义写作「↵ 切换 · ←→ 调节 · esc 返回」`:16`） | `views/screenRecorder/components/ClipEditor.vue:378`「还没有片段，先添加一个吧。」带句末语气词，与"极简专业"调性（`POSITIONING.md:11-17`）不完全一致 |
+| 6 | 错误提示分两层：短标题（多为「X失败」）+ 原因进 `description` | `composables/useToast.ts:6-12`（用法示例就是 `toast.error('导出失败', { description: '磁盘已满' })`）；`views/launcher/index.vue:576,621,702,742`（导入/安装/更新/注册四类失败） | 也有只给标题不给原因的：`views/launcher/index.vue:562`「读取插件列表失败」、`:832`「偏好保存失败」 |
+| 7 | 状态陈述用完成态短语，不用感叹号、不用"哦/啦" | `views/launcher/index.vue:830`「偏好已保存」；`example-plugin/index.html:183`「作者名已改为 …」；`launcher/pages/SettingsPage.vue:60,67`「已开启 / 已关闭 / 当前平台不支持」；胶囊 `hints` 用「选择 / 切换 / 调节 / 返回」两字动词（`SettingsPage.vue:32-36`，页脚同义写作「↵ 切换 · ←→ 调节 · esc 返回」`:16`） | `views/screenRecorder/components/ClipEditor.vue:378`「还没有片段，先添加一个吧。」带句末语气词，与"极简专业"调性（`POSITIONING.md:11-17`）不完全一致 |
 
 ### 5.2 关于"语调另有出处吗"
 

@@ -361,7 +361,6 @@ app.whenReady().then(() => {
   registerCloudBackupIpcHandlers()
   registerRemindersIpc()
   registerPermissionsIpcHandlers()
-  registerPermissionsIpcHandlers()
   registerLauncher(() => mainWindow)
 
   // 创建新窗口 IPC 处理

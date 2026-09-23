@@ -1,276 +1,360 @@
 # Leaf · 内置插件真机验证清单（D2 内功）
 
-> **本文件 2026-09-23 从代码重生成。** 原件随 2026-09-22 桌面误删事故丢失，各备份池无副本。
-> **重生成时未做过任何一轮真机验证：本文所有「结果」列都是空的。不要把本文件当"已通过"读，也不要替谁勾上任何一格。**
-> `docs/README.md:33` 对本文的期望是「内置插件真机验证清单（D2 内功）」；这一格在路线上的位置是 `docs/ROADMAP.md:41`（D2 内功清单里唯一未勾的那项：「**21 个插件逐个真机验证**」），D2 的决策原文是「先把官方 21 个插件验证到可用」（`ROADMAP.md:31`）。
+> **本清单 2026-09-23 由代码重生成，重生成时未做过任何一轮真机验证，所有结果格为空。**
+>
+> **未跑过的不许打勾。** 结果列只允许在真机上、当场、亲眼看过界面之后填 `PASS` / `FAIL` / `BLOCKED`
+> 并附日期与执行人；任何「代码看起来没问题」「单测过了」「e2e 绿了」都**不等于**真机验证过，
+> 一律留在空格里。本文档里没有任何一个插件处于已验证状态。
 
-## 本文的事实来源
+## 0. 这份清单的口径与规矩
 
-| 用来写什么 | 来源 |
-| --- | --- |
-| 清单条目与每条的声明内容 | `plugins/*/plugin.json`（21 份）、`plugins.json`（静态市场索引 22 条）、`example-plugin/plugin.json`、`example-react/plugin.json` |
-| 每个插件实际用到哪些宿主 API | `plugins/*/index.html`（逐文件扫 `api.` 调用，方法名与首次出现行号） |
-| 命令能不能被搜到、搜到后长什么样 | `src/renderer/src/launcher/composables/useCommandSources.ts:110-146`、`src/renderer/src/components/shell/CommandPalette.vue:9`、`docs/SHORTCUTS.md:18` |
-| 参数槽/表单怎么渲染 | `src/shared/argSlots.ts:8-16`、`src/shared/plugin-protocol.ts:81-177`、`src/renderer/src/launcher/LauncherApp.vue:842,908,1518` |
-| 动作执行落在哪 | `src/renderer/src/launcher/pages/PluginListPage.vue:128-150`、`src/renderer/src/utils/commandRunner.ts:161-183`、`src/main/launcher/runtime.ts:290-303` |
-| 权限强制与失败形状 | `src/main/launcher/ipc.ts:121-126,604-672`、`src/shared/plugin-protocol.ts:494-537`、`src/main/launcher/runtime.ts:314-340` |
-| 安装/清单校验 | `src/main/launcher/pluginStore.ts:194-267`（`readManifest`）、`:286-318`（`importFromFolder`）、`:321-333`（卸载清 KV） |
-| 市场与 sha256 | `src/main/launcher/market.ts:104-166,501-540` |
-| 热重载 | `src/main/launcher/devPlugins.ts:1-16`（模型说明）、`:31-32`（300ms 防抖） |
-| 受控桥（API 白名单真身） | `src/preload/plugin.ts:58-167` |
-| 已有静态闸口（不算真机） | `src/main/launcher/__tests__/pluginManifestAudit.test.ts`、`src/shared/__tests__/plugin-api-parity.test.ts`、`src/main/launcher/__tests__/market.test.ts`、`e2e/plugin-args.spec.mjs`、`e2e/plugin-arg-slots.spec.mjs`、`e2e/market-index.spec.mjs` |
+- 索引页定位：`docs/README.md:33`「内置插件真机验证清单（D2 内功）」。
+- 被指着的两处：`docs/ROADMAP.md:41`（「21 个插件逐个真机验证」）、
+  `docs/RAYCAST_PARITY_PLAN_V5.md:530`（「21 个内置插件逐个真机验证」；它顺带写的 `ROADMAP.md:38`
+  已漂到 `ROADMAP.md:41`。本次不改那两个文件，只在此说明）。
+- 清单内容**全部来自代码**：`plugins.json` + `plugins/*/plugin.json` + `example-plugin/plugin.json`
+  + `src/main/launcher/*` 与 `src/preload/plugin.ts`。没有代码依据的点标「未证实」，不写结论。
+- 一格怎么算跑过：该插件的 C0–C15 全部逐项判过（含专有项），任一没判就整行留空。
+- 结果/备注列取值：`PASS`（判真条件全部满足）/ `FAIL`（任一条不满足，备注写哪条 + 现象）/
+  `BLOCKED`（跑不下去，备注写卡在哪）。
 
----
+## 1. 插件条数（以代码为准）
 
-## 0. 先把"到底几条"钉死（数量核对）
-
-| 口径 | 实数 | 依据 |
+| 来源 | 计数方法 | 条数 |
 | --- | --- | --- |
-| **本清单正文（内置插件）** | **21** | `plugins/` 下带 `plugin.json` 的目录计数 = 21；自动安装也只扫这一层（`src/main/launcher/builtinPlugins.ts:60,73-105`） |
-| 静态市场索引条目 | **22** | `plugins.json:3-180`，多出的一条是 `com.leaf.example`（`:5-11`，`download: "./example-plugin"`） |
-| 盘上另有第 23 份清单 | 1 | `example-react/plugin.json`（id `com.leaf.example-react`，10 条命令，`permissions: ["net","schedule"]`），既不在 `plugins/` 也不在 `plugins.json`，只被 e2e 播种（`e2e/plugin-arg-slots.spec.mjs:21`，装入动作 `:150`） |
-| 命令合计 / 偏好项合计 | 28 条命令 / 20 项偏好 | 由 21 份 `plugin.json` 统计（脚本累加 `commands[].code` 与 `preferences[].name`） |
+| `plugins/*/plugin.json`（内置；自动安装扫的就是这个目录） | `ls plugins` 计数 | **21** |
+| `plugins.json`（静态市场索引 `plugins[]`） | `node -e "console.log(require('./plugins.json').plugins.length)"` | **22** |
+| 差额来源 | 索引多出的那条是 `com.leaf.example`，`download: "./example-plugin"`，不在 `plugins/` 下 | +1 |
+| 内置插件命令总数（`commands[].code`） | 逐个清单累加 | 28 |
+| 含示例后的命令总数 | 28 + 示例 4 | 32 |
+| 内置插件 preferences 声明项数 | 逐个清单累加 | 22（示例另有 3 项） |
 
-**与 ROADMAP 的 21 一致吗？** 一致——`docs/ROADMAP.md:41` 说的 21 = `plugins/` 的真实条数。差异只在"市场索引 22 条"这一层：多的是模板 `com.leaf.example`，它不进 `plugins/`，因此**不会被自动安装**，只能从管理页手动装（本地目录形态）。这两个数不是一回事，勾账时要分开。
-（另：`docs/ROADMAP.md:36` 的"16/21 插件 `getClipboardText` 静默失败"与本清单同一分母 21，可交叉核对。）
+**与 ROADMAP 的 21 是否一致：一致，但要说清按哪个口径。**
 
----
+- 按「内置插件目录」口径 = 21，`docs/ROADMAP.md:41` 与 `docs/RAYCAST_PARITY_PLAN_V5.md:530` 说的 21 就是它，
+  也是 `builtinPlugins.ts:73-105` 每次启动真正扫描并自动安装的集合。
+- 按「市场索引条目」口径 = **22**（`plugins.json` 里含 `com.leaf.example`）。第 3 节按这个口径列 22 行，
+  示例行单独标注「非内置自动安装」——它只从市场手动装（`market.ts:519-527` 目录形态）或被 dev 模式注册
+  （`devPlugins.ts:245-267`）。
+- 结论：**不凑数、也不改 ROADMAP**。真机跑的时候 21 条内置 + 1 条示例都要过一遍，但两者进入应用的路径不同，
+  验收前置条件也不同（见 C0）。
 
-## 1. 怎么跑这一轮（前置，别跳过）
+## 2. 通用检查项（C0–C15）
 
-| 步 | 怎么做 | 为什么 |
+每条都能判真假。「判真」= 看到的就是这样；「判假」= 别打勾，按 FAIL 记。代码位置是给复核的人验口径用的，
+不代表那里已经通过。
+
+### C0 前置：这个插件是怎么进到当前这个实例里的
+
+- 21 个内置插件：首启由 `builtinPlugins.ts:53-105` 自动安装（版本不同才重装，`builtinPlugins.ts:91-101`）；
+  判据 = 管理页「已安装插件」区有它、且显示 `v<清单版本>`。
+- 示例插件：不在自动安装集合里（`builtinPluginsDir()` 只扫 `plugins/`，`builtinPlugins.ts:25-33`），
+  要么市场页点安装，要么 dev 模式注册目录。
+- 反例先排除：e2e/测试实例常带 `LEAF_SKIP_BUILTIN_PLUGINS=1`（`builtinPlugins.ts:56-59`）→
+  那种实例里 21 个全空，别把「搜不到」当插件坏了。
+- 结果/备注：____
+
+### C1 两个入口都搜得到，且不重复
+
+- 操作：胶囊（全局快捷键唤起）里搜插件名与每条命令标题；主窗 ⌘K 面板同样搜一遍，各数命中行数。
+- 判真：两处各出现、每处**仅一行**；标题 = `commands[].title`，副标题 = `<插件名> · <命令描述>`
+  （`useCommandSources.ts:126-141`）；两入口共用同一份聚合源（胶囊 `LauncherApp.vue:439`、
+  ⌘K `CommandPalette.vue:9,34` 都调 `useCommandSources`）。
+- 判假：同一 `code` 出两行 / 只有胶囊有 / ⌘K 搜不到。
+- 去重口径：命令 key 恒为 `plugin:<id>:<code>`（`useCommandSources.ts:127`），合并器按 key 与
+  「动作签名 + 标题」双重去重（`mergeCommands.ts:79-97`）。**被去重时只有 DEV 构建的 console 会说话**
+  （`useCommandSources.ts:246-255`），发布包里只能靠数行数。
+- 附带一条：装/卸/启停后不必收起再唤起——命令表变更会播给所有窗（`ipc.ts:144-150`）。
+- 结果/备注：____
+
+### C2 停用即消失，且停用后打不开
+
+- 操作：管理页停用（`views/launcher/index.vue:1126`）→ 两入口再搜 → 再用 `leaf://plugin/<id>` 深链唤一次。
+- 判真：搜索无该行（`useCommandSources.ts:124` 只留 enabled）；深链被拒并弹系统通知「插件已停用：<名>」
+  （`runtime.ts:578-582`）。
+- 判假：停用后还搜得到，或深链直接把界面打开了。
+- 结果/备注：____
+
+### C3 深链只能到「插件」，不能到「命令」
+
+- 判据：`leaf://plugin/<id>` 没有命令段（`leafUrl.ts:57-61`），主进程以 `cmd = null` 打开
+  （`src/main/index.ts:209-215`）。多命令插件（base64 / colorpicker / htmlentity / jsonfmt / quickfolders /
+  urlcodec）此时应回落到「清单里第一条命令的行为」，例：`plugins/com.leaf.base64/index.html:13` 的
+  `data.cmd || 'encode'`。
+- 判假：深链打开后既不是首命令的行为、也没有任何可辨识状态（用户分不清在跑哪条命令）。
+- 其它命令仍要逐条走：每条 `code` 分别从 ⌘K / 胶囊命令行进一遍。
+- 结果/备注：____
+
+### C4 带参数的命令按声明渲染成内联参数槽或表单页
+
+- 唯一带参数声明的内置命令：`com.leaf.regex` 的 `test`（`pattern` text 必填 / `text` text / `flags` dropdown）。
+- 布局判据：`argSlots.ts:38-52` —— 含 `dropdown` → `{kind:'form',reason:'dropdown'}`；
+  超过 2 格（`argSlots.ts:18`）→ `{kind:'form',reason:'too-many'}`。regex 两条都踩中，**按设计进表单页**，
+  不该在搜索框里长出内联槽（`LauncherApp.vue:1210-1217` 的 `pushPage('pluginarg')`）。
+- 判真（胶囊）：回车后进参数表单；`pattern` 留空提交 → 留在表单不执行
+  （required 语义 `plugin-protocol.ts:88` + `argSlots.ts:122-128`）；`flags` 的候选标题要还原成值再交给插件
+  （`LauncherApp.vue:690` 的 title→value 映射）。
+- 判真（⌘K）：⌘K 面板**不传** `openPluginArg`（`CommandPalette.vue:102-109`），于是退化为「无参直接打开插件」
+  （`commandRunner.ts:74-82`）——regex 因此走「读剪贴板」分支（`plugins/com.leaf.regex/index.html:13-42`）。
+  这是既定设计，但两个入口行为不同，**必须分别记录**，不能拿胶囊那次的结果替 ⌘K 打勾。
+- 判假：带 dropdown 的命令长出内联槽 / 必填为空却执行了 / ⌘K 里也弹了表单页（两处代码不同步）。
+- 内联槽的正例内置插件给不出（`e2e/plugin-arg-slots.spec.mjs:9,21` 用的是 `com.leaf.example-react`，
+  ≤2 格纯文本才走内联）→ 这一格对 21 个内置插件**本轮无从判真**，按 BLOCKED 或留空处理。
+- 结果/备注：____
+
+### C5 未授予 permissions 时是明确拒绝，而不是静默失败或假成功
+
+- 操作：把该插件目录复制一份、清空 `permissions`，用 dev 模式注册（`devPlugins.ts:245-267`）后触发对应动作；
+  或先按第 3 节的权限列对照现状。
+- 逐 API 的拒绝形状（这就是判真假的尺子）：
+  - `readText` 未声明 `clipboard.read` → 主进程回**空串**（`ipc.ts:619-623`）。这与「剪贴板真的没内容」同形，
+    属既定 fail-closed 设计（`plugin-protocol.ts:496-499`）。判真 = 插件出现「剪贴板为空」类兜底文案、不崩、
+    不显示假结果；备注里要写下这条歧义（宿主不报错是设计，不是漏）。
+  - `copyText` 未声明 `clipboard.write` → 返回 `false`（`ipc.ts:612-617`）；插件不看返回值就报「已复制」→ **FAIL**。
+  - `fetch` 未声明 `net` → `{ok:false,error:'permission denied: net（需在 plugin.json 声明）'}`（`ipc.ts:515-521`），
+    界面必须出现可读失败而不是空表。
+  - `openUrl` / `openPath` 未声明 `net` / `fs.open` → 返回 `false`（`ipc.ts:671-679`、`ipc.ts:625-633`）。
+  - `schedule.*` 未声明 `schedule` → `list` 回 `[]`、`add/remove` 回带原因（`ipc.ts:644-667`）。
+- 拼错的权限名 = 没声明（`pluginStore.ts:212-217` 静默剔除）→「权限像没生效」先查清单拼写。
+- 结果/备注：____
+
+### C6 「一键复制」到底走哪条通道
+
+- 判据：内置插件的复制**全部**是声明式列表动作 `type:'copy'` → 由胶囊渲染端 `navigator.clipboard.writeText`
+  完成（`PluginListPage.vue:132-140`），**不经过插件权限闸**，失败时 `catch` 后静默 `hide()`（同处）。
+  而 `searchable` 条目的 copy 走主进程统一执行端（`commandRunner.ts:161-172` + `actionHandlers.ts:131-134`）。
+- 判真：回车后 ⌘V 粘出的内容与界面显示一致，且胶囊收起。
+- 判假：复制到空串/上一次旧值；或界面写「回车复制」而动作里没有 copy 项。
+- 结果/备注：____
+
+### C7 `window.launcherApi` 用到的方法与 preload / 类型声明一致
+
+- 静态面（已有闸）：`plugin-api-parity.test.ts:72-91` 扫 `plugins/` 与 `example-plugin`，把页面里的 `api.xxx`
+  与 `src/preload/plugin.ts:58-167` 真正暴露的方法逐一对账（背景就是当年 16/21 调不存在的 `getClipboardText`）；
+  `plugin-api-parity.test.ts:99-131` 再查敏感 API 与 `permissions` 是否配对（映射表
+  `plugin-protocol.ts:522-537`）。本轮静态读码结果：21 个内置插件里 17 个调 `readText`（均已声明
+  `clipboard.read`）、1 个调 `fetch`（currency，已声明 `net`），无未配对声明。
+- 真机面判的是「**用得上**」：逐个确认页面调到的方法在 `example-plugin/launcher-api.d.ts` 有同名签名；
+  三处不一致以 `src/preload/plugin.ts` 与 `src/shared/plugin-protocol.ts` 为准
+  （`launcher-api.d.ts:4-7` 自己就是这么写的）。
+- 本轮读码得到的调用集合（决定哪些能力对内置插件是零真机覆盖）：
+  - 内置插件用到：`onEnter` `onSubInputChange` `onAction` `setSubInput` `renderList` `readText`
+    `preferences.get` `db.get` `db.put` `notify` `close` `fetch`。
+  - 内置插件**一个都没用**：`getContext` `renderView` `submitSearchItems` `clearList` `popView`
+    `setExpandHeight` `detach` `alert` `openUrl` `openPath` `copyText` `db.remove` `db.list`
+    `preferences.all/set` `schedule.*` → 这些只能由示例插件 / React 例程覆盖，别写成「内置插件已验」。
+- 结果/备注：____
+
+### C8 `searchable` 双通道：没声明就写不进去
+
+- 判据：只有 `plugin.searchable === true` 且已启用的插件能提交条目（`pluginSearchIndex.ts:27-36`），
+  而 **21 个内置插件 + 示例插件的清单里没有任何 `searchable` 字段**（本轮 grep 全为 0）→
+  页面若调 `submitSearchItems` 必然拿 `{ok:false}` 且界面无提示（`ipc.ts:389-401`）。
+- 真机：若某插件页面写着「关掉插件后也能搜到我的条目」这类承诺，判 **FAIL** 并记「清单缺 `searchable` 声明」。
+- 结果/备注：____
+
+### C9 偏好读写：只认清单声明过的键
+
+- 判据：`getPluginPreference` 对未声明键回 `{ok:false,error:'preference not declared: <键>'}`
+  （`runtime.ts:314-321`），`set` 同样拒（`runtime.ts:328-337`），存储命名空间 `prefs.<pluginId>`
+  （`runtime.ts:322,338`）。管理页按声明自动渲染表单（`views/launcher/index.vue:64,81`）。
+- 声明本身也可能被静默清洗掉（未知 type / 无候选的 select / label 空 → 整条丢，`plugin-protocol.ts:579-621`；
+  上限 20 项 `plugin-protocol.ts:550`）→「设置页少一项」先跑 `pluginManifestAudit.test.ts:137-178`
+  那道静态闸再判真机。
+- 已知代码级偏差（必须真机确认表现）：`com.leaf.quickfolders` 读 `api.preferences.get('defaultFolders')`
+  （`plugins/com.leaf.quickfolders/index.html:23`），但它的 `plugin.json` **没有任何 preferences 声明** →
+  这趟读必然回 error。判真 = 它只是「db 为空时的回退」且回退后功能照常；判假 = 首启用不到 / 报错刷屏。
+- 验法：改一次偏好 → 插件内立刻读到新值 → 重启应用仍读到新值。
+- 结果/备注：____
+
+### C10 卸载会清掉插件自己的 KV 数据
+
+- 判据：`removePlugin` 除了删目录与索引项，还调 `docStore.deleteByPlugin(pluginId)`
+  （`pluginStore.ts:321-331`，实调用在 `:327`；`docs/ROADMAP.md:43` 记的 `pluginStore.ts:318` 行号已漂）。
+  数据库没就绪时该清理被 `catch` 吞掉（`pluginStore.ts:328-331`）→ 极早启动时卸载可能残留。
+- 真机链：装 → 造数据（quickfolders「添加常用目录」/ 示例插件写一条 db）→ 卸载 → 重装 → 列表应为空。
+- 判假：重装后旧数据还在（清理没跑，或 KV 命名空间漏了）。
+- 结果/备注：____
+
+### C11 市场条目 sha256 校验的行为
+
+- 本轮读到的事实：`plugins.json` 的 **22 条全部没有 `sha256` 字段**。
+- 规则（`market.ts`）：
+  - 目录形态**根本不校验**，只做索引目录包含校验（`market.ts:519-527`；设计说明 `market.ts:19`）——
+    内置插件走的正是这条，所以「内置插件包体完整性」在市场上**没有**校验这回事。
+  - zip / url 形态才在解压前比对（`market.ts:529-543`）；未声明 = 跳过（`market.ts:116-121`），
+    一旦声明就必须命中，否则中止安装并给「sha256 校验不通过：包体与索引声明不一致，已中止安装」原文。
+  - 声明了但格式非法（不是 64 位 hex）→ **整条从索引里被剔除**（`market.ts:151-157`），
+    表现是「市场少一个插件」而不是报错（解析闸 `parseMarketIndex`，`market.ts:130-169`）。
+  - 远程索引与本地条目 id 撞车时远程被丢弃并回 `shadowed`（`market.ts:274-290`）。
+- 真机判据：市场页对内置条目应如实标「未校验」——`e2e/market-index.spec.mjs:81-89` 就是这条期望。
+  **但本轮读码在市场块的渲染端找不到「未校验 / sha256 校验」文案，也没有远程索引输入框**
+  （市场块 `views/launcher/index.vue:122-179`，头部文案是「索引：仓库 plugins.json」，
+  而 `e2e/market-index.spec.mjs:133` 期望「索引：打包 plugins.json」）→ 疑事故后重建丢了这一块，
+  属真机核对项，本文档不下结论。
+- 结果/备注：____
+
+### C12 网络类插件（内置只有 `com.leaf.currency` 声明了 `net`）
+
+- 判据：`fetch` → 主进程代理 `proxyPluginFetch`（`ipc.ts:515-521` → `runtime.ts:394`），
+  响应上限 2MB（`runtime.ts:370`）、15s 超时（`preload/plugin.ts:162-166` 口径），
+  本地/内网/链路本地地址拒绝并做 DNS 解析复判（`runtime.ts:372-380`，防 rebinding；解析失败按拒绝处理）。
+- 真机判真：正常网络出结果，且随 `baseCurrency` / `targetCurrency` 偏好变化；断网/坏域名时给**可读失败**
+  （带原因），不是空列表、不是「转换成功 0」。
+- 判假：把地址指到 `http://127.0.0.1` 之类竟然通（内网闸失效）→ 安全项，见即 FAIL 并单独上报。
+- 结果/备注：____
+
+### C13 声明式列表的渲染边界
+
+- 判据：每条 item 必须同时有 `title` 与 `actions` 数组，否则**整份提交被拒**
+  （`runtime.ts:136-142`，回 `item needs title and actions`）；条数封顶 300
+  （`plugin-protocol.ts:285` + `runtime.ts:137`）；单条 actions 封顶 10（`runtime.ts:156`）；
+  `detail` 超 5000 字符截断（`runtime.ts:150`）；`title` 200、`subtitle` 300 截断（`runtime.ts:144-145`）。
+- 真机判据：超长输入（例如 200KB JSON 丢给 `com.leaf.jsonfmt`）仍出一屏可读结果或明确降级，不白屏；
+  重绘型插件（每敲一个字都 `renderList`）**不该长出返回栈**（`preload/plugin.ts:126-135` 的 `push` 语义 +
+  `runtime.ts:114-124`）。
+- 判假：在插件里按 ESC/返回时「回不去」，或返回栈越堆越长。
+- 结果/备注：____
+
+### C14 副输入框 / 高度 / detach 后能力收缩
+
+- 判据：`setSubInput` 借用胶囊搜索框（`runtime.ts:814-819`），placeholder 应与当前状态匹配；
+  `setExpandHeight` 夹在 120–580（`runtime.ts:804-812`，与 `preload/plugin.ts:67-69` 注释同口径）；
+  detach 之后：声明式列表直接不可用（`runtime.ts:134` 回 `declarative list unavailable in detached mode`），
+  `setSubInput` / `setExpandHeight` 直接 `return false`（`ipc.ts:581-599`），`close` 同样被拒（`ipc.ts:714-719`）。
+- 真机判据：detach 成独立窗后不崩、不出现「能点但没反应」的假象；收回胶囊后副输入框交还搜索。
+- 结果/备注：____
+
+### C15 定时任务通道（对本批 21 个内置插件全部不适用）
+
+- 判据：需要 `schedule` 权限（内置插件声明数 = 0），且只能排 **`mode:'action'` 命令**
+  （`ipc.ts:649-660` 的 `isActionCommand` 闸，判定在 `plugin-protocol.ts:114-120`）。
+  内置插件 `commands[]` 全无 `mode` 字段 → 缺省按 view 处理（`plugin-protocol.ts:106-108`）。
+- 所以这一格对内置插件**必然判不了**：拿示例 React 插件跑（`e2e/plugin-schedule.spec.mjs:21`）；
+  本表按「不适用」记，别记成「已通过」。
+- 顺带一条静态疑点：审计测试的已知权限集合（`pluginManifestAudit.test.ts:36`）只有
+  `clipboard.read / clipboard.write / fs.open / net`，**不含 `schedule`** → 谁哪天给内置插件声明 `schedule`，
+  静态审计会判「未知权限」而真机是有效的。那是测试与协议清单的口径漂移，遇到时改测试别改插件。
+- 结果/备注：____
+
+## 3. 逐插件条目（22 行 = 21 内置 + 1 示例）
+
+- 「命令」列 = `commands[].code`（`code` 才是 `getContext().cmd` 与 key `plugin:<id>:<code>` 用的值）。
+- 「参数声明」列 = `commands[].arguments`（宿主清洗后的形状；`*` = required）。
+- 「preferences」列 = `preferences[].name`（类型, 默认值/候选数）。
+- 「permissions」列 = 清单原值；「无」= 空数组或未声明，此时 C5 的敏感调用一律该被拒。
+- 结果 / 备注两列**故意留空**：没跑真机之前一个字符都不要填。
+
+| id | 命令 `code` | 参数声明 | preferences 项 | permissions | 结果 | 备注 |
+| --- | --- | --- | --- | --- | --- | --- |
+| com.leaf.base64 | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.baseconvert | `convert` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.colorpicker | `convert`, `palette` | 无 | `defaultFormat`(select, HEX/3) | `clipboard.read` |  |  |
+| com.leaf.contrast | `check` | 无 | `fgColor`(text, #000000), `bgColor`(text, #FFFFFF) | 无 |  |  |
+| com.leaf.cron | `parse` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.csvjson | `convert` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.currency | `convert` | 无 | `baseCurrency`(select, CNY/10), `targetCurrency`(select, USD/10) | `clipboard.read`, `net` |  |  |
+| com.leaf.hash | `compute` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.htmlentity | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.jsonfmt | `format`, `minify`, `escape` | 无 | `indent`(select, "2"/3) | `clipboard.read` |  |  |
+| com.leaf.jsonyaml | `convert` | 无 | `indent`(select, "2"/2) | `clipboard.read` |  |  |
+| com.leaf.jwt | `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.lorem | `generate` | 无 | `unit`(select, paragraph/3), `count`(select, "3"/4) | 无 |  |  |
+| com.leaf.passwordgen | `generate` | 无 | `length`(select, "16"/6), `uppercase`(checkbox true), `lowercase`(checkbox true), `numbers`(checkbox true), `symbols`(checkbox true), `count`(select, "1"/3) | 无 |  |  |
+| com.leaf.qrcode | `generate` | 无 | `size`(select, "256"/3), `ecc`(select, M/4) | `clipboard.read` |  |  |
+| com.leaf.quickfolders | `open`, `add` | 无 | 无（但页面读未声明的 `defaultFolders`，见 C9） | `clipboard.read` |  |  |
+| com.leaf.regex | `test` | `pattern`(text)\*, `text`(text), `flags`(dropdown/3) | `flags`(select, g/5) | `clipboard.read` |  |  |
+| com.leaf.textstats | `stats` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.timestamp | `convert` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.urlcodec | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.leaf.uuid | `generate` | 无 | `count`(select, "1"/4), `format`(select, lowercase/3) | 无 |  |  |
+| com.leaf.example | `list`, `prefs`, `net`, `misc` | 无 | `author`(text, Leaf), `theme`(select, 原生质感/3), `notifyOnCopy`(checkbox true) | `clipboard.read`, `clipboard.write`, `net`（非内置自动安装，走市场/dev，见 C0） |  |  |
+
+### 3.1 逐插件的专有判据（只写代码里读得出来的）
+
+- **多命令插件（base64 / colorpicker / htmlentity / jsonfmt / quickfolders / urlcodec）**：每条 `code`
+  单独走 C1+C3；重点看 `onEnter` 收到的 `cmd` 是否真被用来切分支（如
+  `plugins/com.leaf.base64/index.html:12-20` 按 cmd 换 placeholder 与处理函数）。
+  两条命令长得一模一样 = 命令没接上，判 FAIL。
+- **contrast / lorem / passwordgen / uuid（permissions 为空）**：C5 的整套拒绝形状在这里是**常态**——
+  它们本来就不该调敏感 API（本轮读码：这 4 个都没调 `readText`/`copyText`）。判据：页面不得出现
+  「从剪贴板自动读取」这类依赖 `clipboard.read` 的承诺；出现即 FAIL 并记「权限与实现不符」。
+- **currency**：唯一 `net`。跑 C12 + 断网文案 + 偏好生效；`api.fetch` 调用点在
+  `plugins/com.leaf.currency/index.html:274-275`（`https://open.er-api.com/v6/latest/<base>`）。
+- **quickfolders**：三个坑叠在一起 —— ① C9 的未声明偏好读；② 唯一用到 `db.get/db.put` + `notify` + `close`
+  的内置插件（`plugins/com.leaf.quickfolders/index.html:20,76,102-103,135`），所以 C10 的卸载清 KV
+  **拿它当主验本**；③ 「打开目录」是列表动作 `type:'open'` 带本地路径
+  （`plugins/com.leaf.quickfolders/index.html:57`），执行端在渲染侧 `system.openPath`
+  （`PluginListPage.vue:141-149`），**不受插件的 `fs.open` 权限约束**——这条通道对第三方插件意味着什么，
+  真机跑的时候顺带判一次（路径不存在 / 是文件 / 是别人家目录时各是什么长相）。
+- **regex**：唯一带参数声明（C4 主验本）；参数 placeholder 写着「留空则取剪贴板」，要按 C5 的
+  `readText` 空串歧义判一遍；`flags` 的 dropdown 标题→值还原见 C4。
+- **jsonfmt / csvjson / jsonyaml / textstats / hash / jwt**：C13 的截断与整份拒收边界拿它们当验本
+  （长输入 / 超大结果 / 非法输入三种），特别是 `renderList` 被整体拒绝时（`runtime.ts:136-142`）的白屏长相。
+- **qrcode**：唯一可能产出图片的内置插件，判据要落在「回车复制的到底是图片还是文本」，
+  以及 `size` / `ecc` 偏好改完是否立刻生效（C9）。
+- **example（示例插件）**：`copyText`（已声明 `clipboard.write`）、`alert`、`openUrl`、`db.list`、
+  `preferences.all/set`、`fetch` 的几乎唯一覆盖者（C7 列的「内置插件没用过」那一长串基本只能在这里补）；
+  它也不进 C0 的自动安装集合，验之前先确认它确实装上了。
+
+## 4. 宿主侧共性事实（会影响判读，先记在这）
+
+| # | 事实 | 代码依据 |
 | --- | --- | --- |
-| 1 | `pnpm build`（产物 `out/main/index.js`） | `playwright.config.mjs:5` 明写"跑前先 build"；e2e 全部 launch 这个入口（`e2e/plugin-args.spec.mjs:22,64`） |
-| 2 | **验内置插件要用不带 `LEAF_SKIP_BUILTIN_PLUGINS` 的实例** | 全量 e2e 会强制 `LEAF_SKIP_BUILTIN_PLUGINS = '1'`（`playwright.config.mjs:15`），此时内置插件**不会**被自动装上（`builtinPlugins.ts:56-59`）。要么起 `pnpm start` / `pnpm dev` 的实例，要么在 e2e 里用 `importFromFolder` 精确播种（`e2e/plugin-args.spec.mjs:23,74` 就是把 `plugins/com.leaf.regex` 直接装进去） |
-| 3 | 自动安装只在"未安装"或"版本不同"时发生 | `builtinPlugins.ts:79-104`；已装同版本会 `skippedCount++`，改了 `plugins/` 里的代码但没抬版本号 → 机器上跑的还是旧包，**这是最容易造成"假通过/假失败"的一步** |
-| 4 | 内置插件目录按启动形态解析（打包态 `resources/plugins/`；dev 与 e2e 走两条候选回退） | `builtinPlugins.ts:25-33`（`builtinPluginsDir()` 的 `../../plugins` 回退是为 `electron out/main/index.js` 那种形态准备的） |
-| 5 | 两个入口都要各查一次命令 | 胶囊 `LauncherApp.vue:439` 与主窗 ⌘K `CommandPalette.vue:9` 共用 `useCommandSources()`；插件命令 key = `plugin:<id>:<code>`、badge「插件」（`useCommandSources.ts:127,131`） |
-| 6 | 结果填法 | 一格只写「通过 / 失败 / 未跑」，另起一列写**在哪一层看到的**（胶囊列表 / Detail 面板 / 主窗 ⌘K / 管理页 toast / devtools 控制台）。写"通过"必须能复述出现象，否则留空 |
+| H1 | 两个入口共用同一份命令聚合（胶囊与主窗 ⌘K 都调 `useCommandSources`） | `LauncherApp.vue:439`、`CommandPalette.vue:9,34` |
+| H2 | 命令 key 恒为 `plugin:<id>:<code>`；重复由合并器吞掉且只在 DEV 打日志 | `useCommandSources.ts:127`、`mergeCommands.ts:79-97`、`useCommandSources.ts:246-255` |
+| H3 | ⌘K 不传参数表单回调 → 带参数命令在 ⌘K 里退化为无参打开 | `CommandPalette.vue:102-109`、`commandRunner.ts:74-82` |
+| H4 | 未授权 `readText` 回空串，与「剪贴板真的空」同形 | `ipc.ts:619-623` |
+| H5 | 列表动作 `copy` 由渲染端 `navigator.clipboard` 执行，绕过 `clipboard.write` 权限；失败静默 | `PluginListPage.vue:132-140` |
+| H6 | `commandRunner.ts` 里有两段同名 `case 'pluginSearch'`，第二段不可达 | `commandRunner.ts:161`、`commandRunner.ts:184` |
+| H7 | 市场目录形态不比对哈希；只有 zip/url 才在解压前校验 | `market.ts:19`、`market.ts:519-543`、`market.ts:116-121` |
+| H8 | 市场块渲染端未见「未校验 / sha256 校验」标签与远程索引输入框，且头部文案与 e2e 期望不同 | `views/launcher/index.vue:122-179` vs `e2e/market-index.spec.mjs:81-89,133` |
+| H9 | `launcher:pluginDevtools` 在主进程与 IPC 契约里都在，渲染端无调用者（`ROADMAP.md:42` 却记为「管理页调试按钮」已接线） | `ipc.ts:246`、`ipc-contract.ts:711`、渲染端 grep 0 命中 |
+| H10 | Action 型命令（`mode:'action'`）不挂视图、20s 无产出即回收；内置插件无一条声明 `mode` | `runtime.ts:586-648`、`runtime.ts:90`、`plugin-protocol.ts:106-120` |
+| H11 | 清单字段被宿主 fail-closed 静默清洗（权限 / 参数 / 偏好 / 命令形态），写错的长相是「少了个东西」而不是报错 | `pluginStore.ts:212-254`、`plugin-protocol.ts:143-177,579-621` |
+| H12 | 内置插件自动安装只在版本号不同时重装；e2e 实例常整段跳过 | `builtinPlugins.ts:56-59,91-101` |
 
----
+## 5. 未证实（本轮没有代码依据，也不许凭印象填）
 
-## 2. 通用检查项 U1–U10（每个插件默认全跑；§4 只列该插件的专属项）
+1. 21 个内置插件在**真机**上的任何一条表现：界面出不出得来、复制对不对、断网长相、首启耗时——全部未证实。
+2. 打包态（`resources/plugins.json` + `resources/plugins/`）下的市场与自动安装行为：本轮只读了未打包回退
+   （`market.ts:87-93`、`builtinPlugins.ts:25-33`），打包产物没跑，未证实。
+3. macOS 系统层连带表现（系统通知是否弹得出来、剪贴板被别的 App 占用时的复制结果、
+   `Notification.isSupported()` 为假的机器）：未证实。
+4. 市场 UI 是否仍有「sha256 / 未校验」与远程索引输入框（H8 只是 grep 未命中，不等于界面没有）：未证实。
+5. `com.leaf.quickfolders` 的 `open` 动作在非绝对路径 / 不存在路径下的具体表现：未证实。
+6. 各插件的**中文文案**与真实行为是否逐条一致（例如「一键复制图片」）：只做了代码级抽查，未证实。
+7. React 视图协议（`renderView`）与 `submitSearchItems` 对内置插件：内置插件全未调用（C7），
+   它们的真机表现属示例 / React 例程范围，不在本清单结论里。
 
-| 编号 | 检查项 | 验证方式（真跑） | 判据出处 | 结果 |
-| --- | --- | --- | --- | --- |
-| U1 | 命令在 ⌘K 搜到 | 主窗 ⌘K，分别用命令 `title` 的一串中文与 `description` 里的词各搜一次 | `useCommandSources.ts:123-141`（`enabled` 且有 `commands` 才成行，`subtitle = 插件名 · 描述`） | ☐ |
-| U2 | 命令在胶囊根搜索搜到 | Alt+Space 唤起，同一查询词再搜一次；两入口排序应一致 | `docs/SHORTCUTS.md:18`、`docs/IA_V2.md:45`（同一引擎同一排序） | ☐ |
-| U3 | 打开后副输入框占位符是插件设的那句 | 回车进插件，看胶囊搜索框 placeholder 是否换成 `setSubInput` 传的文案 | `ipc.ts:592-596`（`plugapi:setSubInput`）→ 胶囊搜索框 | ☐ |
-| U4 | 声明式列表 + Detail 渲染 | 选中条目看右侧 Detail；`detailFormat: 'markdown'` 的条目要能出标题/代码块，不是原始星号 | `plugin-protocol.ts:16-31`、`launcher/components/DetailPanel.vue:20-43`（marked + 白名单过滤） | ☐ |
-| U5 | 回车动作按声明执行且收起窗口 | 默认动作 = `actions[0]`（`plugin-protocol.ts:29-30`）：`copy` 应写剪贴板并 hide；`open` 走 http(s)→浏览器、否则→路径；`callback` 回插件 | `PluginListPage.vue:128-150`（胶囊内声明式条目）、`runtime.ts:285-303`（callback 回插件）、`commandRunner.ts:161-183`（⌘K 侧走的是 **pluginSearch 持久化条目**那份同形逻辑——内置 21 个都没声明 `searchable`，这条对它们**不适用**，别当真机失败记） | ☐ |
-| U6 | 参数声明按形状渲染 | 只在声明了 `arguments` 的插件上跑（见 §4）：`required` 空提交要**留在表单**、不弹假提示；`dropdown` 显示 title、提交 value | `plugin-protocol.ts:88,164-173`、`LauncherApp.vue:908,1518`、`argSlots.ts:8-16`（≤2 格且全文本才内联，含 dropdown 即进 FormPage） | ☐ |
-| U7 | 偏好项渲染 + 回读 + 越界被拒 | 管理页改值保存后重开插件看是否生效；再在 devtools 里 `launcherApi.preferences.set('未声明键', 1)` 应拿到 `preference not declared` | `views/launcher/index.vue:78-114,759-795`、`runtime.ts:321,336` | ☐ |
-| U8 | 权限没给时不是静默失败 | 临时把 `permissions` 改成 `[]` 重装（`importFromFolder` 覆盖同 id），走一遍主功能：要能看到"少了什么"的可见提示，而不是悄悄出空结果 | 形状见 §3；改清单后必须**抬版本号**或先卸载再装（`builtinPlugins.ts:91-101`） | ☐ |
-| U9 | 空剪贴板 / 非法输入有可读空态 | 先 `pbcopy </dev/null` 清空剪贴板再打开插件；再喂一段明显非法的输入（如给 JSON 插件贴一段中文散文） | 通用写法见 `plugins/com.leaf.base64/index.html:20-31`（`readText` → catch → `showEmpty`），空态条目文案在 `:42-56` | ☐ |
-| U10 | 启停与卸载干净 | 管理页禁用后 U1/U2 都搜不到；卸载后 `launcher_docs` 里该插件的 KV 清空（重装卸不到旧数据） | `pluginStore.ts:278-280`（只有 `enabled` 进命令源）、`:321-333`（`deleteByPlugin`） | ☐ |
+## 6. 重生成方法（下次别再手抄）
 
----
+```bash
+# 条数：内置目录 / 市场索引
+ls plugins | wc -l
+node -e "console.log(require('./plugins.json').plugins.length)"
 
-## 3. 权限缺省时的返回形状（读码已定；真机要判的是"用户看得见吗"）
+# 逐插件：id / version / commands(含 arguments) / preferences / permissions
+node -e "
+const fs=require('fs');
+for(const d of fs.readdirSync('plugins')){
+  const m=JSON.parse(fs.readFileSync('plugins/'+d+'/plugin.json','utf8'));
+  console.log(m.id, m.version,
+    (m.commands||[]).map(c=>c.code+(c.mode?'['+c.mode+']':'')+(c.arguments?'('+c.arguments.map(a=>a.name+':'+(a.type||'text')).join(',')+')':'')).join(' '),
+    '| prefs:', (m.preferences||[]).map(p=>p.name+':'+p.type).join(','),
+    '| perms:', (m.permissions||[]).join(','));
+}"
 
-| API | 缺权限时宿主返回 | 形状算明确还是静默 | 出处 |
-| --- | --- | --- | --- |
-| `readText` | `''`（空串） | **静默**（插件若没兜底就当剪贴板是空的） | `ipc.ts:612-616` |
-| `copyText` | `false` | **静默** | `ipc.ts:605-610` |
-| `openPath` | `false`（还要过 `safeOpenablePath`） | **静默** | `ipc.ts:618-626` |
-| `openUrl` | `false`（协议白名单 http/https/mailto） | **静默** | `ipc.ts:664-672`、`plugin-protocol.ts:624-642` |
-| `fetch` | `{ok:false,error:'permission denied: net（需在 plugin.json 声明）'}` | **明确** | `ipc.ts:516-518` |
-| `schedule.list` / `add` / `remove` | `[]` / `{ok:false,error:'permission denied: schedule（…）'}` | list 静默，写侧明确 | `ipc.ts:637-660` |
-| `preferences.get` / `set` 未声明键 | `{ok:false,error:'preference not declared: <键>'}` | **明确** | `runtime.ts:321,336`（读侧同闸的理由见 `:310-313`） |
-| `permissions` 里写了未知值 | 装载时被剔除（拼错权限名 = 没声明），随后就落进上面那些"静默"行 | 明确拒绝吗？→ **不**，只在单测里被钉住 | `pluginStore.ts:212-217`、`pluginManifestAudit.test.ts`（`permissions 只用已知值`那条） |
-| 声明式 `copy` / `open` 动作 | 由宿主直接执行，**不吃** `clipboard.write` / `fs.open` 权限 | 设计如此（`plugin-protocol.ts:521-537` 只映射 `plugapi:*` 通道） | `PluginListPage.vue:132-147` |
+# 页面实际调用的 launcherApi 方法（注意：链式换行的写法也要吃进去）
+node -e "
+const fs=require('fs');
+for(const d of fs.readdirSync('plugins')){
+  const h=fs.readFileSync('plugins/'+d+'/index.html','utf8'); const s=new Set();
+  for(const x of h.matchAll(/api\s*\.\s*([A-Za-z_]+(?:\s*\.\s*[A-Za-z_]+)?)/g)) s.add(x[1].replace(/\s+/g,''));
+  console.log(d, [...s].sort().join(','));
+}"
+```
 
-> 一句话判据：**没声明敏感 API 的插件（§4 里 `permissions: []` 的 4 个）不能调用 `readText/copyText/openPath/openUrl/fetch`**；本轮静态核对这 4 个都没调（见 §7 的 API 表）。真机要验的是"万一以后漂了，用户看得见吗"——按上表，四个静默项**看不见**，这就是 U8 存在的意义。
-
----
-
-## 4. 逐插件清单
-
-### 4.0 清单事实总表（21 条，全部来自各 `plugins/<id>/plugin.json`）
-
-`commands@N` = `commands` 段起始行，后面是每条命令 `code` 与其所在行；`prefs@N` / `perms@N` 同理；`—` = 该插件无此段。API 列来自逐文件扫 `api.` 调用。
-
-> 两点**读码已定的共性**（不再逐插件重复）：21 份清单里**没有任何一份**声明 `searchable: true` 或 `api: "react"`（逐份 `plugin.json` 的顶层键只有 `id/name/version/description/author/main/commands/preferences/permissions`），所以 `submitSearchItems` / `renderView` 两条能力在内置插件上是**零覆盖**——要验它们只能借 §5 的两个样本。另：10 份带 `preferences`、11 份不带；4 份 `permissions` 是空数组。
-
-| # | id · 名称（版本见 `plugins.json` 同 id 行） | 命令 `code`（行号） | 参数声明 | `preferences`（行号） | `permissions`（行号） | 实际用到的 `launcherApi` | 市场索引行 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `com.leaf.base64` · Base64 编解码 | `encode`:10 / `decode`:15（`commands@8`） | 无 | — | `clipboard.read` :20 | `onEnter`:12 `setSubInput`:18 `readText`:19 `renderList`:45 `onSubInputChange`:34 `onAction`:115 | `plugins.json:37` |
-| 2 | `com.leaf.baseconvert` · 进制转换 | `convert`:10 | 无 | — | `clipboard.read` :15 | 同上组（`setSubInput`:12 `readText`:13 `renderList`:38 `onSubInputChange`:28 `onAction`:180） | `:77` |
-| 3 | `com.leaf.colorpicker` · 颜色选择器 | `convert`:10 / `palette`:15 | 无 | `defaultFormat`(select HEX/RGB/HSL) :20 | `clipboard.read` :29 | `onEnter`:154 `setSubInput`:157,160 `readText`:162 `renderList`:190 `preferences`:216 `onSubInputChange`:179 `onAction`:334 | `:13` |
-| 4 | `com.leaf.contrast` · 颜色对比度 | `check`:10 | 无 | `fgColor`:text `bgColor`:text :15 | `[]` :29 | `preferences`:14 `setSubInput`:18 `renderList`:115 `onSubInputChange`:24 `onAction`:279 | `:117` |
-| 5 | `com.leaf.cron` · Cron 解析 | `parse`:10 | 无 | — | `clipboard.read` :15 | `onEnter`:36 `setSubInput`:37 `readText`:38 `renderList`:63 `onSubInputChange`:53 `onAction`:343 | `:133` |
-| 6 | `com.leaf.csvjson` · CSV↔JSON | `convert`:10 | 无 | — | `clipboard.read` :15 | `onEnter`:146 `setSubInput`:147 `readText`:148 `renderList`:173 `onSubInputChange`:163 `onAction`:269 | `:165` |
-| 7 | `com.leaf.currency` · 汇率转换 | `convert`:10 | 无 | `baseCurrency` / `targetCurrency`(select) :15 | `clipboard.read`, `net` :31 | `onEnter`:49 `setSubInput`:50 `readText`:52 `renderList`:81 `preferences`:77 `fetch`:273(实调用见 `:275`) `onSubInputChange`:67 `onAction`:296 | `:29` |
-| 8 | `com.leaf.hash` · 哈希计算 | `compute`:10 | 无 | — | `clipboard.read` :15 | `onEnter`:233 `setSubInput`:234 `readText`:235 `renderList`:260 `onSubInputChange`:250 `onAction`:343 | `:93` |
-| 9 | `com.leaf.htmlentity` · HTML 实体编解码 | `encode`:10 / `decode`:15 | 无 | — | `clipboard.read` :20 | `onEnter`:59 `setSubInput`:65 `readText`:66 `renderList`:87 `onSubInputChange`:76 `onAction`:189 | `:149` |
-| 10 | `com.leaf.jsonfmt` · JSON 格式化 | `format`:10 / `minify`:15 / `escape`:20 | 无 | `indent`(select 2/4/Tab) :25 | `clipboard.read` :34 | `onEnter`:12 `setSubInput`:19 `readText`:21 `renderList`:47 `onSubInputChange`:36 `onAction`:154 | `:21` |
-| 11 | `com.leaf.jsonyaml` · JSON↔YAML | `convert`:10 | 无 | `indent`(select 2/4) :15 | `clipboard.read` :24 | `onEnter`:223 `setSubInput`:224 `readText`:225 `renderList`:250 `preferences`:273 `onSubInputChange`:240 `onAction`:349 | `:141` |
-| 12 | `com.leaf.jwt` · JWT 解码 | `decode`:10 | 无 | — | `clipboard.read` :15 | `onEnter`:11 `setSubInput`:12 `readText`:13 `renderList`:38 `onSubInputChange`:28 `onAction`:310 | `:125` |
-| 13 | `com.leaf.lorem` · Lorem Ipsum | `generate`:10 | 无 | `unit` / `count`(select) :15 | `[]` :31 | `onEnter`:343 `setSubInput`:344 `preferences`:359 `renderList`:376 `onSubInputChange`:348 `onAction`:420 | `:157` |
-| 14 | `com.leaf.passwordgen` · 密码生成器 | `generate`:10 | 无 | `length`/`uppercase`/`lowercase`/`numbers`/`symbols`/`count` :15（6 项，最多） | `[]` :55 | `onEnter`:16 `setSubInput`:17 `preferences`:97 `renderList`:165 `onSubInputChange`:21 `onAction`:169 | `:61` |
-| 15 | `com.leaf.qrcode` · 二维码生成器 | `generate`:10 | 无 | `size` / `ecc`(select) :15 | `clipboard.read` :31 | `onEnter`:685 `setSubInput`:686 `readText`:687 `renderList`:712 `preferences`:727 `onSubInputChange`:702 `onAction`:777 | `:85` |
-| 16 | `com.leaf.quickfolders` · 常用目录 | `open`:10 / `add`:15 | 无 | — | `clipboard.read` :20 | `preferences`:23 `db.get`:20 `renderList`:71 `readText`:76 `onEnter`:117 `onSubInputChange`:126 `onAction`:130 `close`:135 `db.put`:31,102,145 `notify`:103,146 | `:173` |
-| 17 | `com.leaf.regex` · 正则测试（v1.1.0） | `test`:10 | **`pattern`(text, required) / `text`(text) / `flags`(dropdown g/gi/gm)** — 全仓唯一声明 `arguments` 的内置插件 | `flags`(select) :29 | `clipboard.read` :44 | `onEnter`:13 `setSubInput`:20 `preferences`:17 `readText`:31 `renderList`:58 `onSubInputChange`:48 `onAction`:264 | `:101` |
-| 18 | `com.leaf.textstats` · 文本统计 | `stats`:10 | 无 | — | `clipboard.read` :15 | `onEnter`:11 `setSubInput`:12 `readText`:13 `renderList`:38 `onSubInputChange`:28 `onAction`:282 | `:109` |
-| 19 | `com.leaf.timestamp` · 时间戳转换 | `convert`:10 | 无 | — | `clipboard.read` :15 | `onEnter`:11 `setSubInput`:12 `readText`:13 `renderList`:65 `onSubInputChange`:28 `onAction`:224 | `:53` |
-| 20 | `com.leaf.urlcodec` · URL 编解码 | `encode`:10 / `decode`:15 | 无 | — | `clipboard.read` :20 | `onEnter`:12 `setSubInput`:18 `readText`:19 `renderList`:45 `onSubInputChange`:34 `onAction`:125 | `:69` |
-| 21 | `com.leaf.uuid` · UUID 生成器 | `generate`:10 | 无 | `count` / `format`(select) :15 | `[]` :31 | `onEnter`:11 `setSubInput`:12 `preferences`:75 `renderList`:114 `onSubInputChange`:16 `onAction`:119 | `:45` |
-
-### 4.1 逐插件专属检查项（通用 U1–U10 默认另加）
-
-| 插件 | # | 专属检查项 | 验证方式 | 结果 |
-| --- | --- | --- | --- | --- |
-| base64 | a | 两条命令各自换 placeholder（`encode`/`decode` 各一句，`:13-18`） | 分别用 `encode`、`decode` 进插件，比对占位符 | ☐ |
-|  | b | 空剪贴板时是"等待输入"空态而不是报错（`:26-31` → `showEmpty` `:42-56`） | 清剪贴板后打开 | ☐ |
-| baseconvert | a | `0x/0b/0o` 前缀输入被吃下（placeholder 自称支持，`index.html:12`） | 贴 `0xff`、`0b101`、`0o17` 各一次 | ☐ |
-| colorpicker | a | `palette` 命令走的是色板分支、placeholder 变「搜索颜色名称…」（`:157` vs `:160`） | 分别进 `convert` / `palette` | ☐ |
-|  | b | `defaultFormat` 偏好真的决定复制出去的字符串形态（`preferences` 读取点 `:216`） | 改偏好为 `RGB` 与 `HSL` 各复制一次 | ☐ |
-| contrast | a | 零权限却要用两个颜色：默认值来自偏好 `fgColor`/`bgColor`（`index.html:14`） | 改偏好后重开，看初值 | ☐ |
-|  | b | 空格分隔一次输入两个色（placeholder 约定 `:18`） | 输入 `#000 #FFF` 与只输一个色各一次 | ☐ |
-| cron | a | 5 段与 6/7 段（Quartz）都解析（能力自述见 `plugins.json:136`） | 各贴一条表达式 | ☐ |
-| csvjson | a | 「自动识别」真的双向：CSV→JSON 与 JSON→CSV | 两个方向各一次 | ☐ |
-| currency | a | **2026-09-23 已修一处真缺陷**：`fetchRates` 原来读 `res.data`（`index.html:277`），而宿主代理回的是 `{ok,status,body,contentType}`、没有 `data` 字段（`runtime.ts:395-397`、`example-plugin/launcher-api.d.ts:39-45`）→ `rates` 恒为 undefined，有网也永远渲染成「请检查网络连接」。现改为 `JSON.parse(res.body)` 并校验 `rates` 存在。**修完仍未真机验过**，下面这格照样要跑 | 有网状态下转一笔非同名货币对（如 USD→CNY），看是否出汇率且二次查询走缓存 | ☐ |
-|  | b | `net` 权限是它唯一真用到的敏感权限（U8 的样本）：把 `permissions` 改 `[]` 重装后，`fetch` 应回 `permission denied: net（…）`（`ipc.ts:516-518`） | U8 流程 | ☐ |
-| hash | a | 5 种摘要（MD5/SHA1/256/384/512）都能切（能力自述 `plugins.json:96`） | 逐一切换并对照 `shasum`/`openssl` | ☐ |
-| htmlentity | a | 命名实体与数字实体都能反解（`plugins.json:152`） | 贴 `&amp;` 与 `&#x4e2d;` | ☐ |
-| jsonfmt | b | 三条命令各一条动作语义：`format`/`minify` 的产物要能直接贴回（回车即复制） | 逐条命令回车 + 粘贴验证 | ☐ |
-| jsonfmt | a | `indent` 偏好含字面量 `"Tab"`（字符串不是制表符）：选它时缩进是否真的按 tab 出 | 偏好切到 `Tab` 后格式化一段 JSON | ☐ |
-| jsonyaml | a | YAML 缩进偏好生效（`index.html:273` 读偏好） | `indent=2` 与 `4` 各转一次 | ☐ |
-| jwt | a | 过期时间/签发者等声明展示（`plugins.json:128`）；`exp` 过期时是否**看得出的标红/提示** | 贴一个已过期 token | ☐ |
-| lorem | a | 零权限、无剪贴板依赖：`unit`×`count` 组合出数量正确 | `word/sentence/paragraph` × `1/3/5/10` 抽查 | ☐ |
-| passwordgen | a | 6 项偏好（含 4 个 checkbox）在管理页全部渲染出来——checkbox 的 `default` 必须是布尔，否则清洗器会丢（`plugin-protocol.ts:614-615`、审计测试最后一条） | 管理页逐项改值保存 + 重开插件验证 | ☐ |
-|  | b | 随机性：连开两次结果不同、长度与字符集严格符合 | 各生成两次对照 | ☐ |
-| qrcode | a | Detail 里的 `![二维码](data:image/png;base64,…)`（`index.html:748-749`）能否真显示：`DetailPanel.vue:28-39` 的白名单放开了 `img[src]`，但**没有**显式放开 `data:` scheme | 生成一次，肉眼看 Detail 有没有图 | ☐ |
-|  | b | 「复制图片」是 `copy` 动作 → 宿主写的是**文本**（`PluginListPage.vue:132-138` 用 `clipboard.writeText`，payload 是 data URI），不是 PNG 图像 | 回车后粘到图片查看器与文本编辑器各一次，确认实际语义 | ☐ |
-|  | c | `size`/`ecc` 偏好真的改变输出（`:727` 读偏好、`:733-734` 用值） | 128/512 与 L/H 各一次 | ☐ |
-| quickfolders | a | 唯一用 `db` 存数据的内置插件：条目跨重启留存（`db.get`:20 / `db.put`:31,102,145） | 加一条 → 退出应用 → 重开看还在不在 | ☐ |
-|  | b | `open` 命令不 `setSubInput`：搜索框保持全局 placeholder，靠 `onSubInputChange` 过滤（`:126`）——这是有意还是漏了，真机判 | 打开后看搜索框文案与过滤是否可用 | ☐ |
-|  | c | 「添加常用目录」从剪贴板读路径 + `notify` 回执（`:76`、`:103`）；`remove` 走 `callback`（`:59`） | 复制一个真实目录路径 → `add` 命令 → 看系统通知标题是否为插件名 | ☐ |
-|  | d | `open` 动作类型宿主直接开目录（`type:'open'`，`:57`）→ Finder 里真出现该目录；且**不需要** `fs.open` 权限（§3 末行） | 回车一次 | ☐ |
-| regex | a | **参数槽的主样本**：3 参数含 `dropdown` → 按设计必走 FormPage，不走内联（`argSlots.ts:8-11`：≤2 格且全文本才内联） | 用「正则测试 \d+」这类查询命中参数化命令，看是不是进表单页 | ☐ |
-|  | b | `pattern` `required:true`：空提交要留在表单并把焦点落在字段（`LauncherApp.vue:1518`） | 清空必填格直接 ↵ | ☐ |
-|  | c | dropdown 显示 title、提交 value（`g（全局）` → `g`），且 `text` 留空时回落剪贴板（`plugin.json` 声明 `留空则取剪贴板`；`index.html:31` 调 `readText`） | 选 `gi（全局 + 忽略大小写）` 一次，比对匹配数 | ☐ |
-|  | d | 版本号 1.1.0 必须与 `plugins.json:103` 一致（审计测试会红，但真机也要确认已装版本） | 管理页看已装版本 | ☐ |
-| textstats | a | 中英混排下的字数/词频口径与自述一致（`plugins.json:112`） | 贴一段中英混合文本，人工对一遍 | ☐ |
-| timestamp | a | 秒/毫秒自动判别 + 留空显示当前时间（`index.html:12`） | 贴 10 位与 13 位各一次，再留空一次 | ☐ |
-| urlcodec | a | 两条命令各自 placeholder（`:13-18`） | 分别进 `encode`/`decode` | ☐ |
-| uuid | a | `format=nohyphen` 与 `uppercase` 真生效；批量数量严格等于偏好值（`index.html:75`） | 三种格式 × 数量 1/5/10/20 抽查 | ☐ |
-
-### 4.2 通用项打勾总表（21 × 10，**本轮全部为空**）
-
-每格填「通过 / 失败 / 未跑」；空 = 没跑，不代表通过。
-
-| # | id | U1 | U2 | U3 | U4 | U5 | U6 | U7 | U8 | U9 | U10 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | base64 | | | | | | | | | | |
-| 2 | baseconvert | | | | | | | | | | |
-| 3 | colorpicker | | | | | | | | | | |
-| 4 | contrast | | | | | | | | | | |
-| 5 | cron | | | | | | | | | | |
-| 6 | csvjson | | | | | | | | | | |
-| 7 | currency | | | | | | | | | | |
-| 8 | hash | | | | | | | | | | |
-| 9 | htmlentity | | | | | | | | | | |
-| 10 | jsonfmt | | | | | | | | | | |
-| 11 | jsonyaml | | | | | | | | | | |
-| 12 | jwt | | | | | | | | | | |
-| 13 | lorem | | | | | | | | | | |
-| 14 | passwordgen | | | | | | | | | | |
-| 15 | qrcode | | | | | | | | | | |
-| 16 | quickfolders | | | | | | | | | | |
-| 17 | regex | | | | | | | | | | |
-| 18 | textstats | | | | | | | | | | |
-| 19 | timestamp | | | | | | | | | | |
-| 20 | urlcodec | | | | | | | | | | |
-| 21 | uuid | | | | | | | | | | |
-
----
-
-## 5. 两个不进本清单但会被顺手验的样本
-
-| 样本 | 为什么不在 21 条里 | 该验什么 |
-| --- | --- | --- |
-| `example-plugin/`（id `com.leaf.example`，4 命令 `list`/`prefs`/`net`/`misc`，3 偏好，`permissions: ["clipboard.read","clipboard.write","net"]`） | 不在 `plugins/`，自动安装扫不到；它是市场里唯一指向仓库模板目录的条目（`plugins.json:5-11` `download: "./example-plugin"`），形态是"本地目录" | 它是 **唯一演示 `copyText`/`alert`/`db`/`notify`/`fetch` 全谱** 的样本（`example-plugin/index.html:203`（db.put）、`:208`（fetch 实调）、`:213`（copyText）、`:225`（readText）、`:253`（alert））。U8 的"明确拒绝"这一类只有它能一次性覆盖：`alert` 无 `message` 会被整条拒（`plugin-protocol.ts:669-672`）、同一插件同时只许挂一条模态框（`ipc.ts:683-685`）。另：它对 `fetch` 返回形状的自述就是 `{ ok, status, body, contentType }`（`index.html:98`）——与 §4.1 currency 那格对照着读 |
-| `example-react/`（id `com.leaf.example-react`，10 命令，其中 4 条 `mode:"action"`：`ping`/`ping-hold`/`ping-view`/`schedule-selftest`；`argsum` 是两个 text 参数；`api:"react"`；`permissions: ["net","schedule"]`） | 既不在 `plugins/` 也不在 `plugins.json` | React 视图协议（`manifest.api:'react'` → `renderView`，`plugin-protocol.ts:250-399`）、Action 命令（无界面执行，`plugin-protocol.ts:97-120` + `runtime.ts:586` 起的那段接线）、内联参数槽与 `schedule` 权限的载体（`e2e/plugin-arg-slots.spec.mjs:8-12`、`e2e/plugin-schedule.spec.mjs`）；注意 **parity 单测不扫它**（`plugin-api-parity.test.ts:74` 的目录表只有 `plugins/` 与 `example-plugin/`） |
-
----
-
-## 6. 静态闸口已经覆盖了什么（**别当真机结果记账**）
-
-| 闸口 | 钉住的东西 | 覆盖不到什么 |
-| --- | --- | --- |
-| `src/main/launcher/__tests__/pluginManifestAudit.test.ts`（自述理由见 `:8-16`） | 目录非空且每条目带 `plugin.json`（`:57-63`，阈值 `>15`）、id 与目录名一致（`:65-69`）、必填字段与每条命令 `code`+`title`（`:71-82`）、`main` 入口文件真实存在（`:84-89`）、权限只用已知值（`:91-97`）、`arguments` ≤3/类型已知/dropdown 带 data（`:99-125`）、**版本号与 `plugins.json` 一致**（`:127-135`）、偏好声明过一遍真清洗器不丢项（`:137-178`）、市场索引过一遍真解析器不丢条目（`:180-`） | 运行时行为：搜得到吗、值对不对、界面长什么样 |
-| `src/shared/__tests__/plugin-api-parity.test.ts` | 插件调的每个 `api.X` 都在 `preload/plugin.ts` 真暴露（`:71-96`）；敏感 API 已在 `permissions` 声明（`:98-121`） | **不比对 `launcher-api.d.ts`**（全文未引用它），也不扫 `example-react/`；不校验响应字段形状（§4.1 currency 那格就是这类） |
-| `src/main/launcher/__tests__/market.test.ts`（`describe` 于 `:207`、`:366`） | 索引解析、远程条目与本地条目 id 冲突丢弃、sha256 校验 | 真实下载/解压环境 |
-| e2e | `plugin-args.spec.mjs:1-12`（「正则测试 \d+」→ 参数表单 → `argPrefill` → ⌘↵ → `onEnter` 收到 args，用 `com.leaf.regex` 现装现验）；`plugin-arg-slots.spec.mjs:1-13`（内联槽不跳页，载体 `com.leaf.example-react` 的 `argsum`）；`market-index.spec.mjs`；`react-view.spec.mjs`；`plugin-schedule.spec.mjs`；`density.spec.mjs`；`capsule-*.spec.mjs` | 只有一条内置插件（regex）被真机走过一次；其余 20 条没有专属用例 |
-
----
-
-## 7. `window.launcherApi` 一致性核对（本文重生成时做过的一轮静态比对）
-
-比对三方：**实际用到的方法**（扫 `plugins/*/index.html`）· **preload 真暴露的**（`src/preload/plugin.ts:58-167`）· **d.ts 声明的**（`example-plugin/launcher-api.d.ts:69-149`）。
-
-| API 成员 | preload 暴露 | d.ts 声明 | 需要的权限 | 21 个内置插件里谁用了 |
-| --- | --- | --- | --- | --- |
-| `onEnter` / `onSubInputChange` / `onAction` | `:106,111,115` | `:134,139,141` | 无 | 全部 21 个 |
-| `renderList` | `:131` | `:78` | 无 | 全部 21 个 |
-| `setSubInput` | `:72` | `:86` | 无 | 20 个（**除 `quickfolders`**） |
-| `readText` | `:78` | `:92` | `clipboard.read`（`plugin-protocol.ts:523`） | 17 个（`permissions:[]` 的 4 个都没调） |
-| `preferences.all/get/set` | `:138-143` | `:108-112` | 无（但只能碰声明过的键，`runtime.ts:321,336`） | 10 个（有 `preferences` 段的那 10 个） |
-| `fetch` | `:163` | `:127-130` | `net`（`plugin-protocol.ts:527`） | 仅 `currency`（`index.html:275`） |
-| `db.put/get/list` | `:118-123` | `:100-105` | 无 | 仅 `quickfolders`（`:20,31,102,145`）+ 模板 |
-| `notify` | `:75` | `:90` | 无 | 仅 `quickfolders`（`:103,146`）+ 模板 |
-| `close` | `:103` | `:97` | 无 | 仅 `quickfolders`（`:135`） |
-| `getContext` | `:60` | `:70` | 无 | **21 个内置插件都没用**（此前扫到的 `getContext` 命中是 `canvas.getContext('2d')`，`qrcode/index.html:670`，已排除） |
-| `renderView` / `submitSearchItems` / `setExpandHeight` / `popView` / `clearList` / `copyText` / `openPath` / `openUrl` / `alert` / `detach` / `onReady` / `onLeave` / `onShow` / `onHide` / `onCallback` / `schedule.*` | `:63,66,69,134,135,77,80,86,92,100,107-113,151-159` | `:82-83,80-81,87,79,91,93-96,135-140,115-124` | 见 `plugin-protocol.ts:521-537` | 内置 21 个**都没用**（`copyText/alert/db` 的用处只在 `example-plugin`） |
-
-静态结论（**读码可证，不等于真机通过**）：
-
-1. **成员集对齐**：把 `plugin.ts` 的 `launcherApi` 对象与 `launcher-api.d.ts` 的 `LauncherPluginApi` 各自抽出来比对，两边都是 **35 个成员、集合完全相同**（无只在一边存在的成员）。
-2. **这个对齐没有闸口**：`plugin-api-parity.test.ts` 只解析 `src/preload/plugin.ts`（`:17-19` 自述），全文不读 d.ts；d.ts 自己写着「三处不一致时以那两个文件为准，本文件只是抄一份可读的」（`launcher-api.d.ts:4-5`）。所以 **d.ts 漂了不会有人知道** —— 真机轮如果拿 d.ts 当依据，请先人工比对一次。
-3. **形状不比对**：parity 测试只查"方法存不存在"，不查返回值字段。`currency` 读 `res.data` 那处（§4.1）正好落在这个空洞里 —— 这条是本清单里目前**唯一一条读码就看出形状不符**的项。
-
----
-
-## 8. 出问题去哪查
-
-| 现象层 | 首查 | 备注 |
-| --- | --- | --- |
-| 命令搜不到 | `useCommandSources.ts:123-141`（要求 `enabled` + `Array.isArray(commands)`）→ `pluginStore.ts:269-280`（索引与 `enabled`）→ `ipc.ts:144-150`（命令表变更要广播给**所有窗口**，只推胶囊会让 ⌘K 拿着过期的表） | 键格式 `plugin:<id>:<code>`；badge 恒为「插件」 |
-| 打开是白屏 | `pluginStore.ts:86-91`（安装根目录 `userData/launcher-plugins/<id>`）、`:194-199`（缺 `plugin.json` 直接抛）、`pluginEntryUrl()` `:343-349`（`devServer` 优先，否则 `plugin://`） | 审计测试只保证入口文件在盘上（`:86-91`），不保证它在 `plugin://` 下加载得起来 |
-| 列表/Detail 不出现 | `plugin-protocol.ts:143-177`（arguments 清洗）、`runtime.ts:155-175`（动作清洗：白名单外的 `type` 一律降 `callback`、`label` 缺省「执行」） | 清洗是**静默降级**：清单写错不会报错，只会少东西 |
-| 复制没反应 | `PluginListPage.vue:132-139`（copy → `navigator.clipboard.writeText` → 失败被**吞掉**再 hide；注释「剪贴板失败静默」）与 ⌘K 侧 `commandRunner.ts:166-171`（走 `window.api.action.invoke('copyText')`） | 两个入口实现不同，务必两边各验一次 |
-| 表单/参数槽不按声明出 | `plugin-protocol.ts:143-177`（dropdown 无 data 降级 text）、`argSlots.ts:8-16`（内联 vs FormPage 的分界） | 内联只吃「≤2 格且都是 text/password」 |
-| 权限没给却像"没反应" | §3 表：四个静默项在 `ipc.ts:605-672`；权限判定入口 `ipc.ts:121-126` | 老清单缺 `permissions` 字段 = 未授权（fail-closed，`:119`） |
-| 偏好保存了不生效 | `runtime.ts:314-340`（读写同闸，未声明键被拒）、`views/launcher/index.vue:759-795`（保存路径与 toast） | 值落 `launcher_docs` 的 `prefs.<pluginId>` 命名空间 |
-| 市场装不上 / 更新不动 | `market.ts:104-166`（索引清洗、`normalizeSha256`）、`:537`（安装前校验和）、错误文案 `:120`；版本号一致性看 §6 审计测试 | 内置插件是**本地目录形态**，给不出包体哈希 |
-| 装了但跑的是旧代码 | `builtinPlugins.ts:91-101`：版本相同就 `skip` | 改 `plugins/` 不抬版本 = 机器上还是旧包，最容易误判成"修了没用" |
-| 开发热重载没触发 | `devPlugins.ts:1-16`（`fs.watch` → `importFromFolder` staging 交换 → `reloadPluginView`，300ms 防抖 `:32`）；坏清单不会破坏已装版本，错误经系统通知 + `launcher:devPlugins:changed` 推给界面 | 管理页的注册入口在 `views/launcher/index.vue:626-658`（`devChannels()` 探测旧 preload） |
-| 想调试插件自身 | 管理页「调试」按钮 → `launcher:pluginDevtools`（`ROADMAP.md:42` 记的这条） | 插件视图是独立 `WebContents` |
-
----
-
-## 9. 重生成时发现的口径差（记账用，不改代码）
-
-| 差在哪 | 实情 | 处理建议 |
-| --- | --- | --- |
-| ROADMAP 说"21 个插件"，市场索引 22 条 | 分母不同：21 = `plugins/`；22 = 多出模板 `com.leaf.example` | 本文 §0 已分开记；勾 ROADMAP:41 时按 21 算 |
-| `docs/ROADMAP.md:43-44` 写"`pluginStore.ts:318` 调 `docStore.deleteByPlugin`" | 现盘面该调用在 `pluginStore.ts:327`（行号漂移） | 下次动 ROADMAP 时顺手改指针 |
-| `e2e/market-index.spec.mjs:81-88` 期望界面出现「sha256 校验」或「未校验」两串之一 | 全 `src/renderer` 检索这两个串**无命中**（只有 `market.ts:120` 的错误文案含"sha256 校验"）→ 该用例可能红，或在某条我没找到的路径上拼出来 | 真机轮跑它一次再判；本文**不**断言它红 |
-| `pluginStore.ts:218-229` 有连续的「`api` 模式归一」两块一字不差的重复 | 幂等、无害，但看着像事故回填留下的 | 清理留给代码侧，本文不动代码 |
-| `commandRunner.ts:161` 与 `:184` 两个 `case 'pluginSearch'` | switch 里后一个不可达 | ⌘K 侧 `copy` 走的是 `:166-171`（第一块），U5 主窗分支按第一块判 |
-| `docs/DECISIONS.md` 的 Decision-012 出现两次（`:185`、`:213`） | 疑同批回填 | 见 `THEME_AND_VOICE.md` §5.3 末行 |
-| `example-plugin/launcher-api.d.ts:133` 注释指向 `runtime.ts:643/704/900` 的 `Enter` 载荷 | 现盘面这三处行号未逐一复核（本文只核到 `Enter` 钩子形状本身） | 标**未证实**，需要时再核 |
-
----
-
-## 10. 本轮记账（跑的人自己填）
-
-| 项 | 值 |
-| --- | --- |
-| 验证日期 | （未跑） |
-| 机器 / macOS 版本 | （未跑） |
-| 构建（`out/` 来自哪次 commit） | （未跑） |
-| 实例形态（dev / preview / 打包） | （未跑） |
-| 已装内置插件版本快照（管理页或 `installed.json`） | （未跑） |
-| 结论（21 条里几条通过） | 0 / 21 —— **因为一格都没跑，不是因为全挂** |
+静态闸（跑不跑由下一轮决定，**跑绿了也不等于真机验过**）：
+`src/main/launcher/__tests__/pluginManifestAudit.test.ts`、
+`src/shared/__tests__/plugin-api-parity.test.ts`。

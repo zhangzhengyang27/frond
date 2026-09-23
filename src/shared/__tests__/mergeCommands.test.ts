@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mergeCommandEntries } from '../mergeCommands'
-import { STATIC_COMMANDS } from '../commands'
-import type { CommandEntry } from '../commands'
+import { buildStaticCommands, type CommandEntry } from '../commands'
 import { createFirstPartyCommandProvider } from '../../renderer/src/commands/FirstPartyCommandProvider'
 import { createSystemCommandProvider } from '../../renderer/src/commands/SystemCommandProvider'
 import { commandsToEntries } from '../../renderer/src/commands/CommandLoader'
@@ -13,14 +12,15 @@ import { commandsToEntries } from '../../renderer/src/commands/CommandLoader'
  * 后者才是有价值的一半：`ai:translate` 等三条曾在静态清单与 Provider 里各写一份，
  * `firstparty:ai` 与 `ai:chat` 是两个 id 一件事，用户在搜索框里看到两行、v-for 的 key 还撞。
  */
-const entry = (over: Partial<CommandEntry> & { key: string }): CommandEntry => ({
-  title: over.title ?? over.key,
-  subtitle: '',
-  icon: 'ri-pass-through-line',
-  badge: '',
-  action: { type: 'firstParty', page: 'ai' },
-  ...over
-} as CommandEntry)
+const entry = (over: Partial<CommandEntry> & { key: string }): CommandEntry =>
+  ({
+    title: over.title ?? over.key,
+    subtitle: '',
+    icon: 'ri-pass-through-line',
+    badge: '',
+    action: { type: 'firstParty', page: 'ai' },
+    ...over
+  }) as CommandEntry
 
 describe('mergeCommandEntries 的规则', () => {
   it('key 相同：先到先得，后者丢弃并上报', () => {
@@ -64,10 +64,11 @@ describe('真数据：两套命令源合完不许有重复', () => {
   it('静态清单 + 第一方 + 系统 Provider → key 与「同一件事两个 id」都为空', async () => {
     const firstParty = await createFirstPartyCommandProvider().getCommands()
     const system = await createSystemCommandProvider().getCommands()
+    const staticList = buildStaticCommands()
     const r = mergeCommandEntries([
       commandsToEntries(firstParty), // Provider 是新的归属方，排在最前
       commandsToEntries(system),
-      STATIC_COMMANDS
+      staticList
     ])
     expect(
       r.duplicateKeys,
@@ -77,7 +78,17 @@ describe('真数据：两套命令源合完不许有重复', () => {
       r.duplicateTitles,
       `同一件事有两个 id（界面上就是两行）：${r.duplicateTitles.join(', ')}`
     ).toEqual([])
-    // 合并确实把东西合上了，不是靠只取第一个源做到的
-    expect(r.entries.length).toBeGreaterThan(firstParty.length + 20)
+    // 「合上了」要能被证明：原来写的是 `> firstParty.length + 20`，那个数假设了
+    // 系统 Provider 也有条目 —— 而它没有 window.api 时按 fail-safe 返 0（正是该有的行为），
+    // 阈值于是永远够不着。换成直接证「Provider 的每条命令都还在结果里」，与环境无关。
+    const keys = new Set(r.entries.map((e) => e.key))
+    const missing = firstParty
+      .map((c) => `plugin:${c.id}`.replace(/^plugin:/, ''))
+      .filter((id) => !keys.has(id) && ![...keys].some((k) => k.endsWith(`:${id}`)))
+    expect(missing, `这些第一方命令在合并后消失了：${missing.join(', ')}`).toEqual([])
+    expect(
+      r.entries.length,
+      '静态清单里比 Provider 多出来的那些条目不能被吃掉'
+    ).toBeGreaterThanOrEqual(staticList.length)
   })
 })

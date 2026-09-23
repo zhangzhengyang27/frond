@@ -81,7 +81,11 @@ export function applyGlassVars(
   const vars = CAPSULE_GLASS[normalizeGlass(glass)]
   for (const key of Object.keys(vars) as Array<keyof GlassVars>) {
     const value = vars[key]
-    if (value === null) target.style.setProperty(GLASS_CSS_VARS[key], '')
+    // null = 这一档不覆盖，交回 tokens.css。必须 removeProperty：
+    // setProperty(name, '') 留下的是「guaranteed-invalid」的空自定义属性，
+    // 消费端 `var(--leaf-capsule-blur)` 没写兜底值时会整体失效（玻璃档直接不见），
+    // 与「不覆盖」差一个世界 —— opaque 档的承诺就是观感与改动前完全一致。
+    if (value === null) target.style.removeProperty(GLASS_CSS_VARS[key])
     else target.style.setProperty(GLASS_CSS_VARS[key], value)
   }
 }

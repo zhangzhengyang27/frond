@@ -50,12 +50,12 @@ describe('computeWindowRect · 无 gap', () => {
       width: 1000 / 3,
       height: 350
     })
-    expect(computeWindowRect('sixthBottomRight', WA, 0)).toEqual({
-      x: 1000 - 1000 / 6,
-      y: 350,
-      width: 1000 / 6,
-      height: 350
-    })
+    const br = computeWindowRect('sixthBottomRight', WA, 0)
+    // x 由 5×(1000/6) 得到，与 1000−(1000/6) 数学同值但差 1 ULP：整对象 toEqual 会因末位碎掉
+    expect(br.y).toBe(350)
+    expect(br.width).toBe(1000 / 6)
+    expect(br.height).toBe(350)
+    expect(br.x).toBeCloseTo(1000 - 1000 / 6, 6)
   })
 
   it('maximizeHeight 铺满高、maximizeWidth 保持当前 y/h', () => {

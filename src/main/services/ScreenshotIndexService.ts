@@ -43,12 +43,13 @@ export function parseShotQuery(
   const startOfDay = (d: Date): number =>
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
   const consumed: string[] = []
-  const re = /(name|text|date):(?:"([^"]*)"|(\S+))/gi
+  // 允许 `text: total`（冒号后带空格）：引号形态给多词值，裸词形态不吃空格
+  const re = /(name|text|date):(?:\s*"([^"]*)"|\s+(\S+)|(\S+))/gi
   let m: RegExpExecArray | null
   while ((m = re.exec(raw)) !== null) {
     consumed.push(m[0])
     const key = m[1].toLowerCase()
-    const value = m[2] ?? m[3] ?? ''
+    const value = m[2] ?? m[3] ?? m[4] ?? ''
     if (key === 'name' && value) out.name = value
     else if (key === 'text' && value) out.text = value
     else if (key === 'date' && value) {

@@ -350,10 +350,28 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 `ipcContract.test.ts`：`system:frontmostContext` 在主进程注册了但登记册里没有。
 顺带说明 P-4⑤「Screen Awareness」的**主进程半边可能已经存在一半**，动它之前先读这条通道是谁注册的。
 
-### H 类 · 纯断言不符（行为与期望不一致，需要逐个判，不是缺件）
+### H 类 · 纯断言不符 —— **2026-09-23 逐个判完（5 条：3 条真回归、2 条测试侧）**
 
-`windowGeometry`（几何取整）、`market`（true/false 反了）、`ScreenshotIndexService`（undefined vs 'total'）、
-`capsuleGlass`（CSS 变量覆盖值）、`hyperKey`（`BrowserWindow` 命名导出在测试环境取不到——mock 形态问题）。
+| 条目 | 判定 | 处置 |
+| --- | --- | --- |
+| `market.isUpdatable` | **真回归**（我 P-3② 的活被回退成「字符串不等即可更新」，正是当初修掉的「20 个内置插件长期显示可更新」） | 改回 `compareSemver(...) === 1`；两侧任一解不出 semver 才退回「不等即可更新」宁多不漏 → **47/47 绿** |
+| `ScreenshotIndexService.parseShotQuery` | **真回归**（`text: total` 这类「冒号后带空格」的写法整条匹配不上，掉进自由文本分支） | 正则加 `\s*` 分支（引号 / 空格后接值 / 紧贴值三种），读数口径不变 → 7/7 绿 |
+| `capsuleGlass` 玻璃档 | **真回归**（`setProperty(name, null)` 是「显式设成非法值」，带 fallback 的 `var()` **不会**用 fallback，整条声明 IACVT —— 玻璃档切回「无」时胶囊变成透明而非默认底色） | 改为 `removeProperty` + 注释写明为什么不能用 null → 7/7 绿 |
+| `windowGeometry` 六分右列 | **测试侧**（基线 8446ff2 起就红，测试文本没被谁动过：实现算 `5×(1000/6)`=833.33…3，断言写 `1000−1000/6`=833.33…4，差 1 ULP，消费方一律 `roundRect` 取整后同为 833） | 断言拆成逐字段：`width/y/height` 精确等、`x` 用 `toBeCloseTo(...,6)`。探针（把 `5*sixth` 改成 `4*sixth`）确认仍会红 |
+| `hyperKey` | **测试环境**，非行为不符：`vi.mock('electron')` 对外部化的 `electron` 无效，命名导出取不到 → 拿不到 mock 的 `BrowserWindow` | **未动生产代码**。要修得先配 vitest 的 `deps.optimizer`/alias 让 electron 可 mock，属测试基建，另排 |
+
+**顺带被照出来的一条真重复（待拍板，没乱删）**：`mergeCommands.test.ts` 原本断言的是不存在的
+`STATIC_COMMANDS`，改成 `buildStaticCommands()` + 「firstParty 每条都必须在结果里」之后，
+`ai:translate` / `ai:summarize` / `ai:rewrite` 报为重复 ——
+`src/shared/commands.ts:332/340/348`（`FIRST_PARTY_COMMANDS`）与
+`src/renderer/src/commands/FirstPartyCommandProvider.ts:30/40/50` **各一份**，
+而两个源都注册在 `CommandLoader`。⌘K 里是不是真出现两行要看装载时的去重顺序，
+而 `electron-vite build` 仍被 C 类缺页挡住跑不了 e2e —— **改命令表等于改用户可见面，先记账**。
+
+**H 类判完的读数**：单测 836 passed / **8 failed**（红文件 107 绿 / 3 红）。
+剩下 8 条**全是结构性缺件**，不在 H 类：`ipcContract` 6 条（G 类幽灵通道 + C 类缺页组件）、
+`renderer-api-parity` 1 条（C 类）、`mergeCommands` 1 条（上面那条重复）。
+
 
 ### 建议的处理顺序
 

@@ -411,6 +411,22 @@ npx electron-vite build                      # main 229 / preload 3 模块已过
   `data.command` 的错（runtime 发的是 `cmd`，见 `c2f76b0`）——那条 bug 的表现是「第二条命令打不开」。
 
 
+#### 10.4 build 首次跑通，以及 e2e 目录自己的两处损坏
+
+`npx electron-vite build` **exit 0**（out/{main,preload,renderer} 14MB）—— 事故后第一次。
+补齐的是 vite 配置里那三个 Node 模块替身（`path` / `url` / `source-map-js` alias 指向的文件
+只剩 fs-polyfill.ts 还在），见 `bf180b0`。
+
+e2e 侧另有一类损坏，**不是渲染层的**：
+- `e2e/user-theme.spec.mjs`：同一个 helper + 同一个 test 被贴了两遍（第二份是 prettier 后的形态），
+  `node --check` 直接 SyntaxError → 整个 spec 收集失败。删掉第一份，2 条 test 保留。
+- `e2e/launcher.spec.mjs`：**基线提交里它就只有 1 行，而那行是某次会话把工具回执当成文件内容写了进去**
+  （原文 `Wasted call — file unchanged since your last Read…`）。reconstructed/e2e、_recovery-* 各池、
+  git 全历史都没有第二份 → 没有可回灌的东西。现在改成一条显式 `test.skip` 并写明原因，
+  不写「看起来会过、其实什么都没测」的替身。启动器链路目前由 capsule-*/command-palette/
+  plugin-arg-slots 那几个 spec 覆盖。
+- 自查命令：`for f in e2e/*.mjs; do node --check "$f" || echo FAIL $f; done`（32 个 spec 现在全过）。
+
 （上面这张「剩 12 个」的旧表已被 10.2 取代：`BackgroundSwitch`、5 个统计组件、`USkeleton`、
 `RecordingSettingsDialog` 都已到位，同时暴露出更大的盘面。）
 

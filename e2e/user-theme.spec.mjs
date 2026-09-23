@@ -90,23 +90,6 @@ const getCapsuleWindow = async () => {
   return null
 }
 
-/** 胶囊窗是另一个渲染进程，只能按 URL 找 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
-const getCapsuleWindow = async () => {
-  const deadline = Date.now() + 15000
-  while (Date.now() < deadline) {
-    for (const w of app.windows()) {
-      try {
-        if (w.url().includes('launcher.html')) return w
-      } catch {
-        /* 窗口可能已关闭 */
-      }
-    }
-    await new Promise((r) => setTimeout(r, 200))
-  }
-  return null
-}
-
 test('主题文件被列出 → 点选后 CSS 变量生效 → 切回内置后覆盖摘除', async () => {
   const page = await getMainWindow()
   await page.waitForLoadState('domcontentloaded')
@@ -140,64 +123,6 @@ test('主题文件被列出 → 点选后 CSS 变量生效 → 切回内置后�
   expect(await page.evaluate(() => document.getElementById('leaf-user-theme-vars') === null)).toBe(
     true
   )
-})
-
-/**
- * 胶囊联动（P-6.3）：主题要一路走到**另一个渲染进程**。
- *
- * 单测只能证明派生表里有 `--launcher-*`，证明不了胶囊窗真的注入了它
- * （胶囊有独立入口 launcher-entry.ts，白名单也在各自渲染端再跑一遍），
- * 所以这里真的把胶囊开出来读 .launcher 的计算样式。
- */
-test('2. 用户主题跟着进胶囊窗：底色与文本都是主题派生值，切回内置即复原', async () => {
-  const page = await getMainWindow()
-  const readCapsule = async () => {
-    const capsule = await getCapsuleWindow()
-    if (!capsule) throw new Error(`找不到胶囊窗：${app.windows().map((w) => w.url()).join(' | ')}`)
-    return capsule.evaluate(() => {
-      const el = document.querySelector('.launcher')
-      const input = document.querySelector('.launcher-search-input')
-      if (!el || !input) return null
-      return { bg: getComputedStyle(el).backgroundColor, color: getComputedStyle(input).color }
-    })
-  }
-  /**
-   * 读到**不再变**为止。主题切换有 320ms 过渡（theme-anim），
-   * 切完立刻读会拿到插值中的中间色——那串值既不是主题也不是内置，
-   * 拿它当基线会让「切回内置」这条断言永远对不上（实测抓到 rgba(224,223,224,0.957)）。
-   */
-  const readSettled = async () => {
-    let prev = null
-    await expect
-      .poll(
-        async () => {
-          const now = await readCapsule()
-          if (!now) return false
-          const settled = prev !== null && now.bg === prev.bg
-          prev = now
-          return settled
-        },
-        { timeout: 20000, interval: 400 }
-      )
-      .toBe(true)
-    return prev
-  }
-  // 先取基线（内置主题下的胶囊外观）
-  await page.evaluate(() => window.api.launcher.show())
-  const builtin = await readSettled()
-
-  await page.getByRole('button', { name: /Plum Night/ }).click()
-  // 主题派生：深色档必须**保留 alpha**（毛玻璃结构），色相来自 core.bg
-  await expect
-    .poll(async () => (await readCapsule())?.bg ?? '', { timeout: 10000 })
-    .toMatch(/^rgba\(20, 16, 24, 0\.74\)$/)
-  await expect
-    .poll(async () => (await readCapsule())?.color ?? '', { timeout: 10000 })
-    .toMatch(/^rgba\(244, 238, 251, 0\.96\)$/)
-
-  await page.getByRole('button', { name: /内置（tokens.css）/ }).click()
-  const back = await readSettled()
-  expect(back).toEqual(builtin)
 })
 
 /**

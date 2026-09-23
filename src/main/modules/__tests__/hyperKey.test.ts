@@ -1,4 +1,19 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// 本测试只跑纯判定函数（decideQuickPress / normalizeQuickPress）。hyperKey 的依赖链
+// （uiohook-napi / globalKeys / docStore / launcher.hotkeys → modules/windows）会一路拖到 electron，
+// 而 electron 是 CJS：vitest 按 ESM 具名导入它会在**加载阶段**就抛「Named export not found」，
+// vi.mock('electron') 也拦不住（外部化的依赖先于 mock 解析）。所以把这三条 IO 依赖就地挡掉。
+vi.mock('uiohook-napi', () => ({ UiohookKey: new Proxy({}, { get: () => 0 }) }))
+vi.mock('../globalKeys', () => ({
+  globalKeyHook: { start: () => {}, stop: () => {}, on: () => {} }
+}))
+vi.mock('../../launcher/docStore', () => ({
+  getLauncherDocStore: () => ({ get: () => null, put: () => ({}) })
+}))
+vi.mock('../../launcher/hotkeys', () => ({ dispatchChordLetter: () => false }))
+vi.mock('../../launcher/window', () => ({ toggleLauncherWindow: () => undefined }))
+
 import { decideQuickPress, normalizeQuickPress, TAP_THRESHOLD_MS } from '../hyperKey'
 
 /**

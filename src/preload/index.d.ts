@@ -840,6 +840,13 @@ export interface API {
     hotkeysSetMain: (
       accelerator: string
     ) => Promise<{ ok: boolean; config?: HotkeyConfig; error?: string }>
+    /** 截图热键（默认 ⌥⇧S）；传 '' 关闭。回包里带刚注册出来的冲突清单 */
+    hotkeysSetScreenshot: (accelerator: string) => Promise<{
+      ok: boolean
+      config?: HotkeyConfig
+      conflicts?: HotkeyConflicts
+      error?: string
+    }>
     hotkeysSetCommand: (
       accelerator: string,
       spec: CommandHotkeySpec | null

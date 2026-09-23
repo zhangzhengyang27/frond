@@ -278,6 +278,43 @@
             {{ recording?.type === 'main' ? '按下组合键…' : hotkeyConfig.main }}
           </button>
         </div>
+        <!-- 截图热键（默认 ⌥⇧S；2026-09-23 起进可配置热键系统） -->
+        <div class="flex items-center gap-3 border-b border-line-subtle p-4">
+          <div
+            class="flex size-9 shrink-0 items-center justify-center rounded-md border border-brand-500/20 bg-brand-500/10 text-fg-brand"
+          >
+            <AppIcon icon="crop-line" :size="17" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-fg-primary">截图热键</div>
+            <div class="mt-0.5 text-xs text-fg-tertiary">
+              {{ hotkeyConfig.screenshot ? '全局开始一次截图' : '已关闭（可用设置项重新绑定）' }}
+            </div>
+          </div>
+          <button
+            type="button"
+            class="shrink-0 rounded-md border px-3 py-1.5 font-mono text-xs transition-colors"
+            :class="
+              recording?.type === 'screenshot'
+                ? 'border-brand-500/40 bg-brand-500/10 text-fg-brand'
+                : 'border-line-subtle bg-surface-0 text-fg-secondary hover:border-brand-500/40'
+            "
+            @click="startRecording('screenshot')"
+          >
+            {{
+              recording?.type === 'screenshot' ? '按下组合键…' : hotkeyConfig.screenshot || '未设置'
+            }}
+          </button>
+          <button
+            v-if="hotkeyConfig.screenshot"
+            type="button"
+            class="shrink-0 rounded-md border border-line-subtle px-2 py-1.5 text-xs text-fg-tertiary transition-colors hover:border-danger/40 hover:text-danger"
+            title="关闭截图热键"
+            @click="clearScreenshotHotkey"
+          >
+            关闭
+          </button>
+        </div>
         <!-- 命令热键列表 -->
         <div class="max-h-72 divide-y divide-line-subtle overflow-y-auto">
           <div
@@ -804,13 +841,15 @@ type HotkeySpec = CommandHotkeySpec
 
 const hotkeyConfig = ref<{
   main: string
+  screenshot: string
   commands: Record<string, HotkeySpec>
   chords?: Record<string, HotkeySpec>
 }>({
   main: 'Alt+Space',
+  screenshot: 'Alt+Shift+S',
   commands: {}
 })
-const recording = ref<{ type: 'main' | 'command'; key?: string } | null>(null)
+const recording = ref<{ type: 'main' | 'command' | 'screenshot'; key?: string } | null>(null)
 
 /** 可绑热键的命令（静态命令注册表 → 热键 spec） */
 function specOfCommand(entry: CommandEntryLike): HotkeySpec | null {
@@ -960,7 +999,7 @@ function openA11ySettings(): void {
   }
 }
 
-function startRecording(type: 'main' | 'command', key?: string): void {
+function startRecording(type: 'main' | 'command' | 'screenshot', key?: string): void {
   recording.value = { type, key }
 }
 
@@ -1000,6 +1039,11 @@ async function onRecordingKeydown(e: KeyboardEvent): Promise<void> {
     if (recording.value.type === 'main') {
       await window.api.launcher.hotkeysSetMain(accel)
       toast.success(`主热键已设为 ${accel}`)
+    } else if (recording.value.type === 'screenshot') {
+      const res = await window.api.launcher.hotkeysSetScreenshot(accel)
+      // 主进程注册失败会照实回报 conflicts，不能先报「已设置」再默默失效
+      if (res.conflicts?.screenshot) toast.error(`${accel} 注册失败（可能被占用）`)
+      else toast.success(`截图热键已设为 ${accel}`)
     } else {
       const entry = hotkeyCommands.value.find((r) => r.entry.key === recording.value?.key)
       if (entry?.spec) {
@@ -1017,6 +1061,17 @@ async function onRecordingKeydown(e: KeyboardEvent): Promise<void> {
 
 async function removeCommandHotkey(accel: string): Promise<void> {
   await window.api.launcher.hotkeysSetCommand(accel, null)
+  await refreshHotkeys()
+}
+
+/** 关掉截图热键（主进程把 '' 当合法值，不再注册） */
+async function clearScreenshotHotkey(): Promise<void> {
+  try {
+    await window.api.launcher.hotkeysSetScreenshot('')
+    toast.info('已关闭截图热键')
+  } catch {
+    toast.error('热键设置失败')
+  }
   await refreshHotkeys()
 }
 

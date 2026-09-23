@@ -434,6 +434,13 @@ export function registerLauncherIpc(): void {
     registerAllHotkeys()
     return { ok: true, config: next }
   })
+  typedHandle('launcher:hotkeys:setScreenshot', (_e, { accelerator }) => {
+    // '' 是合法值：表示关掉截图热键（默认值由 hotkeys.ts 兜）
+    const accel = String(accelerator ?? '').trim()
+    const next = writeHotkeyConfig({ screenshot: accel })
+    registerAllHotkeys()
+    return { ok: true, config: next, conflicts: getHotkeyConflicts() }
+  })
   typedHandle('launcher:hotkeys:setCommand', (_e, { accelerator, spec }) => {
     const accel = String(accelerator ?? '').trim()
     const config = readHotkeyConfig()

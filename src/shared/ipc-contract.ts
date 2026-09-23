@@ -744,6 +744,16 @@ export interface IpcContract {
     req: { accelerator: string }
     res: { ok: boolean; error?: string; config?: HotkeyConfig }
   }
+  'launcher:hotkeys:setScreenshot': {
+    /** '' = 关闭截图热键；未设置时主进程用默认值 ⌥⇧S 兜 */
+    req: { accelerator: string }
+    res: {
+      ok: boolean
+      error?: string
+      config?: HotkeyConfig
+      conflicts?: { main: boolean; screenshot: boolean; commands: string[] }
+    }
+  }
   'launcher:hotkeys:setCommand': {
     req: { accelerator: string; spec: CommandHotkeySpec | null }
     res: { ok: true; config: HotkeyConfig; registered: string[] }

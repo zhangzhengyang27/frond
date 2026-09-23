@@ -22,6 +22,12 @@ import { dispatchMainAction } from './actionHandlers'
 
 const HOTKEY_NS = 'sys.hotkeys'
 const DEFAULT_MAIN = 'Alt+Space'
+/**
+ * 截图全局热键的默认值。2026-09-23 从 ⌘⇧A 换过来（与微信等 IM 的默认截图键撞），
+ * 并且从此走这套可配置热键系统注册 —— 以前它是 modules/screenshot.ts 里的硬编码
+ * globalShortcut，本文件的冲突检测根本看不见它。
+ */
+const DEFAULT_SCREENSHOT = 'Alt+Shift+S'
 /** 两段式字母直达的等待窗口（毫秒） */
 const CHORD_WINDOW_MS = 2000
 
@@ -37,6 +43,8 @@ export interface CommandHotkeySpec {
 
 export interface HotkeyConfig {
   main: string
+  /** 截图热键；'' 表示用户关掉了它 */
+  screenshot: string
   commands: Record<string, CommandHotkeySpec>
   /** 两段式直达：字母（小写 a-z）→ 命令 spec；主热键后按住修饰键再按字母触发 */
   chords: Record<string, CommandHotkeySpec>
@@ -48,11 +56,13 @@ export function readHotkeyConfig(): HotkeyConfig {
     const data = (doc?.data ?? {}) as Partial<HotkeyConfig>
     return {
       main: typeof data.main === 'string' && data.main ? data.main : DEFAULT_MAIN,
+      // 空串是用户主动「关闭截图热键」的有效值，不能一律回落到默认
+      screenshot: typeof data.screenshot === 'string' ? data.screenshot : DEFAULT_SCREENSHOT,
       commands: data.commands && typeof data.commands === 'object' ? data.commands : {},
       chords: data.chords && typeof data.chords === 'object' ? data.chords : {}
     }
   } catch {
-    return { main: DEFAULT_MAIN, commands: {}, chords: {} }
+    return { main: DEFAULT_MAIN, screenshot: DEFAULT_SCREENSHOT, commands: {}, chords: {} }
   }
 }
 
@@ -69,15 +79,18 @@ let restorerHooked = false
 export interface HotkeyConflicts {
   /** 主热键注册失败（重试进行中） */
   main: boolean
+  /** 截图热键注册失败（被其他应用占用 / 与主热键重复 / 加速器非法） */
+  screenshot: boolean
   /** 注册失败的命令热键加速器 */
   commands: string[]
 }
 
 let mainConflict = false
+let screenshotConflict = false
 let commandConflicts: string[] = []
 
 export function getHotkeyConflicts(): HotkeyConflicts {
-  return { main: mainConflict, commands: [...commandConflicts] }
+  return { main: mainConflict, screenshot: screenshotConflict, commands: [...commandConflicts] }
 }
 
 /**
@@ -262,10 +275,18 @@ function dispatchChord(spec: CommandHotkeySpec): void {
   getLauncherWindow()?.hide()
 }
 
+/** 截图热键触发：延迟 import，理由同 globalShortcuts（避免模块初始化环） */
+function onScreenshotHotkey(): void {
+  void import('../modules/screenshot').then(({ triggerScreenshot }) => {
+    void triggerScreenshot()
+  })
+}
+
 /** 注册主热键 + 全部命令热键；配置变更 / 快捷键恢复时复用 */
 export function registerAllHotkeys(): void {
   unregisterAll()
   mainConflict = false
+  screenshotConflict = false
   commandConflicts = []
   const config = readHotkeyConfig()
 
@@ -276,6 +297,21 @@ export function registerAllHotkeys(): void {
     mainConflict = true
     console.error('[Launcher] 主热键注册失败（可能被占用，将自动重试）:', config.main)
     scheduleMainHotkeyRetry()
+  }
+
+  // '' = 用户关掉了截图热键；与主热键同串时不注册（Electron 只会留一个，行为看运气）
+  if (config.screenshot && config.screenshot !== config.main) {
+    try {
+      const okShot = globalShortcut.register(config.screenshot, () => onScreenshotHotkey())
+      if (okShot) registeredAccelerators.push(config.screenshot)
+      else {
+        screenshotConflict = true
+        console.warn('[Launcher] 截图热键注册失败（可能被占用）:', config.screenshot)
+      }
+    } catch {
+      screenshotConflict = true
+      console.warn('[Launcher] 截图热键加速器非法:', config.screenshot)
+    }
   }
 
   for (const [accel, spec] of Object.entries(config.commands)) {

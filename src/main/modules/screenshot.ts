@@ -1,5 +1,4 @@
-import { globalShortcut, ipcMain } from 'electron'
-import { addShortcutRestorer } from './globalShortcuts'
+import { ipcMain } from 'electron'
 import ScreenshotService, {
   listWindowSources,
   captureWindowSource
@@ -9,25 +8,19 @@ import ScreenshotService, {
 // 历史入库 / 剪贴板 / 通知均在 ScreenshotService.listenIpc 内完成。
 let service: ScreenshotService | null = null
 
-const SCREENSHOT_SHORTCUT = 'CommandOrControl+Shift+A'
-
-/** 供命令热键（M4）等主进程入口触发截图 */
+/**
+ * 触发一次截图。调用方是 launcher 的热键系统（`hotkeys.ts` 注册的截图热键，
+ * 默认 ⌥⇧S、启动台设置里可改）与 `screenshot:startCapture` 这条 IPC。
+ *
+ * 这里以前自己 `globalShortcut.register('CommandOrControl+Shift+A')`：既不可配置，
+ * 也躲开了 hotkeys.ts 的冲突检测（用户把别的命令绑到同一串也不会被警告）。
+ */
 export async function triggerScreenshot(): Promise<void> {
   try {
     await service?.startCapture()
   } catch (error) {
     console.error('触发截图失败:', error)
   }
-}
-
-function registerScreenshotShortcut(): void {
-  globalShortcut.register(SCREENSHOT_SHORTCUT, async () => {
-    try {
-      await service?.startCapture()
-    } catch (error) {
-      console.error('快捷键启动截图失败:', error)
-    }
-  })
 }
 
 export function registerScreenshotHandlers(): void {
@@ -63,20 +56,5 @@ export function registerScreenshotHandlers(): void {
     captureWindowSource(windowId, scaleFactor ?? 1)
   )
 
-  // 注册快捷键，并挂恢复回调（globalShortcuts.unregisterAll 会清掉它）
-  registerScreenshotShortcut()
-  addShortcutRestorer(registerScreenshotShortcut)
-
   console.log('[Screenshot] 自研截图服务初始化完成')
-}
-
-/**
- * 注销截图快捷键并销毁截图服务
- */
-export function unregisterScreenshotShortcuts(): void {
-  globalShortcut.unregister(SCREENSHOT_SHORTCUT)
-  if (service) {
-    service.destroy()
-    service = null
-  }
 }

@@ -673,6 +673,9 @@ const api: API = {
     hotkeysGetConflicts: () => typedInvoke('launcher:hotkeys:getConflicts'),
     hotkeysSetMain: (accelerator: string) =>
       typedInvoke('launcher:hotkeys:setMain', { accelerator }),
+    /** 截图热键（默认 ⌥⇧S）；传 '' 表示关闭 */
+    hotkeysSetScreenshot: (accelerator: string) =>
+      typedInvoke('launcher:hotkeys:setScreenshot', { accelerator }),
     hotkeysSetCommand: (accelerator: string, spec: CommandHotkeySpec | null) =>
       typedInvoke('launcher:hotkeys:setCommand', { accelerator, spec }),
     /** 两段式直达（主热键后按住修饰键再按字母） */

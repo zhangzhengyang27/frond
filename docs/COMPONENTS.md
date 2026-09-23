@@ -1,8 +1,8 @@
-# Leaf · 12 个核心组件规范
+# Frond · 12 个核心组件规范
 
-> 所有组件以 **`L` 前缀**（Leaf）：`LButton`、`LInput`、`LCard`、`LModal`、`LToast`、`LTooltip`、`LSwitch`、`LSelect`、`LProgress`、`LNav`、`LTag`、`LAppShell`。
+> 所有组件以 **`L` 前缀**（Frond）：`LButton`、`LInput`、`LCard`、`LModal`、`LToast`、`LTooltip`、`LSwitch`、`LSelect`、`LProgress`、`LNav`、`LTag`、`LAppShell`。
 >
-> 实现位置：`src/renderer/src/components/leaf/`（新建目录）。
+> 实现位置：`src/renderer/src/components/frond/`（新建目录）。
 
 ---
 
@@ -365,7 +365,7 @@ defineSlots<{
 | 组件              | 实现方式                          | 优先级 |
 | ----------------- | --------------------------------- | ------ |
 | LAppShell         | 后续替换 App.vue                  | P0     |
-| LButton           | 替换 Leaf 当前直接按钮            | P0     |
+| LButton           | 替换 Frond 当前直接按钮            | P0     |
 | LInput            | 替换 Home.vue 等的 input          | P0     |
 | LCard             | Hub 卡片 / 模块卡片               | P0     |
 | LModal            | 替换现有模态（SettingsDialog 等） | P0     |

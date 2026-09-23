@@ -1,4 +1,4 @@
-# Leaf Desktop × Raycast 内置核心功能集成计划
+# Frond Desktop × Raycast 内置核心功能集成计划
 
 > 版本：v1.0
 > 日期：2026-09-06
@@ -12,7 +12,7 @@
 
 ### 1.1 背景
 
-Leaf Desktop 是一个基于 Electron + Vue 3 的桌面工具集，已具备 launcher 架构和约 85% 的 Raycast 核心功能。本计划旨在系统性地将 Raycast 的优秀内置功能与设计理念集成到 Leaf Desktop 中，同时对已有功能进行与 Raycast 的丰富度对比检测，补齐差距。
+Frond Desktop 是一个基于 Electron + Vue 3 的桌面工具集，已具备 launcher 架构和约 85% 的 Raycast 核心功能。本计划旨在系统性地将 Raycast 的优秀内置功能与设计理念集成到 Frond Desktop 中，同时对已有功能进行与 Raycast 的丰富度对比检测，补齐差距。
 
 ### 1.2 目标
 
@@ -22,7 +22,7 @@ Leaf Desktop 是一个基于 Electron + Vue 3 的桌面工具集，已具备 lau
 
 * 对已有功能进行深度检测，识别与 Raycast 的丰富度差距
 
-* 保持 Leaf Desktop 跨平台（macOS / Windows / Linux）特性
+* 保持 Frond Desktop 跨平台（macOS / Windows / Linux）特性
 
 * 所有功能通过 typecheck + 单元测试 + 构建验证
 
@@ -113,7 +113,7 @@ Leaf Desktop 是一个基于 Electron + Vue 3 的桌面工具集，已具备 lau
 
 ***
 
-## 三、Leaf Desktop 现状分析
+## 三、Frond Desktop 现状分析
 
 ### 3.1 技术栈
 
@@ -210,11 +210,11 @@ src/
 
 
 
-| 功能                | Leaf Desktop | Raycast | 差距分析                                                       |
+| 功能                | Frond Desktop | Raycast | 差距分析                                                       |
 | ----------------- | ------------ | ------- | ---------------------------------------------------------- |
-| 剪贴板历史             | ✅ **更丰富**    | 基础版     | Leaf 有 200 条容量、OCR、依次粘贴、敏感应用屏蔽、加密持久化、30 天保留期，比 Raycast 更丰富 |
-| 全局快捷键             | ✅ **独有设计**   | 基础版     | Leaf 有 "两段式直达"（主热键后按住修饰键 + 字母直达命令），Raycast 无此设计            |
-| 代码片段              | ✅ 已实现        | 更丰富     | Leaf 支持文本展开和自动占位符；Raycast 额外支持 {{param}} 用户输入动态参数          |
+| 剪贴板历史             | ✅ **更丰富**    | 基础版     | Frond 有 200 条容量、OCR、依次粘贴、敏感应用屏蔽、加密持久化、30 天保留期，比 Raycast 更丰富 |
+| 全局快捷键             | ✅ **独有设计**   | 基础版     | Frond 有 "两段式直达"（主热键后按住修饰键 + 字母直达命令），Raycast 无此设计            |
+| 代码片段              | ✅ 已实现        | 更丰富     | Frond 支持文本展开和自动占位符；Raycast 额外支持 {{param}} 用户输入动态参数          |
 | 内联计算器             | ✅ 已实现        | 同等      | 两者均支持内联计算                                                  |
 | 窗口管理              | ✅ 底层完整       | 同等      | 底层 14 种布局完整，但 SystemCommandProvider 注册有 bug（cmdId 格式错误）    |
 | 单位换算              | ❌ 缺失         | 已实现     | Raycast 支持内联单位 / 货币换算                                      |

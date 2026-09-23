@@ -1,4 +1,4 @@
-# Leaf · Roadmap
+# Frond · Roadmap
 
 > 决策真理源。所有战略方向变更必须落到本文档的「决策记录」，并与 `docs/POSITIONING.md` 同步。
 > 生成于 2026-09-11 战略决策会，取代散落在 GAP/STAGE 系列文档中的临时结论（已归档至 `docs/archive/`）。
@@ -37,7 +37,7 @@
 - [x] 插件清单（plugin.json）静态审计测试（必填字段 / 入口文件存在 / id 与目录一致；2026-09-20 落在
   `src/main/launcher/__tests__/pluginManifestAudit.test.ts`，另加「未知权限/参数类型会被宿主静默剔除」
   与「版本号须与市场索引一致」两条；首跑即抓到 20 个插件清单 1.0.1 vs 索引 1.0.0 的漂移与
-  `com.leaf.quickfolders` 漏登记，已一并修正）
+  `com.frond.quickfolders` 漏登记，已一并修正）
 - [ ] **21 个插件逐个真机验证**（清单见 [PLUGIN_QA_CHECKLIST.md](./PLUGIN_QA_CHECKLIST.md)）
 - [x] 调试体验补全：插件视图 devtools 打开方式（2026-09-17：插件管理页「调试」按钮 + launcher:pluginDevtools）
 - [x] 卸载插件时清理其 KV 数据（2026-09-17 已接线，本行漏勾：`pluginStore.ts:318` 调

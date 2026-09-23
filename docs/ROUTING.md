@@ -1,4 +1,4 @@
-# Leaf · 路由与窗口约定（ROUTING）
+# Frond · 路由与窗口约定（ROUTING）
 
 > **重生说明**：本文件原件在 2026-09-22 的桌面删除事故中丢失，各备份池无副本（`HANDOFF.md:695-697`），
 > 2026-09-23 **从代码重新生成**。与 `docs/SIGNING_MAC.md` 同批。
@@ -107,7 +107,7 @@
 
 | 入口页 | rollup input（行） | 谁加载它 | dev / prod 两条路 | 有路由表？ |
 | --- | --- | --- | --- | --- |
-| `index.html`（主应用，`<title>Leaf</title>` `index.html:5`） | `electron.vite.config.ts:87` | `windows.ts:109-119`；主窗由 `main/index.ts:483` 创建（`autoShow=false`，注释 `:482`） | dev `ELECTRON_RENDERER_URL` / prod `loadFile` | **有**（`main.ts:7,11`） |
+| `index.html`（主应用，`<title>Frond</title>` `index.html:5`） | `electron.vite.config.ts:87` | `windows.ts:109-119`；主窗由 `main/index.ts:483` 创建（`autoShow=false`，注释 `:482`） | dev `ELECTRON_RENDERER_URL` / prod `loadFile` | **有**（`main.ts:7,11`） |
 | `launcher.html` | `:88` | `launcher/window.ts:55-61`（`loadLauncherPage`） | `loadURL(…/launcher.html)` / `loadFile('../renderer/launcher.html')` | 无（`launcher-entry.ts:11-23`，只 `createApp(LauncherApp)`） |
 | `shield.html` | `:89` | `focusShield.ts:290` | **只有 `loadFile` 一条**，无 dev 分支（该行未判 `ELECTRON_RENDERER_URL`）；加载失败即关窗退化，注释 `:291-293` | 无（`shield-entry.ts:5-8`） |
 产物实盘（2026-09-23 跑过 `npx electron-vite build`）：`out/renderer/{index,launcher,shield}.html`。
@@ -212,7 +212,7 @@
 | 4 | 滚动复位不能声明式返回 | 存在两个自定义滚动容器 `.App-router` / `.app-scroll`，window 本身不可滚，`{ top: 0 }` / `savedPosition` 对自定义容器无效 → `scrollBehavior` 必须命令式取节点（`router/index.ts:46-59`，成因注释 `:47-49` 记为 B3 修复）。 |
 | 5 | 同 route 反复开窗导致渲染进程堆积 | 复用 + 进程内导航（`windows.ts:25-46`，注释记为 BUGS.md B2），兜底导航在 `:83-92`，接收端 `main.ts:41-46`。 |
 | 6 | 生产加载必须先带目标 hash | 否则会闪一帧 Hub（`windows.ts:116-117`），`navigate-to-route` 只作兜底保留（`:117`）。 |
-| 7 | `/settings` 的窗口尺寸是主进程写死的 | `create-new-window` 对 `/settings` 特判 800×786，且注释提醒「route 可能带 `?immersive=1`，所以用 `startsWith`」（`main/index.ts:373-380`）；`leaf://settings` 深链必须与之保持一致（`main/index.ts:203-207`）。新增需要特殊尺寸的页面时，这里是唯一改点。 |
+| 7 | `/settings` 的窗口尺寸是主进程写死的 | `create-new-window` 对 `/settings` 特判 800×786，且注释提醒「route 可能带 `?immersive=1`，所以用 `startsWith`」（`main/index.ts:373-380`）；`frond://settings` 深链必须与之保持一致（`main/index.ts:203-207`）。新增需要特殊尺寸的页面时，这里是唯一改点。 |
 
 ---
 

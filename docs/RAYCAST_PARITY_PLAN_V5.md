@@ -1,4 +1,4 @@
-# Leaf × Raycast 差距清账 · 执行计划 V5
+# Frond × Raycast 差距清账 · 执行计划 V5
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -55,14 +55,14 @@ P-7 无障碍与注册表合一    ~4d   ─┘ 工程债收尾
 
 - [ ] **Step 1: 在标题下方插入过期声明**
 
-在 `# Leaf × Raycast 差距分析 V4（2026-09-17）` 之后、`> 前版 V1–V3 已归档…` 之前插入：
+在 `# Frond × Raycast 差距分析 V4（2026-09-17）` 之后、`> 前版 V1–V3 已归档…` 之前插入：
 
 ```markdown
 > ⚠️ **§2/§5 的 ❌ 清单已过期（2026-09-20 复核）**：自 09-17 起 53 个提交已落地
 > fuzzy 容错层、多参数命令（text/password/dropdown）、自建文件索引、Hyper Key、系统日历四档、
 > React SDK + @raycast-api 兼容层、用户主题文件、pop-to-root 三态、热键冲突检测。
 > 逐条核对后的真差距与执行分解见 `docs/RAYCAST_PARITY_PLAN_V5.md`。
-> 本文仍有效的部分：§3 Leaf 独有点、§4 定位冲突标注、§6 资料来源。
+> 本文仍有效的部分：§3 Frond 独有点、§4 定位冲突标注、§6 资料来源。
 ```
 
 - [ ] **Step 2: 提交**
@@ -90,7 +90,7 @@ git commit -m "docs: V4 差距分析标注过期条目（真差距重排见 PARI
 移动端。
 
 **Why**：以「能力清单」衡量 Raycast 已在 2.0 之后把 AI 与听写移入 Pro 并在 2026-09-10
-改按用量计费，Leaf 的 BYOK 单端点 Chat 已不构成 parity；账号/同步同理。
+改按用量计费，Frond 的 BYOK 单端点 Chat 已不构成 parity；账号/同步同理。
 **How to apply**：「本地优先」重述为「本地优先 + 可选端到端加密同步」——同步必须是
 用户显式开启、默认关闭、密钥不出本机；任何要求先登录才能用的功能都违背这条决策。
 落点与分期见 `docs/RAYCAST_PARITY_PLAN_V5.md` P-4 / P-5。
@@ -106,7 +106,7 @@ git commit -m "docs: V4 差距分析标注过期条目（真差距重排见 PARI
 | --- | --- | --- |
 | `PLUGIN_DEV.md:81` | 动作「最多 6 个」 | `runtime.ts:93` 实为 **10**——而且是裸字面量 `.slice(0, 10)`，**没有** `PLUGIN_MAX_VIEW_ACTIONS` 常量（改文档时顺手补一个，与 `PLUGIN_MAX_VIEW_ITEMS` 同处） |
 | `PLUGIN_DEV.md:81` | 列表「上限 100 条」 | `PLUGIN_MAX_VIEW_ITEMS = 300`（`plugin-protocol.ts:260`，`runtime.ts:74` 使用） |
-| `PLUGIN_DEV.md:201` | 不支持的 Raycast API「调用即抛错」 | `leaf-raycast-api/src/index.ts:45-49` 实为 `console.warn` 一次 + 安全降级 |
+| `PLUGIN_DEV.md:201` | 不支持的 Raycast API「调用即抛错」 | `frond-raycast-api/src/index.ts:45-49` 实为 `console.warn` 一次 + 安全降级 |
 
 - [ ] **Step 4: 提交**
 
@@ -252,13 +252,13 @@ git commit -m "feat(launcher): 动作模型加稳定 id 与修饰键声明（纯
 
 ```js
 // e2e/capsule-actions.spec.mjs（片段：断言 ⌘⏎/⌫ 走的是二级动作而非 ↵ 的主动作）
-// 复用 launcher.spec.mjs 的 launch/env 写法；LEAF_USER_DATA_DIR 按 spec 名覆盖
+// 复用 launcher.spec.mjs 的 launch/env 写法；FROND_USER_DATA_DIR 按 spec 名覆盖
 test('cmd+backspace on a file result reveals in Finder without closing the capsule', async () => {
   const capsule = await openCapsule()
-  await capsule.fill('input', 'LeafTmpProbe')
-  await expect(capsule.locator('.result-row').first()).toContainText('LeafTmpProbe')
+  await capsule.fill('input', 'FrondTmpProbe')
+  await expect(capsule.locator('.result-row').first()).toContainText('FrondTmpProbe')
   await capsule.keyboard.press('Meta+Backspace')
-  // 真副作用：reveal 的 IPC 计数 +1（主进程侧用 LEAF_E2E=1 暴露的探针路由）
+  // 真副作用：reveal 的 IPC 计数 +1（主进程侧用 FROND_E2E=1 暴露的探针路由）
   const revealed = await probeRevealCount()
   expect(revealed).toBe(1)
   // 且动作面板并未因此被打开（与 ↵ 语义区分开）
@@ -335,7 +335,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
 - FormPage 的字段级 `initial` 是真读的（`FormPage.vue:264-267`），无需改动
 
 **已知未验证 → 已还（2026-09-20，随 P-2.7）**：`pluginarg` 预填当时没有 e2e，因为 21 个内置插件
-零个声明 `arguments`。`com.leaf.regex` 挂上参数 + `search.ts` 补前缀命中后，
+零个声明 `arguments`。`com.frond.regex` 挂上参数 + `search.ts` 补前缀命中后，
 `e2e/plugin-args.spec.mjs` 两条把它钉住：第 1 条走全链路（预填 → 补文本 → ⌘↵ → 插件按参数渲染
 `匹配 3 处` 与 `/…/g` 副标题），第 2 条是**判异性**用例——长尾查询超出拼写容错预算，只能由前缀规则
 命中；把 `entry.acceptsArgs` 短路后第 2 条立刻转红（第 1 条仍绿，因为短查询会被容错层捞回来，
@@ -382,8 +382,8 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    （`Expected "三模式" / Received ""`）。只测一条分支的判异性会骗人。〕
 3. 插件生命周期外执行：`submitSearchItems` 已有「打开时提交 + 持久化索引」的适配（借鉴清单 #5），补一个受限的 `setTimeout`/interval 通道或明确写「不支持后台」。
 4. **通用视图栈**：把 `useLauncherPages.ts:16-38` 的 21 个 `v-if/v-else-if` 硬链换成声明式注册表，让插件能 push 视图——这是「插件推不动视图栈」的正解。
-5. **SDK 接通宿主已有能力（性价比最高的一格，纯管道）**：`launcherApi` 的 `notify/copyText/openPath/db/preferences/fetch` 已在（`preload/plugin.ts:58-123`），SDK 只导出 6 组件 + 1 hook（`leaf-plugin-sdk/src/index.ts:11-24`）。补 `useToast`/`showToast`/`Alert`/`LocalStorage`/`Cache`/`getPreferenceValues`/`open`/`getSelectedText`，并**逐个消掉 `leaf-raycast-api/src/index.ts:377-411` 那份 warn 清单里的对应条目**——每项都必须同时删掉那条 `notSupported()`，防止「文档说支持、代码仍降级」。
-   〔🟡 **2026-09-20 已做第一批**：`packages/leaf-plugin-sdk/src/platform.ts`（8 单测）接
+5. **SDK 接通宿主已有能力（性价比最高的一格，纯管道）**：`launcherApi` 的 `notify/copyText/openPath/db/preferences/fetch` 已在（`preload/plugin.ts:58-123`），SDK 只导出 6 组件 + 1 hook（`frond-plugin-sdk/src/index.ts:11-24`）。补 `useToast`/`showToast`/`Alert`/`LocalStorage`/`Cache`/`getPreferenceValues`/`open`/`getSelectedText`，并**逐个消掉 `frond-raycast-api/src/index.ts:377-411` 那份 warn 清单里的对应条目**——每项都必须同时删掉那条 `notSupported()`，防止「文档说支持、代码仍降级」。
+   〔🟡 **2026-09-20 已做第一批**：`packages/frond-plugin-sdk/src/platform.ts`（8 单测）接
    `showToast`→notify、`copyToClipboard`/`getClipboardText`→copyText/readText、
    `LocalStorage`/`Cache`→插件 KV（`ls:` / `cache:` 前缀分开，Cache 带 ttl 秒、过期读到即删），
    兼容层 `Toast`/`LocalStorage`/`Cache` 三项 notSupported 已删（`Cache` 顺手从
@@ -413,11 +413,11 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
      现在走与参数声明同一套 fail-closed 清洗 `sanitizePluginPreferences`，并在
      `pluginManifestAudit` 加一条「过一遍真清洗器不丢项」（含「一个带偏好的插件都没有 = 这条规则空过」的防空跑判据）。
    - `getSelectedText` **仍不做**，且把理由写进代码与文档：要 macOS 辅助功能下的 AX API，
-     宿主没这一层；常见捷径「模拟 ⌘C 再读剪贴板」在 Leaf 里**不能用**——本应用自己记录剪贴板历史，
+     宿主没这一层；常见捷径「模拟 ⌘C 再读剪贴板」在 Frond 里**不能用**——本应用自己记录剪贴板历史，
      模拟一次复制就是往用户历史里塞一条真数据。归到 P-4⑤ Screen Awareness 的真机待办。
    证据：协议清洗 13 条 + Alert 装配 8 条 + 审计 1 条 + SDK dist 层 5 条 + 兼容层 3 条
    （含**反向钉**：`Alert` 不再有 notSupported 警告，接线做没做看那条警告还在不在）
-   + e2e 一条（example-react 新增 `platform` 探针命令：`who=leaf`/`theme=dark` 证明
+   + e2e 一条（example-react 新增 `platform` 探针命令：`who=frond`/`theme=dark` 证明
    readManifest→listPreferences 整条链；open(url) 的**两道闸分开量**——清单声明 net 之后
    `https=true` 且 URL 真的走到 `shell.openExternal`（e2e 把它临时换成记录器，CI 上不开浏览器）、
    `file=false` 且**没**走到。此前两条都是 false，看着像测了白名单，其实两条停在同一道权限门上）。
@@ -443,8 +443,8 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    证据：协议 3 条 + SDK 2 条 + 兼容层 1 条 + e2e 一条（先 poll 到动作落地再触发，
    不靠时序抢跑）。
    剩余：`Grid`/`Menu`/`ProgressBar` 都要新的宿主渲染面，不是翻译能解决的〕
-7. 多参数命令 dogfood：21 个内置插件**至今零个**声明 `arguments`（`plugins/*/plugin.json` grep 零命中）——给 `com.leaf.cron` 或 `com.leaf.regex` 挂双参数，把这条能力从「未验证」变「已验证」。
-   〔✅ 2026-09-20：`com.leaf.regex` 升到 1.1.0，挂三个参数（`pattern` text+required、`text` text、
+7. 多参数命令 dogfood：21 个内置插件**至今零个**声明 `arguments`（`plugins/*/plugin.json` grep 零命中）——给 `com.frond.cron` 或 `com.frond.regex` 挂双参数，把这条能力从「未验证」变「已验证」。
+   〔✅ 2026-09-20：`com.frond.regex` 升到 1.1.0，挂三个参数（`pattern` text+required、`text` text、
    `flags` dropdown，dropdown 顺带验 title→value 还原），`onEnter(data.args)` 真驱动执行；
    `plugins.json` 版本号同步。e2e 见 `e2e/plugin-args.spec.mjs` 两条。
    **同时补上前缀命中这格**（`search.ts` `argPrefixMatch` + `SearchEntryBase.acceptsArgs`）：
@@ -455,7 +455,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
 8. plugin.json 静态审计测试（必填字段/入口存在/id 与目录一致，`ROADMAP.md:37` 欠账）。
    〔✅ 2026-09-20 `pluginManifestAudit.test.ts` 7 条。**首跑就抓到真漂移**：20 个内置插件清单是
    1.0.1 而市场索引写 1.0.0（宿主「版本字符串不等 = 可更新」，于是这 20 个永远显示有更新），
-   且 `com.leaf.quickfolders` 压根没登记进索引；已按清单为准同步并补登记。
+   且 `com.frond.quickfolders` 压根没登记进索引；已按清单为准同步并补登记。
    规则里刻意包含「未知权限值 / 非法参数类型 / 参数超 3 个」——宿主对这些是**静默剔除或降级**，
    没有这道闸就是长期悄悄错着〕
 
@@ -467,7 +467,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    **拉取失败保留旧缓存与旧列表**（网络抖动不该把市场清空，e2e 第 4 条就是这个断言）。
    两条硬规矩：① 远程条目 `download` 只认 https URL（本地相对路径对不在盘上的索引没意义，
    放开等于把 userData 变成插件目录）；② **打包索引胜出**——远程条目 id 撞上第一方插件时被丢弃并
-   如实上报条数，否则一份恶意索引就能把 `com.leaf.*` 换成自己的包。
+   如实上报条数，否则一份恶意索引就能把 `com.frond.*` 换成自己的包。
    上限从 `downloadZip` 里抽成 `fetchBoundedHttps`（zip 与索引共用一条，20MB / 索引单独 2MB / 30s /
    `redirect:'error'` / DNS 钉住），闸门另抽 `assertRemoteTargetAllowed(raw, localCheck)`，
    「127.0.0.1 必须被拒」用注入桩验证——真起本机测试服务器来跑这条通道正是我们不允许的形态。
@@ -498,7 +498,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    首次安装与「权限没变 / 只变少」仍走原来的确认档，不给用户加无意义的弹窗。
    已装清单从 `getPlugin(manifest.id)` 取，市场更新与本地目录覆盖导入共用同一条闸（两者都过 `confirmPluginImport`）。
    证据：6 条单测（多要 / 放掉 / 不变 / 首装 / 未知值与重复 / 两侧都缺省）。
-   **对话框本体是人工验收项**：`LEAF_E2E=1` 下确认闸直接放行（这条旁路本身就是设计——
+   **对话框本体是人工验收项**：`FROND_E2E=1` 下确认闸直接放行（这条旁路本身就是设计——
    系统模态不许被自动化点掉），所以套跑只证得到差分算得对，证不到那一眼长什么样〕
 5. **权限引导页**（本期最被用户感知的一格）：辅助功能 / 日历 / 屏幕录制 三项的**状态读取 + 申请 + 跳转系统设置**。现状是零引导——`ipc/screenRecorder.ts:133` 是全仓唯一 `requestPermission`，而文本扩展、窗口管理、专注护盾、Hyper Key、日历读取全部静默依赖授权。onboarding（`OnboardingView.vue:34-99`，4 屏静态）插一步。
    〔✅ 2026-09-20：新增 `src/main/ipc/permissions.ts`（`permissions:probe` / `request` / `openSettings` 三条通道），
@@ -506,7 +506,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    **状态读取全走无副作用那条路**（`isTrustedAccessibilityClient(false)`、`getMediaAccessStatus('screen')`、
    只读 `EKEventStore.authorizationStatusForEntityType`——不查事件也不拉弹窗）；
    **申请能力三项不对等**，辅助功能与日历能弹系统框，屏幕录制**没有**编程申请口（`askForMediaAccess` 只收
-   麦克风/摄像头），所以那一行只给「打开设置」并写明「授权后要重启 Leaf」，不假装能一键申请；
+   麦克风/摄像头），所以那一行只给「打开设置」并写明「授权后要重启 Frond」，不假装能一键申请；
    非 darwin 一律 `unsupported` + 「当前系统不需要这类授权」，不把 Windows 用户吓成「你缺权限」。
    读取时机：走到第 2 步才读（日历那项要起 osascript 进程），且不拦住「跳过」。
    证据：纯函数 9 条单测（EventKit 枚举 0/1/2/3 各归其位——`2` 是 denied 不是 authorized，
@@ -517,7 +517,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    **仍未做**：设置页里没有同一块面板（跳过引导后要补授权只能靠各功能自己的提示），
    以及 `permissions:request` 的「申请」按钮与「打开设置」深链是**人工验收项**——
    自动化点它们会往开发机上弹系统对话框、还会打开系统设置面板〕
-6. 更新链路做到「只差证书」：publish 占位 `leaf-app/leaf-desktop` 换成可配置的真实仓库、CI 里 `build:mac` 产物与校验脚本；签名 secrets 一格在 `RELEASE.md` 标为「等账号」。
+6. 更新链路做到「只差证书」：publish 占位 `frond-app/frond-desktop` 换成可配置的真实仓库、CI 里 `build:mac` 产物与校验脚本；签名 secrets 一格在 `RELEASE.md` 标为「等账号」。
    〔✅ 2026-09-20：**没有账号就换不成真仓库**，所以这一格的做法是把「还是占位」变成 CI 过不去的
    硬判据，而不是留一句文档记着。`scripts/lib/releasePreflight.mjs`（纯函数 + 11 条单测）分两档，
    **两档不许混**：blocking = 占位发布目标 / 版本不是 `x.y.z` / tag 与版本不一致 / 没有上传 token；
@@ -565,7 +565,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    〔✅ 2026-09-20：做成**三档用户设置**（不透明 / 半透明 92%+blur18 / 通透 78%+blur26），
    **默认档一个像素都不改**——没有动 `--launcher-*` 任何 token 值（那是 DESIGN_TOKENS 的纪律，
    不该被一个功能顺手带过去）：默认档 `opaque` 对 CSS 变量走 removeProperty，样式里写成
-   `background: var(--leaf-capsule-bg, var(--launcher-bg))`，兜底就是原 token。
+   `background: var(--frond-capsule-bg, var(--launcher-bg))`，兜底就是原 token。
    透明度用 `color-mix(in srgb, var(--launcher-bg) 92%, transparent)` **从 token 派生**而不是另写一组
    rgba 常量，于是深色档自动是深色毛玻璃、浅色档自动是白色半透明，两种主题不会各漂移一份；
    详情/弹层那 8 处 `--launcher-bg-elevated` 同步跟着档走，否则面板透、浮层不透会露馅。
@@ -596,7 +596,7 @@ git add -A && git commit -m "feat(launcher): keep-open 会话级钉住（补 win
    + 文本四档 alpha 严格递减且互不相同）+ 1 条注入端测试（喂**真实派生表**过渲染端白名单正则：
    白名单丢弃是静默的，只测 shared 侧发现不了「派生出 rgba 但注入端只认 #hex」）
    + `e2e/user-theme.spec.mjs` 新增第 2 条（真开胶囊读 `.launcher` 计算样式，切回内置回到基线）。
-   两条踩坑都是探针侧的，记在这里：**按 title 认主窗**会被胶囊窗抢走（两个窗的 title 都含 Leaf，
+   两条踩坑都是探针侧的，记在这里：**按 title 认主窗**会被胶囊窗抢走（两个窗的 title 都含 Frond，
    胶囊一开后续点击就落在胶囊页里，表现为等按钮等到超时）→ 改成按 URL 认并且**找不到就直接报错**
    而不是回落 `firstWindow()`（静默回落会把「找错窗」伪装成「产品没反应」）；
    把**切换瞬间的计算样式**当基线（320ms `theme-anim` 的插值色 `rgba(224,223,224,0.957)`
@@ -667,7 +667,7 @@ launcher 内 `aria-*` 实际为 3 处（`LauncherApp.vue:33`、`FormPage.vue:11-
 ## 6. 全程闸口（每个 Task 的 Step「跑绿灯」都指这一串）
 
 ```bash
-cd packages/leaf-plugin-sdk && npm run build && cd ../..   # 改 SDK/example 必须重建，否则测旧字节码（HANDOFF §2）
+cd packages/frond-plugin-sdk && npm run build && cd ../..   # 改 SDK/example 必须重建，否则测旧字节码（HANDOFF §2）
 cd example-react && npm run build && cd ../..
 pnpm typecheck && pnpm test && pnpm lint
 npx electron-vite build && npx playwright test

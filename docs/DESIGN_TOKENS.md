@@ -1,4 +1,4 @@
-# Leaf · Design Tokens
+# Frond · Design Tokens
 
 > **唯一的视觉事实源**。所有组件、页面、模块都从这里取值，不允许在组件中写死主题颜色。
 > 实现：`src/renderer/src/styles/tokens.css`；消费：`tailwind.config.js`（var 映射）+ 组件内 `var(--*)`。

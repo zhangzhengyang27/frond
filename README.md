@@ -1,8 +1,8 @@
-# Leaf · 桌面工具集
+# Frond · 桌面工具集
 
 > Tools that breathe with your day.
 
-Leaf 是一款本地优先的轻量桌面工具集：**启动器（Alt+Space 胶囊）+ 插件系统 + 录屏剪辑 + 番茄钟 + 代码片段**，对标 Raycast 的体验，数据全部存在本地（SQLite，无账号、无云端）。
+Frond 是一款本地优先的轻量桌面工具集：**启动器（Alt+Space 胶囊）+ 插件系统 + 录屏剪辑 + 番茄钟 + 代码片段**，对标 Raycast 的体验，数据全部存在本地（SQLite，无账号、无云端）。
 
 ## 功能一览
 

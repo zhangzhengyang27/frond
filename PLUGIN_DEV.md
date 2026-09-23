@@ -1,6 +1,6 @@
-# Leaf 插件开发指南
+# Frond 插件开发指南
 
-Leaf 启动器支持第三方插件，基于 Web 技术（HTML + JS），通过 `window.launcherApi` 与宿主交互。
+Frond 启动器支持第三方插件，基于 Web 技术（HTML + JS），通过 `window.launcherApi` 与宿主交互。
 
 ## 快速开始
 
@@ -57,7 +57,7 @@ plugins/com.your.plugin/
   （只有声明了 `arguments` 的命令吃这条前缀规则，所以命令「Git」不会被「Github xxx」抢走），
   尾巴自动预填进第一格
 - 插件侧在 `onEnter(data)` 的 `data.args` 里收参数（`getContext()` 同样能读到）
-- 现成示例：`plugins/com.leaf.regex`（三参数含 dropdown → 表单页）、
+- 现成示例：`plugins/com.frond.regex`（三参数含 dropdown → 表单页）、
   `example-react` 的 `argsum`（两格文本 → 内联槽），用例在 `e2e/plugin-args.spec.mjs` /
   `e2e/plugin-arg-slots.spec.mjs`
 
@@ -233,20 +233,20 @@ await launcherApi.submitSearchItems([
 
 `plugin.json` 声明 `"api": "react"` 后，插件可以用 **React 组件**写 UI——视图以 JSON
 提交宿主，**胶囊用原生组件渲染**（插件零 CSS、零 DOM，Raycast 质感由宿主保证）。
-SDK：`packages/leaf-plugin-sdk`（workspace 包，插件以 `file:../packages/leaf-plugin-sdk` 引用）。
+SDK：`packages/frond-plugin-sdk`（workspace 包，插件以 `file:../packages/frond-plugin-sdk` 引用）。
 
 ```tsx
-import { start, List, ActionPanel, Action, Detail, Form, useNavigation } from 'leaf-plugin-sdk'
+import { start, List, ActionPanel, Action, Detail, Form, useNavigation } from 'frond-plugin-sdk'
 
 function App() {
   const nav = useNavigation()
   return (
     <List>
-      <List.Item title="leaf/launcher" subtitle="主仓库" detailFormat="markdown"
+      <List.Item title="frond/launcher" subtitle="主仓库" detailFormat="markdown"
         detail="# README">
         <ActionPanel>
           <Action title="查看详情" onAction={() => nav.push(<Detail markdown="# 详情" />)} />
-          <Action title="复制名称" type="copy" payload="leaf/launcher" />
+          <Action title="复制名称" type="copy" payload="frond/launcher" />
         </ActionPanel>
       </List.Item>
     </List>
@@ -285,20 +285,20 @@ date / password。宿主 fail-closed 清洗：字段 id 去重、select 无选�
 
 ### @raycast/api 兼容层（#11 M3）
 
-`packages/leaf-raycast-api`（包名 `@leaf/raycast-api`）把 Raycast 的组件形态适配到
-leaf-plugin-sdk。**定位**：让会写 Raycast 的人用熟悉的 JSX 形状写 Leaf 插件；
+`packages/frond-raycast-api`（包名 `@frond/raycast-api`）把 Raycast 的组件形态适配到
+frond-plugin-sdk。**定位**：让会写 Raycast 的人用熟悉的 JSX 形状写 Frond 插件；
 「跑未改动的 Raycast 商店扩展」不是目标（那是 REACT_API_DESIGN §1 的明确非目标）。
 
 不冒用 `@raycast` 这个 npm scope，插件侧一行 alias 指过来：
 
 ```js
 // esbuild
-build({ alias: { '@raycast/api': '@leaf/raycast-api' }, /* … */ })
+build({ alias: { '@raycast/api': '@frond/raycast-api' }, /* … */ })
 ```
 
 本层已消化的形状差异：
 
-| Raycast 写法 | Leaf 实际 |
+| Raycast 写法 | Frond 实际 |
 | --- | --- |
 | `<List items={[…]} />` | children |
 | `<List.Item actions={<ActionPanel>…</ActionPanel>} />`（actions 是 prop，可不套面板） | children 里的 `<ActionPanel>` |
@@ -323,7 +323,7 @@ build({ alias: { '@raycast/api': '@leaf/raycast-api' }, /* … */ })
 `Detail.actions`（→ 宿主把 detail 降级成「占位条目 + 正文」，动作挂在该条目上，
 胶囊右侧照旧显示正文、动作行与 `runPluginAction` 原样复用）。
 `Action.Copy` / `Action.Open` 的标签 `name` 与 `title` 两个都收（Raycast 文档里两种都出现过）。
-Leaf 原生 SDK 侧同名导出：`showToast` / `copyToClipboard` / `getClipboardText` /
+Frond 原生 SDK 侧同名导出：`showToast` / `copyToClipboard` / `getClipboardText` /
 `getPluginContext` / `closePlugin` / LocalStorage 与 Cache 的六个函数。
 
 **仍然没有的能力不假装有**：首次调用时 `console.warn` 一次并安全降级——
@@ -357,7 +357,7 @@ launcherApi.popView()                                                // 退一�
 
 - `example-plugin/`：完整演示声明式列表、偏好、网络、通知
 - `example-react/`：React 视图 API 演示（List / Detail / ActionPanel / Form / 导航）
-- `plugins/com.leaf.quickfolders/`：常用目录快速访问
+- `plugins/com.frond.quickfolders/`：常用目录快速访问
 
 ## 调试
 
@@ -367,4 +367,4 @@ launcherApi.popView()                                                // 退一�
 
 ## 安装插件
 
-将插件目录放入 `plugins/` 下，重启 Leaf 或在插件管理页刷新即可。
+将插件目录放入 `plugins/` 下，重启 Frond 或在插件管理页刷新即可。

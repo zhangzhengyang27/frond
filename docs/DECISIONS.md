@@ -1,4 +1,4 @@
-# Leaf · 关键决策记录（ADR-lite）
+# Frond · 关键决策记录（ADR-lite）
 
 记录日期：2026-07-26
 
@@ -167,7 +167,7 @@ Decision-009 三项修订中的两项限制解除，以下原「不做」项转�
 - **移动端**——长期观望
 
 **Why**：Raycast 2.0（2026-08-25 GA）后已把 AI 与听写移入 Pro、2026-09-10 起改按用量计费、
-v2.3 上 AI Tasks/Projects/Automations、v2.2 上 BYOM；Leaf 的 BYOK 单端点 Chat 已不构成 parity。
+v2.3 上 AI Tasks/Projects/Automations、v2.2 上 BYOM；Frond 的 BYOK 单端点 Chat 已不构成 parity。
 账号/同步同理——换机体验的差距无法再用「备份≠同步」解释掉。
 
 **How to apply**：「本地优先」重述为**「本地优先 + 可选端到端加密同步」**。硬约束三条：

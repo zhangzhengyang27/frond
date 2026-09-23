@@ -1,4 +1,4 @@
-# Leaf · 数据迁移机制（schema 迁移 + data migration）
+# Frond · 数据迁移机制（schema 迁移 + data migration）
 
 > **本文是 2026-09-23 从代码重生成的。** 2026-09-22 的误删事故把 `MIGRATIONS.md` 与 `DB_SCHEMA.md` 连同各备份池里的副本一起带走了（记账见 `HANDOFF.md:693-697`）。
 > 每一条结论都带 `文件:行号`，行号是这次逐文件读出来的；查不到依据的写「未证实」并说明为什么值得查。
@@ -15,8 +15,8 @@
 | `src/main/index.ts:302-323` | 两条线在启动流程里的实际顺序与容错 |
 | `src/main/db/dbBackup.ts`、`src/main/ipc/migration.ts` | 备份/导入/恢复出厂与「迁移中心」入口 |
 | `src/main/services/LogService.ts` | 迁移期日志能不能落库（答案：不能，静默吞） |
-| `src/main/launcher/dataSync.ts` | 同步快照与 `leaf_meta` 的归类缺口（结构要求见 DB_SCHEMA §6） |
-| 实机只读核对：`~/Library/Application Support/leaf-desktop/leaf.db`（`sqlite3 -readonly`，2026-09-23） | `MAX(meta.version)=30`、`meta` 30 行、`leaf_meta` 只有 4 条标志位（§5-1 的现场证据） |
+| `src/main/launcher/dataSync.ts` | 同步快照与 `frond_meta` 的归类缺口（结构要求见 DB_SCHEMA §6） |
+| 实机只读核对：`~/Library/Application Support/frond-desktop/frond.db`（`sqlite3 -readonly`，2026-09-23） | `MAX(meta.version)=30`、`meta` 30 行、`frond_meta` 只有 4 条标志位（§5-1 的现场证据） |
 
 ---
 
@@ -26,7 +26,7 @@
 | --- | --- | --- |
 | 干什么 | 建表 / 加列 / 建索引与 FTS / 删表 | 把旧 electron-store JSON 与 JSON 旁文件的**存量数据**搬进 SQLite |
 | 单位 | 版本号 1…30，一版一个文件 | v1 / v2 / legacy 归档 / 5 个 electron-store 子步 / v3 / v4 |
-| 记账 | `meta(version, applied_at)`（一行一版） | `leaf_meta(key, value, updated_at)`（一条一个标志位，值 `'done'`） |
+| 记账 | `meta(version, applied_at)`（一行一版） | `frond_meta(key, value, updated_at)`（一条一个标志位，值 `'done'`） |
 | 幂等靠 | 「`version <= current` 就跳过」+ 语句自身 `IF NOT EXISTS` / `PRAGMA table_info` 守卫 | 标志位；跑成功才落，失败不落、下次启动重试 |
 | 原子性 | 每个版本一个事务（`m.up` + 写 `meta` 同事务） | v1/v2 无跨步事务（逐域 try/catch）；v4 的 `UPDATE` 与标志位同事务；v3 逐条独立 |
 | 回滚 | **没有** `down()`，只有备份/还原 | 靠 `legacy-backup/` 归档可还原（还原后会形成重跑循环，见 §2.5） |
@@ -40,7 +40,7 @@
 ### 1.1 执行器：版本号怎么推进
 
 ```
-ensureOpen() → new Database(userData/leaf.db) → 4 个 PRAGMA → runMigrations()
+ensureOpen() → new Database(userData/frond.db) → 4 个 PRAGMA → runMigrations()
 runMigrations():
   CREATE TABLE IF NOT EXISTS meta(version INTEGER PRIMARY KEY, applied_at INTEGER NOT NULL)
   current = SELECT MAX(version) FROM meta          -- 空表 → null → 0
@@ -68,7 +68,7 @@ runMigrations():
 | 单个迁移抛错 | 该版本事务回滚，错误**原样抛到 `ensureOpen()` 外**（文件头明写「任何 prepare/exec 失败必须抛错，不静默吞错」） | `database.ts:11`、`:164-171` |
 | 启动路径 | `installDatabase()` 是 `app.whenReady()` 回调里**唯一没被 try/catch 包住**的数据库调用；它抛错 → 该回调 reject，后面的数据迁移、IPC 注册、窗口都不再执行 | `src/main/index.ts:302` 对比 `:304-323`（三个数据迁移各自 try/catch） |
 | 迁移期的错误日志 | 写不进 `log_entries`：`LogService.write()` 里 `database.handle` 取不到或表还没建就静默 catch（此时只剩 console 与内存 ring buffer） | `src/main/services/LogService.ts:116-124`（`:123-124` 的空 catch + 注释） |
-| 失败前有没有兜底备份 | **只在库 > 50 MB 时**才备份（`leaf.db.bak.<ts>`，留 3 份），备份前先 `wal_checkpoint(TRUNCATE)`、备份后 `quick_check` 不过就丢弃该备份 | `database.ts:21-22`、`:70-104` |
+| 失败前有没有兜底备份 | **只在库 > 50 MB 时**才备份（`frond.db.bak.<ts>`，留 3 份），备份前先 `wal_checkpoint(TRUNCATE)`、备份后 `quick_check` 不过就丢弃该备份 | `database.ts:21-22`、`:70-104` |
 
 ### 1.3 迁移文件怎么写才安全（现状归纳，规则本身没有守卫）
 
@@ -90,11 +90,11 @@ runMigrations():
 | 手段 | 做什么 | 依据 |
 | --- | --- | --- |
 | `Migration` 接口 | **只有 `version` / `name` / `up`**，没有 `down` | `migrations/index.ts:12-16` |
-| 自动备份 | 打开前按大小阈值复制 `leaf.db.bak.<ts>`（≥50 MB 才做，留 3 份，坏备份丢弃） | `database.ts:70-104`、`:121-138` |
+| 自动备份 | 打开前按大小阈值复制 `frond.db.bak.<ts>`（≥50 MB 才做，留 3 份，坏备份丢弃） | `database.ts:70-104`、`:121-138` |
 | 导出当前库 | 先 `database.close()` 让 WAL 落盘再复制 | `src/main/db/dbBackup.ts:56-80` |
-| 导入外部库 | `validateSqliteFile()` 魔数 + `quick_check` → 二次确认 → `applyDbFile()`：关连接、把现库另存 `leaf.db.pre-import.<ts>`、删 `-wal`/`-shm`、覆盖、100 ms 后 relaunch | `dbBackup.ts:25-50`、`:86-140`、`:149-173` |
-| 恢复出厂 | 删 `leaf.db` + `-wal` + `-shm` 并重启；下次启动建空库，数据迁移会被再次判定（v1/v2 标志位随库一起消失） | `dbBackup.ts:179-211`（`:177` 注释） |
-| 手动救旧备份 | 上面三种之外，`leaf.db.bak.*` / `*.pre-import.*` 只能手工换文件名 | `database.ts:78`、`dbBackup.ts:154` |
+| 导入外部库 | `validateSqliteFile()` 魔数 + `quick_check` → 二次确认 → `applyDbFile()`：关连接、把现库另存 `frond.db.pre-import.<ts>`、删 `-wal`/`-shm`、覆盖、100 ms 后 relaunch | `dbBackup.ts:25-50`、`:86-140`、`:149-173` |
+| 恢复出厂 | 删 `frond.db` + `-wal` + `-shm` 并重启；下次启动建空库，数据迁移会被再次判定（v1/v2 标志位随库一起消失） | `dbBackup.ts:179-211`（`:177` 注释） |
+| 手动救旧备份 | 上面三种之外，`frond.db.bak.*` / `*.pre-import.*` 只能手工换文件名 | `database.ts:78`、`dbBackup.ts:154` |
 
 ### 1.5 版本史（001 → 030）
 
@@ -159,11 +159,11 @@ app.whenReady() →
 
 | 步骤 | 搬什么（源 → 目标） | 幂等判据 | 失败会怎样 | 依据 |
 | --- | --- | --- | --- | --- |
-| **前置** | 自建 `leaf_meta(key,value,updated_at)` | 每步都 `CREATE TABLE IF NOT EXISTS` | — | `dataMigrations.ts:98-104` |
-| **v1** | `userData/Preferences.json` → `pref_preferences`（只 `theme`/`editor` 两键）；`userData/Tag Data.json` → `tag_tags` | `leaf_meta.data_migration_v1 = 'done'`（兼容旧标志位；**v1 与 v2 都 done 才整段早退**） | 逐域 try/catch，错误进 `result.errors` + `log.error`；**有错就不落 v1 标志位**，下次启动重跑 | `:106-117`、`:122-176`（早退 `:114-117`、判据 `:166`） |
-| **v2** | `pomodoro-data.json` → `pom_tasks`/`pom_pomodoros` + `pomodoro_settings`（pref）；`Snippet Data.json` → `snip_*`；`Folder Data.json` → `folder_folders` | `leaf_meta.data_migration_v2 = 'done'`；导入本身也是 `ON CONFLICT(id) DO UPDATE`（重跑幂等） | 同上：本段有错则不落 v2 标志位 | `:183-264`、`:266-279`；repo 幂等 `TagRepository.ts:205`、`SnippetRepository.ts:449-458`、`PomodoroRepository.ts:594-596`/`:618-620`、`FolderRepository.ts:280-283` |
+| **前置** | 自建 `frond_meta(key,value,updated_at)` | 每步都 `CREATE TABLE IF NOT EXISTS` | — | `dataMigrations.ts:98-104` |
+| **v1** | `userData/Preferences.json` → `pref_preferences`（只 `theme`/`editor` 两键）；`userData/Tag Data.json` → `tag_tags` | `frond_meta.data_migration_v1 = 'done'`（兼容旧标志位；**v1 与 v2 都 done 才整段早退**） | 逐域 try/catch，错误进 `result.errors` + `log.error`；**有错就不落 v1 标志位**，下次启动重跑 | `:106-117`、`:122-176`（早退 `:114-117`、判据 `:166`） |
+| **v2** | `pomodoro-data.json` → `pom_tasks`/`pom_pomodoros` + `pomodoro_settings`（pref）；`Snippet Data.json` → `snip_*`；`Folder Data.json` → `folder_folders` | `frond_meta.data_migration_v2 = 'done'`；导入本身也是 `ON CONFLICT(id) DO UPDATE`（重跑幂等） | 同上：本段有错则不落 v2 标志位 | `:183-264`、`:266-279`；repo 幂等 `TagRepository.ts:205`、`SnippetRepository.ts:449-458`、`PomodoroRepository.ts:594-596`/`:618-620`、`FolderRepository.ts:280-283` |
 | **legacy 归档** | `userData` 根下 10 个 legacy JSON → `userData/legacy-backup/<ISO ts>/`（**rename 而非删除**，不去重、留时间线） | 目录内无这些文件即 skip；每次执行新建一个时间戳目录 | 单文件失败不阻断（逐文件 try/catch + errors 汇总）；**只要本次有任何错就整段不执行**，免得把 v1 还没导入的文件搬走 | `:281-302`（判据 `:284`）；`legacyArchive.ts:21-32`（文件清单）、`:66-70`（无文件即 skip）、`:86-102`（逐文件） |
-| **归档目录记账** | 最新归档绝对路径 → `leaf_meta.legacy_archive_dir`（设置页展示用） | 覆盖写 | 只 `log.warn` | `:288-301` |
+| **归档目录记账** | 最新归档绝对路径 → `frond_meta.legacy_archive_dir`（设置页展示用） | 覆盖写 | 只 `log.warn` | `:288-301` |
 | **electron-store 子步 ×5** | 别名 `config.json.aliases` → pref `aliases`；`config.json` 的 `ai.config`/`ai.sessions` → pref 同名；`clips.json` → pref `clips`；`recording-settings.json.settings` → pref `recording.settings`；`markers.json` → `rec_markers` | 各自标志位 `data_migration_{aliases,ai,clips,recording_settings,markers}`；且**现值优先**（pref 已有该键就只落标志位不覆盖） | 整体 try/catch，失败 `log.warn` 且不落标志位（下次重试）；markers 是 `INSERT OR IGNORE` + 单事务 | 调用点 `:312-317`；标志位表与读助手 `:369-400`；aliases `:322-367`、ai `:402-427`、clips `:429-449`、recording.settings `:451-473`、markers `:475-524` |
 | **v3** | `userData/recording-history.json` → `rec_recordings`：字段映射 `filePath/fileName/fileSize/thumbnail/createdAt`，`duration` 秒→`duration_ms` 毫秒，旧 id 写进 `description` 前缀 `legacy:`（可溯源），`status` 一律 `completed`、fps 一律 30 | 标志位 `data_migration_v3`；**逐行按 `file_name` 未删除行去重**（旧 id 不是 UUID，不能当判据）；文件不存在 / 空数组也落 done（避免每次启动再查） | 单条失败不阻断、计入 errors（下次整体重跑，靠 file_name 判重补剩余）；`database.handle` 拿不到或 `getPath` 失败直接返回并带 error | `dataMigrationsRecording.ts:8-20`、`:83-89`、`:94-103`、`:105-133`、`:138-149`、`:151-169` |
 | **v4** | `pom_pomodoros.duration_ms` 存量秒值 ×1000（修「25 分钟番茄统计为 0」的 ÷60_000 口径 bug） | 标志位 `data_migration_v4_pomodoro_ms`；**`UPDATE` 与标志位在同一事务里**，防「已放大但未标记 → 重跑双重放大」 | 事务抛错整体回滚（下次干净重跑）；外层 `try` 在启动流程里，抛错只 console.error | `dataMigrationsPomodoro.ts:3-18`、`:38-42`、`:44-50`、`:53-63`；`src/main/index.ts:318-323` |
@@ -182,14 +182,14 @@ app.whenReady() →
 
 | 位置 | 内容 | 依据 |
 | --- | --- | --- |
-| `userData/leaf.db`(+`-wal`/`-shm`) | 唯一被迁移链管辖的库 | `database.ts:20`、`:46` |
+| `userData/frond.db`(+`-wal`/`-shm`) | 唯一被迁移链管辖的库 | `database.ts:20`、`:46` |
 | `userData/file-index.db` | 文件索引，**独立库、独立 `meta`、不在迁移链里** | `src/main/modules/fileIndex/db.ts:2`、`:70` |
 | `userData/{Preferences,Tag Data,Snippet Data,Folder Data,pomodoro-data,Music Data,Online Music Data,Wallpaper Data,Local File Library,Photo Data}.json` | v1/v2 的导入源（含已下线模块，保留只为归档） | `legacyArchive.ts:21-32`；`dataMigrations.ts:128`、`:147`、`:189`、`:233`、`:250` |
 | `userData/config.json` | electron-store 默认文件（`aliases` / `ai.*` 的来源；**只读不删**，因为别的键仍在用） | `:328-329`、`:347`、`:414` |
 | `userData/recording-history.json` / `clips.json` / `recording-settings.json` / `markers.json` | v3 与各子步的来源 | `dataMigrationsRecording.ts:32`；`dataMigrations.ts:440`、`:463`、`:489` |
 | `userData/legacy-backup/<ISO ts>/` | 归档目录（可还原/可删） | `legacyArchive.ts:34`、`:72-74` |
 | `userData/sync-snapshots/<ms>.json` | 同步拉平前的本地快照，留 5 份（与数据迁移无关，但同属「恢复去路」） | `dataSync.ts:48-49`、`:400-413` |
-| `userData/leaf.db.bak.<ms>`、`leaf.db.pre-import.<ms>` | 自动备份与换库前保险 | `database.ts:78`；`dbBackup.ts:154` |
+| `userData/frond.db.bak.<ms>`、`frond.db.pre-import.<ms>` | 自动备份与换库前保险 | `database.ts:78`；`dbBackup.ts:154` |
 | 打包 `process.resourcesPath` | 只读产物（内置插件、`plugins.json`）；**不放 schema、不放种子数据** | `src/main/launcher/builtinPlugins.ts:26`；`src/main/launcher/market.ts:88`；仓库 `resources/` 仅 `icon.png` |
 
 ### 2.5 用户能碰到的入口（迁移中心）
@@ -204,8 +204,8 @@ app.whenReady() →
 
 | 接缝 | 事实 | 依据 |
 | --- | --- | --- |
-| `leaf_meta` 不在迁移链里 | 3 个文件、8 处各自 `CREATE TABLE IF NOT EXISTS leaf_meta`；`meta`（schema 版）才是迁移建的 | `dataMigrations.ts:98-104`、`:334-338`、`:410-412`、`:436-438`、`:459-461`、`:485-487`；`dataMigrationsRecording.ts:74-80`；`dataMigrationsPomodoro.ts:38-42` |
-| 同步清单不认 `leaf_meta` | 既不在 `SYNC_TABLE_SPECS` 也不在 `SYNC_EXCLUDED_TABLES`；审计只在单测跑，且单测库是纯迁移产物（没有 `leaf_meta`），所以缺口测不出来 | `dataSync.ts:64-151`、`:154-168`；`__tests__/dataSync.test.ts:234-239`；`__tests__/testDb.ts:24-30` |
+| `frond_meta` 不在迁移链里 | 3 个文件、8 处各自 `CREATE TABLE IF NOT EXISTS frond_meta`；`meta`（schema 版）才是迁移建的 | `dataMigrations.ts:98-104`、`:334-338`、`:410-412`、`:436-438`、`:459-461`、`:485-487`；`dataMigrationsRecording.ts:74-80`；`dataMigrationsPomodoro.ts:38-42` |
+| 同步清单不认 `frond_meta` | 既不在 `SYNC_TABLE_SPECS` 也不在 `SYNC_EXCLUDED_TABLES`；审计只在单测跑，且单测库是纯迁移产物（没有 `frond_meta`），所以缺口测不出来 | `dataSync.ts:64-151`、`:154-168`；`__tests__/dataSync.test.ts:234-239`；`__tests__/testDb.ts:24-30` |
 | 恢复出厂后 v1/v2 会重跑 | 标志位与库同生共死；`dbBackup` 注释即按此写 | `dbBackup.ts:176-177` |
 | 表被 DROP 而写方还在 | 见 §5-2 | `028:23` vs `ScreenshotRepository.ts:184` |
 | 迁移「写了但执行不到」 | 见 §5-1 | `dataMigrations.ts:114-117` vs `:312-317` |
@@ -218,7 +218,7 @@ app.whenReady() →
 2. `migrations/index.ts` 末尾追加 import + push（`:18` 的「必须在文件末尾追加」）。
 3. 补断言：重跑全量迁移不抛错、目标表/列确在（照 `migrations.test.ts:41-51` 的形状写）。
 4. 若动了表集合：更新 `DB_SCHEMA.md` §2/§3，并给新表做同步归类（§3 第 1、2 行）。
-5. 若是**搬数据**而非改结构：走数据迁移那条线（新建/扩展 `dataMigrations*` 函数、`leaf_meta` 标志位、`index.ts:302-323` 里挂上、失败不落标志位）。
+5. 若是**搬数据**而非改结构：走数据迁移那条线（新建/扩展 `dataMigrations*` 函数、`frond_meta` 标志位、`index.ts:302-323` 里挂上、失败不落标志位）。
 6. 自查一句：**这份改动在中断后重跑会不会双份/双重放大？** 会的话按 §2.3 第三行改形状。
 
 ---
@@ -227,7 +227,7 @@ app.whenReady() →
 
 | # | 事实 | 影响 | 依据 |
 | --- | --- | --- | --- |
-| 1 | **五个 electron-store 子迁移在已迁移过的机器上永远不执行**：`runDataMigrations()` 在 v1+v2 都 done 时于 `:114-117` 直接 `return`，而五个子步的调用点在 `:312-317`（return 之后） | 老用户升级后 `aliases` / `ai.*` / `clips` / `recording.settings` / `markers.json → rec_markers` 这五路 legacy 数据**静默不搬**。现场佐证：dev 库 `leaf_meta` 只有 `data_migration_{v1,v2,v3,v4_pomodoro_ms}` 四条，没有任何 `data_migration_{aliases,ai,clips,recording_settings,markers}`，而 `userData/config.json` 确实存在 | `dataMigrations.ts:106-117`、`:312-317`；2026-09-23 只读查询 `leaf_meta` |
+| 1 | **五个 electron-store 子迁移在已迁移过的机器上永远不执行**：`runDataMigrations()` 在 v1+v2 都 done 时于 `:114-117` 直接 `return`，而五个子步的调用点在 `:312-317`（return 之后） | 老用户升级后 `aliases` / `ai.*` / `clips` / `recording.settings` / `markers.json → rec_markers` 这五路 legacy 数据**静默不搬**。现场佐证：dev 库 `frond_meta` 只有 `data_migration_{v1,v2,v3,v4_pomodoro_ms}` 四条，没有任何 `data_migration_{aliases,ai,clips,recording_settings,markers}`，而 `userData/config.json` 确实存在 | `dataMigrations.ts:106-117`、`:312-317`；2026-09-23 只读查询 `frond_meta` |
 | 2 | `ss_screenshots` 被 028 删了，`ScreenshotRepository` 仍在读写它。以前真被调用（树内截图覆盖层的 `ok` 分支动态 import 保存历史，错误被嵌套 catch 降成一行 console）；**2026-09-23 那个调用方随编辑器一起删除**，现在没人调它了 | 在删除之前每次截图保存历史都会 `no such table: ss_screenshots`；仓库层注释还写着「Schema: ss_screenshots (已在 001_init.ts 中定义)」，与迁移链相反 | `028:23`；`ScreenshotRepository.ts:6`、`:184`；`ipc/screenshotHistory.ts:33`、`:239`（该文件的 `registerScreenshotHistoryHandlers` 零调用方）；清理账见 HANDOFF §11 |
 | 3 | 录屏设置的 legacy 导入落到 pref `recording.settings`，**生产读的是 `recording.default`** | 即使子步能跑（见 #1），搬进来的设置也没人读；只有单测断言 `recording.settings`（`:49`、`:117`），所以测试绿、功能空 | `dataMigrations.ts:465-466` vs `RecordingSettingsRepository.ts:4`、`:58`；全仓 `'recording.settings'` 仅出现在迁移与测试 |
 | 4 | 同步清单里两处 `titleCol` 指到了不存在的列：`reminders` 用 `'text'`（表是 `title`）、`pom_tasks` 用 `'name'`（表是 `title`） | 冲突副本仍会插，但 `（冲突副本 · 设备 · 时间）` 那截写进一个非列键、回写时被按真实列过滤掉（`dataSync.ts:359-366`）→ 副本与赢家标题一模一样，用户分不清哪条是副本 | `dataSync.ts:98-102`；`024:15-17`；`001:168-170`；`syncMerge.ts:144-149` |

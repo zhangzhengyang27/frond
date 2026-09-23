@@ -1,4 +1,4 @@
-# Leaf · macOS 签名与公证（SIGNING_MAC）
+# Frond · macOS 签名与公证（SIGNING_MAC）
 
 > **重生说明**：本文件原件与 `docs/ROUTING.md` 同在 2026-09-22 桌面删除事故中丢失，各备份池无副本
 > （`HANDOFF.md:695-697`），2026-09-23 从代码重生成。目录表对本文的期望是「macOS 签名公证细节」
@@ -31,10 +31,10 @@
 | 公证 | **未做**（缺三个 APPLE_* ） | `releasePreflight.mjs:64,69-70`；`electron-builder.yml:62-69` 把 `notarize: true` 打开了，但注释 `:64-67` 点明需要注入 env | 【码】+【未跑】 |
 | entitlements 文件 | **缺失**（`build/` 整个目录都不在） | `electron-builder.yml:55` 指着 `build/entitlements.mac.plist`；`ls build` 与 `find . -name 'entitlements*'` 均无命中 | 【本机】 |
 | 分发 | GitHub Release，只上传 `.dmg` / `.zip` | `release.yml:141-152`（`files` 在 `:148-150`） | 【码】 |
-| 自动更新目标 | 仍是占位 `leaf-app/leaf-desktop` | `electron-builder.yml:93-97`；`releasePreflight.mjs:15-16,51-55` 判 blocking | 【码】 |
+| 自动更新目标 | 仍是占位 `frond-app/frond-desktop` | `electron-builder.yml:93-97`；`releasePreflight.mjs:15-16,51-55` 判 blocking | 【码】 |
 
 **本机实跑一次自检（只读，不改任何产物）**：`node scripts/release-preflight.mjs` →
-「发布目标：leaf-app/leaf-desktop 版本：0.1.0」+ 两条 blocking（占位目标、无 `GH_TOKEN`）+
+「发布目标：frond-app/frond-desktop 版本：0.1.0」+ 两条 blocking（占位目标、无 `GH_TOKEN`）+
 一条 warning「未签名（没配 CSC_LINK）」，exit 0。 【本机】
 
 > 这条读数是本文的基准状态：**签名/公证确实只是缺凭据，但「只差证书」这句话有 5 处口径对不上，见 §8。**
@@ -129,30 +129,30 @@
 
 ## 6. 公证命令链（`notarytool` 现代写法）——**本节整段【未跑】**
 
-证书到手后**先本地手工跑通这四步**，再让 CI 自动做。以下路径里的 `Leaf-<ver>` 形态来自
-`electron-builder.yml:2`（`productName: Leaf`）与 `:77`（dmg `artifactName: ${name}-${version}.${ext}`），
-`.app` 落点按 `output: out/make`（`:7`）推为 `out/make/mac/Leaf.app`——**具体子目录未跑过，属推断**。
+证书到手后**先本地手工跑通这四步**，再让 CI 自动做。以下路径里的 `Frond-<ver>` 形态来自
+`electron-builder.yml:2`（`productName: Frond`）与 `:77`（dmg `artifactName: ${name}-${version}.${ext}`），
+`.app` 落点按 `output: out/make`（`:7`）推为 `out/make/mac/Frond.app`——**具体子目录未跑过，属推断**。
 
 ```bash
 # 0) 前置：产物已由 §4 步骤 3 签好（未签名的包公证会被直接拒）
-ls out/make/*.dmg out/make/mac/Leaf.app
+ls out/make/*.dmg out/make/mac/Frond.app
 
 # 1) 一次性存凭据（只给本地调试用；CI 走环境变量，不建 profile）
-xcrun notarytool store-credentials leaf-notarize \
+xcrun notarytool store-credentials frond-notarize \
   --apple-id "$APPLE_ID" \
   --team-id "$APPLE_TEAM_ID" \
   --password "$APPLE_APP_SPECIFIC_PASSWORD"
 
 # 2) 提交并等终态（--wait 轮询到 Accepted / Invalid，省掉手写循环）
-xcrun notarytool submit "out/make/Leaf-0.1.0.dmg" \
-  --keychain-profile leaf-notarize --wait
+xcrun notarytool submit "out/make/Frond-0.1.0.dmg" \
+  --keychain-profile frond-notarize --wait
 
 # 3) 被拒时取逐文件日志（zip 与 .app 也可提交，通常三份都要分别过）
-xcrun notarytool log <request-id> --keychain-profile leaf-notarize
+xcrun notarytool log <request-id> --keychain-profile frond-notarize
 
 # 4) 钉票据：staple 对 .dmg 与 .app 都做一次，离线首启才不依赖网络取票
-xcrun stapler staple "out/make/Leaf-0.1.0.dmg"
-xcrun stapler staple "out/make/mac/Leaf.app"
+xcrun stapler staple "out/make/Frond-0.1.0.dmg"
+xcrun stapler staple "out/make/mac/Frond.app"
 ```
 
 CI 形态**不需要**上面这四步：`notarize: true`（`electron-builder.yml:69`）+ `release.yml:83-85`
@@ -170,10 +170,10 @@ CI 形态**不需要**上面这四步：`notarize: true`（`electron-builder.yml
 ## 7. 验签与 Gatekeeper 判定（**整段【未跑】**）
 
 ```bash
-codesign --verify --deep --strict --verbose=2 out/make/mac/Leaf.app
-codesign -dvv --entitlements - out/make/mac/Leaf.app | sed -n '1,60p'   # 看 §5.3 那些项是否真进了 plist
-spctl -a -t open --context context:primary-signature -vv out/make/Leaf-0.1.0.dmg
-xcrun stapler validate out/make/Leaf-0.1.0.dmg
+codesign --verify --deep --strict --verbose=2 out/make/mac/Frond.app
+codesign -dvv --entitlements - out/make/mac/Frond.app | sed -n '1,60p'   # 看 §5.3 那些项是否真进了 plist
+spctl -a -t open --context context:primary-signature -vv out/make/Frond-0.1.0.dmg
+xcrun stapler validate out/make/Frond-0.1.0.dmg
 ```
 
 | 说明 | 依据 |

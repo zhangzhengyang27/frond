@@ -2,13 +2,13 @@
 
 > **实施状态（2026-09-18 第二批）**：V1-V8、I1、I3、I4、I5、I8 已实施并真机复测通过（V8 拍板：强调色换 Raycast 品牌红 #FF6363；I8 拍板：剪贴板对齐单行）。
 > **实施状态（2026-09-18 第三批 · P2 收尾）**：I6（类型筛选迁入搜索栏右侧 28px 下拉）、I9（useLauncherBusy 共享忙碌计数 + 胶囊顶部不确定进度条，剪贴板/日程/截图库三页接入）、I2（主进程前台应用名隐藏期轮询缓存 + `system:frontmostApp` IPC，剪贴板主操作显示「粘贴到 <应用名>」）全部实施并真机验证通过。
-> I7 覆盖范围（2026-09-18 第五批更新：**已全量覆盖**）：新增 `PageFooterBar.vue` 底栏组件（注入页标题渲染面包屑 + 可选动作提示，点击经 `leaf:launcher-pop` 逐级返回），接入全部 19 个内联页——10 个 CapsulePage 页沿用其底栏，9 个自绘页（AIChat/BrowserTabs/SystemInfo/WindowSwitcher/Trash/Dictionary/Notes/Reminder/Calendar）追加 PageFooterBar，其中 SystemInfo/WindowSwitcher/Dictionary/Notes 四页根布局改为「列 flex + 内部滚动容器」以承载底栏。Raycast 所有推入页均有底栏的语义对齐完成。
-> **审查修复（2026-09-18 第四批）**：AppIcon 图标名约定修复（`xxx-line` 名剥后缀再拼变体——本批新增动作图标与返回箭头、及存量 8 处类名无效导致的图标静默空白，一并修复）；分组渲染后 scrollIntoView 改 data-index 定位（修复文件分区把扁平序错位导致的滚动错行）；动作面板键帽改为显式声明（移除未真实绑定的 ⌘C/⌘R/⌘V 误导标签）；isSelfName 打包版失配修复（package.json productName=Leaf + 可执行文件名比对）；面板主输入框路径 ArrowDown 空列表守卫；SchedulePage 会议徽标红底蓝字、ClipboardPage 过时注释；resultGroups 抽纯函数 groupResultsForDisplay 并补 4 例单测。
+> I7 覆盖范围（2026-09-18 第五批更新：**已全量覆盖**）：新增 `PageFooterBar.vue` 底栏组件（注入页标题渲染面包屑 + 可选动作提示，点击经 `frond:launcher-pop` 逐级返回），接入全部 19 个内联页——10 个 CapsulePage 页沿用其底栏，9 个自绘页（AIChat/BrowserTabs/SystemInfo/WindowSwitcher/Trash/Dictionary/Notes/Reminder/Calendar）追加 PageFooterBar，其中 SystemInfo/WindowSwitcher/Dictionary/Notes 四页根布局改为「列 flex + 内部滚动容器」以承载底栏。Raycast 所有推入页均有底栏的语义对齐完成。
+> **审查修复（2026-09-18 第四批）**：AppIcon 图标名约定修复（`xxx-line` 名剥后缀再拼变体——本批新增动作图标与返回箭头、及存量 8 处类名无效导致的图标静默空白，一并修复）；分组渲染后 scrollIntoView 改 data-index 定位（修复文件分区把扁平序错位导致的滚动错行）；动作面板键帽改为显式声明（移除未真实绑定的 ⌘C/⌘R/⌘V 误导标签）；isSelfName 打包版失配修复（package.json productName=Frond + 可执行文件名比对）；面板主输入框路径 ArrowDown 空列表守卫；SchedulePage 会议徽标红底蓝字、ClipboardPage 过时注释；resultGroups 抽纯函数 groupResultsForDisplay 并补 4 例单测。
 > 复测修正：I1（Esc 层级返回）代码本已正确实现，首批「剪贴板页 Esc 直接管窗」的结论系当时窗口句柄解析错误导致的测量误判；I5（昨天分区）同批本已实现（当日列表恰好无昨天条目）。
 > 备注：dev 后台冷启动偶发全局热键延迟生效（前台重跑即正常），与本次改动无关，属环境现象。
 > 待真机目检：红色强调色观感（AX 拿不到颜色）；数字键在列表焦点态的直达行为两端表现。
 
-> 日期：2026-09-18 · 基准：本机 Raycast **2.2.0.0**（/Applications，⌥Space 唤起）vs Leaf dev（electron-vite）
+> 日期：2026-09-18 · 基准：本机 Raycast **2.2.0.0**（/Applications，⌥Space 唤起）vs Frond dev（electron-vite）
 > 方法：computer-use 驱动两个应用真实窗口，读 macOS 辅助功能树取**像素级 bounds**（同屏 1920×1080 逻辑点，可直接与 CSS px 对比），并实测键盘行为。
 > 采集页面：根列表、查询态（clip）、计算器结果态、⌘K Action Panel、剪贴板历史（List-Detail）、设置窗（About/General 两面板）。
 
@@ -18,7 +18,7 @@
 
 ## 一、窗口几何总览（实测）
 
-| 度量 | Raycast 2.2.0 | Leaf 现状 | 差 |
+| 度量 | Raycast 2.2.0 | Frond 现状 | 差 |
 |---|---|---|---|
 | 窗口尺寸 | **750 × 475** | 720 × 520 | 宽 -30 / 高 +45 |
 | 垂直位置 | y=163（屏高 15%） | y=203（workArea × 0.18） | 偏下 ~40px |
@@ -69,12 +69,12 @@
 
 ### V8 [P2·需拍板] 强调色
 - 基准：Raycast 默认主题强调色为品牌红（#FF6363 系），选中行是中性白覆盖。
-- 现状：Leaf 用 systemBlue（`--launcher-accent: #0a84ff`）+ 左侧蓝色选中指示条。
+- 现状：Frond 用 systemBlue（`--launcher-accent: #0a84ff`）+ 左侧蓝色选中指示条。
 - 决策点：a) 跟 Raycast 换红；b) 保留系统蓝但去掉左指示条改全覆盖式选中背景。任选其一需在 DECISIONS 落一条。
 
 ### V9 [P2] 计算器结果行
 - 基准：独立大字版式——表达式 30pt + 结果 30pt（乘号渲染为 ×），下方 14pt 灰字小标签 Expression / Result，中间竖分隔线；底栏主操作变「Copy Answer ↵」。
-- 现状：Leaf 无计算器模块（V4 已列为功能差距，此处补版式基准供实现时用）。
+- 现状：Frond 无计算器模块（V4 已列为功能差距，此处补版式基准供实现时用）。
 
 ---
 
@@ -92,7 +92,7 @@
 
 ### I3 [P1] 推入页搜索栏加返回按钮
 - 基准：剪贴板页搜索栏左侧有 ← 返回按钮（23×22），点击回根；输入框 placeholder 变为「Type to filter entries…」（页面内过滤语义）。
-- 现状：Leaf 无返回按钮（只有 Esc），placeholder 不变。
+- 现状：Frond 无返回按钮（只有 Esc），placeholder 不变。
 - 建议：随 I1 的路由栈补 ← 按钮；页面级 placeholder 切换。
 
 ### I4 [P1] Action Panel 结构对齐（⌘K）
@@ -129,32 +129,32 @@
 
 ## 四、键位层
 
-| 键 | Raycast | Leaf | 结论 |
+| 键 | Raycast | Frond | 结论 |
 |---|---|---|---|
-| ⌥Space 唤起 | ✓ | ✓（实测当前 Leaf 持有全局注册） | ⚠ 两应用同热键并存会互抢，真机需错开或让 Raycast 失配 |
+| ⌥Space 唤起 | ✓ | ✓（实测当前 Frond 持有全局注册） | ⚠ 两应用同热键并存会互抢，真机需错开或让 Raycast 失配 |
 | ↵ 主操作 | ✓ | ✓ | 对齐 |
 | ⇥ Quick AI | ✓（搜索栏右侧按钮提示 ⇥） | ✓（同款按钮） | 对齐 |
 | ⌘K 动作面板 | ✓ | ✓ | 对齐（面板结构见 I4） |
 | Esc 层级返回 | ✓ | ✗ | 见 I1 |
-| 数字 1-0 徽标 | 徽标可见；搜索聚焦时数字入框（Leaf 同策略，见 LauncherApp.vue:571 注释），列表聚焦时直达 | 同策略 | 待真机互验（K-待办） |
+| 数字 1-0 徽标 | 徽标可见；搜索聚焦时数字入框（Frond 同策略，见 LauncherApp.vue:571 注释），列表聚焦时直达 | 同策略 | 待真机互验（K-待办） |
 | 动作级组合键 | Action Panel 内每动作可绑 ⌘↵ / ⌥⇧⌘C 等，键帽可视 | 无 | 见 I4 |
 
 ---
 
-## 五、设置窗基准（Leaf 设置页重构时使用）
+## 五、设置窗基准（Frond 设置页重构时使用）
 
 Raycast Settings 实测结构（独立窗 800×786）：
 - 左侧栏 227pt：顶部「Search settings」32pt 搜索框 → Account 卡（44pt）→ 导航项 32pt/行、22×22 图标（General / Launcher / Shortcuts / Keyboard / Cloud Sync / Advanced / About + 每个扩展一项）。
 - 右侧内容 565pt：52pt 标题栏（← → 28pt 按钮 + 面板名）→ 设置行 **46pt** 高、行距 ~47pt：左标签 16pt（可带 14pt 灰副标题），右对齐控件（开关 36×16、按钮 24pt 高、主题选择 145×24、三档 Interface Size 32×32 缩略单选、Compact/Expanded 118pt 高预览卡单选）。
-- 采集于 About / General 两面板，可作 Leaf 设置窗「侧栏 + 行式布局 + 右对齐控件」的版式规范。
+- 采集于 About / General 两面板，可作 Frond 设置窗「侧栏 + 行式布局 + 右对齐控件」的版式规范。
 
 ---
 
 ## 六、刻意不对标（保持现状）
 
-- **玻璃材质**：Leaf 用系统 vibrancy/acrylic 半透明（既有决策），Raycast 为不透明纯色面板——保留。
-- **中文文案**：Raycast 英文；Leaf 面向中文用户——保留，仅对齐**信息结构**（分区命名、动宾按钮文案模式）。
-- **⌘1-4 模块快捷键**：Leaf 自有设计（设计注释承诺永不重编号），不跟随 Raycast 数字徽标语义。
+- **玻璃材质**：Frond 用系统 vibrancy/acrylic 半透明（既有决策），Raycast 为不透明纯色面板——保留。
+- **中文文案**：Raycast 英文；Frond 面向中文用户——保留，仅对齐**信息结构**（分区命名、动宾按钮文案模式）。
+- **⌘1-4 模块快捷键**：Frond 自有设计（设计注释承诺永不重编号），不跟随 Raycast 数字徽标语义。
 
 ## 七、实施与验收
 

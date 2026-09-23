@@ -2,7 +2,7 @@
 
 > 背景：V4 差距分析 P1-8。Raycast Hyper Key = 把 Caps Lock（或修饰键/F 键）重映射为
 > 「✦ 超级修饰键」，在其上录制不与系统/应用冲突的组合快捷键；带单按（Quick Press）
-> 行为、冲突诊断面板、Secure Input 兼容模式。Leaf 目前完全没有该能力，且本仓库
+> 行为、冲突诊断面板、Secure Input 兼容模式。Frond 目前完全没有该能力，且本仓库
 > 已有 uiohook 全局按键监听（两段式直达）可部分复用。
 
 ## 两个候选方案

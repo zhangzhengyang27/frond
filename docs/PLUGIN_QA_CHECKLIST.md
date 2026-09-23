@@ -1,4 +1,4 @@
-# Leaf · 内置插件真机验证清单（D2 内功）
+# Frond · 内置插件真机验证清单（D2 内功）
 
 > **本清单 2026-09-23 由代码重生成，重生成时未做过任何一轮真机验证，所有结果格为空。**
 >
@@ -24,7 +24,7 @@
 | --- | --- | --- |
 | `plugins/*/plugin.json`（内置；自动安装扫的就是这个目录） | `ls plugins` 计数 | **21** |
 | `plugins.json`（静态市场索引 `plugins[]`） | `node -e "console.log(require('./plugins.json').plugins.length)"` | **22** |
-| 差额来源 | 索引多出的那条是 `com.leaf.example`，`download: "./example-plugin"`，不在 `plugins/` 下 | +1 |
+| 差额来源 | 索引多出的那条是 `com.frond.example`，`download: "./example-plugin"`，不在 `plugins/` 下 | +1 |
 | 内置插件命令总数（`commands[].code`） | 逐个清单累加 | 28 |
 | 含示例后的命令总数 | 28 + 示例 4 | 32 |
 | 内置插件 preferences 声明项数 | 逐个清单累加 | 22（示例另有 3 项） |
@@ -33,7 +33,7 @@
 
 - 按「内置插件目录」口径 = 21，`docs/ROADMAP.md:41` 与 `docs/RAYCAST_PARITY_PLAN_V5.md:530` 说的 21 就是它，
   也是 `builtinPlugins.ts:73-105` 每次启动真正扫描并自动安装的集合。
-- 按「市场索引条目」口径 = **22**（`plugins.json` 里含 `com.leaf.example`）。第 3 节按这个口径列 22 行，
+- 按「市场索引条目」口径 = **22**（`plugins.json` 里含 `com.frond.example`）。第 3 节按这个口径列 22 行，
   示例行单独标注「非内置自动安装」——它只从市场手动装（`market.ts:519-527` 目录形态）或被 dev 模式注册
   （`devPlugins.ts:245-267`）。
 - 结论：**不凑数、也不改 ROADMAP**。真机跑的时候 21 条内置 + 1 条示例都要过一遍，但两者进入应用的路径不同，
@@ -50,7 +50,7 @@
   判据 = 管理页「已安装插件」区有它、且显示 `v<清单版本>`。
 - 示例插件：不在自动安装集合里（`builtinPluginsDir()` 只扫 `plugins/`，`builtinPlugins.ts:25-33`），
   要么市场页点安装，要么 dev 模式注册目录。
-- 反例先排除：e2e/测试实例常带 `LEAF_SKIP_BUILTIN_PLUGINS=1`（`builtinPlugins.ts:56-59`）→
+- 反例先排除：e2e/测试实例常带 `FROND_SKIP_BUILTIN_PLUGINS=1`（`builtinPlugins.ts:56-59`）→
   那种实例里 21 个全空，别把「搜不到」当插件坏了。
 - 结果/备注：____
 
@@ -69,7 +69,7 @@
 
 ### C2 停用即消失，且停用后打不开
 
-- 操作：管理页停用（`views/launcher/index.vue:1126`）→ 两入口再搜 → 再用 `leaf://plugin/<id>` 深链唤一次。
+- 操作：管理页停用（`views/launcher/index.vue:1126`）→ 两入口再搜 → 再用 `frond://plugin/<id>` 深链唤一次。
 - 判真：搜索无该行（`useCommandSources.ts:124` 只留 enabled）；深链被拒并弹系统通知「插件已停用：<名>」
   （`runtime.ts:578-582`）。
 - 判假：停用后还搜得到，或深链直接把界面打开了。
@@ -77,9 +77,9 @@
 
 ### C3 深链只能到「插件」，不能到「命令」
 
-- 判据：`leaf://plugin/<id>` 没有命令段（`leafUrl.ts:57-61`），主进程以 `cmd = null` 打开
+- 判据：`frond://plugin/<id>` 没有命令段（`frondUrl.ts:57-61`），主进程以 `cmd = null` 打开
   （`src/main/index.ts:209-215`）。多命令插件（base64 / colorpicker / htmlentity / jsonfmt / quickfolders /
-  urlcodec）此时应回落到「清单里第一条命令的行为」，例：`plugins/com.leaf.base64/index.html:13` 的
+  urlcodec）此时应回落到「清单里第一条命令的行为」，例：`plugins/com.frond.base64/index.html:13` 的
   `data.cmd || 'encode'`。
 - 判假：深链打开后既不是首命令的行为、也没有任何可辨识状态（用户分不清在跑哪条命令）。
 - 其它命令仍要逐条走：每条 `code` 分别从 ⌘K / 胶囊命令行进一遍。
@@ -87,7 +87,7 @@
 
 ### C4 带参数的命令按声明渲染成内联参数槽或表单页
 
-- 唯一带参数声明的内置命令：`com.leaf.regex` 的 `test`（`pattern` text 必填 / `text` text / `flags` dropdown）。
+- 唯一带参数声明的内置命令：`com.frond.regex` 的 `test`（`pattern` text 必填 / `text` text / `flags` dropdown）。
 - 布局判据：`argSlots.ts:38-52` —— 含 `dropdown` → `{kind:'form',reason:'dropdown'}`；
   超过 2 格（`argSlots.ts:18`）→ `{kind:'form',reason:'too-many'}`。regex 两条都踩中，**按设计进表单页**，
   不该在搜索框里长出内联槽（`LauncherApp.vue:1210-1217` 的 `pushPage('pluginarg')`）。
@@ -95,10 +95,10 @@
   （required 语义 `plugin-protocol.ts:88` + `argSlots.ts:122-128`）；`flags` 的候选标题要还原成值再交给插件
   （`LauncherApp.vue:690` 的 title→value 映射）。
 - 判真（⌘K）：⌘K 面板**不传** `openPluginArg`（`CommandPalette.vue:102-109`），于是退化为「无参直接打开插件」
-  （`commandRunner.ts:74-82`）——regex 因此走「读剪贴板」分支（`plugins/com.leaf.regex/index.html:13-42`）。
+  （`commandRunner.ts:74-82`）——regex 因此走「读剪贴板」分支（`plugins/com.frond.regex/index.html:13-42`）。
   这是既定设计，但两个入口行为不同，**必须分别记录**，不能拿胶囊那次的结果替 ⌘K 打勾。
 - 判假：带 dropdown 的命令长出内联槽 / 必填为空却执行了 / ⌘K 里也弹了表单页（两处代码不同步）。
-- 内联槽的正例内置插件给不出（`e2e/plugin-arg-slots.spec.mjs:9,21` 用的是 `com.leaf.example-react`，
+- 内联槽的正例内置插件给不出（`e2e/plugin-arg-slots.spec.mjs:9,21` 用的是 `com.frond.example-react`，
   ≤2 格纯文本才走内联）→ 这一格对 21 个内置插件**本轮无从判真**，按 BLOCKED 或留空处理。
 - 结果/备注：____
 
@@ -161,8 +161,8 @@
 - 声明本身也可能被静默清洗掉（未知 type / 无候选的 select / label 空 → 整条丢，`plugin-protocol.ts:579-621`；
   上限 20 项 `plugin-protocol.ts:550`）→「设置页少一项」先跑 `pluginManifestAudit.test.ts:137-178`
   那道静态闸再判真机。
-- 已知代码级偏差（必须真机确认表现）：`com.leaf.quickfolders` 读 `api.preferences.get('defaultFolders')`
-  （`plugins/com.leaf.quickfolders/index.html:23`），但它的 `plugin.json` **没有任何 preferences 声明** →
+- 已知代码级偏差（必须真机确认表现）：`com.frond.quickfolders` 读 `api.preferences.get('defaultFolders')`
+  （`plugins/com.frond.quickfolders/index.html:23`），但它的 `plugin.json` **没有任何 preferences 声明** →
   这趟读必然回 error。判真 = 它只是「db 为空时的回退」且回退后功能照常；判假 = 首启用不到 / 报错刷屏。
 - 验法：改一次偏好 → 插件内立刻读到新值 → 重启应用仍读到新值。
 - 结果/备注：____
@@ -194,7 +194,7 @@
   属真机核对项，本文档不下结论。
 - 结果/备注：____
 
-### C12 网络类插件（内置只有 `com.leaf.currency` 声明了 `net`）
+### C12 网络类插件（内置只有 `com.frond.currency` 声明了 `net`）
 
 - 判据：`fetch` → 主进程代理 `proxyPluginFetch`（`ipc.ts:515-521` → `runtime.ts:394`），
   响应上限 2MB（`runtime.ts:370`）、15s 超时（`preload/plugin.ts:162-166` 口径），
@@ -210,7 +210,7 @@
   （`runtime.ts:136-142`，回 `item needs title and actions`）；条数封顶 300
   （`plugin-protocol.ts:285` + `runtime.ts:137`）；单条 actions 封顶 10（`runtime.ts:156`）；
   `detail` 超 5000 字符截断（`runtime.ts:150`）；`title` 200、`subtitle` 300 截断（`runtime.ts:144-145`）。
-- 真机判据：超长输入（例如 200KB JSON 丢给 `com.leaf.jsonfmt`）仍出一屏可读结果或明确降级，不白屏；
+- 真机判据：超长输入（例如 200KB JSON 丢给 `com.frond.jsonfmt`）仍出一屏可读结果或明确降级，不白屏；
   重绘型插件（每敲一个字都 `renderList`）**不该长出返回栈**（`preload/plugin.ts:126-135` 的 `push` 语义 +
   `runtime.ts:114-124`）。
 - 判假：在插件里按 ESC/返回时「回不去」，或返回栈越堆越长。
@@ -247,44 +247,44 @@
 
 | id | 命令 `code` | 参数声明 | preferences 项 | permissions | 结果 | 备注 |
 | --- | --- | --- | --- | --- | --- | --- |
-| com.leaf.base64 | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.baseconvert | `convert` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.colorpicker | `convert`, `palette` | 无 | `defaultFormat`(select, HEX/3) | `clipboard.read` |  |  |
-| com.leaf.contrast | `check` | 无 | `fgColor`(text, #000000), `bgColor`(text, #FFFFFF) | 无 |  |  |
-| com.leaf.cron | `parse` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.csvjson | `convert` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.currency | `convert` | 无 | `baseCurrency`(select, CNY/10), `targetCurrency`(select, USD/10) | `clipboard.read`, `net` |  |  |
-| com.leaf.hash | `compute` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.htmlentity | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.jsonfmt | `format`, `minify`, `escape` | 无 | `indent`(select, "2"/3) | `clipboard.read` |  |  |
-| com.leaf.jsonyaml | `convert` | 无 | `indent`(select, "2"/2) | `clipboard.read` |  |  |
-| com.leaf.jwt | `decode` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.lorem | `generate` | 无 | `unit`(select, paragraph/3), `count`(select, "3"/4) | 无 |  |  |
-| com.leaf.passwordgen | `generate` | 无 | `length`(select, "16"/6), `uppercase`(checkbox true), `lowercase`(checkbox true), `numbers`(checkbox true), `symbols`(checkbox true), `count`(select, "1"/3) | 无 |  |  |
-| com.leaf.qrcode | `generate` | 无 | `size`(select, "256"/3), `ecc`(select, M/4) | `clipboard.read` |  |  |
-| com.leaf.quickfolders | `open`, `add` | 无 | 无（但页面读未声明的 `defaultFolders`，见 C9） | `clipboard.read` |  |  |
-| com.leaf.regex | `test` | `pattern`(text)\*, `text`(text), `flags`(dropdown/3) | `flags`(select, g/5) | `clipboard.read` |  |  |
-| com.leaf.textstats | `stats` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.timestamp | `convert` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.urlcodec | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
-| com.leaf.uuid | `generate` | 无 | `count`(select, "1"/4), `format`(select, lowercase/3) | 无 |  |  |
-| com.leaf.example | `list`, `prefs`, `net`, `misc` | 无 | `author`(text, Leaf), `theme`(select, 原生质感/3), `notifyOnCopy`(checkbox true) | `clipboard.read`, `clipboard.write`, `net`（非内置自动安装，走市场/dev，见 C0） |  |  |
+| com.frond.base64 | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.baseconvert | `convert` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.colorpicker | `convert`, `palette` | 无 | `defaultFormat`(select, HEX/3) | `clipboard.read` |  |  |
+| com.frond.contrast | `check` | 无 | `fgColor`(text, #000000), `bgColor`(text, #FFFFFF) | 无 |  |  |
+| com.frond.cron | `parse` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.csvjson | `convert` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.currency | `convert` | 无 | `baseCurrency`(select, CNY/10), `targetCurrency`(select, USD/10) | `clipboard.read`, `net` |  |  |
+| com.frond.hash | `compute` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.htmlentity | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.jsonfmt | `format`, `minify`, `escape` | 无 | `indent`(select, "2"/3) | `clipboard.read` |  |  |
+| com.frond.jsonyaml | `convert` | 无 | `indent`(select, "2"/2) | `clipboard.read` |  |  |
+| com.frond.jwt | `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.lorem | `generate` | 无 | `unit`(select, paragraph/3), `count`(select, "3"/4) | 无 |  |  |
+| com.frond.passwordgen | `generate` | 无 | `length`(select, "16"/6), `uppercase`(checkbox true), `lowercase`(checkbox true), `numbers`(checkbox true), `symbols`(checkbox true), `count`(select, "1"/3) | 无 |  |  |
+| com.frond.qrcode | `generate` | 无 | `size`(select, "256"/3), `ecc`(select, M/4) | `clipboard.read` |  |  |
+| com.frond.quickfolders | `open`, `add` | 无 | 无（但页面读未声明的 `defaultFolders`，见 C9） | `clipboard.read` |  |  |
+| com.frond.regex | `test` | `pattern`(text)\*, `text`(text), `flags`(dropdown/3) | `flags`(select, g/5) | `clipboard.read` |  |  |
+| com.frond.textstats | `stats` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.timestamp | `convert` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.urlcodec | `encode`, `decode` | 无 | 无 | `clipboard.read` |  |  |
+| com.frond.uuid | `generate` | 无 | `count`(select, "1"/4), `format`(select, lowercase/3) | 无 |  |  |
+| com.frond.example | `list`, `prefs`, `net`, `misc` | 无 | `author`(text, Frond), `theme`(select, 原生质感/3), `notifyOnCopy`(checkbox true) | `clipboard.read`, `clipboard.write`, `net`（非内置自动安装，走市场/dev，见 C0） |  |  |
 
 ### 3.1 逐插件的专有判据（只写代码里读得出来的）
 
 - **多命令插件（base64 / colorpicker / htmlentity / jsonfmt / quickfolders / urlcodec）**：每条 `code`
   单独走 C1+C3；重点看 `onEnter` 收到的 `cmd` 是否真被用来切分支（如
-  `plugins/com.leaf.base64/index.html:12-20` 按 cmd 换 placeholder 与处理函数）。
+  `plugins/com.frond.base64/index.html:12-20` 按 cmd 换 placeholder 与处理函数）。
   两条命令长得一模一样 = 命令没接上，判 FAIL。
 - **contrast / lorem / passwordgen / uuid（permissions 为空）**：C5 的整套拒绝形状在这里是**常态**——
   它们本来就不该调敏感 API（本轮读码：这 4 个都没调 `readText`/`copyText`）。判据：页面不得出现
   「从剪贴板自动读取」这类依赖 `clipboard.read` 的承诺；出现即 FAIL 并记「权限与实现不符」。
 - **currency**：唯一 `net`。跑 C12 + 断网文案 + 偏好生效；`api.fetch` 调用点在
-  `plugins/com.leaf.currency/index.html:274-275`（`https://open.er-api.com/v6/latest/<base>`）。
+  `plugins/com.frond.currency/index.html:274-275`（`https://open.er-api.com/v6/latest/<base>`）。
 - **quickfolders**：三个坑叠在一起 —— ① C9 的未声明偏好读；② 唯一用到 `db.get/db.put` + `notify` + `close`
-  的内置插件（`plugins/com.leaf.quickfolders/index.html:20,76,102-103,135`），所以 C10 的卸载清 KV
+  的内置插件（`plugins/com.frond.quickfolders/index.html:20,76,102-103,135`），所以 C10 的卸载清 KV
   **拿它当主验本**；③ 「打开目录」是列表动作 `type:'open'` 带本地路径
-  （`plugins/com.leaf.quickfolders/index.html:57`），执行端在渲染侧 `system.openPath`
+  （`plugins/com.frond.quickfolders/index.html:57`），执行端在渲染侧 `system.openPath`
   （`PluginListPage.vue:141-149`），**不受插件的 `fs.open` 权限约束**——这条通道对第三方插件意味着什么，
   真机跑的时候顺带判一次（路径不存在 / 是文件 / 是别人家目录时各是什么长相）。
 - **regex**：唯一带参数声明（C4 主验本）；参数 placeholder 写着「留空则取剪贴板」，要按 C5 的
@@ -322,7 +322,7 @@
 3. macOS 系统层连带表现（系统通知是否弹得出来、剪贴板被别的 App 占用时的复制结果、
    `Notification.isSupported()` 为假的机器）：未证实。
 4. 市场 UI 是否仍有「sha256 / 未校验」与远程索引输入框（H8 只是 grep 未命中，不等于界面没有）：未证实。
-5. `com.leaf.quickfolders` 的 `open` 动作在非绝对路径 / 不存在路径下的具体表现：未证实。
+5. `com.frond.quickfolders` 的 `open` 动作在非绝对路径 / 不存在路径下的具体表现：未证实。
 6. 各插件的**中文文案**与真实行为是否逐条一致（例如「一键复制图片」）：只做了代码级抽查，未证实。
 7. React 视图协议（`renderView`）与 `submitSearchItems` 对内置插件：内置插件全未调用（C7），
    它们的真机表现属示例 / React 例程范围，不在本清单结论里。

@@ -36,7 +36,7 @@ d.ts 顺手拆掉十余处手抄/擦除）——落点、两个必踩过的坑�
 
 ## 1. 项目背景
 
-仓库：`/Users/xiaoye/Desktop/electron-tools`（Electron 启动器「Leaf」，对标 Raycast，macOS+Windows）。
+仓库：`/Users/xiaoye/Desktop/electron-tools`（Electron 启动器「Frond」，对标 Raycast，macOS+Windows）。
 本轮工作主题：按 Vicinae/ueli 两个开源项目的借鉴清单落地功能，共 **12 项全部完成**
 （清单与每项状态：`docs/REFERENCE_VICINAE_UELI.md`；审查记录都在 commit message 里）。
 
@@ -49,9 +49,9 @@ d.ts 顺手拆掉十余处手抄/擦除）——落点、两个必踩过的坑�
 **本地 main 无 remote 配置，未推送。** 三个必须知道的产物事实：
 
 - `example-react/dist/main.js` **入库**（插件导入即用它，e2e 也用它）。改 SDK 或 example
-  源码后必须重跑：`cd packages/leaf-plugin-sdk && npm run build` → `cd example-react &&
+  源码后必须重跑：`cd packages/frond-plugin-sdk && npm run build` → `cd example-react &&
   npm run build` → `npx electron-vite build`，否则测的是旧字节码（本仓库踩过两次）。
-- `packages/leaf-plugin-sdk/dist/` 被 `.gitignore` 的 `dist` 规则排除、**不入库**，
+- `packages/frond-plugin-sdk/dist/` 被 `.gitignore` 的 `dist` 规则排除、**不入库**，
   但 `__tests__/sdk.test.ts` 直接 import 它 —— 全新 clone 后 `pnpm test` 会因缺产物失败，
   需先构建 SDK。遗留 Minor，未修。
 - `out/` 是 electron-vite 产物，跑 e2e 前必须重建。
@@ -70,7 +70,7 @@ commit `84fb0a6`），**方向对但不完整**——它解决的是「Callback 
 胶囊 FormPage 提交
   → launcher:plugin-form-submit IPC
   → main submitPluginFormValues（runtime.ts:180+）
-  → sendHook Callback（executeJavaScript → leafPluginHooks.emit）
+  → sendHook Callback（executeJavaScript → frondPluginHooks.emit）
   → 插件页 SDK 桥（index.ts installCallbackBridge）
   → registry.dispatchCallback → onSubmit(values)
   → nav.push(Detail) → React commit → serializeForm/serializeList
@@ -105,7 +105,7 @@ commit `84fb0a6`），**方向对但不完整**——它解决的是「Callback 
 ## 4. 验证命令（精确顺序）
 
 ```bash
-cd packages/leaf-plugin-sdk && npm run build && cd ../..   # SDK dist（单测/e2e 同源）
+cd packages/frond-plugin-sdk && npm run build && cd ../..   # SDK dist（单测/e2e 同源）
 cd example-react && npm run build && cd ../..             # example-react/dist/main.js（入库）
 pnpm typecheck                          # 双端 tsconfig，0 error
 pnpm test                               # 830+ 单测（含 SDK 4 个 + 表单解析 5 个）
@@ -119,11 +119,11 @@ npx playwright test                     # 全套（pomodoro-manual 已加守卫�
 
 ## 5. e2e 环境机制（不理解会踩坑）
 
-- 每个 spec 用**独立 userData**：`LEAF_USER_DATA_DIR`（playwright.config 注入，
+- 每个 spec 用**独立 userData**：`FROND_USER_DATA_DIR`（playwright.config 注入，
   spec 内按 spec 名覆盖）——规避单实例锁 + 不污染真实数据
-- `LEAF_E2E=1`：插件导入确认闸旁路
-- `LEAF_FILE_INDEX_SCOPES`：文件索引范围覆盖（避免 home 全量扫描）
-- `LEAF_SKIP_BUILTIN_PLUGINS=1`：跳过内置插件自动安装
+- `FROND_E2E=1`：插件导入确认闸旁路
+- `FROND_FILE_INDEX_SCOPES`：文件索引范围覆盖（避免 home 全量扫描）
+- `FROND_SKIP_BUILTIN_PLUGINS=1`：跳过内置插件自动安装
 - `pomodoro-manual.spec`：CDP 连接已运行实例的手动版，已加守卫默认跳过
 - electron.launch 的 env 是**顶层选项**（launchOptions.env 无效——历史 bug）
 
@@ -142,17 +142,17 @@ npx playwright test                     # 全套（pomodoro-manual 已加守卫�
 
 | 文件 | 职责 |
 | --- | --- |
-| `packages/leaf-plugin-sdk/` | React 插件 SDK（reconciler/组件/回调注册表/导航） |
+| `packages/frond-plugin-sdk/` | React 插件 SDK（reconciler/组件/回调注册表/导航） |
 | `src/shared/plugin-protocol.ts` | 插件协议：v1 renderList + v2 视图/表单 + fail-closed 清洗 |
 | `src/main/launcher/runtime.ts` | 插件运行时：BrowserView 生命周期 / setDeclaredView / sendHook / declaredForm |
 | `src/main/launcher/ipc.ts` | 全部 launcher:/plugapi: 通道 |
-| `src/preload/plugin.ts` | 插件 preload（launcherApi + leafPluginHooks + HookType） |
+| `src/preload/plugin.ts` | 插件 preload（launcherApi + frondPluginHooks + HookType） |
 | `src/renderer/src/launcher/LauncherApp.vue` | 胶囊主组件（pluginForm/declaredList 接线） |
 | `src/renderer/src/launcher/pages/FormPage.vue` | 表单页（⌘↵ 提交，e2e 用 Meta+Enter 驱动） |
 | `src/main/modules/fileIndex/` | 文件自建索引（db/scanner/service/excludes/skeleton/content/**paths**/**watcher**） |
 | `src/shared/themeSchema.ts` / `themeFile.ts` | 主题数据层（Phase 1）/ 用户主题文件解析派生（Phase 2） |
 | `src/main/modules/userThemes.ts` | `userData/themes/*.json` 读取与导入（dir 参数化版可单测） |
-| `packages/leaf-raycast-api/` | `@raycast/api` 兼容别名层（#11 M3），插件侧 alias 指过来 |
+| `packages/frond-raycast-api/` | `@raycast/api` 兼容别名层（#11 M3），插件侧 alias 指过来 |
 | `docs/REFERENCE_VICINAE_UELI.md` | 借鉴清单 12 项状态（唯一进度事实源） |
 | `docs/REACT_API_DESIGN.md` / `docs/FILE_INDEX_DESIGN.md` | 两份设计文档 |
 
@@ -169,7 +169,7 @@ npx playwright test                     # 全套（pomodoro-manual 已加守卫�
 | NavigationRoot context 重渲染 | 已修（useMemo 固定 nav 引用 + 回归单测） |
 | Windows 文件索引 | 已实现（@parcel/watcher 后端 + `fileIndex/paths.ts` 路径归一 + `source` 分层）。**Windows 运行时未实机验证**，两条 file-index e2e 仍 skip，有机器时去掉守卫跑一遍 |
 | 用户主题文件 | 已实现（#12 Phase 2，PLUGIN_DEVELOPMENT 无关；用法见 docs/DESIGN_TOKENS.md「用户主题文件」一节） |
-| @raycast/api 兼容别名 | 已实现（`@leaf/raycast-api`，映射表与缺口清单见 PLUGIN_DEV.md） |
+| @raycast/api 兼容别名 | 已实现（`@frond/raycast-api`，映射表与缺口清单见 PLUGIN_DEV.md） |
 
 同日补做的四项（也已提交）：trigram 中缀影子索引（≥3 字可命中）、外接卷未挂载不再
 拖垮整个索引（逐根隔离 + 管理页点名）、回调 id 失效给出原因、老单测吃 dist 的构建前置。
@@ -233,7 +233,7 @@ a435012 fix(sdk): 回调 id 失效时给出原因，不再静默 no-op
 850a5fa feat(file-index): trigram 中缀影子索引，主路径零结果时兜底（#9 M3 部分）
 3708f95 feat(file-index): Windows 自建索引后端（@parcel/watcher）+ 索引内部路径归一
 457285b test(e2e): 启动补偿用例显式拉开目录 mtime，去掉秒级粒度带来的偶发红
-f64e276 feat(sdk): @leaf/raycast-api 兼容别名层（#11 M3）
+f64e276 feat(sdk): @frond/raycast-api 兼容别名层（#11 M3）
 3d0055b feat(theme): 用户主题文件解析派生 + 设置页选择 + 运行时注入
 3c11fb7 feat(file-index): 启动期目录水位补偿
 636f7f2 build(test): vitest 全局前置构建 SDK 产物，全新 clone 的 pnpm test 可跑
@@ -250,7 +250,7 @@ b8d7ade wip+docs: 表单回传诊断插桩 + HANDOFF
 cf6561c feat: React 级扩展 API M1（#11）——SDK + 视图协议 v2 + example-react 闭环
 bea0122 fix: 代码审查修复——文件索引 1C+9I + 安全守卫 + 快速 Minor
 d4ed4ea feat: 文件自建索引 M1（#9）——FSEvents + sqlite FTS5，摆脱 Spotlight 制约
-963de96 fix(e2e): electron.launch env 顶层传参 + LEAF_USER_DATA_DIR 隔离 + playwright 1.63
+963de96 fix(e2e): electron.launch env 顶层传参 + FROND_USER_DATA_DIR 隔离 + playwright 1.63
 eb19521 fix: 内置插件目录按启动形态解析 + e2e 可跳过自动安装
 d6695e6 feat: 借鉴清单落地——模糊容错/多参数命令/pop-to-root 三态/热键冲突/剪贴板关键词/统一动作执行端
 ```
@@ -295,7 +295,7 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 > 归 C 类；`platform:{setDockBadge,setProgressBar,requestUserAttention}` 与
 > `recording.markers.{list,add,remove,rename}`（4 条）才是同型的缺桥。
 > 另有 3 条 preload 写了、主进程没有：`pomodoro:dispatchShortcut`、`region-overlay:submit/cancel`
-> （后两条与 `RegionOverlay.ts` 的 `leaf-region://` 协议撞车，先判哪条是正的再动）。
+> （后两条与 `RegionOverlay.ts` 的 `frond-region://` 协议撞车，先判哪条是正的再动）。
 
 | 功能域 | 缺的调用 | 证据 |
 | --- | --- | --- |
@@ -316,7 +316,7 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 
 ### C 类 · 2026-09-23 **翻盘**：dev-server 缓存里捞回 522 个原始件
 
-原判「全盘无副本、只能重写」是**错的**。`~/Library/Application Support/leaf-desktop/Cache/Cache_Data/`
+原判「全盘无副本、只能重写」是**错的**。`~/Library/Application Support/frond-desktop/Cache/Cache_Data/`
 （909 个 entry，50MB）里存着开发期 vite dev server 的响应体，**其中 522 条带内联
 `//# sourceMappingURL=…base64` 且 `sourcesContent` 是原始 `.vue` / `.ts` 全文**。
 `_compiled-from-cache/` 那份转储只留下了 `?vue&type=style` 的样式分片，所以此前误判为「无副本」。
@@ -458,11 +458,11 @@ e2e 侧另有一类损坏，**不是渲染层的**：
 
 ### D 类 · ✅ **已做完（`8f4dc68`）** —— 回拷 19 个内置插件
 
-`~/Library/Application Support/leaf-desktop/launcher-plugins/` 里的 **21 份已安装副本**已回拷进
+`~/Library/Application Support/frond-desktop/launcher-plugins/` 里的 **21 份已安装副本**已回拷进
 `plugins/`（每份只有 plugin.json + index.html，安装流程不塞 node_modules）。
-回拷前逐条核过版本：与静态市场索引 `plugins.json` 21/21 相符；**唯一例外 `com.leaf.regex` 没被覆盖**
+回拷前逐条核过版本：与静态市场索引 `plugins.json` 21/21 相符；**唯一例外 `com.frond.regex` 没被覆盖**
 （索引与仓库源都是 1.1.0、带 P-1.6b 的三参数声明，而已安装副本是旧的 1.0.1——覆盖就白做）。
-反倒 `com.leaf.quickfolders` 是仓库这份坏的：缺入口 `index.html` 且停在 1.0.0，按已安装的 1.0.1 补齐。
+反倒 `com.frond.quickfolders` 是仓库这份坏的：缺入口 `index.html` 且停在 1.0.0，按已安装的 1.0.1 补齐。
 读数：`pluginManifestAudit` 从 `expected 2 to be greater than 15` + 2 条断言红 → **9/9 全绿**；
 全量单测 789 → 792 通过、47 → 44 失败。
 
@@ -475,7 +475,7 @@ e2e 侧另有一类损坏，**不是渲染层的**：
 | ~~`argPrefixMatch`~~ **已补** | `searchArgPrefix.test.ts` 5/5 绿 | P-1.6b：连带 `searchEntries` 的接入（只给 `acceptsArgs` 条目吃前缀命中、整条匹配排前面） |
 | ~~`BUILTIN_COMMANDS`~~ **已了结** | `scratch-score-perf.test.ts` | 全盘无踪迹：真名是 `buildStaticCommands()`。该文件自己写着「一次性测量脚本（跑完即删）」——**不为此多造一个重复导出**，改测试指向真函数 |
 | ~~`applyDbFile`（连带 `validateSqliteFile`）~~ **已补** | `cloudBackup.restoreFullDb` 生产 import | 从 `importDb` 抽出「关连接→备份现库→清 WAL/SHM→覆盖→延后重启」两处共用；**必须同步**（云端还原在 `finally` 里就删临时文件，异步复制会踩空） |
-| ~~`migrate{Ai,Clips,Markers,RecordingSettings}FromLegacyStore`~~ **已补** | 4 个 `dataMigrations*.test.ts` → **24/24 绿** | AI 密文原样搬运（apiKey 是 `enc:`，跨机搬不动）；clips 整坨；录屏设置**整份**搬（按 repo 投影挑字段会把 systemAudio 这类静默丢掉）；markers 秒→毫秒且保留 id。幂等各记各的 leaf_meta 标志，失败下次启动重试 |
+| ~~`migrate{Ai,Clips,Markers,RecordingSettings}FromLegacyStore`~~ **已补** | 4 个 `dataMigrations*.test.ts` → **24/24 绿** | AI 密文原样搬运（apiKey 是 `enc:`，跨机搬不动）；clips 整坨；录屏设置**整份**搬（按 repo 投影挑字段会把 systemAudio 这类静默丢掉）；markers 秒→毫秒且保留 id。幂等各记各的 frond_meta 标志，失败下次启动重试 |
 | ~~`renderExpansionWithCursor`~~ **已补 + 4 条新用例** | `textExpansion.renderTemplate` 生产 import | 补之前 `{cursor}` **全树无人处理**（`expansionTemplate.ts` 里连 'cursor' 字样都没有）。索引按**码点**算：消费方是 `[...payload].length - cursorIndex`，两边不同尺子时 emoji 开头的模板会把光标删进正文 |
 
 ### F 类 · 掐头件（同一文件头被吞，`TS18004` + `TS2304` 是签名）
@@ -536,7 +536,7 @@ e2e 侧另有一类损坏，**不是渲染层的**：
 枚举「还有哪些页丢了」用这条（只找到 launcher / screenshot 两页被 HTTP 请求过，其余走 file:）：
 
 ```bash
-cd "$HOME/Library/Application Support/leaf-desktop/Cache/Cache_Data" && python3 -c "
+cd "$HOME/Library/Application Support/frond-desktop/Cache/Cache_Data" && python3 -c "
 import os,re,collections
 hits=collections.Counter()
 for n in os.listdir('.'):
@@ -579,8 +579,8 @@ js→mjs→cjs→ts 的顺序）。它是 09-22 恢复时按 `.ts` 格式化出�
 （`windows.ts:3` 的 `resources/icon.png?asset`，文件在、env.d.ts 有声明）—— 扫描器不去查询串，假阳性。
 
 **上一轮 e2e 读数不作数**：那 39 分钟是在 `.js` 配置空转下跑的（没有 screenshot 页，
-`4 passed / 1 skipped / 9 did not run`，且 `playwright.config.mjs` 里 `LEAF_SKIP_BUILTIN_PLUGINS`
-+ `LEAF_FILE_INDEX_SCOPES` 两行被贴了两遍 —— 已去重）。全量重跑读数待补在下一节。
+`4 passed / 1 skipped / 9 did not run`，且 `playwright.config.mjs` 里 `FROND_SKIP_BUILTIN_PLUGINS`
++ `FROND_FILE_INDEX_SCOPES` 两行被贴了两遍 —— 已去重）。全量重跑读数待补在下一节。
 
 **e2e 里目前唯一没被排除的窗口**：`e2e/launcher.spec.mjs` 内容在基线之前就被毁（见 §10.4），
 显式 `test.skip`，不是「测过了」。
@@ -652,7 +652,7 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   从静态清单里删掉的 `ai:translate` / `ai:summarize` / `ai:rewrite` 那三条（§10 H 类）。
 
 **处置**：整体移出仓库（没有就地删），落在
-`~/Documents/leaf-desktop-baseline-2026-09-22/recovery-material/root-scratch--2026-09-23/`，
+`~/Documents/frond-desktop-baseline-2026-09-22/recovery-material/root-scratch--2026-09-23/`，
 11 个文件全在。移出前核过：tsconfig / eslint / vitest / playwright / electron-builder
 没有任何一处引用这四个根目录路径；移出后 `git status` 未跟踪项归零，已跟踪文件一处未动。
 复现口径（下回再有这类残渣）：`git status --porcelain -unormal | grep '^??'`。
@@ -711,7 +711,7 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   重生成过程真抓到一个用户可见缺陷（见下）。
   **仍缺的两份不在拍板范围内**：`docs/modules/INDEX.md`（`docs/README.md` 末「模块文档」指着，
   `docs/modules/` 整个目录不存在）与根 `LICENSE`（选许可证是法律决定，等人给）。
-- **内置插件 `com.leaf.currency` 有网也永远报「请检查网络连接」**（2026-09-23 由 QA 清单的读码复核抓到）：
+- **内置插件 `com.frond.currency` 有网也永远报「请检查网络连接」**（2026-09-23 由 QA 清单的读码复核抓到）：
   `fetchRates` 取 `res.data`，而宿主 `proxyPluginFetch` 回的是 `{ok,status,body,contentType,error}`
   —— 没有 `data` 字段，于是 `rates` 恒为 `undefined`，`index.html:156` 的守卫必然走失败分支。
   已改为 `JSON.parse(res.body)` 并校验 `rates` 存在。**改完仍未真机验过**（要一张汇率图才算数）。
@@ -779,7 +779,7 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 ① `screenshot:startCapture` 的 handler 真在启动序列里注册（`main/index.ts:404` 那行是补的）；
 ② 起来的是上游预构建页（`react-screenshots/dist/electron.html`）；
 ③ 覆盖层里**真拖一个选区、真点「确定」**，图落进 `shot_index` 扫得到的目录并被搜到
-（正例 `name:Leaf-` + 反例 `name:zzz-绝对不存在-xyz` 成对）；
+（正例 `name:Frond-` + 反例 `name:zzz-绝对不存在-xyz` 成对）；
 ④ 点「取消」不落盘。工具栏 11 个 `title` 断言顺带证明 `lang` 传进了上游页面。
 
 **这一批探到的四个坑，下次别重新踩**：
@@ -800,10 +800,10 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 没有尺寸）。判据取放大镜文本 `坐标:`（它来自我们传的 `lang`，顺带证 `setLang` 生效），
 并且每个轮询周期要重发一次 `mousemove`。
 
-**新增 env 覆盖 `LEAF_SHOT_DIRS`**（`services/ScreenshotIndexService.ts:74-90`，套路同
-`LEAF_FILE_INDEX_SCOPES`）：截图落盘与索引扫描都走 `screenshotDirs()`，覆盖后两边一致。
+**新增 env 覆盖 `FROND_SHOT_DIRS`**（`services/ScreenshotIndexService.ts:74-90`，套路同
+`FROND_FILE_INDEX_SCOPES`）：截图落盘与索引扫描都走 `screenshotDirs()`，覆盖后两边一致。
 不加这条，e2e 会**往真实桌面写图**并扫整个桌面做 OCR —— 本次接线前确实这么污染过一次
-（`~/Desktop/Leaf-20260923101813.png`，已移出桌面）。
+（`~/Desktop/Frond-20260923101813.png`，已移出桌面）。
 
 **贴图/钉图按拍板整体撤销**（「不要这贴图、钉图的功能」）。顺带查清一条事实：
 `registerPinHandlers()` 全仓**零调用方** → 贴图从来就没通过，`650fd1b` 补的 `/screenshot/pin`
@@ -838,3 +838,24 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   **「⌥⇧S 能起第三方覆盖层，确认后文件落进截图库扫得到的目录」**，
   否则这次替换又是一次「构建过、没跑过」。
 - ⌥⇧S 那套可配置热键与本次替换无关，**保留**（`launcher/hotkeys.ts` 的注册链就是新实现要用的入口）。
+
+## 12. 2026-09-23 改名 Leaf → Frond（8ba2116）：搬迁已经跑过，留给下手的五条
+
+盘上存量在真机上搬完了（`~/Library/Application Support/leaf-desktop` 整个目录已改名成
+`frond-desktop`，库文件 `.frond-key` 与 21 个插件目录都跟着换），机制在
+`src/main/modules/brandMigration.ts` + migration 031 + 渲染端 `main.ts` 的 localStorage 键搬迁。
+
+1. **恢复线索按新路径找**：dev-server 缓存里那份「内联 sourcemap 的原件」现在在
+   `frond-desktop/Cache/Cache_Data/`，别再按 `leaf-desktop` 去扫（§见 devserver-cache 那条经验）。
+2. **`pnpm install` 在这台机器上必挂，与改名无关**：Python 3.14 删了 `distutils`，node-gyp 9
+   重建 `@parcel/watcher` 报 `No module named 'distutils'`。改名只是让 install 重跑了一次
+   把它暴露出来。原生模块用的仍是既有预编译件（better-sqlite3 实测可加载），要装就
+   `pnpm install --ignore-scripts`；真要走重建得先给 node-gyp 补 `setuptools`。
+3. **e2e 有 7 条红**（`density` 2 + `market-index` 5），已对基线 A/B：`bc7a8a8`（改名前）
+   同样 7 条红，所以不是改名造成的。都卡在「等 `结果列表密度` 可见 / 进启动器管理页」这类
+   导航断言上，要修得单开一条，别混进改名。
+4. **两条中间提交单独 checkout 建不起来**：`fa40402` / `31d5971` 只带走了我先行的 `git mv`
+   路径改名（`leafUrl.ts` → `frondUrl.ts`），没带走文本改动，`index.ts` 里还 import 旧路径。
+   8ba2116 补齐了另一半，从这条往后再看历史才是自洽的。
+5. **macOS 授权要重授一次**：`appId` 从 `com.leaf.app` 变成 `com.frond.app`，辅助功能
+   （全局热键 / 文本扩展 / 专注护盾）与屏幕录制在系统设置里会重新出现待授权提示。

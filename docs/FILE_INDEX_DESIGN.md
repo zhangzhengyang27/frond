@@ -1,14 +1,14 @@
-# Leaf · 文件自建索引设计（#9，2026-09-18）
+# Frond · 文件自建索引设计（#9，2026-09-18）
 
 > 对应 `RAYCAST_GAP_ANALYSIS_V4.md` §2.7 的 P0 缺口：文件搜索受制于 Spotlight（mdfind）
 > 与 Windows PowerShell 递归。参考 `references/vicinae/src/file-indexer/`（独立进程 + inotify
-> + sqlite FTS5 + skeleton 骨架词 + gitignore 式排除），适配 Leaf 的 Electron + better-sqlite3 栈。
+> + sqlite FTS5 + skeleton 骨架词 + gitignore 式排除），适配 Frond 的 Electron + better-sqlite3 栈。
 > **状态：设计稿，待确认后实施。**
 
 ## 1. 目标与非目标
 
 **目标**
-- 文件名搜索不再依赖 Spotlight：自建索引即时（<50ms 量级）、可控（自管排除规则）、跨状态稳定（Spotlight 被禁用/重建时 Leaf 不受影响）
+- 文件名搜索不再依赖 Spotlight：自建索引即时（<50ms 量级）、可控（自管排除规则）、跨状态稳定（Spotlight 被禁用/重建时 Frond 不受影响）
 - Windows 获得与 macOS 同级的文件搜索体验（现状是 PowerShell 裸递归，无索引）
 - 增量更新：文件系统事件驱动，非轮询全扫
 
@@ -22,7 +22,7 @@
 | 决策 | 选择 | 理由 |
 | --- | --- | --- |
 | 存储位置 | **独立 sqlite 文件** `userData/file-index.db` | Vicinae 同款决策：索引体积大、可随时 drop 重建，不进主库迁移序列（030+ 不受影响），不撑大用户数据备份 |
-| 运行位置 | **main 进程内模块**（非独立进程） | Vicinae 独立进程是 C++ 特有需要；Leaf 里独立进程收益低（better-sqlite3 同步写用分片 + yield 控制阻塞），少一套进程管理 |
+| 运行位置 | **main 进程内模块**（非独立进程） | Vicinae 独立进程是 C++ 特有需要；Frond 里独立进程收益低（better-sqlite3 同步写用分片 + yield 控制阻塞），少一套进程管理 |
 | 扫描调度 | 初始全量**分片扫描**（每片 N 条 yield 事件循环）+ **FSEvents 增量** | 对应 Vicinae 的 filesystem-walker / incremental-scanner / io-pacer 三件套 |
 | FS 事件源 | macOS `fsevents` npm 包（chokidar 同款底层，原生 FSEvents）| Windows 后续用 `@parcel/watcher` 或 ReadDirectoryChangesW 封装（M3） |
 | 数据表 | FTS5 虚拟表 + 目录水位表 | 见 §3 |
@@ -55,7 +55,7 @@ CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);  -- schema 版本 / 上次
 
 - **范围（scopes）**：用户在管理页配置目录列表，持久化到 meta 表；默认值待拍板（见 §8）
 - **内置排除**（不可关）：`node_modules` / `.git` / `Library` / 缓存与构建产物目录（对齐 Vicinae excludedPaths + Raycast 默认排除 node_modules）
-- **`.leafignore`**：目录内放此文件即整目录跳过（Raycast `.rayignore` 对应物；gitignore 全语法解析后置 M2，v1 只支持「文件存在 → 跳目录」）
+- **`.frondignore`**：目录内放此文件即整目录跳过（Raycast `.rayignore` 对应物；gitignore 全语法解析后置 M2，v1 只支持「文件存在 → 跳目录」）
 - **隐藏文件开关**（默认忽略 dot 开头，管理页可开）
 - **磁盘保护**：单文件条目上限（如 50 万）+ 索引体积上限（如 512MB），触顶停止并提示
 
@@ -79,7 +79,7 @@ CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);  -- schema 版本 / 上次
 ## 7. 里程碑
 
 - **M1（本轮）**：schema + 扫描器 + FSEvents 增量 + 排除治理 + fileSearch 集成（macOS，name 模式）+ 管理页区
-- **M2**：content 模式（FTS 加 content 列，macOS 替代 mdfind content）+ .leafignore 全语法 + Windows（@parcel/watcher）
+- **M2**：content 模式（FTS 加 content 列，macOS 替代 mdfind content）+ .frondignore 全语法 + Windows（@parcel/watcher）
 - **M3**：断连卷策略 / spellfix1 容错 / 索引体积统计可视化
 
 ## 8. 需拍板事项

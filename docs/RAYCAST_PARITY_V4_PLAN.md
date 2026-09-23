@@ -31,9 +31,9 @@
 - 验收：typecheck 双端过；纯逻辑（音量档位映射等）补单测
 
 ### B4 · 系统集成（主进程 launcher 侧，不碰 preload）
-- [x] **leaf:// URL Scheme**：`setAsDefaultProtocolClient('leaf')` + `open-url` 路由（`leaf://launcher` 唤起胶囊 / `leaf://settings` 打开设置）
+- [x] **frond:// URL Scheme**：`setAsDefaultProtocolClient('frond')` + `open-url` 路由（`frond://launcher` 唤起胶囊 / `frond://settings` 打开设置）
 - [x] **Quicklinks 复用已有标签页**：打开 quicklink 前经 BrowserTabsService 查精确 URL 匹配，命中则激活标签而非新开（设置项默认开，可关）
-- 验收：`open leaf://launcher` 实测唤起；quicklink 命中标签时聚焦
+- 验收：`open frond://launcher` 实测唤起；quicklink 命中标签时聚焦
 
 ### B5 · 视觉/后续（本轮不做，登记）
 - 毛玻璃真机人工验收（V3 ⏳ 项）

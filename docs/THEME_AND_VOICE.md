@@ -1,4 +1,4 @@
-# Leaf · 主题与文案语调（THEME & VOICE）
+# Frond · 主题与文案语调（THEME & VOICE）
 
 > **本文件 2026-09-23 从代码重生成。** 原件与 `PLUGIN_QA_CHECKLIST.md` 一起随 2026-09-22 桌面误删事故丢失，各备份池无副本，所以这里的内容全部来自当下盘面上的代码与活文档，不引用任何记忆中的"原来写过的话"。
 > `docs/README.md:24` 对本文的期望是「主题与文案语调」。**语调（第 5 节）那一半没有事故前成文依据**，写法与主题那一半不同，见 §5.0。
@@ -26,8 +26,8 @@
 | 轴 | 取值 | 载体 | 持久化 | 生效方式 | 默认为何 |
 | --- | --- | --- | --- | --- | --- |
 | **A 明暗** | `light` / `dark` / `auto` | `html.dark` 类 + `html[data-theme]`（`useTheme.ts:50-67`） | `preferences` 表 `theme` 键，缺省回落 `'auto'`（`PreferencesDataStore.ts:85-102`、`ipc-contract.ts:1543-1544`） | 换类/属性 → `tokens.css` 的 `:root` / `html.dark` / `:root.dark,html.dark` 三块各自命中（`tokens.css:25,326,358-359`） | v4 产品决策：跟随系统（`useTheme.ts:26`） |
-| **B 主题集** | `''`（内置 tokens.css）或某个用户主题 id | 一段 `<style id="leaf-user-theme-vars">`（`useUserTheme.ts:15,29-36`） | `preferences` 表 `theme:activeUser` 键（`PreferencesDataStore.ts:54,105-120`） | 在 `tokens.css` **之上**叠一层覆盖；选内置即把节点整个摘掉 | 默认不注入，观感与未上此功能时一致 |
-| **C 观感档** | 密度 `comfortable/compact`、玻璃 `opaque/soft/clear`、紧凑模式 布尔 | 根元素上的 `--leaf-*` CSS 变量（`density.ts:39-43`、`capsuleGlass.ts:64-68`） | 三条独立 preference（`ipc-contract.ts:170-182`） | `setProperty` / `removeProperty` 落到 `documentElement`，消费端 `var(--leaf-x, token 兜底)` | 全默认 = 一个像素都不变 |
+| **B 主题集** | `''`（内置 tokens.css）或某个用户主题 id | 一段 `<style id="frond-user-theme-vars">`（`useUserTheme.ts:15,29-36`） | `preferences` 表 `theme:activeUser` 键（`PreferencesDataStore.ts:54,105-120`） | 在 `tokens.css` **之上**叠一层覆盖；选内置即把节点整个摘掉 | 默认不注入，观感与未上此功能时一致 |
+| **C 观感档** | 密度 `comfortable/compact`、玻璃 `opaque/soft/clear`、紧凑模式 布尔 | 根元素上的 `--frond-*` CSS 变量（`density.ts:39-43`、`capsuleGlass.ts:64-68`） | 三条独立 preference（`ipc-contract.ts:170-182`） | `setProperty` / `removeProperty` 落到 `documentElement`，消费端 `var(--frond-x, token 兜底)` | 全默认 = 一个像素都不变 |
 
 A 与 B 是**正交**的：一套用户主题自带 `appearance`，激活时设置页会顺手把 A 切过去，否则「深色主题配在亮底上会花」（`SettingsView.vue:177-178`，注释原话）。C 与主题无关，但它和 B 用同一套「往根上写变量」的机制，所以 §3.2 那条摘除教训对它同样成立。
 
@@ -81,7 +81,7 @@ A 与 B 是**正交**的：一套用户主题自带 `appearance`，激活时设�
 
 ### 1.5 摘除：切回内置 = 删掉那个节点
 
-`applyThemeVars(null)` → `document.getElementById('leaf-user-theme-vars')?.remove()`（`useUserTheme.ts:21-24`）；`applyActive()` 在找不到目标主题时传的就是 `null`（`:44-47`）。这条被 e2e 直接钉成断言：`e2e/user-theme.spec.mjs:117-125`（点「内置（tokens.css）」后既要比变量值回到 `#…`，也要 `getElementById(...) === null`）。
+`applyThemeVars(null)` → `document.getElementById('frond-user-theme-vars')?.remove()`（`useUserTheme.ts:21-24`）；`applyActive()` 在找不到目标主题时传的就是 `null`（`:44-47`）。这条被 e2e 直接钉成断言：`e2e/user-theme.spec.mjs:117-125`（点「内置（tokens.css）」后既要比变量值回到 `#…`，也要 `getElementById(...) === null`）。
 
 ### 1.6 多窗口一致：靠广播，不靠各窗自读
 
@@ -172,7 +172,7 @@ A 与 B 是**正交**的：一套用户主题自带 `appearance`，激活时设�
 | 说法 | 实情 | 出处 |
 | --- | --- | --- |
 | 「CSS 变量用 `setProperty(name, '')` 是显式设成非法值，必须 `removeProperty`」 | **已按这条写着**，写在胶囊玻璃档：`null`（这一档不覆盖）→ `removeProperty`，否则 `setProperty` | `src/shared/capsuleGlass.ts:84-89` |
-| 注释给出的理由 | "「不覆盖」和「设成空」差一个世界"；`setProperty(name,'')` 留下的是 guaranteed-invalid 的空自定义属性，消费端 `var(--leaf-capsule-blur)` **没写兜底值时**整条声明失效 | `capsuleGlass.ts:84-87`；有兜底的消费端如 `LauncherApp.vue:1958` `var(--leaf-capsule-bg, var(--launcher-bg))`、`:2160` `var(--leaf-row-pad-y, 8px)` |
+| 注释给出的理由 | "「不覆盖」和「设成空」差一个世界"；`setProperty(name,'')` 留下的是 guaranteed-invalid 的空自定义属性，消费端 `var(--frond-capsule-blur)` **没写兜底值时**整条声明失效 | `capsuleGlass.ts:84-87`；有兜底的消费端如 `LauncherApp.vue:1958` `var(--frond-capsule-bg, var(--launcher-bg))`、`:2160` `var(--frond-row-pad-y, 8px)` |
 | 仓库自己的**实测**结论（比上面那句更弱） | 单测注释写的是：实测 `setProperty(k, '')` 在 Chromium 里**等价于删除属性**，"写空串"今天不会坏事；钉住 `removeProperty` 是为了表达显式的"不覆盖"，不依赖那条容易读错的规范细节 | `src/shared/__tests__/capsuleGlass.test.ts:15-16`，桩与断言 `:29,54` |
 | 用户主题那条路 | **不用** `removeProperty`：整段覆盖是一个 `<style>` 节点，摘除就是删节点（`applyThemeVars(null)` → `existing?.remove()`） | `src/renderer/src/composables/useUserTheme.ts:21-24`，e2e 侧断言 `user-theme.spec.mjs:123-125` |
 | 一处不对称（读码可见，非 bug 判定） | 密度只有 `setProperty`，**没有** `removeProperty` 分支，因为两档都发满三个键、没有"不覆盖"语义（`DENSITY` 两档各 3 键） | `src/shared/density.ts:26-29,45-54` 对比 `capsuleGlass.ts:43-45`（`opaque` 三个键全 `null`） |
@@ -188,7 +188,7 @@ A 与 B 是**正交**的：一套用户主题自带 `appearance`，激活时设�
 | 胶囊不变色，主窗变 | ①`core` 是不是 hsl/颜色名（那就整套不发，`themeFile.ts:276-278`）②`launcherThemeVars` 键集合 ③胶囊入口有没有跑 `initTheme`（`launcher-entry.ts:19`） | 三条都会给出"主窗变、胶囊不变" |
 | 改主题后另一扇窗没跟着变 | 广播有没有发（`preferences.ts:26-28,50-52`）、订阅是否在（`useTheme.ts:83-89` / `useUserTheme.ts:90-93`） | 两处订阅都 `try/catch`，preload 老会静默不订阅 |
 | 首帧闪一下 | 主窗看 `resolveWindowBackground()`（`windows.ts:12-23`）；胶囊看是否 mount 前 await | 切换中间色另见 §3.1 的 320ms 过渡 |
-| "切回内置还残留一点主题色" | 覆盖节点是否真被删（`useUserTheme.ts:21-24` + `user-theme.spec.mjs:123-125`）；再查是不是某个 `--leaf-*` 被写成了空串 | 后者是 §3.2 那格 |
+| "切回内置还残留一点主题色" | 覆盖节点是否真被删（`useUserTheme.ts:21-24` + `user-theme.spec.mjs:123-125`）；再查是不是某个 `--frond-*` 被写成了空串 | 后者是 §3.2 那格 |
 | 打开主题目录/导入没反应 | `preferences.ts:56-69,71-76`（选择框取消 → `{ok:false,canceled:true}`，不是错误） | 取消与失败在返回形状上就不同 |
 
 ### 3.4 现成闸口（改主题相关代码前后应看的）
@@ -238,10 +238,10 @@ A 与 B 是**正交**的：一套用户主题自带 `appearance`，激活时设�
 | # | 倾向（归纳，非规范） | 正例（`文件:行号`） | 反例 / 边界 |
 | --- | --- | --- | --- |
 | 1 | 空态 = "没有 X" + 下一步做什么，主语是内容不是用户 | `launcher/pages/ClipboardPage.vue:161`「还没有历史——复制任意内容后这里就会出现」；`launcher/pages/NotesPage.vue:76`「暂无笔记，点击上方新建」；`launcher/pages/BrowserTabsPage.vue:7-8`「没有打开的浏览器标签」+「在 Chrome 或 Safari 中打开一些标签页后重试」 | 也存在纯陈述不带动作的：`launcher/pages/CalendarPage.vue:50`「当天暂无提醒」、`views/screenRecorder/components/MarkersPanel.vue:98`「暂无标记」 |
-| 2 | 权限/失败类文案说**事实 + 路径 + 键名**，不评价用户 | `launcher/pages/SchedulePage.vue:5`「日历访问被拒绝：系统设置 → 隐私与安全性 → 日历，允许本应用后重试」、`:10`「日历尚未授权：回车或点击下方按钮发起授权」；`views/launcher/index.vue:984`「打开授权设置，把 Leaf 加入辅助功能列表后重试」 | — |
+| 2 | 权限/失败类文案说**事实 + 路径 + 键名**，不评价用户 | `launcher/pages/SchedulePage.vue:5`「日历访问被拒绝：系统设置 → 隐私与安全性 → 日历，允许本应用后重试」、`:10`「日历尚未授权：回车或点击下方按钮发起授权」；`views/launcher/index.vue:984`「打开授权设置，把 Frond 加入辅助功能列表后重试」 | — |
 | 3 | 「请重试」式甩锅话**不成立为禁令**：`后重试` 是主流写法，光秃的「请重试」也有 | 上面 `:5` 与 `BrowserTabsPage.vue:8` 都是 `…后重试` | **反例**：`views/screenRecorder/pages/RecordPage.vue:516,524`「无法创建合成流，请重试」「合成流无效，请重试」；`launcher/pages/McpCallPage.vue:24` 直接有一颗「重试」按钮 |
 | 4 | 中文全角标点、拉丁词与中文之间留半角空格、成对引用用 `「」`、省略号用 `…` | `ClipboardPage.vue:258`「图片暂无识别文本（OCR 未完成或无文字）」；`useSourceSelection.ts:213`「摄像头无法启动，可能被其他应用占用。请关闭其他使用摄像头的应用后重试」；`launcher/pages/SnippetsPage.vue:7`「没有匹配「${query}」的片段」；`BrowserTabsPage.vue:3`「正在读取浏览器标签…」、`SchedulePage.vue:7`「加载日程中…」 | 例外不少：`launcher/pages/AIChatPage.vue:47`「暂无预设，在设置中添加模型预设」（无空格需求）、个别页仍写 `...`（未逐页统计，**未证实**是否系统性） |
-| 5 | 按钮/动作条目用**动词开头**（与 `UI_ALIGNMENT_CHECKLIST.md:89` 的动宾基准同向） | `views/SettingsView.vue:822`「导入主题文件…」、`:839`「打开主题目录」；`SchedulePage.vue:18`「发起日历授权」；插件侧同样：`plugins/com.leaf.quickfolders/index.html:57-59`「打开 / 复制路径 / 移除」 | 底栏主按钮历史上是固定「↵ 执行」（`UI_ALIGNMENT_CHECKLIST.md:90-91` 把它记为待改项），"动词随选中项变"这条**当时未落地** |
+| 5 | 按钮/动作条目用**动词开头**（与 `UI_ALIGNMENT_CHECKLIST.md:89` 的动宾基准同向） | `views/SettingsView.vue:822`「导入主题文件…」、`:839`「打开主题目录」；`SchedulePage.vue:18`「发起日历授权」；插件侧同样：`plugins/com.frond.quickfolders/index.html:57-59`「打开 / 复制路径 / 移除」 | 底栏主按钮历史上是固定「↵ 执行」（`UI_ALIGNMENT_CHECKLIST.md:90-91` 把它记为待改项），"动词随选中项变"这条**当时未落地** |
 | 6 | 错误提示分两层：短标题（多为「X失败」）+ 原因进 `description` | `composables/useToast.ts:6-12`（用法示例就是 `toast.error('导出失败', { description: '磁盘已满' })`）；`views/launcher/index.vue:576,621,702,742`（导入/安装/更新/注册四类失败） | 也有只给标题不给原因的：`views/launcher/index.vue:562`「读取插件列表失败」、`:832`「偏好保存失败」 |
 | 7 | 状态陈述用完成态短语，不用感叹号、不用"哦/啦" | `views/launcher/index.vue:830`「偏好已保存」；`example-plugin/index.html:183`「作者名已改为 …」；`launcher/pages/SettingsPage.vue:60,67`「已开启 / 已关闭 / 当前平台不支持」；胶囊 `hints` 用「选择 / 切换 / 调节 / 返回」两字动词（`SettingsPage.vue:32-36`，页脚同义写作「↵ 切换 · ←→ 调节 · esc 返回」`:16`） | `views/screenRecorder/components/ClipEditor.vue:378`「还没有片段，先添加一个吧。」带句末语气词，与"极简专业"调性（`POSITIONING.md:11-17`）不完全一致 |
 

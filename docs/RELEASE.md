@@ -1,4 +1,4 @@
-# Leaf · 发布清单（Release Checklist）
+# Frond · 发布清单（Release Checklist）
 
 发布链路：`.github/workflows/release.yml`（tag `v*` 触发，三平台构建 + GitHub Release 上传）。
 CI 门禁：`.github/workflows/ci.yml`（lint / typecheck / 三平台单测 / e2e smoke）。
@@ -20,7 +20,7 @@ pnpm run release:preflight -- --target-only  # 只印生效的发布目标
 
 | 档 | 项 | 为什么 |
 | --- | --- | --- |
-| blocking | `electron-builder.yml` 的 publish 还是占位 `leaf-app/leaf-desktop` | 自动更新会去查一个不存在的仓库，而 `electron-builder` 本身是绿的 |
+| blocking | `electron-builder.yml` 的 publish 还是占位 `frond-app/frond-desktop` | 自动更新会去查一个不存在的仓库，而 `electron-builder` 本身是绿的 |
 | blocking | `package.json` 版本不是 `x.y.z` / 与触发 tag 不一致 | 更新通道按版本号比大小，方向猜错就是永久卡在旧版 |
 | blocking | 没有 `GH_TOKEN` / `GITHUB_TOKEN` | 产物只能躺在 CI 缓存里 |
 | warning | 未签名（无 `CSC_LINK`） | 现阶段刻意如此（D2），但必须写进发布说明 |
@@ -33,11 +33,11 @@ Gatekeeper 更严的版本连右键都不给。**未签名期间不要把自动�
 
 1. **建远端仓库**
    ```bash
-   gh repo create leaf-desktop --public --source=. --push   # 或私有 --private
+   gh repo create frond-desktop --public --source=. --push   # 或私有 --private
    ```
    开源定位见 `docs/POSITIONING.md`；仓库建好后删除本节并更新下一步。
 
-2. **替换 publish 占位**（当前 `leaf-app/leaf-desktop` 是占位，不存在的组织）
+2. **替换 publish 占位**（当前 `frond-app/frond-desktop` 是占位，不存在的组织）
    - `electron-builder.yml` → `publish.owner / publish.repo`
    - `dev-app-update.yml` → 同步替换（本地 `electron-vite` 预览态的更新源走这个文件）
    - `src/main/services/AutoUpdateService.ts` 头注释同步

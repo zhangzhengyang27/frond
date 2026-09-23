@@ -1,4 +1,4 @@
-# Leaf · SQLite 表结构与前缀规则
+# Frond · SQLite 表结构与前缀规则
 
 > **本文是 2026-09-23 从代码重生成的。** 2026-09-22 的误删事故把 `DB_SCHEMA.md` 与 `MIGRATIONS.md` 的原件、以及各备份池里的副本一起带走了（这笔账记在 `HANDOFF.md:693-697`：「6 个被链接指向的文件在基线 `8446ff2` 就没有、各池也无副本」）。
 > 所以：**下面每一条结论都指向代码行**，行号是这次逐文件读出来的；代码里查不到依据的一律写「未证实」并说明为什么值得查，不做补全式猜测。
@@ -15,7 +15,7 @@
 | `src/main/launcher/dataSync.ts`、`src/main/launcher/syncMerge.ts`、`src/main/launcher/docStore.ts` | 哪些表进同步、`__rev` 从哪来、`launcher_docs` / `sync_state` 的读写方 |
 | `src/main/db/dataMigrations*.ts`、`legacyArchive.ts`、`dbBackup.ts` | 数据迁移与备份/还原（详见 MIGRATIONS.md） |
 | `src/main/services/LogService.ts`、`src/main/modules/fileIndex/db.ts` | `log_entries` 写方；第二个 sqlite 文件 `file-index.db` |
-| 实机只读核对：`~/Library/Application Support/leaf-desktop/leaf.db`（dev userData，`sqlite3 -readonly`，2026-09-23） | `sqlite_master` 里真实存在的表/索引/触发器、`MAX(meta.version)=30`、`leaf_meta` 现有标志位 |
+| 实机只读核对：`~/Library/Application Support/frond-desktop/frond.db`（dev userData，`sqlite3 -readonly`，2026-09-23） | `sqlite_master` 里真实存在的表/索引/触发器、`MAX(meta.version)=30`、`frond_meta` 现有标志位 |
 
 约定：正文里的路径都相对仓库根；`:NN` 是行号。表清单里所有「现存」= 迁移链跑完后的净结果，与实机 `sqlite_master` 一致。
 
@@ -25,11 +25,11 @@
 
 | 项 | 值 / 行为 | 依据 |
 | --- | --- | --- |
-| 主库文件 | `userData/leaf.db`（dev 下 userData = `~/Library/Application Support/leaf-desktop`，包名 `leaf-desktop`） | `src/main/db/database.ts:20`、`:46`；`package.json:2` |
+| 主库文件 | `userData/frond.db`（dev 下 userData = `~/Library/Application Support/frond-desktop`，包名 `frond-desktop`） | `src/main/db/database.ts:20`、`:46`；`package.json:2` |
 | 打开时机 | 懒打开：任何 `database.handle` 第一次被取时才开；开完立刻跑迁移；`app.isReady()` 之前取句柄直接抛错 | `src/main/db/database.ts:49-68`、`:29-32`；`src/main/index.ts:302` |
 | PRAGMA | `journal_mode=WAL`、`foreign_keys=ON`、`synchronous=NORMAL`、`temp_store=MEMORY` | `src/main/db/database.ts:61-64` |
-| 打开前备份 | 库 > 50 MB 时先 `wal_checkpoint(TRUNCATE)` 再复制成 `leaf.db.bak.<ts>`，`quick_check` 不过就丢弃该备份，最多留 3 份 | `src/main/db/database.ts:21-22`、`:70-104` |
-| 第二个库文件 | 文件索引走**独立文件** `userData/file-index.db`，里面有自己的一张 `meta(key,value)` —— 与 `leaf.db` 的 `meta(version,applied_at)` 同名不同库，别混 | `src/main/modules/fileIndex/db.ts:2`、`:70`、`:265`、`:271` |
+| 打开前备份 | 库 > 50 MB 时先 `wal_checkpoint(TRUNCATE)` 再复制成 `frond.db.bak.<ts>`，`quick_check` 不过就丢弃该备份，最多留 3 份 | `src/main/db/database.ts:21-22`、`:70-104` |
+| 第二个库文件 | 文件索引走**独立文件** `userData/file-index.db`，里面有自己的一张 `meta(key,value)` —— 与 `frond.db` 的 `meta(version,applied_at)` 同名不同库，别混 | `src/main/modules/fileIndex/db.ts:2`、`:70`、`:265`、`:271` |
 | `resources` 侧 | 打包后的 `process.resourcesPath` 只放只读产物（内置插件目录、`plugins.json`），**不含任何 schema 或种子数据**；仓库 `resources/` 目前只有 `icon.png` | `src/main/launcher/builtinPlugins.ts:26`；`src/main/launcher/market.ts:88` |
 
 ---
@@ -117,7 +117,7 @@
 | 表 | 用途 | 主键 | 谁写它 |
 | --- | --- | --- | --- |
 | `meta` | **schema 版本表**：一行一个已应用版本（执行器与 001 都建它，`CREATE IF NOT EXISTS` 两处在） | `version` INTEGER（`database.ts:144-147`；`001:22-25`） | `src/main/db/database.ts:166-169`（迁移成功即写） |
-| `leaf_meta` | **数据迁移标志位 + 归档目录记账**（`data_migration_v1/v2/v3/v4_pomodoro_ms`、`data_migration_{aliases,ai,clips,recording_settings,markers}`、`legacy_archive_dir`） | `key` TEXT（`dataMigrations.ts:98-104`） | `dataMigrations.ts:166-170`、`:269-273`、`:294-297`、`:359-362`、`:395-400`；`dataMigrationsRecording.ts:172-175`；`dataMigrationsPomodoro.ts:58-61`。**不在任何迁移文件里**（§8-5） |
+| `frond_meta` | **数据迁移标志位 + 归档目录记账**（`data_migration_v1/v2/v3/v4_pomodoro_ms`、`data_migration_{aliases,ai,clips,recording_settings,markers}`、`legacy_archive_dir`） | `key` TEXT（`dataMigrations.ts:98-104`） | `dataMigrations.ts:166-170`、`:269-273`、`:294-297`、`:359-362`、`:395-400`；`dataMigrationsRecording.ts:172-175`；`dataMigrationsPomodoro.ts:58-61`。**不在任何迁移文件里**（§8-5） |
 | `log_entries` | 落地日志（与内存 ring buffer 互补，保留 5000 行） | `id` INTEGER 自增（`001:348-356`） | `src/main/services/LogService.ts:118-124`（插）+ `:128-134`（trim，常量 `:33`） |
 | `sync_state` | 多设备三方合并的**本机基线 + 墓碑**（`deleted_at` 非空即墓碑），刻意不进 bundle | `(tbl, row_key)`（`030:24-30`） | `src/main/launcher/dataSync.ts:326-329`；读 `:315-323` |
 | `geo_cache` | 017 为 Nominatim 反地理编码建的缓存表 | `key` TEXT（`017:23-28`） | **无读写方**（全仓只剩建表与排除清单 `dataSync.ts:137`）→ §8-3 |
@@ -183,7 +183,7 @@ DROP 全部包在 `db.transaction(() => { … })()` 里、且一律 `IF EXISTS`�
   - 笔记同样不走 FTS，明文 LIKE 下推（`NotesRepository.ts:133-139`）。
 - **`content` 列的双重身份**：`snip_snippets.content` 存第一个内容块的**明文**（`SnippetRepository.ts:286`），`snip_snippet_contents.value` 存**密文**（`:304`）—— 镜像索引的是前者。
 - **索引惯例**：时间戳 `DESC`（`001:55-58`、`:109-110`、`:223`、`029:27`）；带软删的表用 partial index（`008:72-76`、`009:43-47`、`009:58-62`、`010:41-45`、`002:32-36`）；外键子表用 `(父 id, 序号)` 复合索引（`004:33-36`、`008:65-68`）。
-- 文件索引另有其库：`userData/file-index.db` 的 `files` + `files_fts`（unicode61）+ `files_tri`（trigram 中缀兜底）+ `dirs` + 自己的 `meta`，触发器同型（`src/main/modules/fileIndex/db.ts:36-64`、`:70`、`:76`）。它**不在 `leaf.db` 里**，也就不受本文 §2 与迁移链管辖。
+- 文件索引另有其库：`userData/file-index.db` 的 `files` + `files_fts`（unicode61）+ `files_tri`（trigram 中缀兜底）+ `dirs` + 自己的 `meta`，触发器同型（`src/main/modules/fileIndex/db.ts:36-64`、`:70`、`:76`）。它**不在 `frond.db` 里**，也就不受本文 §2 与迁移链管辖。
 
 ---
 
@@ -199,7 +199,7 @@ DROP 全部包在 `db.transaction(() => { … })()` 里、且一律 `IF EXISTS`�
 | 不同步就必须在 `SYNC_EXCLUDED_TABLES` 点名并写理由；`syncExclusionAudit()` 负责抓「既不在清单也不在排除表」的新表 | 归类漏判要能被报出来 | `dataSync.ts:116-118`、`:120-151`、`:154-168` |
 | `meta` / `sync_state` 永不进 bundle | 一个是本机 schema 状态、一个是本机基线，同步过去等于两台设备共用「上次见过什么」 | `dataSync.ts:121-122`；`030_sync_state.ts:11-13` |
 
-**当前这张表与 schema 的偏差**（只报，不改）：`syncExclusionAudit()` 只在单测里跑（`src/main/launcher/__tests__/dataSync.test.ts:234-239`），启动/同步路径都不跑；且实机 `leaf.db` 里的 `leaf_meta` 既不在同步清单也不在排除表（`dataSync.ts:64-151`）—— 单测之所以绿，是因为它的库是纯迁移产物、不含 `leaf_meta`（`src/main/db/__tests__/testDb.ts:24-30`）。
+**当前这张表与 schema 的偏差**（只报，不改）：`syncExclusionAudit()` 只在单测里跑（`src/main/launcher/__tests__/dataSync.test.ts:234-239`），启动/同步路径都不跑；且实机 `frond.db` 里的 `frond_meta` 既不在同步清单也不在排除表（`dataSync.ts:64-151`）—— 单测之所以绿，是因为它的库是纯迁移产物、不含 `frond_meta`（`src/main/db/__tests__/testDb.ts:24-30`）。
 
 ---
 
@@ -228,7 +228,7 @@ DROP 全部包在 `db.transaction(() => { … })()` 里、且一律 `IF EXISTS`�
 | 2 | `snip_folders` 建了、还挂在同步清单上，但无读写方；片段树走 `folder_folders` | `001:189-198`；`dataSync.ts:85`；`FolderRepository.ts:195-201` |
 | 3 | `geo_cache` 无任何读写方（017 为素材库建的 Nominatim 反地理编码缓存，`017:8`；photo 域已随 018 下线） | `017:8`、`:22-29`；`dataSync.ts:137`；全仓检索无其他命中 |
 | 4 | `tag_tags.usage_count` 今天没人维护：唯一的 `bumpUsage()` 零调用方，014 的那次刷新只统计已删掉的 `photo_tags` | `TagRepository.ts:193-199`；`014:92-96`；`018:25` |
-| 5 | `leaf_meta` 不在迁移链里，由 8 处 `CREATE TABLE IF NOT EXISTS` 各自自建；因此「v30 之前存在哪张表」这件事不看迁移文件也能漂移 | `dataMigrations.ts:98-104`、`:334-338`、`:410-412`、`:436-438`、`:459-461`、`:485-487`；`dataMigrationsRecording.ts:74-80`；`dataMigrationsPomodoro.ts:38-42` |
+| 5 | `frond_meta` 不在迁移链里，由 8 处 `CREATE TABLE IF NOT EXISTS` 各自自建；因此「v30 之前存在哪张表」这件事不看迁移文件也能漂移 | `dataMigrations.ts:98-104`、`:334-338`、`:410-412`、`:436-438`、`:459-461`、`:485-487`；`dataMigrationsRecording.ts:74-80`；`dataMigrationsPomodoro.ts:38-42` |
 | 6 | 笔记/提醒用 `is_deleted` 布尔软删，其余业务表用 `deleted_at` 时间戳；同步与统计两侧都得到处特判 | `023:31`、`024:22` vs `001:53` 等 |
 | 7 | 录制的 `status` 枚举只靠写入路径约束（SQLite 无法给已有列补 CHECK，008 明说放弃） | `008:48-49`；`RecordingRepository.ts:18`（「status 枚举（业务层保证；SQLite CHECK 未加，详见 008 注释）」）、`:32` |
 | 8 | 旧注释会说 FTS「当前 schema 缺 trigger、写入时手动 upsert」，与 005/`:315` 的现状互相矛盾（该头注释是 005 之前的遗留） | `SnippetRepository.ts:9` vs `:315`、`:377` |

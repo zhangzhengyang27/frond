@@ -533,8 +533,8 @@ export interface API {
     ok: (buffer: ArrayBuffer, data: ScreenshotsData) => void
     save: (buffer: ArrayBuffer, data: ScreenshotsData) => void
     cancel: () => void
-    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void) => void
-    onReset: (cb: () => void) => void
+    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void) => () => void
+    onReset: (cb: () => void) => () => void
     removeListeners: () => void
     startCapture: () => Promise<ShotOkRes>
     endCapture: () => Promise<ShotOkRes>

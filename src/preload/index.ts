@@ -319,13 +319,19 @@ const api: API = {
     save: (buffer: ArrayBuffer, data: ScreenshotsData): void =>
       ipcRenderer.send('SCREENSHOT:save', buffer, data),
     cancel: (): void => ipcRenderer.send('SCREENSHOT:cancel'),
-    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void): void => {
-      ipcRenderer.on('SCREENSHOT:capture', (_e, display: ScreenshotDisplay, imageUrl: string) =>
-        cb(display, imageUrl)
-      )
+    onCapture: (cb: (display: ScreenshotDisplay, imageUrl: string) => void): (() => void) => {
+      const listener = (
+        _e: Electron.IpcRendererEvent,
+        display: ScreenshotDisplay,
+        imageUrl: string
+      ): void => cb(display, imageUrl)
+      ipcRenderer.on('SCREENSHOT:capture', listener)
+      return () => ipcRenderer.removeListener('SCREENSHOT:capture', listener)
     },
-    onReset: (cb: () => void): void => {
-      ipcRenderer.on('SCREENSHOT:reset', () => cb())
+    onReset: (cb: () => void): (() => void) => {
+      const listener = (): void => cb()
+      ipcRenderer.on('SCREENSHOT:reset', listener)
+      return () => ipcRenderer.removeListener('SCREENSHOT:reset', listener)
     },
     /** 覆盖层是整页重载的：重新挂监听前必须摘掉旧的，否则一次推送会跑两遍 */
     removeListeners: (): void => {

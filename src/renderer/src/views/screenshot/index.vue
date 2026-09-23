@@ -70,7 +70,7 @@ const refresh = async (): Promise<void> => {
     ])
     recents.value = recentRes.success ? recentRes.items : []
     usage.value = usageRes.success ? { totalSize: usageRes.totalSize, count: usageRes.count } : null
-    saveDir.value = dirRes.success ? dirRes.directory : ''
+    saveDir.value = dirRes.success ? (dirRes.directory ?? '') : ''
   } catch (error) {
     console.error('读取截图信息失败:', error)
   } finally {

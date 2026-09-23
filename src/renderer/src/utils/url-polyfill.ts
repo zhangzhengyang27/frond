@@ -6,7 +6,10 @@
  * 小工具给字符串实现（`fileURLToPath` 的语义就是去掉 file:// 前并解百分号）。
  */
 
-export { URL, URLSearchParams }
+// 浏览器本来就有这两个全局量；模块只能导出本地声明，所以先接住再改名导出
+const NativeURL = globalThis.URL
+const NativeURLSearchParams = globalThis.URLSearchParams
+export { NativeURL as URL, NativeURLSearchParams as URLSearchParams }
 
 export interface ParsedUrl {
   href: string
@@ -55,8 +58,8 @@ export function pathToFileURL(path: string): URL {
 }
 
 export default {
-  URL,
-  URLSearchParams,
+  URL: NativeURL,
+  URLSearchParams: NativeURLSearchParams,
   parse,
   format,
   fileURLToPath,

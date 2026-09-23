@@ -26,11 +26,13 @@ test.beforeAll(async () => {
   env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
 
+  // env 必须是**顶层**选项（HANDOFF §5）。Playwright 的 Electron.launch 实现是
+  // `const env = options.env ? envArrayToObject(options.env) : process.env`
+  // —— 写成 `launchOptions: { env }` 时上面那两条覆盖会被**静默丢弃**，
+  // 回退到 playwright.config.mjs 设的公共 e2e-userdata，本 spec 的独立目录形同虚设。
   app = await electron.launch({
     args: [MAIN_ENTRY],
-    launchOptions: {
-      env
-    }
+    env
   })
   console.log('[Pomodoro E2E] Electron 已启动')
 }, 120000)

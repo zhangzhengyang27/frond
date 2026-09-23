@@ -56,9 +56,13 @@ test.beforeAll(async () => {
   const env = { ...process.env }
   delete env.ELECTRON_RUN_AS_NODE
 
+  // env 必须是**顶层**选项（HANDOFF §5）。Playwright 的 Electron.launch 实现是
+  // `const env = options.env ? envArrayToObject(options.env) : process.env`
+  // —— 写成 `launchOptions: { env }` 时 options.env 是 undefined，会**静默回退到
+  // process.env**：本 spec 想要的覆盖全部失效，且不报任何错。
   app = await electron.launch({
     args: [MAIN_ENTRY],
-    launchOptions: { env }
+    env
   })
 }, 120000)
 

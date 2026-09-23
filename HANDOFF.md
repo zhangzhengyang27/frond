@@ -612,6 +612,13 @@ grep -rl "2026-09-2[23] 重建" src --include="*.vue" --include="*.ts" --include
 
 ### 剩下的账（2026-09-23 收工口径）
 
+- **文档层也有洞，但那是「写不写」不是「找回」**：6 个被链接指向的文件在基线 `8446ff2` 就没有、
+  各池也无副本（`docs/ROUTING.md` `DB_SCHEMA.md` `MIGRATIONS.md` `THEME_AND_VOICE.md`
+  `SIGNING_MAC.md` `PLUGIN_QA_CHECKLIST.md`，外加根 `LICENSE`）。
+  量出来的命令：扫全仓 md 的非 http 链接指向不存在文件（本次共 10 条悬空）。
+  `example-plugin/README.md` 同为此类：它是随 `example-plugin/` 整目录丢的，
+  两份文档还指着它 —— 已改成直接指模板三件本体，**没有代写教程**（字段表以代码为准，凭记忆写会误导）。
+  要不要照 migrations / 主题 token / D2 决策把上面那几份重生成一遍，属产品决定，等拍板。
 - `clipHist.setKeywords`：**读侧齐、写侧没入口**（渲染层两处搜索都消费 `item.keywords`，
   但没有任何 UI 调 `setKeywords`）。要不要给剪贴板条目加「备注关键词」的编辑入口是产品决定，
   不是恢复遗漏 —— 别顺手当 bug 修。

@@ -7,8 +7,9 @@
 - 安装/清单：`src/main/launcher/pluginStore.ts`；市场：`src/main/launcher/market.ts`；
   开发热重载：`src/main/launcher/devPlugins.ts`
 
-零起步教程（目录结构 / plugin.json 字段表 / 快速上手）见
-[`example-plugin/README.md`](../example-plugin/README.md)，本文不重复字段表，只补协议细节。
+零起步请看模板本体：[`example-plugin/`](../example-plugin/) 里三份文件就是最小可运行插件
+（`plugin.json` 是清单实例、`index.html` 是运行页、`launcher-api.d.ts` 是 API 类型声明）。
+字段表本文不重复，只补协议细节。
 
 ---
 

@@ -1,5 +1,5 @@
 /**
- * Leaf · 主进程 → 渲染端：菜单 / dock / tray 跳转统一处理
+ * Frond · 主进程 → 渲染端：菜单 / dock / tray 跳转统一处理
  *
  * 订阅的 channel（src/main/modules/appMenu.ts 发出）：
  * - app:openModule           { moduleId, path }

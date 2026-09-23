@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 009 — Pomodoro v2
+ * Frond · Migration 009 — Pomodoro v2
  *
  * 背景：
  * - P0-2 升级：番茄钟任务支持「预估 / 优先级 / 项目 / 描述」

@@ -1,5 +1,5 @@
 /**
- * Leaf · RecordingSegmentRepository
+ * Frond · RecordingSegmentRepository
  *
  * 职责：管理 rec_segments 表（暂停分片记录）。
  * 用于：状态机切换 pause/resume 时记录分段，让 UI / 最终时长统计能识别「实际录制时长」。

@@ -45,7 +45,7 @@ async function persistShot(buffer: Buffer): Promise<string | null> {
     .toISOString()
     .replace(/[-:.TZ]/g, '')
     .slice(0, 14)
-  const filePath = join(dir, `Leaf-${stamp}.png`)
+  const filePath = join(dir, `Frond-${stamp}.png`)
   writeFileSync(filePath, buffer)
   void screenshotIndexService.scan().catch((error: unknown) => {
     log.warn('screenshot', `索引截图失败: ${(error as Error).message}`)

@@ -1,5 +1,5 @@
 /**
- * Leaf · Log IPC（导出 + telemetry mode 切换）
+ * Frond · Log IPC（导出 + telemetry mode 切换）
  *
  * 暴露给渲染端：
  * - log:export         导出当前 ring buffer + meta 为 JSON 文件，返回绝对路径

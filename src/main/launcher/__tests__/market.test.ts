@@ -32,7 +32,7 @@ import type { InstalledPlugin } from '../pluginStore'
 let root: string
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'leaf-market-'))
+  root = mkdtempSync(join(tmpdir(), 'frond-market-'))
 })
 
 afterEach(() => {
@@ -308,15 +308,15 @@ describe('远程索引（P-3.1）', () => {
   })
 
   it('mergeMarketEntries：打包索引胜出，远程同名条目被挡且如实上报', () => {
-    const local = [remoteEntry({ id: 'com.leaf.example' }), remoteEntry({ id: 'com.a.p' })]
+    const local = [remoteEntry({ id: 'com.frond.example' }), remoteEntry({ id: 'com.a.p' })]
     const remote = [
-      remoteEntry({ id: 'com.leaf.example', download: 'https://evil.example.com/payload.zip' }),
+      remoteEntry({ id: 'com.frond.example', download: 'https://evil.example.com/payload.zip' }),
       remoteEntry({ id: 'com.new.p' })
     ]
     const merged = mergeMarketEntries(local, remote)
-    expect(merged.plugins.map((p) => p.id)).toEqual(['com.leaf.example', 'com.a.p', 'com.new.p'])
+    expect(merged.plugins.map((p) => p.id)).toEqual(['com.frond.example', 'com.a.p', 'com.new.p'])
     expect(merged.plugins[0].download).not.toMatch(/evil/)
-    expect(merged.shadowed).toEqual(['com.leaf.example'])
+    expect(merged.shadowed).toEqual(['com.frond.example'])
   })
 
   it('缓存信封：缺 url / fetchedAt 或非 https url 都当成没有缓存', () => {
@@ -467,15 +467,15 @@ describe('远程索引（P-3.1）', () => {
   })
 
   it('mergeMarketEntries：打包索引胜出，远程同名条目被挡且如实上报', () => {
-    const local = [remoteEntry({ id: 'com.leaf.example' }), remoteEntry({ id: 'com.a.p' })]
+    const local = [remoteEntry({ id: 'com.frond.example' }), remoteEntry({ id: 'com.a.p' })]
     const remote = [
-      remoteEntry({ id: 'com.leaf.example', download: 'https://evil.example.com/payload.zip' }),
+      remoteEntry({ id: 'com.frond.example', download: 'https://evil.example.com/payload.zip' }),
       remoteEntry({ id: 'com.new.p' })
     ]
     const merged = mergeMarketEntries(local, remote)
-    expect(merged.plugins.map((p) => p.id)).toEqual(['com.leaf.example', 'com.a.p', 'com.new.p'])
+    expect(merged.plugins.map((p) => p.id)).toEqual(['com.frond.example', 'com.a.p', 'com.new.p'])
     expect(merged.plugins[0].download).not.toMatch(/evil/)
-    expect(merged.shadowed).toEqual(['com.leaf.example'])
+    expect(merged.shadowed).toEqual(['com.frond.example'])
   })
 
   it('缓存信封：缺 url / fetchedAt 或非 https url 都当成没有缓存', () => {
@@ -566,7 +566,7 @@ describe('findManifestDir', () => {
   })
 
   it('指向外部的符号链接目录不通过校验（穿越防御）', () => {
-    const outside = mkdtempSync(join(tmpdir(), 'leaf-market-out-'))
+    const outside = mkdtempSync(join(tmpdir(), 'frond-market-out-'))
     try {
       writeFileSync(join(outside, 'plugin.json'), '{}')
       const link = join(root, 'evil')
@@ -585,14 +585,14 @@ const hasZipTools =
 describe.skipIf(!hasZipTools)('extractZip（真实解压）', () => {
   it('解压出的目录可被 findManifestDir 定位', async () => {
     const pkgDir = join(root, 'src-pkg')
-    const nested = join(pkgDir, 'com.leaf.example')
+    const nested = join(pkgDir, 'com.frond.example')
     mkdirSync(nested, { recursive: true })
-    writeFileSync(join(nested, 'plugin.json'), '{"id":"com.leaf.example","name":"示例"}')
+    writeFileSync(join(nested, 'plugin.json'), '{"id":"com.frond.example","name":"示例"}')
     const zipPath = join(root, 'pkg.zip')
     execFileSync('zip', ['-q', '-r', zipPath, '.'], { cwd: pkgDir })
 
     const dest = join(root, 'unpacked')
     await extractZip(zipPath, dest)
-    expect(findManifestDir(dest)).toBe(join(dest, 'com.leaf.example'))
+    expect(findManifestDir(dest)).toBe(join(dest, 'com.frond.example'))
   })
 })

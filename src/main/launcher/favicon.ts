@@ -1,5 +1,5 @@
 /**
- * Leaf · Quicklink favicon 抓取与缓存（本地优先）
+ * Frond · Quicklink favicon 抓取与缓存（本地优先）
  *
  * 渲染端为 quicklink 条目显示站点图标：
  * - 首选目标站点自身 /favicon.ico（无第三方服务依赖）

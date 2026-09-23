@@ -1,5 +1,5 @@
 /**
- * Leaf · 第一方命令提供者（阶段1.1）
+ * Frond · 第一方命令提供者（阶段1.1）
  *
  * 内置功能命令：AI、剪贴板历史、片段、录屏、番茄钟、设置、文件搜索等。
  * 迁移自 shared/commands.ts 的 FIRST_PARTY_COMMANDS / ACTION_COMMANDS。

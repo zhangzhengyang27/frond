@@ -1,10 +1,10 @@
 /**
- * Leaf · 数据库备份 / 还原（迁移中心 UI 用）
+ * Frond · 数据库备份 / 还原（迁移中心 UI 用）
  *
  * 设计：
- * - exportDb()：把 leaf.db（含 WAL / SHM）复制到用户选的位置（showSaveDialog）
+ * - exportDb()：把 frond.db（含 WAL / SHM）复制到用户选的位置（showSaveDialog）
  * - importDb()：用户选 db 文件，先关 db handle，用其覆盖现有 db，重启应用
- * - factoryReset()：删 leaf.db + WAL + SHM + 重启；下次启动重建数据库
+ * - factoryReset()：删 frond.db + WAL + SHM + 重启；下次启动重建数据库
  *
  * 安全策略：
  * - 所有破坏性操作（import / reset）执行后调 app.relaunch() + app.exit(0)
@@ -50,7 +50,7 @@ export function validateSqliteFile(src: string): string | null {
 }
 
 /**
- * 把当前 leaf.db 复制到用户选的位置。
+ * 把当前 frond.db 复制到用户选的位置。
  * 返回保存路径（用户取消则 null）。
  */
 export async function exportDb(getMainWindow: () => BrowserWindow | null): Promise<string | null> {
@@ -59,7 +59,7 @@ export async function exportDb(getMainWindow: () => BrowserWindow | null): Promi
 
   const result = await dialog.showSaveDialog(win ?? undefined!, {
     title: '导出数据库',
-    defaultPath: `leaf-${new Date().toISOString().slice(0, 10)}.db`,
+    defaultPath: `frond-${new Date().toISOString().slice(0, 10)}.db`,
     filters: [{ name: 'SQLite 数据库', extensions: ['db'] }],
     properties: ['createDirectory', 'showOverwriteConfirmation']
   })
@@ -173,7 +173,7 @@ export function applyDbFile(sourcePath: string): void {
 }
 
 /**
- * 恢复出厂：删 leaf.db + WAL + SHM，重启应用。
+ * 恢复出厂：删 frond.db + WAL + SHM，重启应用。
  * 下次启动自动重建数据库（空 SQLite + dataMigrations() 跳过）。
  */
 export async function factoryReset(getMainWindow: () => BrowserWindow | null): Promise<boolean> {

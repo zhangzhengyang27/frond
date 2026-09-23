@@ -1,9 +1,9 @@
 /**
- * Leaf · 录制历史数据迁移（v3）
+ * Frond · 录制历史数据迁移（v3）
  *
  * 职责：把 userData/recording-history.json 一次性导入 SQLite rec_recordings。
  * 触发：installDatabase() + runDataMigrations() 完成后调用一次。
- * 幂等：用 leaf_meta.data_migration_v3 标志位（PR-2 引入）。
+ * 幂等：用 frond_meta.data_migration_v3 标志位（PR-2 引入）。
  *
  * 设计要点：
  * - 旧 JSON id (Date.now()+random) 不兼容 SQLite UUIDv4 约定 → 生成新 UUID，
@@ -70,9 +70,9 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
     return result
   }
 
-  // 确保 leaf_meta 表存在（v1/v2 已建，但保险）
+  // 确保 frond_meta 表存在（v1/v2 已建，但保险）
   db.exec(
-    `CREATE TABLE IF NOT EXISTS leaf_meta (
+    `CREATE TABLE IF NOT EXISTS frond_meta (
        key TEXT PRIMARY KEY,
        value TEXT,
        updated_at INTEGER NOT NULL
@@ -80,7 +80,7 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
   )
 
   // 幂等：v3 已 done 直接返回
-  const v3Done = db.prepare('SELECT value FROM leaf_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
+  const v3Done = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
     | { value: string }
     | undefined
   if (v3Done?.value === 'done') {
@@ -107,7 +107,7 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
     log.info('dataMigration.v3', `no ${LEGACY_RECORDING_FILE} in ${userData}, skip`)
     // 仍然标记 done 避免每次启动都检查
     db.prepare(
-      `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+      `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
     ).run(DATA_MIGRATION_KEY, 'done', Date.now())
     return result
@@ -126,7 +126,7 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
   if (!Array.isArray(parsed) || parsed.length === 0) {
     log.info('dataMigration.v3', `${LEGACY_RECORDING_FILE} empty, skip`)
     db.prepare(
-      `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+      `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
     ).run(DATA_MIGRATION_KEY, 'done', Date.now())
     return result
@@ -170,7 +170,7 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
 
   // 标记 v3 done
   db.prepare(
-    `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+    `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
   ).run(DATA_MIGRATION_KEY, 'done', Date.now())
 

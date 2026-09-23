@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器插件专用 preload
+ * Frond · 启动器插件专用 preload
  *
  * 通过 contextBridge 向插件页面暴露受控 API（window.launcherApi）。
  * 安全模型：contextIsolation 开启、nodeIntegration 关闭——插件拿不到
@@ -172,6 +172,6 @@ contextBridge.exposeInMainWorld('launcherApi', launcherApi)
 
 // 主进程 sendHook 通过 executeJavaScript 调用（运行在主世界），
 // contextIsolation 下经 contextBridge 暴露桥接入口
-contextBridge.exposeInMainWorld('leafPluginHooks', {
+contextBridge.exposeInMainWorld('frondPluginHooks', {
   emit: (type: HookType, data: unknown): void => dispatch(type, data)
 })

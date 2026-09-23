@@ -1,9 +1,9 @@
 /**
- * Leaf · E2E 烟雾测试（playwright + _electron）
+ * Frond · E2E 烟雾测试（playwright + _electron）
  *
  * 启动 electron-vite preview 产物的 Electron 实例，验证：
- * 1. 主窗口出现（title 含 Leaf）
- * 2. 首屏渲染成功（DOM 可见 body 或 .leaf-home）
+ * 1. 主窗口出现（title 含 Frond）
+ * 2. 首屏渲染成功（DOM 可见 body 或 .frond-home）
  * 3. 主题切换生效（IPC setTheme → document.documentElement.dataset.theme）
  *
  * 用法：
@@ -40,7 +40,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Leaf/.test(await w.title())) return w
+        if (/Frond/.test(await w.title())) return w
       } catch {
         // 窗口可能已关闭
       }
@@ -70,14 +70,14 @@ test('主窗口启动 + 首屏可见', async () => {
   if (!app) throw new Error('app not launched')
   const page = await getMainWindow()
 
-  // title 来自 src/renderer/index.html（产品名统一为 Leaf，见 docs/POSITIONING.md）
-  await expect(page).toHaveTitle(/Leaf/)
+  // title 来自 src/renderer/index.html（产品名统一为 Frond，见 docs/POSITIONING.md）
+  await expect(page).toHaveTitle(/Frond/)
 
   // 首屏要么是 Onboarding（首次启动），要么是 Hub（已完成引导）
   // 都应在 5s 内出现至少一个根元素
   await page.waitForLoadState('domcontentloaded')
   const rootExists = await page.evaluate(() => {
-    return !!document.querySelector('.leaf-onboarding, .LeafHome, body')
+    return !!document.querySelector('.frond-onboarding, .FrondHome, body')
   })
   expect(rootExists).toBe(true)
 })

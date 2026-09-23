@@ -1,5 +1,5 @@
 /**
- * Leaf · 胶囊玻璃档（P-6 浅色纯白那一格）
+ * Frond · 胶囊玻璃档（P-6 浅色纯白那一格）
  *
  * 现状是浅色主题下胶囊完全不透明（--launcher-bg: #ffffff、--launcher-blur: blur(0)），
  * 系统的 vibrancy 白做了。这一格加的是**用户可选**的透明度，不是改默认观感：
@@ -18,7 +18,7 @@
  * 内页（NotesPage / FilesPage / AIChatPage / FormPage …）仍是 44 处直读
  * `var(--launcher-bg-elevated)` 的实色表面。所以开了 soft/clear 之后看到的是
  * 「透的框 + 不透的内容」，而不是整块毛玻璃。
- * 要做到后者得让 token 本身过一层玻璃（`--launcher-bg: var(--leaf-capsule-bg, 基色)`，
+ * 要做到后者得让 token 本身过一层玻璃（`--launcher-bg: var(--frond-capsule-bg, 基色)`，
  * 基色另存一个名字否则自引用成环），那是连同 theme bridge 键数一起改的活，
  * 已登记在 V5 计划的待办里，不在这一格顺手做。
  *
@@ -62,9 +62,9 @@ export function normalizeGlass(raw: unknown): CapsuleGlass {
 }
 
 export const GLASS_CSS_VARS: Record<keyof GlassVars, string> = {
-  bg: '--leaf-capsule-bg',
-  blur: '--leaf-capsule-blur',
-  elevated: '--leaf-capsule-bg-elevated'
+  bg: '--frond-capsule-bg',
+  blur: '--frond-capsule-blur',
+  elevated: '--frond-capsule-bg-elevated'
 }
 
 /**
@@ -83,7 +83,7 @@ export function applyGlassVars(
     const value = vars[key]
     // null = 这一档不覆盖，交回 tokens.css。必须 removeProperty：
     // setProperty(name, '') 留下的是「guaranteed-invalid」的空自定义属性，
-    // 消费端 `var(--leaf-capsule-blur)` 没写兜底值时会整体失效（玻璃档直接不见），
+    // 消费端 `var(--frond-capsule-blur)` 没写兜底值时会整体失效（玻璃档直接不见），
     // 与「不覆盖」差一个世界 —— opaque 档的承诺就是观感与改动前完全一致。
     if (value === null) target.style.removeProperty(GLASS_CSS_VARS[key])
     else target.style.setProperty(GLASS_CSS_VARS[key], value)

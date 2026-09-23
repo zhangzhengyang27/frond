@@ -1,5 +1,5 @@
 /**
- * Leaf · 内置插件自动安装
+ * Frond · 内置插件自动安装
  *
  * 应用启动时扫描 resources/plugins/ 下的内置插件，
  * 未安装的自动安装（importFromFolder），已安装的跳过。
@@ -53,8 +53,8 @@ function readManifestSafe(dir: string): PluginManifest | null {
 export function autoInstallBuiltinPlugins(): void {
   // e2e / 测试实例可显式跳过：内置插件自动安装会污染结果行序与冷启动基线，
   // 测试自行通过 importFromFolder 精确播种所需插件
-  if (process.env.LEAF_SKIP_BUILTIN_PLUGINS === '1') {
-    console.log('[BuiltinPlugins] LEAF_SKIP_BUILTIN_PLUGINS=1，跳过自动安装')
+  if (process.env.FROND_SKIP_BUILTIN_PLUGINS === '1') {
+    console.log('[BuiltinPlugins] FROND_SKIP_BUILTIN_PLUGINS=1，跳过自动安装')
     return
   }
   const dir = builtinPluginsDir()

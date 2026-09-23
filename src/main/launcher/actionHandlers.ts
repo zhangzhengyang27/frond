@@ -1,5 +1,5 @@
 /**
- * Leaf · 主进程统一动作执行端（#4 Action 纯数据模型，增量方案）
+ * Frond · 主进程统一动作执行端（#4 Action 纯数据模型，增量方案）
  *
  * 与窗口无关的动作（system / app / file / quicklink / clipboard / snippet /
  * copyText / openUrl）由本注册表分发——胶囊 / ⌘K / 全局热键 / 托盘 / deeplink

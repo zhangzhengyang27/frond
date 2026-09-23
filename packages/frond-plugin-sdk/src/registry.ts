@@ -19,7 +19,7 @@ export function dispatchCallback(id: string, args?: unknown): boolean {
   const fn = registry.get(id)
   if (!fn) {
     console.warn(
-      `[leaf-sdk] 回调 id 已失效：${id}（注册表内 ${registry.size} 个；多为视图切换后 retainCallbacks 已清理，宿主仍在回传旧 id）`
+      `[frond-sdk] 回调 id 已失效：${id}（注册表内 ${registry.size} 个；多为视图切换后 retainCallbacks 已清理，宿主仍在回传旧 id）`
     )
     return false
   }

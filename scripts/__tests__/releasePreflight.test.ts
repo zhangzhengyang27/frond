@@ -16,7 +16,7 @@ import {
  * 所以两种方向都要钉住：占位目标必须 blocking，未签名必须 **不** blocking（D2 就是发未签名产物）。
  */
 
-const REAL = { owner: 'real-org', repo: 'leaf' }
+const REAL = { owner: 'real-org', repo: 'frond' }
 const SIGNED = {
   CSC_LINK: 'file://cert.p12',
   APPLE_ID: 'a@b.c',
@@ -30,14 +30,14 @@ describe('readPublishTarget', () => {
     const yml = readFileSync(join(__dirname, '..', '..', 'electron-builder.yml'), 'utf-8')
     expect(readPublishTarget(yml)).toEqual({
       provider: 'github',
-      owner: 'leaf-app',
-      repo: 'leaf-desktop'
+      owner: 'frond-app',
+      repo: 'frond-desktop'
     })
   })
 
   it('publish 块在文件中间也读得到，遇到下一个顶格 key 就收', () => {
     const yml = [
-      'appId: com.leaf',
+      'appId: com.frond',
       'publish:',
       '  provider: github',
       '  owner: o1',
@@ -49,7 +49,7 @@ describe('readPublishTarget', () => {
   })
 
   it('没有 publish 块 → 三项皆 null（调用方按「未配置」阻塞）', () => {
-    expect(readPublishTarget('appId: com.leaf\nmac:\n  category: public.app-class')).toEqual({
+    expect(readPublishTarget('appId: com.frond\nmac:\n  category: public.app-class')).toEqual({
       provider: null,
       owner: null,
       repo: null
@@ -71,14 +71,14 @@ describe('parseReleaseVersion', () => {
 describe('evaluateReleaseReadiness', () => {
   it('占位发布目标是 blocking（绿色构建 ≠ 能发，这条就是拦这个的）', () => {
     const r = evaluateReleaseReadiness({
-      owner: 'leaf-app',
-      repo: 'leaf-desktop',
+      owner: 'frond-app',
+      repo: 'frond-desktop',
       version: '0.1.0',
       env: { GITHUB_TOKEN: 'x' }
     })
     expect(r.ok).toBe(false)
     expect(r.blocking.join('\n')).toContain('占位')
-    expect(isPlaceholderTarget('leaf-app', 'leaf-desktop')).toBe(true)
+    expect(isPlaceholderTarget('frond-app', 'frond-desktop')).toBe(true)
   })
 
   it('真目标 + 已签名已公证：全清', () => {

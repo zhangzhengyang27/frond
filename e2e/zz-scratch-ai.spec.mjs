@@ -15,10 +15,10 @@ test('scratch ai byom', async () => {
   const origin = `http://127.0.0.1:${server.address().port}`
 
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-scratch-ai')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-scratch-ai')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   const app = await electron.launch({ args: [join(ROOT, 'out/main/index.js')], env })
   let page = null
   for (let i = 0; i < 60 && !page; i++) {

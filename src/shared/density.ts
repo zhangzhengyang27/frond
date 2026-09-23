@@ -1,5 +1,5 @@
 /**
- * Leaf · 列表密度（P-6 Compact Mode）
+ * Frond · 列表密度（P-6 Compact Mode）
  *
  * 就两档，且**只改行高与间距**：字号、图标尺寸不动。
  * 原因是胶囊是固定高度的窗，密度选项要解决的是「一屏能看见几条结果」，
@@ -37,9 +37,9 @@ export function normalizeDensity(raw: unknown): Density {
 
 /** 写进根元素的 CSS 变量名（样式侧与这里必须同名，故只在此处定义） */
 export const DENSITY_CSS_VARS: Record<keyof DensityVars, string> = {
-  rowPadY: '--leaf-row-pad-y',
-  rowMinHeight: '--leaf-row-min-h',
-  sectionGap: '--leaf-section-gap'
+  rowPadY: '--frond-row-pad-y',
+  rowMinHeight: '--frond-row-min-h',
+  sectionGap: '--frond-section-gap'
 }
 
 /** 把某一档落到元素上（纯逻辑，元素由调用方给，方便单测传假对象） */

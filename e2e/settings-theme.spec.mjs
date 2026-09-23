@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：设置页跟随主题（P-6 观感）
+ * Frond · E2E：设置页跟随主题（P-6 观感）
  *
  * 设置页原本把颜色写死成 Apple 亮色档（bg-white / text-[#1d1d1f] / ring-black/[0.06]…），
  * 于是深色主题下**整页仍然是白的**——这一格不是审美问题，是「换主题没换全」。
@@ -52,10 +52,10 @@ const readTokens = (page) =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-settings-theme')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-settings-theme')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

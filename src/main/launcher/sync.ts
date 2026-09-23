@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器 WebDAV 同步
+ * Frond · 启动器 WebDAV 同步
  *
  * 快照式备份/恢复：launcher_docs 全量 + 已安装插件清单 → 单个 JSON 上传。
  * 插件本体（目录）不参与同步——恢复后需重新导入插件目录。
@@ -17,7 +17,7 @@ export interface SyncConfig {
   url: string
   username: string
   password: string
-  /** 远端目录（不含文件名），默认 /leaf-launcher */
+  /** 远端目录（不含文件名），默认 /frond-launcher */
   remoteDir: string
 }
 
@@ -74,7 +74,7 @@ function sanitizeDocs(docs: unknown): ExportedDoc[] {
 
 export function getSyncConfig(): SyncConfig {
   const raw = prefRepository.get(SYNC_PREF_KEY)
-  if (!raw) return { url: '', username: '', password: '', remoteDir: '/leaf-launcher' }
+  if (!raw) return { url: '', username: '', password: '', remoteDir: '/frond-launcher' }
   try {
     const parsed = JSON.parse(raw) as Partial<SyncConfig>
     // 逐项兜底，避免 null/'' 覆盖默认值拼出 "null/..." 路径；去掉尾部多余斜杠
@@ -82,10 +82,10 @@ export function getSyncConfig(): SyncConfig {
       url: parsed.url ?? '',
       username: parsed.username ?? '',
       password: parsed.password ? decryptText(parsed.password) : '',
-      remoteDir: parsed.remoteDir?.replace(/\/+$/, '') || '/leaf-launcher'
+      remoteDir: parsed.remoteDir?.replace(/\/+$/, '') || '/frond-launcher'
     }
   } catch {
-    return { url: '', username: '', password: '', remoteDir: '/leaf-launcher' }
+    return { url: '', username: '', password: '', remoteDir: '/frond-launcher' }
   }
 }
 
@@ -129,7 +129,7 @@ export async function testConnection(
 }
 
 interface BackupPayload {
-  app: 'leaf-launcher'
+  app: 'frond-launcher'
   schema: 1
   exportedAt: number
   docs: ExportedDoc[]
@@ -144,7 +144,7 @@ export async function backup(): Promise<{ ok: boolean; count?: number; error?: s
     const client = await withTimeout(createClient(config), '连接 WebDAV')
     await ensureRemoteDir(client, config.remoteDir || '/')
     const payload: BackupPayload = {
-      app: 'leaf-launcher',
+      app: 'frond-launcher',
       schema: 1,
       exportedAt: Date.now(),
       docs: getLauncherDocStore().exportAll(),
@@ -173,7 +173,7 @@ export async function restore(): Promise<{ ok: boolean; count?: number; error?: 
       '下载备份'
     )) as string
     const payload = JSON.parse(raw) as BackupPayload
-    if (payload.app !== 'leaf-launcher' || payload.schema !== 1) {
+    if (payload.app !== 'frond-launcher' || payload.schema !== 1) {
       return { ok: false, error: '备份文件格式不匹配' }
     }
     const count = getLauncherDocStore().importAll(sanitizeDocs(payload.docs))

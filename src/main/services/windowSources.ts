@@ -1,5 +1,5 @@
 /**
- * Leaf · 窗口截图源（desktopCapturer 工具）
+ * Frond · 窗口截图源（desktopCapturer 工具）
  *
  * 从原 `ScreenshotService`（树内自研的截图覆盖层）里留下的两块纯工具：
  * 覆盖层本身已换成上游 `electron-screenshots`（HANDOFF §11），但「按窗口抓图」这件事

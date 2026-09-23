@@ -3,7 +3,7 @@
  *
  * 产物必须是自包含单文件：插件页跑在 plugin:// 源的 sandbox BrowserView 里，
  * 那里没有裸模块解析（node_modules 只是被整目录拷进安装目录的副产品，页面不认），
- * 所以 leaf-plugin-sdk 与 react/react-reconciler 一律打进 bundle，不留 import。
+ * 所以 frond-plugin-sdk 与 react/react-reconciler 一律打进 bundle，不留 import。
  * format 选 iife 是同一原因的另一半——页面用经典 <script> 引它，不依赖协议的 module 语义。
  *
  * 输出名 dist/main.js 是契约：index.html 按这个路径引，e2e 导入插件目录即用它，
@@ -37,7 +37,7 @@ const result = await build({
 
 if (result.metafile) {
   const bytes = statSync(join(HERE, 'dist/main.js')).size
-  const sdk = Object.keys(result.metafile.inputs).filter((p) => p.includes('leaf-plugin-sdk'))
+  const sdk = Object.keys(result.metafile.inputs).filter((p) => p.includes('frond-plugin-sdk'))
   console.log(`[example-react] dist/main.js ${(bytes / 1024).toFixed(1)} KB`)
   console.log(`[example-react] 已打包 SDK 模块 ${sdk.length} 个：\n  ${sdk.join('\n  ')}`)
 }

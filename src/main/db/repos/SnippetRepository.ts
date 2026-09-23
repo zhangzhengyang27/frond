@@ -1,5 +1,5 @@
 /**
- * Leaf · SnippetRepository
+ * Frond · SnippetRepository
  *
  * 取代 SnippetDataStore（271 行）。
  *

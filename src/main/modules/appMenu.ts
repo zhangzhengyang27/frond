@@ -1,5 +1,5 @@
 /**
- * Leaf · 统一 Menu Builder（dock + tray 共用）
+ * Frond · 统一 Menu Builder（dock + tray 共用）
  *
  * 设计：
  * - dockMenu（macOS Dock 右键）与 tray（Win/Linux 托盘）共用同一 builder
@@ -126,7 +126,7 @@ function byIdList(
   }
 }
 
-function leafItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] {
+function frondItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] {
   return [
     { label: '启动台', click: () => sendToRenderer(ctx, 'app:goHome') },
     { label: '命令面板…', click: () => sendToRenderer(ctx, 'app:openCommandPalette') },
@@ -135,7 +135,7 @@ function leafItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] {
       accelerator: 'CmdOrCtrl+,',
       click: () => sendToRenderer(ctx, 'app:openSettings')
     },
-    { label: '关于 Leaf', click: () => sendToRenderer(ctx, 'app:openAbout') }
+    { label: '关于 Frond', click: () => sendToRenderer(ctx, 'app:openAbout') }
   ]
 }
 
@@ -177,11 +177,11 @@ function buildTemplate(
     byIdList(ctx, usageStore.getFavorites(), '收藏', '还没有收藏（模块页 ⌘D 收藏）'),
     ...pomodoroItems(ctx),
     { type: 'separator' },
-    ...leafItems(ctx)
+    ...frondItems(ctx)
   ]
   // macOS 的退出由应用菜单负责；tray / dock 菜单在 Win/Linux 才自带退出项
   if (kind === 'tray' && !isMac()) {
-    template.push({ type: 'separator' }, { label: '退出 Leaf', click: () => app.quit() })
+    template.push({ type: 'separator' }, { label: '退出 Frond', click: () => app.quit() })
   }
   return template
 }
@@ -212,7 +212,7 @@ export function installApplicationMenu(ctx: AppMenuContext): void {
     {
       label: app.name,
       submenu: [
-        { label: '关于 Leaf', click: () => sendToRenderer(ctx, 'app:openAbout') },
+        { label: '关于 Frond', click: () => sendToRenderer(ctx, 'app:openAbout') },
         { label: '偏好设置…', accelerator: 'Cmd+,', click: () => sendToRenderer(ctx, 'app:openSettings') },
         { type: 'separator' },
         { role: 'services' },

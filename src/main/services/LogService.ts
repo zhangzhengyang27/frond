@@ -7,7 +7,7 @@ import { prefRepository } from '../db/repos/PrefRepository'
 import type { TelemetryMode } from '../../shared/types'
 
 /**
- * Leaf · LogService
+ * Frond · LogService
  *
  * 三路输出：console（开发期观察）+ 内存 ring buffer（导出用）+ SQLite log_entries
  * （telemetry 非 off 时才落库/落盘）。
@@ -77,7 +77,7 @@ class LogService {
   /** 导出当前 ring buffer + meta 为 JSON 文件，返回绝对路径；写失败返回 null */
   async export(): Promise<string | null> {
     const dir = join(app.getPath('userData'), 'logs')
-    const filePath = join(dir, `leaf-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
+    const filePath = join(dir, `frond-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
     try {
       mkdirSync(dir, { recursive: true })
       const payload = {

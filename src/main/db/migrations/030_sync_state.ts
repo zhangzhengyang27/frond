@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 030 — 同步基线表 sync_state（P-5）
+ * Frond · Migration 030 — 同步基线表 sync_state（P-5）
  *
  * 双向同步要做**三方比**（本地行 / 远端行 / 上次同步见过的那一行），而「见过哪一版」
  * 这件事以前根本没地方存：旧实现只记一个 `launcher.syncData.lastAppliedAt` 总标记，

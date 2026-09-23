@@ -1,5 +1,5 @@
 /**
- * Leaf 插件组件集（#11 v1：List / Detail / ActionPanel / useNavigation）。
+ * Frond 插件组件集（#11 v1：List / Detail / ActionPanel / useNavigation）。
  * 组件是普通函数组件——返回宿主元素（type 为 'list' 等字符串），
  * 由 reconciler 序列化为视图 JSON，宿主原生渲染。
  * 插件作者用 JSX 书写（他们自己的构建工具 jsx=automatic 会调 React.createElement）。
@@ -19,7 +19,7 @@ import {
 export interface ListProps {
   /** 列表加载态（对标 Raycast isLoading）：宿主在空列表时显示加载行 */
   loading?: boolean
-  /** 空列表时显示的文案（对标 Raycast emptyView，Leaf 收字符串） */
+  /** 空列表时显示的文案（对标 Raycast emptyView，Frond 收字符串） */
   emptyMessage?: string
   children?: ReactNode
 }

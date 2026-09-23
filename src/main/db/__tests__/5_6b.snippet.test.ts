@@ -7,14 +7,14 @@ import { createTestDb, closeTestDb } from './testDb'
 import { SnippetRepository, type SnippetContent } from '../repos/SnippetRepository'
 
 /**
- * Leaf · SnippetRepository 存储测试
+ * Frond · SnippetRepository 存储测试
  *
  * ⚠ 恢复说明：本文件随 2026-09-22 删除事故被切成 254 行、其中 219 行是
  * 「第 N 行未留存」占位。留下的是头部与一条 FTS 用例（下面按原文保留）；
  * beforeEach 与其余用例按当前仓库层 API 重写，不代表原用例的断言集合。
  *
  * 这段 electron mock 是必需而非样板：contents.value 走 utils/crypto 的加密落盘，
- * 密钥文件写在 app.getPath('userData')/.leaf-key；加密失败时它**故意**抛错
+ * 密钥文件写在 app.getPath('userData')/.frond-key；加密失败时它**故意**抛错
  * （拒绝静默降级为明文），所以没有这个 userData 就会 5 条全红。
  */
 
@@ -22,8 +22,8 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      if (!process.env.__LEAF_TEST_USER_DATA) throw new Error('test env not set up')
-      return process.env.__LEAF_TEST_USER_DATA
+      if (!process.env.__FROND_TEST_USER_DATA) throw new Error('test env not set up')
+      return process.env.__FROND_TEST_USER_DATA
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -36,13 +36,13 @@ describe('SnippetRepository', () => {
   let userData: string
 
   beforeAll(() => {
-    userData = mkdtempSync(join(tmpdir(), 'leaf-snippet-crypto-'))
-    process.env.__LEAF_TEST_USER_DATA = userData
+    userData = mkdtempSync(join(tmpdir(), 'frond-snippet-crypto-'))
+    process.env.__FROND_TEST_USER_DATA = userData
   })
 
   afterAll(() => {
     rmSync(userData, { recursive: true, force: true })
-    delete process.env.__LEAF_TEST_USER_DATA
+    delete process.env.__FROND_TEST_USER_DATA
   })
 
   beforeEach(() => {

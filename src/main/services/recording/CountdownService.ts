@@ -1,5 +1,5 @@
 /**
- * Leaf · CountdownService（PR-7b）
+ * Frond · CountdownService（PR-7b）
  *
  * 职责：在主进程启动录制前的倒数；每 1 秒推一次 tick，最后一个 tick 时触发 begun 事件。
  *

@@ -43,12 +43,12 @@ describe('buildEntryAsk', () => {
 
   it('模块与内联页问的是「这个功能能做什么」', () => {
     const t = buildEntryAsk({ title: '录屏', subtitle: '/screen-recorder', action: { type: 'module' } })
-    expect(t).toContain('介绍 Leaf 的这个功能')
+    expect(t).toContain('介绍 Frond 的这个功能')
     expect(t).toContain('（/screen-recorder）')
   })
 
   it('未知类型与空标题都有兜底，不会拼出「解释这条搜索结果是什么：」这种半截问题', () => {
-    expect(buildEntryAsk({ title: '正则测试', subtitle: 'com.leaf.regex' })).toContain('正则测试')
+    expect(buildEntryAsk({ title: '正则测试', subtitle: 'com.frond.regex' })).toContain('正则测试')
     expect(buildEntryAsk({ title: '   ' })).toContain('(无标题)')
     expect(buildEntryAsk({})).toContain('(无标题)')
   })

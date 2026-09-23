@@ -1,6 +1,6 @@
 /* 2026-09-22 从 dev 缓存的 CSS 模块取出的 __vite__css 原文（内容即原 CSS，外壳是 Vite 的 HMR 包装）*/
 /**
- * Leaf · Design Tokens（唯一视觉事实源）· v4 macOS Native Design Language
+ * Frond · Design Tokens（唯一视觉事实源）· v4 macOS Native Design Language
  *
  * v4 设计原则（替代 v2 Raycast/Linear 方向，2026-08 重设计决策）：
  * 1. 原生质感 —— 对齐 Apple HIG：SF 系统字体栈、hairline 描边、大而柔的阴影、
@@ -3679,7 +3679,7 @@ video {
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ease-leaf {
+.ease-frond {
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 

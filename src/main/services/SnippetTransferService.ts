@@ -1,5 +1,5 @@
 /**
- * Leaf · 片段导入导出服务（B3，对齐 Raycast Snippets Import/Export）
+ * Frond · 片段导入导出服务（B3，对齐 Raycast Snippets Import/Export）
  *
  * - snippet:exportAll：showSaveDialog 选路径 → 全部片段导出为 JSON 文件
  * - snippet:importFile：showOpenDialog 选 JSON → 校验结构 → 幂等去重导入
@@ -40,7 +40,7 @@ export interface ExportedSnippet {
 
 /** 导出 JSON 文件结构 */
 export interface SnippetExportFile {
-  app: 'leaf'
+  app: 'frond'
   kind: 'snippets'
   version: number
   /** 导出时间（epoch ms） */
@@ -82,7 +82,7 @@ export interface TransferableSnippet {
 /** 由仓库片段构建导出文件负载（保持传入顺序，字段显式投影避免夹带内部字段） */
 export function buildExportPayload(list: TransferableSnippet[]): SnippetExportFile {
   return {
-    app: 'leaf',
+    app: 'frond',
     kind: 'snippets',
     version: SNIPPET_EXPORT_VERSION,
     exportedAt: Date.now(),

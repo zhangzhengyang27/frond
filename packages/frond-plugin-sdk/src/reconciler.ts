@@ -54,11 +54,11 @@ function scheduleSubmit(view: ViewNode): void {
     if (!view2) return
     launcherApi.renderView(view2).then(
       (r) => {
-        if (!r.ok) console.warn('[leaf-sdk] renderView rejected:', r.error ?? 'unknown')
+        if (!r.ok) console.warn('[frond-sdk] renderView rejected:', r.error ?? 'unknown')
       },
       (e: unknown) => {
         // 静默吞掉会让插件停在旧内容/空白且零诊断（审查 I2）
-        console.warn('[leaf-sdk] renderView failed:', (e as Error)?.message ?? e)
+        console.warn('[frond-sdk] renderView failed:', (e as Error)?.message ?? e)
       }
     )
   }
@@ -113,11 +113,11 @@ function sanitizeValue(
   const isContainer = Array.isArray(value) || (typeof value === 'object' && value !== null)
   if (isContainer) {
     if (ancestors.has(value as object)) {
-      console.warn(`[leaf-sdk] props 成环，该处已置 null：${path}`)
+      console.warn(`[frond-sdk] props 成环，该处已置 null：${path}`)
       return null
     }
     if (depth >= MAX_NEST_DEPTH) {
-      console.warn(`[leaf-sdk] props 嵌套超 ${MAX_NEST_DEPTH} 层，已截断：${path}`)
+      console.warn(`[frond-sdk] props 嵌套超 ${MAX_NEST_DEPTH} 层，已截断：${path}`)
       return null
     }
     ancestors.add(value as object)
@@ -423,10 +423,10 @@ export function render(element: ReactNode): void {
       null, // hydrationCallbacks
       false, // isStrictMode
       null, // concurrentUpdatesByDefaultOverride
-      'leaf-sdk', // identifierPrefix
-      (error: Error) => console.error('[leaf-sdk] uncaught:', error.message),
-      (error: Error) => console.error('[leaf-sdk] caught:', error.message),
-      (error: Error) => console.warn('[leaf-sdk] recoverable:', error.message),
+      'frond-sdk', // identifierPrefix
+      (error: Error) => console.error('[frond-sdk] uncaught:', error.message),
+      (error: Error) => console.error('[frond-sdk] caught:', error.message),
+      (error: Error) => console.warn('[frond-sdk] recoverable:', error.message),
       null // onDefaultTransitionIndicator
     )
     mounted = true

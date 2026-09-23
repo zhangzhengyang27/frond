@@ -1,5 +1,5 @@
 /**
- * Leaf · Fallback Commands 兜底命令（对标 Raycast Fallback Commands）
+ * Frond · Fallback Commands 兜底命令（对标 Raycast Fallback Commands）
  *
  * 当根搜索无匹配结果时，显示一组兜底命令，将"无结果"转化为"新入口"。
  * 用户可在启动器管理页启用/禁用（pref launcher:fallbackDisabled），

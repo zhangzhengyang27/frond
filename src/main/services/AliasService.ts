@@ -1,5 +1,5 @@
 /**
- * Leaf · 命令别名服务（P2-8）
+ * Frond · 命令别名服务（P2-8）
  *
  * 用户可为任意命令（CommandEntry.key）自定义别名，搜索时别名与标题同等匹配。
  * 例如把 "Clipboard History" 别名为 "ch"，输入 "ch" 即可命中。

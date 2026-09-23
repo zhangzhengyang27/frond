@@ -1,5 +1,5 @@
 /**
- * Leaf · DNS 钉住 lookup（V4 审查 I3：重绑定防御的连接层）
+ * Frond · DNS 钉住 lookup（V4 审查 I3：重绑定防御的连接层）
  *
  * 插件 fetch 代理与市场下载在发起前都校验过目标不是内网，但 DNS 可以投毒成
  * 「第一次解析公网、真正连接时第二次解析到 127.0.0.1」。这里把连接层 lookup 换成
@@ -50,7 +50,7 @@ export const systemResolver: DnsResolver = async (hostname, family) => {
 
 /**
  * 创建钉住 lookup（注入 resolver 便于单测）。语义：
- * - 全部命中内网 → err.code = 'ELEAF_BLOCKED_LOCAL'
+ * - 全部命中内网 → err.code = 'EFROND_BLOCKED_LOCAL'
  * - 混合记录 → 只把公网记录交给连接层（攻击者多记录投毒时剔除内网项）
  * - family 过滤：options.family = 4/6 时只返回匹配族的安全记录
  */
@@ -66,7 +66,7 @@ export function createPinningLookup(resolver: DnsResolver = systemResolver): Pin
         // 连接层拿到空列表就无地址可连，不留 undefined 让下游各自解释
         if (safe.length === 0) {
           const err = new Error(`blocked: DNS 解析命中本地/内网地址（${hostname}）`) as NodeJS.ErrnoException
-          err.code = 'ELEAF_BLOCKED_LOCAL'
+          err.code = 'EFROND_BLOCKED_LOCAL'
           callback(err, [], want ?? 4)
           return
         }

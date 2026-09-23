@@ -14,20 +14,20 @@ afterEach(() => {
 describe('applyThemeVars', () => {
   it('注入 :root 覆盖，再次传 null 即摘除（回到 tokens.css 现状）', () => {
     applyThemeVars({ '--surface-0': '#101014', '--text-primary': '#f2f2f5' })
-    const el = document.getElementById('leaf-user-theme-vars')
+    const el = document.getElementById('frond-user-theme-vars')
     expect(el?.tagName).toBe('STYLE')
     expect(el?.textContent).toContain('--surface-0:#101014;')
     // 选择器必须与 tokens.css 的 `:root.dark, html.dark` 同档，否则深色下压不过
     expect(el?.textContent).toContain(':root,:root.dark,html.dark{')
     applyThemeVars(null)
-    expect(document.getElementById('leaf-user-theme-vars')).toBeNull()
+    expect(document.getElementById('frond-user-theme-vars')).toBeNull()
   })
 
   it('重复注入只保留一个 style 节点（不随激活次数堆积）', () => {
     applyThemeVars({ '--surface-0': '#111111' })
     applyThemeVars({ '--surface-0': '#222222' })
-    expect(document.querySelectorAll('#leaf-user-theme-vars')).toHaveLength(1)
-    expect(document.getElementById('leaf-user-theme-vars')?.textContent).toContain('#222222')
+    expect(document.querySelectorAll('#frond-user-theme-vars')).toHaveLength(1)
+    expect(document.getElementById('frond-user-theme-vars')?.textContent).toContain('#222222')
   })
 
   it('非白名单的变量名与值不进 CSS（这些串最终落在 DOM 里）', () => {
@@ -37,7 +37,7 @@ describe('applyThemeVars', () => {
       '--evil': 'red; } body { display: none; }',
       '--html': '</style><img src=x>'
     })
-    const css = document.getElementById('leaf-user-theme-vars')?.textContent ?? ''
+    const css = document.getElementById('frond-user-theme-vars')?.textContent ?? ''
     expect(css).toContain('--ok:#ffffff;')
     expect(css).not.toContain('bad-name')
     expect(css).not.toContain('display:')
@@ -58,7 +58,7 @@ describe('applyThemeVars', () => {
     })
     if (!parsed.ok) throw new Error(parsed.error)
     applyThemeVars(themeToCssVars(parsed.theme))
-    const css = document.getElementById('leaf-user-theme-vars')?.textContent ?? ''
+    const css = document.getElementById('frond-user-theme-vars')?.textContent ?? ''
     expect(css).toContain('--surface-0:#141018;')
     expect(css).toContain('--launcher-bg:rgba(20, 16, 24, 0.74);')
     expect(css).toContain('--launcher-text:rgba(244, 238, 251, 0.96);')

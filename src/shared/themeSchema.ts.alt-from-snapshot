@@ -1,5 +1,5 @@
 /**
- * Leaf · 主题 Schema（#12，对标 Vicinae extra/themes/*.toml 的 core/accent/语义子表）
+ * Frond · 主题 Schema（#12，对标 Vicinae extra/themes/*.toml 的 core/accent/语义子表）
  *
  * 设计目标：把「一套主题 = 少量 core 值 + 语义子表」的结构落到类型层，
  * 让未来的用户主题文件（TOML/JSON 安装）只需提供这份数据即可派生全套令牌。
@@ -78,9 +78,9 @@ export interface ThemeDefinition {
 }
 
 /** 浅色主题（值 1:1 提取自 tokens.css :root 语义层） */
-export const LEAF_LIGHT_THEME: ThemeDefinition = {
-  id: 'leaf-light',
-  name: 'Leaf Light（macOS 浅色）',
+export const FROND_LIGHT_THEME: ThemeDefinition = {
+  id: 'frond-light',
+  name: 'Frond Light（macOS 浅色）',
   appearance: 'light',
   core: { bg: '#f5f5f7', fg: '#1d1d1f', accent: '#007aff' },
   surface: {
@@ -116,9 +116,9 @@ export const LEAF_LIGHT_THEME: ThemeDefinition = {
 }
 
 /** 深色主题（值 1:1 提取自 tokens.css html.dark 语义层） */
-export const LEAF_DARK_THEME: ThemeDefinition = {
-  id: 'leaf-dark',
-  name: 'Leaf Dark（macOS 深色）',
+export const FROND_DARK_THEME: ThemeDefinition = {
+  id: 'frond-dark',
+  name: 'Frond Dark（macOS 深色）',
   appearance: 'dark',
   core: { bg: '#191a1e', fg: '#f5f5f7', accent: '#0a84ff' },
   surface: {
@@ -154,4 +154,4 @@ export const LEAF_DARK_THEME: ThemeDefinition = {
 }
 
 /** 内置主题（用户主题文件落地后由此扩展） */
-export const BUILTIN_THEMES: readonly ThemeDefinition[] = [LEAF_LIGHT_THEME, LEAF_DARK_THEME]
+export const BUILTIN_THEMES: readonly ThemeDefinition[] = [FROND_LIGHT_THEME, FROND_DARK_THEME]

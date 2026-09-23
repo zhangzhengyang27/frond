@@ -341,21 +341,21 @@ const cursorListener = (e: Event): void => {
 const cursorStopListener = (): void => setCursorScreenPos(null)
 
 onMounted(() => {
-  window.addEventListener('leaf:cursor-position', cursorListener)
-  window.addEventListener('leaf:cursor-stop', cursorStopListener)
+  window.addEventListener('frond:cursor-position', cursorListener)
+  window.addEventListener('frond:cursor-stop', cursorStopListener)
   // PR-7a: 全局快捷键 → 录制启停
-  window.addEventListener('leaf:shortcut-recording-start', shortcutStartListener)
-  window.addEventListener('leaf:shortcut-recording-togglePause', shortcutPauseListener)
+  window.addEventListener('frond:shortcut-recording-start', shortcutStartListener)
+  window.addEventListener('frond:shortcut-recording-togglePause', shortcutPauseListener)
   // PR-7b: 倒计时结束 → 真正开始录制
-  window.addEventListener('leaf:recording-start-after-countdown', beginAfterCountdown)
+  window.addEventListener('frond:recording-start-after-countdown', beginAfterCountdown)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('leaf:cursor-position', cursorListener)
-  window.removeEventListener('leaf:cursor-stop', cursorStopListener)
-  window.removeEventListener('leaf:shortcut-recording-start', shortcutStartListener)
-  window.removeEventListener('leaf:shortcut-recording-togglePause', shortcutPauseListener)
-  window.removeEventListener('leaf:recording-start-after-countdown', beginAfterCountdown)
+  window.removeEventListener('frond:cursor-position', cursorListener)
+  window.removeEventListener('frond:cursor-stop', cursorStopListener)
+  window.removeEventListener('frond:shortcut-recording-start', shortcutStartListener)
+  window.removeEventListener('frond:shortcut-recording-togglePause', shortcutPauseListener)
+  window.removeEventListener('frond:recording-start-after-countdown', beginAfterCountdown)
   const api = (
     window as unknown as {
       api?: { recording?: { countdown?: { cancel?: () => Promise<unknown> } } }

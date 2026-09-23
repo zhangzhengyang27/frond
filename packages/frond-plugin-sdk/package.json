@@ -1,7 +1,7 @@
 {
-  "name": "leaf-plugin-sdk",
+  "name": "frond-plugin-sdk",
   "version": "0.1.0",
-  "description": "Leaf 启动器 React 插件 SDK（#11）：react-reconciler 序列化视图树，宿主原生渲染",
+  "description": "Frond 启动器 React 插件 SDK（#11）：react-reconciler 序列化视图树，宿主原生渲染",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -1,5 +1,5 @@
 /**
- * Leaf · RecoveryManager
+ * Frond · RecoveryManager
  *
  * 职责：处置「未正常收尾」的录制文件（*.partial.mp4）。两类目标：
  *   - DB 有行、磁盘仍是 partial（录制进程被杀）→ recover 时 markRecovered + 改指新路径

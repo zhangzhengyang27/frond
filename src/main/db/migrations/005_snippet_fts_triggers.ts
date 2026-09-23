@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 005 — snip_snippets_fts trigger 补全
+ * Frond · Migration 005 — snip_snippets_fts trigger 补全
  *
  * 001_init 设计了 external-content FTS5 (content='snip_snippets', content_rowid='rowid')
  * 但没创建 trigger，导致外部 INSERT/UPDATE 时镜像不会同步。

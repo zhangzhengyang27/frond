@@ -1,5 +1,5 @@
 /**
- * Leaf · 类型化 IPC 调用（preload 侧）
+ * Frond · 类型化 IPC 调用（preload 侧）
  *
  * 与 src/main/ipc/typedIpc.ts 成对：通道必须在 IpcContract 里登记，req/res 由类型约束。
  * preload 对渲染端仍暴露原有 JS 签名（如 setTheme('dark')），在这里折算成约定的

@@ -1,5 +1,5 @@
 /**
- * Leaf · 平台特性 IPC（dock badge / 任务栏进度 / 用户注意力）
+ * Frond · 平台特性 IPC（dock badge / 任务栏进度 / 用户注意力）
  *
  * 让渲染端能：
  * - 设置 dock / 任务栏 badge（macOS 文本、Win/Linux 数字）

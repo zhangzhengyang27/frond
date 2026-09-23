@@ -1,5 +1,5 @@
 /**
- * Leaf · NotesRepository
+ * Frond · NotesRepository
  *
  * 轻量笔记数据访问层：
  * - notes 主表 + note_folders 文件夹表 + notes_fts 全文搜索

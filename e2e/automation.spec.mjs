@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：定时任务（P-4④ Automations）
+ * Frond · E2E：定时任务（P-4④ Automations）
  *
  * 这一格真跑的是「界面 → IPC → 引擎执行 → 结果回界面」这条链，
  * 判据刻意选在**没有副作用也能成立**的地方：
@@ -56,11 +56,11 @@ const openAdvanced = async (page) => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-automation')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-automation')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

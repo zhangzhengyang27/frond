@@ -1,5 +1,5 @@
 /**
- * Leaf · macOS 权限面板（P-3.5）
+ * Frond · macOS 权限面板（P-3.5）
  *
  * 修的是「静默依赖授权」：文本扩展 / 窗口切换 / 专注护盾 / Hyper Key 靠辅助功能，
  * 日历读事件靠 EventKit 授权，录屏靠屏幕录制——没授权时表现是「按了没反应」，
@@ -35,7 +35,7 @@ export type PermissionState =
 export interface PermissionStatus {
   id: PermissionId
   label: string
-  /** 这项权限在 Leaf 里到底管什么——界面直接展示，不藏进 tooltip */
+  /** 这项权限在 Frond 里到底管什么——界面直接展示，不藏进 tooltip */
   usedBy: string
   state: PermissionState
   /** 能不能就地申请（屏幕录制不能，见文件头） */
@@ -136,7 +136,7 @@ export function buildPermissionStatuses(
       state: screen,
       canRequest: false,
       // 没有可编程的申请口；授权后 macOS 还要求重启应用才生效
-      note: screen === 'granted' ? undefined : '系统不提供一键申请，需在设置里打开开关后重启 Leaf'
+      note: screen === 'granted' ? undefined : '系统不提供一键申请，需在设置里打开开关后重启 Frond'
     }
   ]
 }
@@ -193,12 +193,12 @@ export async function requestPermission(
     return { fired: false, state: 'unsupported', note: '当前系统不需要这类授权' }
   }
   if (id === 'accessibility') {
-    // true = 让系统弹出「Leaf 想控制这台电脑」对话框，带「打开系统设置」按钮
+    // true = 让系统弹出「Frond 想控制这台电脑」对话框，带「打开系统设置」按钮
     const trusted = systemPreferences.isTrustedAccessibilityClient(true)
     return {
       fired: true,
       state: trusted ? 'granted' : 'denied',
-      note: trusted ? undefined : '勾选后如未立即生效，请重启 Leaf'
+      note: trusted ? undefined : '勾选后如未立即生效，请重启 Frond'
     }
   }
   if (id === 'calendar') {

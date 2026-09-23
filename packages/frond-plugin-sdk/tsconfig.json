@@ -1,6 +1,6 @@
 {
-  // ⚠ 重建，非原件：packages/leaf-plugin-sdk/tsconfig.json 随 2026-09-22 桌面删除事故丢失。
-  // 形状照同仓姐妹包 packages/leaf-raycast-api/tsconfig.json（那份在，未丢），并按本包
+  // ⚠ 重建，非原件：packages/frond-plugin-sdk/tsconfig.json 随 2026-09-22 桌面删除事故丢失。
+  // 形状照同仓姐妹包 packages/frond-raycast-api/tsconfig.json（那份在，未丢），并按本包
   // package.json 的硬约束对齐：type=module、main=./dist/index.js、types=./dist/index.d.ts
   // → 必须 declaration:true + outDir:dist；build 脚本是 `tsc -p tsconfig.json`、include 只 src。
   //

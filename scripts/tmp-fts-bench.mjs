@@ -12,7 +12,7 @@ const insertU = db.prepare('INSERT INTO files(path, name) VALUES (?, ?)')
 const rows = db.prepare('INSERT INTO fts_u(rowid, name, path) VALUES (?, ?, ?)')
 const tx = db.transaction((start, end) => {
   for (let i = start; i < end; i++) {
-    const name = i % 500 === 0 ? `项目计划-${i}.md` : `leaf-module-${i}-filesystem-search.ts`
+    const name = i % 500 === 0 ? `项目计划-${i}.md` : `frond-module-${i}-filesystem-search.ts`
     insertU.run(`/home/u/dir${i % 200}/${name}`, name)
     rows.run(i + 1, name, `/home/u/dir${i % 200}/${name}`)
   }
@@ -33,7 +33,7 @@ function time(label, fn) {
   console.log(`${label}: ${((Date.now() - t) / 10).toFixed(1)}ms/次 hits=${hits}`)
 }
 
-time('unicode61 前缀 "leaf-module-12*"', () => db.prepare(`SELECT name FROM fts_u WHERE fts_u MATCH '"leaf-module-12"*' LIMIT 30`).all())
+time('unicode61 前缀 "frond-module-12*"', () => db.prepare(`SELECT name FROM fts_u WHERE fts_u MATCH '"frond-module-12"*' LIMIT 30`).all())
 time('trigram 中缀 "mentp"（≥3）', () => db.prepare(`SELECT name FROM fts_t WHERE fts_t MATCH 'mentp' LIMIT 30`).all())
 time('trigram 中缀 "iles-se"（≥3）', () => db.prepare(`SELECT name FROM fts_t WHERE fts_t MATCH '"iles-se"' LIMIT 30`).all())
 time('LIKE 两字 CJK "%计划%"（无索引全扫）', () => db.prepare(`SELECT name FROM files WHERE name LIKE '%计划%' LIMIT 30`).all())

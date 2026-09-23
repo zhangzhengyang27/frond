@@ -7,7 +7,7 @@ import Database from 'better-sqlite3'
  */
 vi.mock('electron', () => ({
   app: {
-    getPath: () => '/tmp/leaf-alias-service-test',
+    getPath: () => '/tmp/frond-alias-service-test',
     getVersion: () => '0.0.0-test',
     isReady: () => true
   },

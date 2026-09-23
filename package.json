@@ -1,11 +1,11 @@
 {
-  "name": "leaf-desktop",
-  "productName": "Leaf",
+  "name": "frond-desktop",
+  "productName": "Frond",
   "version": "0.1.0",
-  "description": "Leaf · 桌面工具集（录屏、剪辑、番茄钟、代码片段…）",
+  "description": "Frond · 桌面工具集（录屏、剪辑、番茄钟、代码片段…）",
   "main": "./out/main/index.js",
-  "author": "Leaf",
-  "homepage": "https://leaf.app",
+  "author": "Frond",
+  "homepage": "https://github.com/frond-app/frond-desktop",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",

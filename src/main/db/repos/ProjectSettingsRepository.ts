@@ -1,5 +1,5 @@
 /**
- * Leaf · ProjectSettingsRepository
+ * Frond · ProjectSettingsRepository
  *
  * P1-2：每个项目独立的 Pomodoro 时长配置（K-V 存于 pref_preferences）。
  * - key 格式：`pomodoro_project_settings_{projectId}`

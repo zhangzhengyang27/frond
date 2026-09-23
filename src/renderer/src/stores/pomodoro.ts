@@ -1,5 +1,5 @@
 /**
- * Leaf · Pomodoro Pinia store (P0-1 骨架)
+ * Frond · Pomodoro Pinia store (P0-1 骨架)
  *
  * 设计目标：
  * - 单一事实源：番茄钟模块所有数据走 store + IPC
@@ -721,7 +721,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   }
 
   // ─── P2-7：Todoist 任务集成 ───
-  const TODOIST_MAP_KEY = 'leaf.todoist-map'
+  const TODOIST_MAP_KEY = 'frond.todoist-map'
   const todoistMap = ref<Record<string, string>>(loadTodoistMap())
 
   function loadTodoistMap(): Record<string, string> {

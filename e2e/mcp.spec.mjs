@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：MCP 客户端最小面（P-4②）
+ * Frond · E2E：MCP 客户端最小面（P-4②）
  *
  * 真跑：设置页保存配置 → 主进程 spawn 一个真的 node 子进程当 MCP 服务器 →
  * 握手 → 列工具 → 零参数工具点「调用」拿到文本结果。
@@ -55,10 +55,10 @@ const openAiSettings = async (page) => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-mcp')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-mcp')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

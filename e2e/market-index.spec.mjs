@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：插件市场远程索引（P-3.1）+ 校验和诚实标（P-3.3）
+ * Frond · E2E：插件市场远程索引（P-3.1）+ 校验和诚实标（P-3.3）
  *
  * 走的是真 IPC 往返（渲染端 → 主进程 → SQLite 偏好 → 回读），不是把纯函数再测一遍：
  *  - 明文 http 地址必须被**主进程**拒掉，且配置里落不下（前端拦一道不算数）
@@ -50,11 +50,11 @@ const marketSection = (page) =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-market-index')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-market-index')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 
@@ -102,7 +102,7 @@ test('3. 明文 http 索引地址被主进程拒绝，配置里落不下', async
 test('4. 合法 https 地址可保存；拉取失败不清空打包索引', async () => {
   if (!app) throw new Error('app not launched')
   const page = await getMainWindow()
-  const url = 'https://leaf-e2e-nonexistent.invalid/plugins.json'
+  const url = 'https://frond-e2e-nonexistent.invalid/plugins.json'
   await indexInput(page).fill(url)
   await marketSection(page).getByRole('button', { name: '保存' }).click()
   await expect(page.getByText('已保存远程索引地址').first()).toBeVisible({ timeout: 10000 })

@@ -204,9 +204,9 @@ importers:
 
   example-react:
     dependencies:
-      leaf-plugin-sdk:
-        specifier: file:../packages/leaf-plugin-sdk
-        version: link:../packages/leaf-plugin-sdk
+      frond-plugin-sdk:
+        specifier: file:../packages/frond-plugin-sdk
+        version: link:../packages/frond-plugin-sdk
       react:
         specifier: ^19.3.0
         version: 19.3.0
@@ -218,7 +218,7 @@ importers:
         specifier: ^0.25.0
         version: 0.25.12
 
-  packages/leaf-plugin-sdk:
+  packages/frond-plugin-sdk:
     devDependencies:
       '@types/react':
         specifier: ^19.0.0
@@ -233,11 +233,11 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
-  packages/leaf-raycast-api:
+  packages/frond-raycast-api:
     dependencies:
-      leaf-plugin-sdk:
-        specifier: file:../leaf-plugin-sdk
-        version: link:../leaf-plugin-sdk
+      frond-plugin-sdk:
+        specifier: file:../frond-plugin-sdk
+        version: link:../frond-plugin-sdk
     devDependencies:
       '@types/react':
         specifier: ^19.0.0

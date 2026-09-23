@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：MCP 工具进根搜索（P-4② 收尾）
+ * Frond · E2E：MCP 工具进根搜索（P-4② 收尾）
  *
  * 这一段是 P-4② 剩下的那一格：客户端与设置页早就通了，缺的是「工具出现在搜索框里、
  * 参数就地填得完、输出看得见」。参数格用的是 P-1.6b 那套内联槽，所以这条用例同时是
@@ -137,10 +137,10 @@ const callState = (capsule) =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-mcp-tools')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-mcp-tools')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
   const main = await getMainWindow()
   await expect(main.getByText('跳过引导').first()).toBeVisible({ timeout: 30000 })

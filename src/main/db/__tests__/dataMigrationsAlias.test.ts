@@ -11,10 +11,10 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      if (!process.env.__LEAF_TEST_USER_DATA) {
-        throw new Error('test env not set up — call setupLeafTestEnv() first')
+      if (!process.env.__FROND_TEST_USER_DATA) {
+        throw new Error('test env not set up — call setupFrondTestEnv() first')
       }
-      return process.env.__LEAF_TEST_USER_DATA
+      return process.env.__FROND_TEST_USER_DATA
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -26,7 +26,7 @@ import { database } from '../database'
 import { migrations } from '../migrations'
 import { migrateAliasesFromLegacyStore } from '../dataMigrations'
 
-/** 用全新 :memory: db 替换 LeafDatabase 单例 handle（与 dataMigrations.test.ts 同法） */
+/** 用全新 :memory: db 替换 FrondDatabase 单例 handle（与 dataMigrations.test.ts 同法） */
 function injectDb(db: Database.Database): void {
   ;(database as unknown as { db: Database.Database | null }).db = db
 }
@@ -64,8 +64,8 @@ describe('migrateAliasesFromLegacyStore', () => {
   let userData: string
 
   beforeEach(() => {
-    userData = mkdtempSync(join(tmpdir(), 'leaf-alias-migration-'))
-    process.env.__LEAF_TEST_USER_DATA = userData
+    userData = mkdtempSync(join(tmpdir(), 'frond-alias-migration-'))
+    process.env.__FROND_TEST_USER_DATA = userData
     db = freshDb()
     injectDb(db)
   })
@@ -74,7 +74,7 @@ describe('migrateAliasesFromLegacyStore', () => {
     injectDb(new Database(':memory:'))
     db.close()
     rmSync(userData, { recursive: true, force: true })
-    delete process.env.__LEAF_TEST_USER_DATA
+    delete process.env.__FROND_TEST_USER_DATA
   })
 
   it('config.json 中的 aliases 导入 pref_preferences', () => {

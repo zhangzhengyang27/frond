@@ -11,8 +11,8 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      if (!process.env.__LEAF_TEST_USER_DATA) throw new Error('test env not set up')
-      return process.env.__LEAF_TEST_USER_DATA
+      if (!process.env.__FROND_TEST_USER_DATA) throw new Error('test env not set up')
+      return process.env.__FROND_TEST_USER_DATA
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -57,8 +57,8 @@ describe('migrateClipsFromLegacyStore', () => {
   let userData: string
 
   beforeEach(() => {
-    userData = mkdtempSync(join(tmpdir(), 'leaf-clips-migration-'))
-    process.env.__LEAF_TEST_USER_DATA = userData
+    userData = mkdtempSync(join(tmpdir(), 'frond-clips-migration-'))
+    process.env.__FROND_TEST_USER_DATA = userData
     db = freshDb()
     injectDb(db)
   })
@@ -67,7 +67,7 @@ describe('migrateClipsFromLegacyStore', () => {
     injectDb(new Database(':memory:'))
     db.close()
     rmSync(userData, { recursive: true, force: true })
-    delete process.env.__LEAF_TEST_USER_DATA
+    delete process.env.__FROND_TEST_USER_DATA
   })
 
   it('clips.json 整体导入 pref "clips"', () => {

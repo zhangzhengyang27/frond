@@ -1,5 +1,5 @@
 /**
- * Leaf · B1 搜索历史 ↑ 恢复（自 LauncherApp.vue 抽出）
+ * Frond · B1 搜索历史 ↑ 恢复（自 LauncherApp.vue 抽出）
  *
  * 空查询按 ↑ 进入历史导航：游标 -1 = 空查询态，0..n-1 对应最近搜索词。
  * historyNavApplying 标记程序性回填，防止 watch(query) 误判为用户键入而退出导航。

@@ -1,5 +1,5 @@
 /**
- * Leaf · 系统日历只读 IPC（V4 P0-1 批次4 第一档）
+ * Frond · 系统日历只读 IPC（V4 P0-1 批次4 第一档）
  *
  * - calendar:status   授权状态（渲染端引导授权用）
  * - calendar:next     下一个会议（根搜索空态展示）

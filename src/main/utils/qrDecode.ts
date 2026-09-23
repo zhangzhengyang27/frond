@@ -1,5 +1,5 @@
 /**
- * Leaf · 二维码解码（V4 P1-12 批次3，对齐 Raycast「Copy Text from QR Code」）
+ * Frond · 二维码解码（V4 P1-12 批次3，对齐 Raycast「Copy Text from QR Code」）
  *
  * jsQR 需要 RGBA ImageData；Electron nativeImage.getBitmap() 返回 BGRA 布局，
  * 且带 alpha 预乘。此处做通道转换 + 不透明化，再交 jsQR。

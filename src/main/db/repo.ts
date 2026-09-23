@@ -1,5 +1,5 @@
 /**
- * Leaf · Repository 公共工具
+ * Frond · Repository 公共工具
  *
  * 约定：
  * - 所有 repository 拿 `database.handle`（确保 app 已 ready）

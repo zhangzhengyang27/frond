@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.uuid",
+  "id": "com.frond.uuid",
   "name": "UUID 生成器",
   "version": "1.0.1",
   "description": "生成 UUID v4：支持批量生成、大写/小写、无连字符格式，一键复制",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

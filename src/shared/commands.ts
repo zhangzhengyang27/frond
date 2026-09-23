@@ -1,5 +1,5 @@
 /**
- * Leaf · 命令注册表（IA v2「统一命令层」）
+ * Frond · 命令注册表（IA v2「统一命令层」）
  *
  * 单一真理源：启动台胶囊、⌘K 命令面板、托盘 / Dock 菜单、⌘1-4 的入口
  * 全部从这份注册表取命令，保证「同样的搜索，到处一个样」。
@@ -115,7 +115,7 @@ export function buildQuicklinkUrl(url: string, arg: string): string {
 /**
  * 解析 Quicklink URL 中的命名参数占位符（{name}），返回去重后的参数名（按出现顺序）。
  * {query} / {encodedQuery} 是旧单参数语法，不在此列（保持既有单参流程不变）。
- * Raycast 语法 {argument name="org"} 不引入——Leaf 用裸 {org}，更短且表单直接以
+ * Raycast 语法 {argument name="org"} 不引入——Frond 用裸 {org}，更短且表单直接以
  * 参数名做标签（V4 P0-4：多参数命令最小闭环，落在 Quicklink 场景）。
  */
 /**

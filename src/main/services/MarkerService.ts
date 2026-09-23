@@ -1,5 +1,5 @@
 /**
- * Leaf · 标记服务（rec_markers 表的领域门面）
+ * Frond · 标记服务（rec_markers 表的领域门面）
  *
  * 收敛说明：本服务原为 electron-store（markers.json）+ 内存 Map 镜像，
  * 与 SQLite 的 rec_markers 表（MarkerRepository）长期并存两套标记系统。

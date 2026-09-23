@@ -265,21 +265,21 @@ async function attachShortcuts(): Promise<void> {
   ).api
   await api?.recording?.shortcut?.attach?.()
   // 监听推送
-  window.addEventListener('leaf:shortcut-start', onShortcutStart)
-  window.addEventListener('leaf:shortcut-togglePause', onShortcutTogglePause)
+  window.addEventListener('frond:shortcut-start', onShortcutStart)
+  window.addEventListener('frond:shortcut-togglePause', onShortcutTogglePause)
   // PR-7b: 倒计时（去掉 as EventListener 类型断言：EventListener 是纯类型，
   // 在运行时不存在 → eslint no-undef 报错，且 (e: Event) => void 本就可直接赋值）
-  window.addEventListener('leaf:countdown-tick', onCountdownTick)
-  window.addEventListener('leaf:countdown-begun', onCountdownBegun)
-  window.addEventListener('leaf:countdown-cancel', onCountdownCancel)
+  window.addEventListener('frond:countdown-tick', onCountdownTick)
+  window.addEventListener('frond:countdown-begun', onCountdownBegun)
+  window.addEventListener('frond:countdown-cancel', onCountdownCancel)
 }
 
 async function detachShortcuts(): Promise<void> {
-  window.removeEventListener('leaf:shortcut-start', onShortcutStart)
-  window.removeEventListener('leaf:shortcut-togglePause', onShortcutTogglePause)
-  window.removeEventListener('leaf:countdown-tick', onCountdownTick)
-  window.removeEventListener('leaf:countdown-begun', onCountdownBegun)
-  window.removeEventListener('leaf:countdown-cancel', onCountdownCancel)
+  window.removeEventListener('frond:shortcut-start', onShortcutStart)
+  window.removeEventListener('frond:shortcut-togglePause', onShortcutTogglePause)
+  window.removeEventListener('frond:countdown-tick', onCountdownTick)
+  window.removeEventListener('frond:countdown-begun', onCountdownBegun)
+  window.removeEventListener('frond:countdown-cancel', onCountdownCancel)
   const api = (
     window as unknown as {
       api?: { recording?: { shortcut?: { detach: () => Promise<{ ok: boolean }> } } }
@@ -300,7 +300,7 @@ function onCountdownBegun(): void {
   countdownActive.value = false
   countdownRemaining.value = 0
   // 真正开始录制
-  void window.dispatchEvent(new CustomEvent('leaf:recording-start-after-countdown'))
+  void window.dispatchEvent(new CustomEvent('frond:recording-start-after-countdown'))
 }
 function onCountdownCancel(): void {
   countdownActive.value = false
@@ -309,9 +309,9 @@ function onCountdownCancel(): void {
 
 // ── PR-7a: 快捷键 handler（占位 — RecordPage 监听真实 start/stop） ──
 function onShortcutStart(): void {
-  void window.dispatchEvent(new CustomEvent('leaf:shortcut-recording-start'))
+  void window.dispatchEvent(new CustomEvent('frond:shortcut-recording-start'))
 }
 function onShortcutTogglePause(): void {
-  void window.dispatchEvent(new CustomEvent('leaf:shortcut-recording-togglePause'))
+  void window.dispatchEvent(new CustomEvent('frond:shortcut-recording-togglePause'))
 }
 </script>

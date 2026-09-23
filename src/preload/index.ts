@@ -851,7 +851,7 @@ const api: API = {
       typedInvoke('find:files', { query: q, limit, opts }),
     reveal: (filePath: string) => typedInvoke('find:reveal', { filePath })
   },
-  // E2E 探针计数（仅 LEAF_E2E=1 时主进程注册了该通道；生产调用会 reject）
+  // E2E 探针计数（仅 FROND_E2E=1 时主进程注册了该通道；生产调用会 reject）
   e2e: {
     probeCounts: () => typedInvoke('e2e:probeCounts')
   },
@@ -1108,16 +1108,16 @@ if (process.contextIsolated) {
     // 用 window.dispatchEvent 把 IPC 消息桥到 DOM CustomEvent，
     // 因为 contextBridge 不能直接 expose ipcRenderer.on。
     ipcRenderer.on('cursor:position', (_e, pt: { x: number; y: number }) => {
-      window.dispatchEvent(new CustomEvent('leaf:cursor-position', { detail: pt }))
+      window.dispatchEvent(new CustomEvent('frond:cursor-position', { detail: pt }))
     })
     ipcRenderer.on('cursor:stop', () => {
-      window.dispatchEvent(new CustomEvent('leaf:cursor-stop'))
+      window.dispatchEvent(new CustomEvent('frond:cursor-stop'))
     })
     // PR-5b: 导出进度/完成
     ipcRenderer.on(
       'recording:export:progress',
       (_e, payload: { jobId: string; recordingId: string; percent: number; message: string }) => {
-        window.dispatchEvent(new CustomEvent('leaf:export-progress', { detail: payload }))
+        window.dispatchEvent(new CustomEvent('frond:export-progress', { detail: payload }))
       }
     )
     ipcRenderer.on(
@@ -1133,28 +1133,28 @@ if (process.contextIsolated) {
           error?: string
         }
       ) => {
-        window.dispatchEvent(new CustomEvent('leaf:export-done', { detail: payload }))
+        window.dispatchEvent(new CustomEvent('frond:export-done', { detail: payload }))
       }
     )
     // PR-7a: shortcut 推送
     ipcRenderer.on('recording:shortcut:start', () => {
-      window.dispatchEvent(new CustomEvent('leaf:shortcut-start'))
+      window.dispatchEvent(new CustomEvent('frond:shortcut-start'))
     })
     ipcRenderer.on('recording:shortcut:togglePause', () => {
-      window.dispatchEvent(new CustomEvent('leaf:shortcut-togglePause'))
+      window.dispatchEvent(new CustomEvent('frond:shortcut-togglePause'))
     })
     // PR-7b: 倒计时推送
     ipcRenderer.on('recording:countdown:tick', (_e, p: { remaining: number }) => {
-      window.dispatchEvent(new CustomEvent('leaf:countdown-tick', { detail: p }))
+      window.dispatchEvent(new CustomEvent('frond:countdown-tick', { detail: p }))
     })
     ipcRenderer.on('recording:countdown:begun', () => {
-      window.dispatchEvent(new CustomEvent('leaf:countdown-begun'))
+      window.dispatchEvent(new CustomEvent('frond:countdown-begun'))
     })
     ipcRenderer.on('recording:countdown:fire', (_e, p: { reason: string }) => {
-      window.dispatchEvent(new CustomEvent('leaf:countdown-fire', { detail: p }))
+      window.dispatchEvent(new CustomEvent('frond:countdown-fire', { detail: p }))
     })
     ipcRenderer.on('recording:countdown:cancel', () => {
-      window.dispatchEvent(new CustomEvent('leaf:countdown-cancel'))
+      window.dispatchEvent(new CustomEvent('frond:countdown-cancel'))
     })
   } catch (error) {
     console.error(error)

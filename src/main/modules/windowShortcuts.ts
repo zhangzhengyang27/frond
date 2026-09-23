@@ -1,5 +1,5 @@
 /**
- * Leaf · 窗口级快捷键 watcher（替代 electron-toolkit 的 optimizer.watchWindowShortcuts）
+ * Frond · 窗口级快捷键 watcher（替代 electron-toolkit 的 optimizer.watchWindowShortcuts）
  *
  * 为什么不用 optimizer：
  * - 生产分支无条件 preventDefault ⌘R/Ctrl+R 且无开关，页面永远收不到；

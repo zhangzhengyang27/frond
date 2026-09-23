@@ -1,5 +1,5 @@
 /**
- * Leaf · 插件热重载开发模式（对标 Raycast develop）
+ * Frond · 插件热重载开发模式（对标 Raycast develop）
  *
  * 开发者把本地插件目录注册进来后：
  *   保存文件 → fs.watch 触发 → importFromFolder 覆盖重装（staging 交换，失败不破坏已装版本）

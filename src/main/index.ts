@@ -1,15 +1,19 @@
 import { app, BrowserWindow, protocol, Tray, shell } from 'electron'
 import { fileIndex } from './modules/fileIndex/service'
+import { migrateLegacyBrandData } from './modules/brandMigration'
 
-// userData 目录显式钉回 leaf-desktop：package.json 的 productName=Leaf（isSelfName
-// 打包判定用，见 frontmostCache）会让 Electron 把 userData 迁到「Application Support/Leaf」，
+// userData 目录显式钉回 frond-desktop：package.json 的 productName=Frond（isSelfName
+// 打包判定用，见 frontmostCache）会让 Electron 把 userData 迁到「Application Support/Frond」，
 // 用户数据看起来像被清空。这里在任何服务触碰 userData 之前钉回历史路径。
-// 例外：LEAF_USER_DATA_DIR 显式指定独立目录（e2e 隔离——测试实例与 dev/正式实例
+// 例外：FROND_USER_DATA_DIR 显式指定独立目录（e2e 隔离——测试实例与 dev/正式实例
 // 并存时不抢单实例锁，也不读写真实用户数据）。
 app.setPath(
   'userData',
-  process.env.LEAF_USER_DATA_DIR || join(app.getPath('appData'), 'leaf-desktop')
+  process.env.FROND_USER_DATA_DIR || join(app.getPath('appData'), 'frond-desktop')
 )
+// 旧品牌（Leaf）的盘上存量搬到当前路径。必须紧跟在上面的钉径之后、
+// requestSingleInstanceLock() 之前——那一步会创建 userData 目录。
+migrateLegacyBrandData(app.getPath('userData'))
 import { join, resolve } from 'path'
 import { fileURLToPath } from 'node:url'
 import { electronApp } from '@electron-toolkit/utils'
@@ -80,7 +84,7 @@ import { isMac as isMacRuntime, shouldQuitOnAllWindowsClosed } from './utils/pla
 import { registerLauncher } from './launcher'
 import { showLauncherWindow, getLauncherWindow } from './launcher/window'
 import { openPlugin } from './launcher/runtime'
-import { parseLeafUrl } from './launcher/leafUrl'
+import { parseFrondUrl } from './launcher/frondUrl'
 // 剪贴板历史（阶段B：胶囊内联页数据源）
 import { clipboardHistory } from './services/ClipboardHistoryService'
 import { reminderService } from './services/ReminderService'
@@ -130,7 +134,7 @@ let mainWindow: BrowserWindow | null = null
 // 的 handler（主窗 windows.ts / 插件 view runtime.ts）会覆盖此兜底，行为不变。
 function isFirstPartyUrl(url: string): boolean {
   if (url === 'about:blank' || url.startsWith('devtools://')) return true
-  if (url.startsWith('plugin://') || url.startsWith('leaf://')) return true
+  if (url.startsWith('plugin://') || url.startsWith('frond://')) return true
   // 打包态 file:// 页面仅限构建产物目录；dev 态仅限本地 dev server
   if (url.startsWith('file://')) {
     try {
@@ -161,54 +165,54 @@ app.on('web-contents-created', (_event, contents) => {
 // 系统托盘相关
 let tray: Tray | null = null
 
-// ─────────── leaf:// URL Scheme（B4）───────────────────
-// 单实例锁：Windows 上 leaf:// 深链依赖「第二实例退出 + first 实例收 second-instance argv」，
+// ─────────── frond:// URL Scheme（B4）───────────────────
+// 单实例锁：Windows 上 frond:// 深链依赖「第二实例退出 + first 实例收 second-instance argv」，
 // 锁也是启动器形态（Raycast 式常驻）应有的约束——二次启动不再堆出第二个进程
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else if (process.defaultApp && process.argv.length >= 2) {
   // dev 两态：开发态应用是 electron 二进制 + 入口脚本，注册协议必须把入口脚本
-  // 作为执行参数带上，否则系统唤起 leaf:// 时不知道要加载哪个入口；
+  // 作为执行参数带上，否则系统唤起 frond:// 时不知道要加载哪个入口；
   // 打包态（process.defaultApp 为 false）只注册 scheme 即可
-  app.setAsDefaultProtocolClient('leaf', process.execPath, [resolve(process.argv[1])])
+  app.setAsDefaultProtocolClient('frond', process.execPath, [resolve(process.argv[1])])
 } else {
-  app.setAsDefaultProtocolClient('leaf')
+  app.setAsDefaultProtocolClient('frond')
 }
 
-// leaf:// 深链缓冲：open-url / 冷启动 argv 可能在 app ready（窗口/服务未建）前到达，
+// frond:// 深链缓冲：open-url / 冷启动 argv 可能在 app ready（窗口/服务未建）前到达，
 // 先入队，whenReady 末尾统一放行
-let leafRoutesReady = false
-const pendingLeafUrls: string[] = []
+let frondRoutesReady = false
+const pendingFrondUrls: string[] = []
 
-function handleLeafUrl(raw: string): void {
-  if (leafRoutesReady) {
-    routeLeafUrl(raw)
-  } else if (!pendingLeafUrls.includes(raw)) {
-    pendingLeafUrls.push(raw)
+function handleFrondUrl(raw: string): void {
+  if (frondRoutesReady) {
+    routeFrondUrl(raw)
+  } else if (!pendingFrondUrls.includes(raw)) {
+    pendingFrondUrls.push(raw)
   }
 }
 
-/** leaf:// 路由执行（路由表见 launcher/leafUrl.ts）；未识别路由静默忽略并 log */
-function routeLeafUrl(raw: string): void {
-  const route = parseLeafUrl(raw)
+/** frond:// 路由执行（路由表见 launcher/frondUrl.ts）；未识别路由静默忽略并 log */
+function routeFrondUrl(raw: string): void {
+  const route = parseFrondUrl(raw)
   if (!route) {
-    console.warn('[Main] leaf:// 未识别路由，忽略:', raw)
+    console.warn('[Main] frond:// 未识别路由，忽略:', raw)
     return
   }
   switch (route.kind) {
     case 'launcher':
-      // leaf://launcher → 唤起胶囊窗
+      // frond://launcher → 唤起胶囊窗
       showLauncherWindow()
       break
     case 'settings': {
-      // leaf://settings → 主窗设置路由；与 create-new-window IPC 的 /settings 分支
+      // frond://settings → 主窗设置路由；与 create-new-window IPC 的 /settings 分支
       // 完全一致（独立设置窗尺寸 + route-taken 让位通知）
       createAppWindow('/settings', true, 800, 786)
       mainWindow?.webContents.send('app:route-taken', { path: '/settings' })
       break
     }
     case 'plugin': {
-      // leaf://plugin/<id> → 胶囊窗打开插件（复用 launcher:openPlugin 内部路径；
+      // frond://plugin/<id> → 胶囊窗打开插件（复用 launcher:openPlugin 内部路径；
       // 插件未安装/停用时由 openPlugin 弹通知兜底）
       showLauncherWindow()
       const capsule = getLauncherWindow()
@@ -221,15 +225,15 @@ function routeLeafUrl(raw: string): void {
 // mac：运行中/冷启动经系统深链唤起（open-url 先于 ready 触发时由缓冲兜住）
 app.on('open-url', (event, url) => {
   event.preventDefault()
-  handleLeafUrl(url)
+  handleFrondUrl(url)
 })
 
-// win/linux：第二实例退出，第一实例在此收尾——argv 携带 leaf:// 深链则路由，
+// win/linux：第二实例退出，第一实例在此收尾——argv 携带 frond:// 深链则路由，
 // 普通二次启动也唤起胶囊（对齐 mac activate 行为）
 app.on('second-instance', (_event, argv) => {
-  const deepLink = argv.find((a) => typeof a === 'string' && /^leaf:\/\//i.test(a))
+  const deepLink = argv.find((a) => typeof a === 'string' && /^frond:\/\//i.test(a))
   if (deepLink) {
-    handleLeafUrl(deepLink)
+    handleFrondUrl(deepLink)
   } else if (app.isReady()) {
     showLauncherWindow()
   }
@@ -237,8 +241,8 @@ app.on('second-instance', (_event, argv) => {
 
 // win/linux 冷启动：open-url 不触发，深链直接出现在启动 argv 里（mac 走 open-url，
 // 此处按 URL 去重缓冲，不会二次路由）
-const launchLeafUrl = process.argv.find((a) => typeof a === 'string' && /^leaf:\/\//i.test(a))
-if (launchLeafUrl) handleLeafUrl(launchLeafUrl)
+const launchFrondUrl = process.argv.find((a) => typeof a === 'string' && /^frond:\/\//i.test(a))
+if (launchFrondUrl) handleFrondUrl(launchFrondUrl)
 
 // 性能基线（M0）：内存快照定时器（will-quit 时清理）
 let memorySnapshotTimer: ReturnType<typeof setInterval> | null = null
@@ -331,7 +335,7 @@ app.whenReady().then(() => {
 
   // Set app user model id for windows（须与 electron-builder.yml 的 appId 一致，
   // 否则 Windows 通知/任务栏身份与安装包脱节）
-  electronApp.setAppUserModelId('com.leaf.app')
+  electronApp.setAppUserModelId('com.frond.app')
 
   // 应用菜单：显式构建，去掉默认菜单的 ⌘R reload 占用（页面 ⌘R 刷新靠它放行）
   installApplicationMenu({ getMainWindow: () => mainWindow })
@@ -424,7 +428,7 @@ app.whenReady().then(() => {
   // 系统命令 / 窗口管理通道（M2）
   registerSystemCommandIpc()
 
-  // E2E 探针（仅 LEAF_E2E=1 时注册读取通道；生产环境这条 IPC 根本不存在）
+  // E2E 探针（仅 FROND_E2E=1 时注册读取通道；生产环境这条 IPC 根本不存在）
   registerE2EProbe()
 
   // 文件搜索通道（M5.3）
@@ -499,10 +503,10 @@ app.whenReady().then(() => {
     showLauncherWindow()
   }, 300)
 
-  // leaf:// 冷启动缓冲路由放行（窗口/IPC/服务均已就绪）
-  leafRoutesReady = true
-  for (const url of pendingLeafUrls.splice(0)) {
-    routeLeafUrl(url)
+  // frond:// 冷启动缓冲路由放行（窗口/IPC/服务均已就绪）
+  frondRoutesReady = true
+  for (const url of pendingFrondUrls.splice(0)) {
+    routeFrondUrl(url)
   }
 
   // 初始化系统托盘（传入窗口重建回调，解决 macOS 关闭窗口后托盘无法恢复的问题）

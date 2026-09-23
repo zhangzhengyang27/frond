@@ -1,5 +1,5 @@
 /**
- * Leaf · 插件导入确认闸（审查 I5：市场安装与本地导入共用同一道闸）
+ * Frond · 插件导入确认闸（审查 I5：市场安装与本地导入共用同一道闸）
  *
  * 原设计意图：系统级模态框是「被攻陷渲染端无法自动点掉」的防线，
  * 本地导入与远程市场安装必须同等受闸，否则市场索引联网化后确认形同虚设。
@@ -47,7 +47,7 @@ export function diffPermissions(
 
 /** 系统级模态确认：展示插件声明的敏感权限清单；E2E 旁路 */
 export async function confirmPluginImport(dirPath: string): Promise<boolean> {
-  if (process.env.LEAF_E2E === '1') return true
+  if (process.env.FROND_E2E === '1') return true
   const { dialog } = await import('electron')
   // 读取目标插件声明的敏感权限，把笼统提醒换成具体清单（读不到 manifest 就用兜底文案）
   let permDetail = ''

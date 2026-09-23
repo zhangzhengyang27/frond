@@ -1,5 +1,5 @@
 /**
- * Leaf · 系统命令与窗口管理（M2.1 / M2.2 / B3）
+ * Frond · 系统命令与窗口管理（M2.1 / M2.2 / B3）
  *
  * 系统命令：锁屏 / 睡眠 / 屏保 / 清空废纸篓 / 静音切换 / 显示桌面，
  * 按平台分发（macOS osascript / Windows 原生工具），统一 system:* 通道。
@@ -200,14 +200,14 @@ function winMediaKeyScript(vk: number): string {
   return `Add-Type @'
 using System;
 using System.Runtime.InteropServices;
-public class LeafMediaKey {
+public class FrondMediaKey {
   [DllImport("user32.dll")]
   public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
 }
 '@
-[LeafMediaKey]::keybd_event(${vk}, 0, 0, [UIntPtr]::Zero)
+[FrondMediaKey]::keybd_event(${vk}, 0, 0, [UIntPtr]::Zero)
 Start-Sleep -Milliseconds 30
-[LeafMediaKey]::keybd_event(${vk}, 0, 2, [UIntPtr]::Zero)`
+[FrondMediaKey]::keybd_event(${vk}, 0, 2, [UIntPtr]::Zero)`
 }
 
 const WIN_MEDIA_VK: Record<number, number> = {
@@ -298,7 +298,7 @@ interface IAudioEndpointVolume {
   int GetMute(out bool mute);
 }
 
-public static class LeafVolume {
+public static class FrondVolume {
   public static void Set(int pct) {
     var en = (IMMDeviceEnumerator)(object)new MMDeviceEnumeratorComObject();
     IMMDevice dev;
@@ -310,12 +310,12 @@ public static class LeafVolume {
   }
 }
 '@
-[LeafVolume]::Set(${pct})`
+[FrondVolume]::Set(${pct})`
 }
 
 // ── Quit All Apps / Hide All Except Frontmost ──
 
-/** System Events 的进程名 = 可执行文件名（dev 为 Electron，打包后为 Leaf） */
+/** System Events 的进程名 = 可执行文件名（dev 为 Electron，打包后为 Frond） */
 function selfProcessName(): string {
   return basename(process.execPath)
 }
@@ -325,10 +325,10 @@ const CAPSULE_HIDE_SETTLE_MS = 250
 
 /**
  * 解析「前台应用」（Raycast 语义：调起命令面板之前你在用的应用）。
- * 只有 Leaf 胶囊本身（launcher window 实例）持有焦点时才先隐藏自己，
+ * 只有 Frond 胶囊本身（launcher window 实例）持有焦点时才先隐藏自己，
  * 等系统把前台交还上一个应用后再探测——不能按「isFocused && isAlwaysOnTop」
  * 泛化判定：Pin 贴纸/悬浮笔记也是置顶窗，误隐藏后不会有人恢复它们。
- * 主窗 / 设置窗 / ⌘K 面板（非胶囊）聚焦时探测到 Leaf 自身进程名，
+ * 主窗 / 设置窗 / ⌘K 面板（非胶囊）聚焦时探测到 Frond 自身进程名，
  * 调用方降级为「不保留」——已知局限，文档化接受。
  * 探测失败返回 null。
  */
@@ -348,7 +348,7 @@ async function resolveFrontmostName(): Promise<string | null> {
 }
 
 /** 逐个优雅退出可见前台应用（tell application … quit，可触发保存提示）。
- *  跳过 Finder 与 Leaf 自身；argv[2] 非空时额外保留该应用。
+ *  跳过 Finder 与 Frond 自身；argv[2] 非空时额外保留该应用。
  *  argv 经 execFile 参数数组传入，无 shell 解析层。 */
 const MAC_QUIT_ALL_SCRIPT = `on run argv
   set _self to item 1 of argv as text
@@ -378,15 +378,15 @@ function winQuitAllScript(resolveFrontmost: boolean): string {
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
-public class LeafFG {
+public class FrondFG {
   [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
 }
 '@
-$fg = [LeafFG]::GetForegroundWindow()
+$fg = [FrondFG]::GetForegroundWindow()
 if ($fg -ne [IntPtr]::Zero) {
   $fgPid = 0
-  [void][LeafFG]::GetWindowThreadProcessId($fg, [ref]$fgPid)
+  [void][FrondFG]::GetWindowThreadProcessId($fg, [ref]$fgPid)
   $fgProc = Get-Process -Id $fgPid -ErrorAction SilentlyContinue
   if ($fgProc) { $keepName = $fgProc.ProcessName }
 }

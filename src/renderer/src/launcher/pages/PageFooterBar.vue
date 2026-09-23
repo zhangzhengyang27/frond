@@ -22,7 +22,7 @@ import { injectPageTitle } from '../composables/useLauncherPages'
 /**
  * 内联页底栏（I7 全量覆盖）：不经过 CapsulePage 的自绘页面用本组件补齐
  * Raycast 式底栏——左侧当前页面包屑（标题由 LauncherApp provide）+ 可选动作提示。
- * 面包屑点击经 leaf:launcher-pop 事件由 LauncherApp 统一逐级返回。
+ * 面包屑点击经 frond:launcher-pop 事件由 LauncherApp 统一逐级返回。
  */
 withDefaults(defineProps<{ hints?: Array<{ keys: string; label: string }> }>(), {
   hints: () => []
@@ -32,7 +32,7 @@ const injected = injectPageTitle()
 const pageTitle = computed(() => injected?.value ?? null)
 
 function onBreadcrumb(): void {
-  window.dispatchEvent(new CustomEvent('leaf:launcher-pop'))
+  window.dispatchEvent(new CustomEvent('frond:launcher-pop'))
 }
 </script>
 

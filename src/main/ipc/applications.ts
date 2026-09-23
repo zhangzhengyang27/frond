@@ -178,7 +178,7 @@ function getAppDisplayName(appPath: string): string {
 // ─────────────────────────────────────────────────────────────
 
 const ICON_CONCURRENCY = 24
-const iconDir = join(tmpdir(), 'LeafAppIcons')
+const iconDir = join(tmpdir(), 'FrondAppIcons')
 if (!existsSync(iconDir)) {
   mkdirSync(iconDir, { recursive: true })
 }

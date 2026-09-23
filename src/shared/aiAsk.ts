@@ -1,5 +1,5 @@
 /**
- * Leaf · 「问 AI：解释这条结果」的提示词拼装（P-4③）
+ * Frond · 「问 AI：解释这条结果」的提示词拼装（P-4③）
  *
  * 放在 shared 是因为它是**唯一的产品判断**：一条搜索结果要变成什么问题，
  * 决定多少上下文会离开本机去模型。所以这里刻意做三件事：
@@ -44,7 +44,7 @@ export function buildEntryAsk(entry: AiAskSource): string {
     }
     case 'module':
     case 'page':
-      return `介绍 Leaf 的这个功能能做什么：${title}${entry.subtitle ? `（${entry.subtitle}）` : ''}`
+      return `介绍 Frond 的这个功能能做什么：${title}${entry.subtitle ? `（${entry.subtitle}）` : ''}`
     default:
       return `解释这条搜索结果是什么、怎么用：${title}${entry.subtitle ? `（${entry.subtitle}）` : ''}`
   }

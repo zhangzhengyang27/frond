@@ -1,5 +1,5 @@
 /**
- * Leaf · RegionOverlay
+ * Frond · RegionOverlay
  *
  * 职责：打开一个跨平台 transparent 全屏 overlay 窗口，让用户在屏上拖拽选择录制区域。
  *
@@ -123,12 +123,12 @@ const OVERLAY_HTML_TEMPLATE = `<!doctype html>
   function report(x0,y0,x1,y1){
     const x = Math.min(x0,x1), y = Math.min(y0,y1);
     const width = Math.abs(x1-x0), height = Math.abs(y1-y0);
-    location.href = 'leaf-region://select?x='+Math.round(x+monitorBounds.x)
+    location.href = 'frond-region://select?x='+Math.round(x+monitorBounds.x)
       +'&y='+Math.round(y+monitorBounds.y)
       +'&width='+Math.round(width)+'&height='+Math.round(height);
   }
 
-  function requestCancel(){ location.href = 'leaf-region://cancel'; }
+  function requestCancel(){ location.href = 'frond-region://cancel'; }
 
   document.addEventListener('mousedown', (e)=>{
     if(e.button!==0) return;
@@ -239,9 +239,9 @@ function openOverlay(target: {
     }
 
     win.webContents.on('will-navigate', (event, url) => {
-      if (!url.startsWith('leaf-region://')) return
+      if (!url.startsWith('frond-region://')) return
       event.preventDefault()
-      const m = /^leaf-region:\/\/([^?]*)(?:\?(.*))?$/.exec(url)
+      const m = /^frond-region:\/\/([^?]*)(?:\?(.*))?$/.exec(url)
       const kind = m?.[1]
       const params = new URLSearchParams(m?.[2] ?? '')
       const num = (k: string): number => Number(params.get(k))

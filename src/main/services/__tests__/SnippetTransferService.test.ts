@@ -44,7 +44,7 @@ const exported = (overrides?: Partial<ExportedSnippet>): ExportedSnippet => ({
 describe('buildExportPayload 导出负载', () => {
   it('文件头字段完整（app/kind/version/exportedAt）', () => {
     const payload = buildExportPayload([baseSnippet()])
-    expect(payload.app).toBe('leaf')
+    expect(payload.app).toBe('frond')
     expect(payload.kind).toBe('snippets')
     expect(payload.version).toBe(SNIPPET_EXPORT_VERSION)
     expect(typeof payload.exportedAt).toBe('number')
@@ -75,7 +75,7 @@ describe('buildExportPayload 导出负载', () => {
 describe('parseImportPayload 导入校验', () => {
   it('合法文件通过，缺失字段按默认值归一', () => {
     const json = JSON.stringify({
-      app: 'leaf',
+      app: 'frond',
       kind: 'snippets',
       version: 1,
       exportedAt: 1,

@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：胶囊的无障碍结构（P-7）
+ * Frond · E2E：胶囊的无障碍结构（P-7）
  *
  * 断言的是「结构真的连上了」，不是「属性写了」：
  *  - html 有 lang（读屏的发音引擎靠它）
@@ -54,11 +54,11 @@ const getCapsuleWindow = async () => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-a11y')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-a11y')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

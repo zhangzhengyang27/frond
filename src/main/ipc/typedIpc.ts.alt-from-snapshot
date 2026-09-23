@@ -1,5 +1,5 @@
 /**
- * Leaf · 类型化 IPC 注册（单对象入参约定的执行点）
+ * Frond · 类型化 IPC 注册（单对象入参约定的执行点）
  *
  * 约定：每个通道一个 `req` 对象（无入参用 void），返回类型即 `res`；通道必须先在
  * `src/shared/ipc-contract.ts` 登记 —— 没登记或形状不符，这里编译期就红。
@@ -46,7 +46,7 @@ export function typedRemove(channel: IpcKey): void {
   ipcMain.removeHandler(channel)
 }
 /**
- * Leaf · 录制 IPC（新通道）
+ * Frond · 录制 IPC（新通道）
  *
  * 通道集合：recording.list / get / delete / markers.* / settings.* / recovery.*
  *

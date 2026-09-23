@@ -1,5 +1,5 @@
 /**
- * Leaf · ProjectRepository
+ * Frond · ProjectRepository
  *
  * 管理 pom_projects 表，为番茄钟任务提供轻量项目分组。
  */

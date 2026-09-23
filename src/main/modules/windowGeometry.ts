@@ -1,5 +1,5 @@
 /**
- * Leaf · 窗口几何纯函数（V4 P1-7 批次3：gaps 支持 + 可测性重构）
+ * Frond · 窗口几何纯函数（V4 P1-7 批次3：gaps 支持 + 可测性重构）
  *
  * 背景：mac 侧窗口脚本此前在 AppleScript 内联做分数算术（Finder 桌面 bounds
  * 当 workArea），无法单测也无法统一加 gap。本模块把「动作 → 目标矩形」收敛为

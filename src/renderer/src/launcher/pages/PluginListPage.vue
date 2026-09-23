@@ -63,7 +63,7 @@ const props = defineProps<{
   items: PluginListItem[]
   /** P-2.6：插件声明列表加载中（Raycast isLoading） */
   loading?: boolean
-  /** 插件自定义空态文案（Raycast emptyView 的 Leaf 形态：收字符串） */
+  /** 插件自定义空态文案（Raycast emptyView 的 Frond 形态：收字符串） */
   emptyMessage?: string | null
 }>()
 

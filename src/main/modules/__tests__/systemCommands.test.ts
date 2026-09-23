@@ -72,44 +72,44 @@ describe('B3 命令 id 注册完整性', () => {
 
   /**
    * Raycast System Actions 23 条清单覆盖表：
-   * leafId 为 null = 本批次未实现（登记未尽项），其余必须已注册。
+   * frondId 为 null = 本批次未实现（登记未尽项），其余必须已注册。
    */
-  const RAYCAST_SYSTEM_ACTIONS: Array<{ action: string; leafId: string | null }> = [
-    { action: 'Lock Screen 锁定屏幕', leafId: 'system.lock' },
-    { action: 'Sleep 睡眠', leafId: 'system.sleep' },
-    { action: 'Restart 重启', leafId: 'system.restart' },
-    { action: 'Shut Down 关机', leafId: 'system.shutdown' },
-    { action: 'Log Out 退出登录', leafId: null }, // 未实现（登记未尽项）
-    { action: 'Empty Trash 清空废纸篓', leafId: 'system.emptyTrash' },
-    { action: 'Toggle Mute 静音切换', leafId: 'system.muteToggle' },
-    { action: 'Set Volume to 0%', leafId: 'system.volume0' },
-    { action: 'Set Volume to 25%', leafId: 'system.volume25' },
-    { action: 'Set Volume to 50%', leafId: 'system.volume50' },
-    { action: 'Set Volume to 75%', leafId: 'system.volume75' },
-    { action: 'Set Volume to 100%', leafId: 'system.volume100' },
-    { action: 'Play / Pause 播放暂停', leafId: 'system.playPause' },
-    { action: 'Next 下一首', leafId: 'system.nextTrack' },
-    { action: 'Previous 上一首', leafId: 'system.previousTrack' },
-    { action: 'Quit All Applications 退出所有应用', leafId: 'system.quitAllApps' },
+  const RAYCAST_SYSTEM_ACTIONS: Array<{ action: string; frondId: string | null }> = [
+    { action: 'Lock Screen 锁定屏幕', frondId: 'system.lock' },
+    { action: 'Sleep 睡眠', frondId: 'system.sleep' },
+    { action: 'Restart 重启', frondId: 'system.restart' },
+    { action: 'Shut Down 关机', frondId: 'system.shutdown' },
+    { action: 'Log Out 退出登录', frondId: null }, // 未实现（登记未尽项）
+    { action: 'Empty Trash 清空废纸篓', frondId: 'system.emptyTrash' },
+    { action: 'Toggle Mute 静音切换', frondId: 'system.muteToggle' },
+    { action: 'Set Volume to 0%', frondId: 'system.volume0' },
+    { action: 'Set Volume to 25%', frondId: 'system.volume25' },
+    { action: 'Set Volume to 50%', frondId: 'system.volume50' },
+    { action: 'Set Volume to 75%', frondId: 'system.volume75' },
+    { action: 'Set Volume to 100%', frondId: 'system.volume100' },
+    { action: 'Play / Pause 播放暂停', frondId: 'system.playPause' },
+    { action: 'Next 下一首', frondId: 'system.nextTrack' },
+    { action: 'Previous 上一首', frondId: 'system.previousTrack' },
+    { action: 'Quit All Applications 退出所有应用', frondId: 'system.quitAllApps' },
     {
       action: 'Quit All Except Frontmost 退出其他应用',
-      leafId: 'system.quitAllAppsExceptFrontmost'
+      frondId: 'system.quitAllAppsExceptFrontmost'
     },
-    { action: 'Hide All Except Frontmost 隐藏其他窗口', leafId: 'system.hideAllExceptFrontmost' },
-    { action: 'Show Desktop 显示桌面', leafId: 'system.showDesktop' },
-    { action: 'Show Screen Saver 屏幕保护', leafId: 'system.screensaver' },
-    { action: 'Dismiss Notifications 清除通知', leafId: 'system.dismissNotifications' },
-    { action: 'Eject All Disks 弹出所有磁盘', leafId: 'system.ejectAllDisks' },
-    { action: 'Hide All Apps 隐藏所有窗口', leafId: 'system.hideAll' }
+    { action: 'Hide All Except Frontmost 隐藏其他窗口', frondId: 'system.hideAllExceptFrontmost' },
+    { action: 'Show Desktop 显示桌面', frondId: 'system.showDesktop' },
+    { action: 'Show Screen Saver 屏幕保护', frondId: 'system.screensaver' },
+    { action: 'Dismiss Notifications 清除通知', frondId: 'system.dismissNotifications' },
+    { action: 'Eject All Disks 弹出所有磁盘', frondId: 'system.ejectAllDisks' },
+    { action: 'Hide All Apps 隐藏所有窗口', frondId: 'system.hideAll' }
   ]
 
   it('覆盖表除登记项外全部已注册（22/23）', () => {
     const ids = new Set(getSystemCommandIds())
     const unregistered = RAYCAST_SYSTEM_ACTIONS.filter(
-      (row) => row.leafId !== null && !ids.has(row.leafId)
+      (row) => row.frondId !== null && !ids.has(row.frondId)
     )
     expect(unregistered).toEqual([])
-    expect(RAYCAST_SYSTEM_ACTIONS.filter((row) => row.leafId === null)).toHaveLength(1)
+    expect(RAYCAST_SYSTEM_ACTIONS.filter((row) => row.frondId === null)).toHaveLength(1)
   })
 })
 

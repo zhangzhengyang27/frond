@@ -1,5 +1,5 @@
 /**
- * Leaf · Reminders IPC 处理器
+ * Frond · Reminders IPC 处理器
  *
  * 提醒事项的渲染端 ↔ 主进程通信层。
  */

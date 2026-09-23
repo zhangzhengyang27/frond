@@ -10,7 +10,7 @@ import { join } from 'node:path'
  * 界面上的 JSON 编辑器回传时通常不带 env。如果不沿用本机原值，
  * 用户「只是改个 label」就会把凭据洗掉——这种坏法没有任何报错。
  */
-const __userData = join(mkdtempSync(join(tmpdir(), 'leaf-mcp-store-')), 'userData')
+const __userData = join(mkdtempSync(join(tmpdir(), 'frond-mcp-store-')), 'userData')
 vi.mock('electron', () => ({
   app: { getPath: () => __userData, getVersion: () => '0.0.0-test', isReady: () => true },
   ipcMain: { handle: () => {} },

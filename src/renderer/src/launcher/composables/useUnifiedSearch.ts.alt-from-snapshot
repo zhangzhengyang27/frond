@@ -1,5 +1,5 @@
 /**
- * Leaf · P0-1 统一混合搜索（自 LauncherApp.vue 抽出）
+ * Frond · P0-1 统一混合搜索（自 LauncherApp.vue 抽出）
  *
  * 根搜索聚合：命令/应用（同步，searchEntries）+ 计算器 / 单位换算 / Emoji
  * （同步）+ 文件 / 剪贴板 / 片段（异步增量合并）。

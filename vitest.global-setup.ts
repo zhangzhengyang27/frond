@@ -9,7 +9,7 @@
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 
-const BUILD_IN_ORDER = ['leaf-plugin-sdk', 'leaf-raycast-api']
+const BUILD_IN_ORDER = ['frond-plugin-sdk', 'frond-raycast-api']
 
 export default function setup(): void {
   for (const pkg of BUILD_IN_ORDER) {

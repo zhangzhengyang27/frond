@@ -1,5 +1,5 @@
 /**
- * Leaf · Hyper Key（V4 P1-8，设计见 docs/HYPER_KEY_DESIGN.md 方案 A）
+ * Frond · Hyper Key（V4 P1-8，设计见 docs/HYPER_KEY_DESIGN.md 方案 A）
  *
  * 机制：
  * 1. hidutil 系统级重映射 Caps Lock → F18（HID 0x700000039 → 0x700000068），

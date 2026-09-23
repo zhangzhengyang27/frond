@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件索引服务（#9，M1 macOS / M2 起含 Windows）
+ * Frond · 文件索引服务（#9，M1 macOS / M2 起含 Windows）
  *
  * - ensureStarted：打开 userData/file-index.db，默认范围 home（首次写入 meta），
  *   files 为空时后台全量扫描（分片不阻塞），随后按平台启动事件监听
@@ -128,9 +128,9 @@ class FileIndexService {
     try {
       this.db = FileIndexDb.open(join(app.getPath('userData'), 'file-index.db'))
       if (!this.db.getMeta(SCOPES_KEY)) {
-        // e2e 覆盖：LEAF_FILE_INDEX_SCOPES（JSON 数组或单路径）优先于默认 home，
+        // e2e 覆盖：FROND_FILE_INDEX_SCOPES（JSON 数组或单路径）优先于默认 home，
         // 让测试用可控小目录验证索引链路，同时避免 e2e 触发 home 全量扫描
-        const envScopes = process.env.LEAF_FILE_INDEX_SCOPES
+        const envScopes = process.env.FROND_FILE_INDEX_SCOPES
         let scopes: string[] = [homedir()]
         if (envScopes) {
           try {

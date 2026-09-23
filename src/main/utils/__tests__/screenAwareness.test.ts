@@ -13,9 +13,9 @@ import {
  */
 describe('parseFrontmostContext', () => {
   it('第一行是应用名，剩下是窗口标题', () => {
-    expect(parseFrontmostContext('Safari\nLeaf × Raycast — Safari')).toEqual({
+    expect(parseFrontmostContext('Safari\nFrond × Raycast — Safari')).toEqual({
       appName: 'Safari',
-      windowTitle: 'Leaf × Raycast — Safari'
+      windowTitle: 'Frond × Raycast — Safari'
     })
   })
 

@@ -6,6 +6,17 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
+// 改名前（Leaf）写在 localStorage 的键搬到新前缀：侧栏展开态、任务与 Todoist 的
+// 对应关系都是按键名取的，认不出旧键就静默回到默认值。反向遍历边搬边删，跑完不再有 leaf.*。
+for (let i = localStorage.length - 1; i >= 0; i--) {
+  const key = localStorage.key(i)
+  if (!key?.startsWith('leaf.')) continue
+  const next = `frond.${key.slice('leaf.'.length)}`
+  const value = localStorage.getItem(key)
+  if (value !== null && localStorage.getItem(next) === null) localStorage.setItem(next, value)
+  localStorage.removeItem(key)
+}
+
 const app = createApp(App)
 app.use(createPinia())
 app.use(router)

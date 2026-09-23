@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：主窗 ⌘K 面板与胶囊共用同一个命令源（P-7② 合一）
+ * Frond · E2E：主窗 ⌘K 面板与胶囊共用同一个命令源（P-7② 合一）
  *
  * 这一格要钉的不是「面板能打开」，而是**两个界面的行是同一批行**：
  * 合一之前主窗自己拼四份清单，胶囊走 Registry + 去重合并，
@@ -33,7 +33,7 @@ const getMainWindow = async () => {
     for (const w of app.windows()) {
       try {
         const u = w.url()
-        // 按 URL 认窗：主窗与胶囊窗的 title 都含 Leaf，按 title 会认错（见项目记忆）
+        // 按 URL 认窗：主窗与胶囊窗的 title 都含 Frond，按 title 会认错（见项目记忆）
         if (/\/index\.html/.test(u) && !/launcher\.html/.test(u)) return w
       } catch {
         /* 尚未就绪 */
@@ -51,11 +51,11 @@ const getMainWindow = async () => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-command-palette')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-command-palette')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

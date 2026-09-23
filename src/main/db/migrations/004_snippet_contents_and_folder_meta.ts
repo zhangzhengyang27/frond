@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 004 — Snippet 多内容子表 + Folder 业务列
+ * Frond · Migration 004 — Snippet 多内容子表 + Folder 业务列
  *
  * 5-6b 升级：
  * 1. 新建 snip_snippet_contents(snippet_id, label, value, language, position)

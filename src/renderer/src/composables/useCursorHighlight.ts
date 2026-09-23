@@ -1,12 +1,12 @@
 /**
- * Leaf · useCursorHighlight
+ * Frond · useCursorHighlight
  *
  * 职责：订阅主进程推送的系统光标位置（30fps），并暴露给 canvas draw 循环调用。
  *
  * 设计要点：
  *   - 仅在录制期间订阅，避免常驻推送
  *   - start()/stop() 是幂等的
- *   - preload 用 CustomEvent 把 'leaf:cursor-position' / 'leaf:cursor-stop'
+ *   - preload 用 CustomEvent 把 'frond:cursor-position' / 'frond:cursor-stop'
  *     从 main world 转发到 window
  *   - B6 修复：命名 handler + onUnmounted 统一 removeEventListener，
  *     旧版匿名监听器永不清除，多次进出录屏页会累积并阻止 GC
@@ -33,13 +33,13 @@ export function useCursorHighlight(): {
   }
 
   function addListeners(): void {
-    window.addEventListener('leaf:cursor-position', onPosition)
-    window.addEventListener('leaf:cursor-stop', onStop)
+    window.addEventListener('frond:cursor-position', onPosition)
+    window.addEventListener('frond:cursor-stop', onStop)
   }
 
   function removeListeners(): void {
-    window.removeEventListener('leaf:cursor-position', onPosition)
-    window.removeEventListener('leaf:cursor-stop', onStop)
+    window.removeEventListener('frond:cursor-position', onPosition)
+    window.removeEventListener('frond:cursor-stop', onStop)
   }
 
   async function start(): Promise<void> {

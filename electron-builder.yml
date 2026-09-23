@@ -1,5 +1,5 @@
-appId: com.leaf.app
-productName: Leaf
+appId: com.frond.app
+productName: Frond
 directories:
   buildResources: build
   # electron-vite 产物在 out/{main,preload,renderer}；打包输出统一到 out/make，
@@ -30,6 +30,11 @@ asarUnpack:
   - node_modules/better-sqlite3/**
   - node_modules/bindings/**
   - node_modules/file-uri-to-path/**
+  # 截图采集侧：node-screenshots 是 NAPI-RS 的按平台预编译包（darwin-arm64 / win32-x64 / linux-*），
+  # 真正的 .node 在平台包里；electron-screenshots 通过 `await import('node-screenshots')` 用它抓屏。
+  # 用 **/ 前缀是因为 pnpm 下这些包挂在 .pnpm 目录里，不在顶层 node_modules。
+  - '**/node_modules/node-screenshots/**'
+  - '**/node_modules/node-screenshots-*/**'
 extraResources:
   # 静态插件市场索引（M3.5）：打包后位于 resources/plugins.json
   - from: plugins.json
@@ -45,7 +50,7 @@ extraResources:
       - '**/*.md'
       - '**/*.d.ts'
 win:
-  executableName: Leaf
+  executableName: Frond
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -92,8 +97,8 @@ npmRebuild: false
 # - 私有仓库或需要统计时可改用 generic provider + 自建静态服务器
 publish:
   provider: github
-  owner: leaf-app
-  repo: leaf-desktop
+  owner: frond-app
+  repo: frond-desktop
   releaseType: release
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

@@ -39,7 +39,7 @@ const toggleTheme = (): void => {
 
 <template>
   <header
-    class="LeafTopBar relative z-20 flex h-10 shrink-0 items-center justify-between border-b border-line-subtle bg-glass-bg px-4 backdrop-blur-[var(--glass-blur)]"
+    class="FrondTopBar relative z-20 flex h-10 shrink-0 items-center justify-between border-b border-line-subtle bg-glass-bg px-4 backdrop-blur-[var(--glass-blur)]"
   >
     <!-- 顶部 1px 内高光 -->
     <div
@@ -50,7 +50,7 @@ const toggleTheme = (): void => {
     <!-- 左：Logo + 名称 -->
     <div class="flex items-center gap-2 select-none">
       <span class="text-lg leading-none">🌿</span>
-      <span class="text-sm font-semibold text-fg-primary">Leaf</span>
+      <span class="text-sm font-semibold text-fg-primary">Frond</span>
     </div>
 
     <!-- 中：命令面板入口（⌘K）—— 独立浮层，不挤占两侧 -->

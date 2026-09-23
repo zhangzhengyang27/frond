@@ -1,5 +1,5 @@
 /**
- * Leaf · 插件市场（M3.5 静态 v0 → P-3.1 远程索引）
+ * Frond · 插件市场（M3.5 静态 v0 → P-3.1 远程索引）
  *
  * 索引有两个来源，本地优先：
  * - 打包索引 = 仓库根 plugins.json（electron-builder extraResources 落在 resources/plugins.json）
@@ -526,7 +526,7 @@ export async function installFromMarket(entryId: string): Promise<{
       }
       importDir = source.path
     } else {
-      staging = mkdtempSync(join(tmpdir(), 'leaf-market-'))
+      staging = mkdtempSync(join(tmpdir(), 'frond-market-'))
       const zipPath = join(staging, 'pkg.zip')
       if (source.kind === 'url') {
         await downloadZip(source.url, zipPath)

@@ -1,5 +1,5 @@
 /**
- * Leaf · 插件 Alert 的对话框参数装配（P-2.5）
+ * Frond · 插件 Alert 的对话框参数装配（P-2.5）
  *
  * 单独一个文件只为了一件事：把「怎么把插件给的 actions 摆成一个原生模态框」
  * 变成不 import electron 的纯函数，能被单测钉住。`dialog.showMessageBox` 本身

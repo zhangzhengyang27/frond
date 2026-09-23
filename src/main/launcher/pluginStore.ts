@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器插件仓库
+ * Frond · 启动器插件仓库
  *
  * 自研插件（安全收紧路线）：本地目录包，不经 npm 安装链路。
  * 目录结构：userData/launcher-plugins/<pluginId>/（plugin.json + 静态页面）
@@ -7,7 +7,7 @@
  *
  * plugin.json 清单：
  * {
- *   "id": "com.leaf.example",       // 必填，反向域名，作为目录名与数据命名空间
+ *   "id": "com.frond.example",       // 必填，反向域名，作为目录名与数据命名空间
  *   "name": "示例插件",              // 必填
  *   "version": "0.1.0",
  *   "description": "…",

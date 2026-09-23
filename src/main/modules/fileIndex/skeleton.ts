@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件索引骨架词（#9，对标 Vicinae skeletonizeToken）
+ * Frond · 文件索引骨架词（#9，对标 Vicinae skeletonizeToken）
  *
  * CJK 字符 → 拼音首字母（pinyin-pro，词典较大故动态 import 一次并缓存），
  * latin/数字保留小写，其余丢弃。让中文文件名可用拼音首字母前缀搜索：

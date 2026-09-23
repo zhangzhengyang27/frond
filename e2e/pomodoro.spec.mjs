@@ -1,5 +1,5 @@
 /**
- * Leaf · 番茄钟 E2E 测试
+ * Frond · 番茄钟 E2E 测试
  *
  * 通过 Playwright 直接控制 Electron 窗口测试番茄钟功能
  */
@@ -22,8 +22,8 @@ test.beforeAll(async () => {
   // 否则 Electron 会把命令行参数当作 Node.js 参数而不是 Electron 参数
   const env = { ...process.env }
   // 隔离 userData：本 spec 的用例 4 会真的写入番茄钟任务，不得落到用户真实库
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-pomodoro')
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-pomodoro')
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
 
   app = await electron.launch({
@@ -62,7 +62,7 @@ test('2. 导航到番茄钟页面', async () => {
   const page = await app.firstWindow()
 
   // 走应用自己的 hash 路由（vue-router createWebHashHistory）——旧写法先
-  // dispatchEvent('leaf:navigate')（渲染端无监听者，空放）再 goto 到 vite dev
+  // dispatchEvent('frond:navigate')（渲染端无监听者，空放）再 goto 到 vite dev
   // server:5173，等于把这条用例挂在「本机是否开着 pnpm dev」上
   await page.evaluate(() => {
     window.location.hash = '#/pomodoro'

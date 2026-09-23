@@ -1,5 +1,5 @@
 /**
- * Leaf · AI 服务（P0-3）
+ * Frond · AI 服务（P0-3）
  *
  * OpenAI 兼容 API 调用层：
  * - 配置存储在 electron-store（apiKey 仅存本机）

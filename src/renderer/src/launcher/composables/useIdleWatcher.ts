@@ -1,5 +1,5 @@
 /**
- * Leaf · B1 Pop to Root 闲置计时（自 LauncherApp.vue 抽出）
+ * Frond · B1 Pop to Root 闲置计时（自 LauncherApp.vue 抽出）
  *
  * 任何键入/点击/鼠标移动重置计时；窗口隐藏（visibilitychange → hidden）暂停，
  * 重新可见或 onShown 时重启。判定逻辑在 launcherInteractions.ts（可单测）。

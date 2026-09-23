@@ -1,5 +1,5 @@
 /**
- * Leaf · CalendarService（V4 P0-1 批次4 第一档：系统日历只读）
+ * Frond · CalendarService（V4 P0-1 批次4 第一档：系统日历只读）
  *
  * macOS 经 JXA + EventKit 读取（不捕捉不写回），TCC 日历权限按状态机处理：
  * - notDetermined：触发一次系统授权弹窗（fire-and-forget），本次返回 pending

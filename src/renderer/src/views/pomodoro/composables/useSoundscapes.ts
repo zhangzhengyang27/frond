@@ -1,5 +1,5 @@
 /**
- * Leaf · useSoundscapes（P0-3 声景白噪音）
+ * Frond · useSoundscapes（P0-3 声景白噪音）
  *
  * 纯 WebAudio 合成，零音频资源依赖（无下载体积 / 无版权问题）：
  * - rain      雨声：带通白噪音 + 高频细雨 shimmer

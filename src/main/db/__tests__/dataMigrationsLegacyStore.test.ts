@@ -15,8 +15,8 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      if (!process.env.__LEAF_TEST_USER_DATA) throw new Error('test env not set up')
-      return process.env.__LEAF_TEST_USER_DATA
+      if (!process.env.__FROND_TEST_USER_DATA) throw new Error('test env not set up')
+      return process.env.__FROND_TEST_USER_DATA
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -54,16 +54,16 @@ describe('runDataMigrations 与 electron-store 收尾五路', () => {
   let userData: string
 
   beforeEach(() => {
-    userData = mkdtempSync(join(tmpdir(), 'leaf-legacy-store-hoist-'))
-    process.env.__LEAF_TEST_USER_DATA = userData
+    userData = mkdtempSync(join(tmpdir(), 'frond-legacy-store-hoist-'))
+    process.env.__FROND_TEST_USER_DATA = userData
     db = freshDb()
     injectDb(db)
     // 模拟一台「v1+v2 早就迁完」的老机器：这正是原代码提前 return 的那个条件
     db.exec(
-      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+      `CREATE TABLE IF NOT EXISTS frond_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
     )
     for (const k of ['data_migration_v1', 'data_migration_v2']) {
-      db.prepare('INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)').run(
+      db.prepare('INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)').run(
         k,
         'done',
         Date.now()
@@ -80,7 +80,7 @@ describe('runDataMigrations 与 electron-store 收尾五路', () => {
     injectDb(new Database(':memory:'))
     db.close()
     rmSync(userData, { recursive: true, force: true })
-    delete process.env.__LEAF_TEST_USER_DATA
+    delete process.env.__FROND_TEST_USER_DATA
   })
 
   it('v1+v2 已 done 时仍然把 electron-store 的别名搬进 pref', () => {
@@ -91,7 +91,7 @@ describe('runDataMigrations 与 electron-store 收尾五路', () => {
     expect(JSON.parse(row?.value ?? 'null')).toEqual([{ pattern: 'gmail', value: 'me@gmail.com' }])
     // 标志位落下 → 下次启动不再重复搬（幂等）
     const flag = db
-      .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+      .prepare('SELECT value FROM frond_meta WHERE key = ?')
       .get('data_migration_aliases') as { value: string } | undefined
     expect(flag?.value).toBe('done')
   })

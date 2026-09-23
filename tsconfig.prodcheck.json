@@ -1,5 +1,5 @@
 {
-  // Leaf · 生产代码专用 typecheck 配置（配套脚本 pnpm typecheck:prodcheck）
+  // Frond · 生产代码专用 typecheck 配置（配套脚本 pnpm typecheck:prodcheck）
   //
   // 为什么要有它：tsc 在程序里存在语法错的文件时只报语法诊断、不上语义诊断。恢复期有
   // 9 个 __tests__ 文件是断头/带占位的残件（TS1005 一大片），于是 `pnpm typecheck:node`

@@ -9,11 +9,11 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 test('scratch', async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-scratch')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-scratch')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   const app = await electron.launch({ args: [MAIN_ENTRY], env })
   await new Promise((r) => setTimeout(r, 4000))
   let page = null

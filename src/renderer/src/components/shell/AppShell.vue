@@ -10,7 +10,7 @@ useTheme().initTheme()
 </script>
 
 <template>
-  <div class="LeafAppShell h-screen flex flex-col bg-surface-0">
+  <div class="FrondAppShell h-screen flex flex-col bg-surface-0">
     <TopBar />
     <!-- Raycast 化：移除左侧菜单栏，内容区全屏 -->
     <main class="app-scroll flex-1 min-w-0 overflow-auto">

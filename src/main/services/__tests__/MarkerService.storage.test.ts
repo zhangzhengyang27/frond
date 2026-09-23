@@ -7,7 +7,7 @@ import Database from 'better-sqlite3'
  * 迁移标记（录制保存时临时 ID → 正式 ID）。
  */
 vi.mock('electron', () => ({
-  app: { getPath: () => '/tmp/leaf-marker-service-test', getVersion: () => '0.0.0-test', isReady: () => true },
+  app: { getPath: () => '/tmp/frond-marker-service-test', getVersion: () => '0.0.0-test', isReady: () => true },
   ipcMain: { handle: () => {} }
 }))
 

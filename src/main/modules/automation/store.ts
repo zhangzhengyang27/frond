@@ -1,5 +1,5 @@
 /**
- * Leaf · Automations 存储与引擎（P-4④）
+ * Frond · Automations 存储与引擎（P-4④）
  *
  * 引擎与「怎么执行」完全解耦（tick 收 deps 注入），所以调度判据能单测：
  * 时钟、执行器、持久化都可换。真跑起来用的是 setInterval 每 30s 一次，

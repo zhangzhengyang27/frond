@@ -1,5 +1,5 @@
 /**
- * Leaf · 专注护盾（对标 Raycast Focus 的应用+网站屏蔽）
+ * Frond · 专注护盾（对标 Raycast Focus 的应用+网站屏蔽）
  *
  * 番茄钟工作计时进行中（渲染端桥上报 focusShield:setActive），轮询前台应用：
  * - 应用屏蔽：命中应用清单 → 弹出全屏置顶遮罩

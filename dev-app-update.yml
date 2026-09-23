@@ -1,4 +1,4 @@
 provider: github
-owner: leaf-app
-repo: leaf-desktop
-updaterCacheDirName: leaf-updater
+owner: frond-app
+repo: frond-desktop
+updaterCacheDirName: frond-updater

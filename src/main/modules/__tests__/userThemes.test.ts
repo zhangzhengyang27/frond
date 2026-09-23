@@ -23,8 +23,8 @@ const THEME = {
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'leaf-themes-'))
-  src = mkdtempSync(join(tmpdir(), 'leaf-theme-src-'))
+  dir = mkdtempSync(join(tmpdir(), 'frond-themes-'))
+  src = mkdtempSync(join(tmpdir(), 'frond-theme-src-'))
 })
 
 afterEach(() => {

@@ -1,5 +1,5 @@
 /**
- * Leaf · MCP 服务器配置与 IPC（P-4②）
+ * Frond · MCP 服务器配置与 IPC（P-4②）
  *
  * 配置存在 pref_preferences('mcp.servers')。这份配置是**在本机执行命令的清单**，
  * 所以清洗从严、且渲染端只能按 id 操作已存配置：

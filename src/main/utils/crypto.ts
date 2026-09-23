@@ -1,5 +1,5 @@
 /**
- * Leaf · 数据加密工具
+ * Frond · 数据加密工具
  *
  * AES-256-GCM 对称加密，用于敏感数据本地存储加密：
  * - 剪贴板历史文本内容
@@ -8,7 +8,7 @@
  * - AI API Key
  *
  * 密钥管理：
- * - 首次使用时生成 32 字节随机密钥，存储在 userData/.leaf-key
+ * - 首次使用时生成 32 字节随机密钥，存储在 userData/.frond-key
  * - 密钥文件权限设为 0600（仅所有者可读）
  *
  * 加密格式：base64(iv + authTag + ciphertext)，前缀 "enc:" 标识
@@ -28,7 +28,7 @@ const ENC_PREFIX = 'enc:'
 let cachedKey: Buffer | null = null
 
 function getKeyPath(): string {
-  return join(app.getPath('userData'), '.leaf-key')
+  return join(app.getPath('userData'), '.frond-key')
 }
 
 /** 获取或生成加密密钥 */
@@ -152,7 +152,7 @@ export function isEncrypted(text: string): boolean {
   return typeof text === 'string' && text.startsWith(ENC_PREFIX)
 }
 
-// ─── 云备份文件容器（密码派生密钥，与本地 .leaf-key 无关）───
+// ─── 云备份文件容器（密码派生密钥，与本地 .frond-key 无关）───
 
 const BAK_MAGIC = 'LEAFBAK1'
 const BAK_SALT_LEN = 16
@@ -189,10 +189,10 @@ export function decryptFileWithPassword(blob: Buffer, password: string): Buffer 
   }
   const magicLen = Buffer.byteLength(BAK_MAGIC, 'latin1')
   if (blob.length < magicLen + BAK_SALT_LEN + IV_LEN + TAG_LEN) {
-    throw new Error('不是 Leaf 云备份文件（文件过短或已损坏）')
+    throw new Error('不是 Frond 云备份文件（文件过短或已损坏）')
   }
   if (blob.subarray(0, magicLen).toString('latin1') !== BAK_MAGIC) {
-    throw new Error('不是 Leaf 云备份文件')
+    throw new Error('不是 Frond 云备份文件')
   }
   const salt = blob.subarray(magicLen, magicLen + BAK_SALT_LEN)
   const iv = blob.subarray(magicLen + BAK_SALT_LEN, magicLen + BAK_SALT_LEN + IV_LEN)

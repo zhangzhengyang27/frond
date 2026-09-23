@@ -50,7 +50,7 @@ function makeDevice(name: string): Device {
 function depsOf(dev: Device, url: string): SyncDeps {
   return {
     db: dev.db,
-    config: { url, username: 'u', password: PASSWORD, remoteDir: '/leaf' },
+    config: { url, username: 'u', password: PASSWORD, remoteDir: '/frond' },
     readApplied: () => dev.applied,
     markApplied: (ts) => {
       dev.applied = ts
@@ -199,7 +199,7 @@ describe('两台设备经 WebDAV 互拉（真 push/pull 全链）', () => {
       url: dav.url,
       username: 'u',
       password: 'another-passphrase',
-      remoteDir: '/leaf'
+      remoteDir: '/frond'
     }
     const r = await pullDataSync(wrong)
     expect(r.ok, '解不开就该失败').toBe(false)

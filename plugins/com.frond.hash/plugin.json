@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.hash",
+  "id": "com.frond.hash",
   "name": "哈希计算",
   "version": "1.0.1",
   "description": "计算文本哈希值：MD5/SHA1/SHA256/SHA384/SHA512，从剪贴板读取，一键复制",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

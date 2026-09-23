@@ -1,5 +1,5 @@
 /**
- * Leaf · 插件 API 类型声明（给插件作者编辑器补全用）
+ * Frond · 插件 API 类型声明（给插件作者编辑器补全用）
  *
  * 与 `src/shared/plugin-protocol.ts`（协议）和 `src/preload/plugin.ts`（桥）保持同步；
  * 三处不一致时**以那两个文件为准**，本文件只是抄一份可读的。

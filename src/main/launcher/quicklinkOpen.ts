@@ -1,5 +1,5 @@
 /**
- * Leaf · Quicklink 打开链路（B4：优先复用已有浏览器标签页）
+ * Frond · Quicklink 打开链路（B4：优先复用已有浏览器标签页）
  *
  * Raycast 行为对齐：打开 quicklink 前先经 BrowserTabsService（mac AppleScript）
  * 精确匹配已打开的标签，命中则激活该标签而非新开；未命中 / 开关关闭 /
@@ -9,7 +9,7 @@
  * 默认开启；本轮无 UI 开关（B5 接设置页），写入点已导出。
  */
 import { shell } from 'electron'
-import { findMatchingTab } from './leafUrl'
+import { findMatchingTab } from './frondUrl'
 import { getLauncherDocStore } from './docStore'
 import { activateBrowserTab, listAllBrowserTabs } from '../services/BrowserTabsService'
 

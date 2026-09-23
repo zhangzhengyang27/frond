@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：文件索引启动期补偿（#9）
+ * Frond · E2E：文件索引启动期补偿（#9）
  *
  * 覆盖的缺口：FSEvents 只报「开始监听之后」的变更，进程停机期间的增删改名
  * 会永久留在索引外（旧行为：只能靠手动重建）。启动时按 dirs 目录水位补一趟。
@@ -30,10 +30,10 @@ test.skip(!isMac, '文件索引 Windows 后端未实机验证')
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 async function launch() {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = USER_DATA
-  env.LEAF_FILE_INDEX_SCOPES = SCOPE_DIR
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = USER_DATA
+  env.FROND_FILE_INDEX_SCOPES = SCOPE_DIR
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
   const app = await electron.launch({ args: [MAIN_ENTRY], env })
 
@@ -42,7 +42,7 @@ async function launch() {
     while (Date.now() < deadline) {
       for (const w of app.windows()) {
         try {
-          if (/Leaf/.test(await w.title())) return w
+          if (/Frond/.test(await w.title())) return w
         } catch {
           /* 窗口尚未就绪 */
         }

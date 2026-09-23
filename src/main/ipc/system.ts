@@ -1,5 +1,5 @@
 /**
- * Leaf · system info IPC（userData 路径 + legacy 归档目录）
+ * Frond · system info IPC（userData 路径 + legacy 归档目录）
  *
  * 暴露给 SettingsView「数据」区块，让用户看到：
  * - 数据目录在哪
@@ -27,27 +27,27 @@ export interface SystemInfo {
 
 function readSystemInfo(): SystemInfo {
   const userDataPath = app.getPath('userData')
-  const dbPath = join(userDataPath, 'leaf.db')
+  const dbPath = join(userDataPath, 'frond.db')
 
   let legacyArchivePath: string | null = null
   let migrationDone = false
   try {
     const db = database.handle
     db.exec(
-      `CREATE TABLE IF NOT EXISTS leaf_meta (
+      `CREATE TABLE IF NOT EXISTS frond_meta (
          key TEXT PRIMARY KEY,
          value TEXT,
          updated_at INTEGER NOT NULL
        )`
     )
     const archiveRow = db
-      .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+      .prepare('SELECT value FROM frond_meta WHERE key = ?')
       .get('legacy_archive_dir') as { value: string } | undefined
     if (archiveRow?.value && existsSync(archiveRow.value)) {
       legacyArchivePath = archiveRow.value
     }
     const v2Row = db
-      .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+      .prepare('SELECT value FROM frond_meta WHERE key = ?')
       .get('data_migration_v2') as { value: string } | undefined
     migrationDone = v2Row?.value === 'done'
   } catch (e) {

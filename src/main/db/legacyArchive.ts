@@ -1,5 +1,5 @@
 /**
- * Leaf · legacy JSON 归档（一次性）
+ * Frond · legacy JSON 归档（一次性）
  *
  * 触发：runDataMigrations() 成功完成（v2 done）后调用。
  * 职责：把 9 个旧 electron-store JSON 文件从 userData 根目录搬到

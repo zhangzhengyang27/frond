@@ -14,7 +14,7 @@ import { join } from 'node:path'
  * `/models` 必须相对 baseUrl 解析（绝对解析会丢掉 /v1）、
  * 两种响应形态（OpenAI {data:[{id}]} / Ollama {models:[{name}]}）都要认。
  */
-const __userData = join(mkdtempSync(join(tmpdir(), 'leaf-ai-byom-')), 'userData')
+const __userData = join(mkdtempSync(join(tmpdir(), 'frond-ai-byom-')), 'userData')
 vi.mock('electron', () => ({
   app: { getPath: () => __userData, getVersion: () => '0.0.0-test', isReady: () => true },
   ipcMain: { handle: () => {} },

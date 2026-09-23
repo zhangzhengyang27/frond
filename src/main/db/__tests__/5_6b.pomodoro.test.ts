@@ -5,7 +5,7 @@ import { migrations } from '../migrations'
 import { PomodoroRepository } from '../repos/PomodoroRepository'
 
 /**
- * Leaf · PomodoroRepository 存储测试
+ * Frond · PomodoroRepository 存储测试
  *
  * ⚠ 恢复说明：本文件的头（imports / beforeEach / 首个 it 的头部）与末（最后一条 it 的
  * 断言主体）随 2026-09-22 删除事故丢失。下面保留的是找回的断言原文；两处丢失分别记作

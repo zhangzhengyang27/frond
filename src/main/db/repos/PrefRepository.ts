@@ -1,5 +1,5 @@
 /**
- * Leaf · PrefRepository
+ * Frond · PrefRepository
  *
  * 职责：管理 pref_preferences 表（K-V 偏好设置）。
  * 取代 PreferencesDataStore 的部分能力（K-V 透传到 SQLite）。

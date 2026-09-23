@@ -7,7 +7,7 @@ import { join } from 'node:path'
  * RecordingSettingsDataStore 行为回归（存储迁到 pref 'recording.settings' 后）。
  * 覆盖：默认值、预设应用、更新持久化、投影双写仍同步 recording.default。
  */
-const __userData = join(mkdtempSync(join(tmpdir(), 'leaf-recset-store-')), 'userData')
+const __userData = join(mkdtempSync(join(tmpdir(), 'frond-recset-store-')), 'userData')
 vi.mock('electron', () => ({
   app: { getPath: () => __userData, getVersion: () => '0.0.0-test', isReady: () => true },
   ipcMain: { handle: () => {} }

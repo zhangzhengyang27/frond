@@ -10,7 +10,7 @@ const route = useRoute()
 const router = useRouter()
 
 /** 折叠状态：默认收起，由顶部图标按钮手动切换并持久化（v4：移除 hover 自动展开） */
-const EXPAND_KEY = 'leaf.sidebar-expanded'
+const EXPAND_KEY = 'frond.sidebar-expanded'
 const expanded = ref(
   typeof localStorage !== 'undefined' && localStorage.getItem(EXPAND_KEY) === '1'
 )
@@ -91,7 +91,7 @@ function openLauncher(): void {
   <!-- 玻璃浮层式侧栏：flex 容器内自适应高度，
        依赖 --shell-topbar-h / --shell-sidebar-w token（替代魔法数字，BUGS.md B14） -->
   <aside
-    class="LeafSidebar sticky z-20 flex h-[calc(100vh-var(--shell-topbar-h))] shrink-0 flex-col overflow-hidden border-r border-line-subtle bg-glass-bg backdrop-blur-[var(--glass-blur)] transition-[width] duration-spring ease-out"
+    class="FrondSidebar sticky z-20 flex h-[calc(100vh-var(--shell-topbar-h))] shrink-0 flex-col overflow-hidden border-r border-line-subtle bg-glass-bg backdrop-blur-[var(--glass-blur)] transition-[width] duration-spring ease-out"
     :class="expanded ? 'w-[var(--shell-sidebar-w-expanded)]' : 'w-[var(--shell-sidebar-w)]'"
     :style="{ top: 'var(--shell-topbar-h)' }"
   >

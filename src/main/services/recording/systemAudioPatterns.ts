@@ -1,5 +1,5 @@
 /**
- * Leaf · systemAudioPatterns
+ * Frond · systemAudioPatterns
  *
  * 把 IPC handler 内的正则 pattern 抽到独立模块，便于单测；
  * 平台无关的系统音频 loopback 设备名特征。

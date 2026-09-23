@@ -1,5 +1,5 @@
 /**
- * Leaf · 主题切换（light / dark / auto）
+ * Frond · 主题切换（light / dark / auto）
  *
  * 持久化走主进程 preferences IPC：
  *   window.api.preferences.getTheme() / setTheme()

@@ -7,12 +7,12 @@ import { fullScan, rescanDir, compensateStaleDirs } from '../scanner'
 
 /**
  * 扫描器（#9）：初始全量 + 单目录增量 diff。
- * 排除剪枝 / .leafignore / 内容提取 / 增量增删改，全部走真实临时目录验证。
+ * 排除剪枝 / .frondignore / 内容提取 / 增量增删改，全部走真实临时目录验证。
  */
 let root: string
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'leaf-fidx-'))
+  root = mkdtempSync(join(tmpdir(), 'frond-fidx-'))
 })
 
 afterEach(() => {
@@ -53,9 +53,9 @@ describe('fullScan', () => {
     expect(db.search(['keep'], { mode: 'name', limit: 5 })).toHaveLength(1)
   })
 
-  it('.leafignore 标记目录跳过', async () => {
+  it('.frondignore 标记目录跳过', async () => {
     mkdirSync(join(root, 'scratch'))
-    writeFileSync(join(root, 'scratch', '.leafignore'), '')
+    writeFileSync(join(root, 'scratch', '.frondignore'), '')
     writeFileSync(join(root, 'scratch', 'big.dat'), 'x')
     const db = makeDb()
     await fullScan({ roots: [root], db, policy: { hidden: true } })

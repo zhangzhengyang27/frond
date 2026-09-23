@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件搜索（M5.3）
+ * Frond · 文件搜索（M5.3）
  *
  * macOS：mdfind（Spotlight 索引）即时搜索——
  * name 模式：文件名匹配（-name，毫秒级）；content 模式：全文/元数据搜索（不带 -name，较慢）。

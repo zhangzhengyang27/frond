@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：截图改由 electron-screenshots 接管（HANDOFF §11）
+ * Frond · E2E：截图改由 electron-screenshots 接管（HANDOFF §11）
  *
  * 要钉住的四件事，缺一不可：
  *  1. `registerScreenshotHandlers()` 真的在启动序列里被调用（此前它全仓零调用方，
@@ -110,14 +110,14 @@ const shotIndexTotal = async () => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-screenshot-upstream')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-screenshot-upstream')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   // 落盘目录与索引扫描目录一起换到 test-results 下：既不往真实桌面写图，
   // 也让「总量 > 0」只可能由这一次落盘贡献（空目录起步，反例天然成立）
-  env.LEAF_SHOT_DIRS = SHOT_DIRS
+  env.FROND_SHOT_DIRS = SHOT_DIRS
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   rmSync(SHOT_DIRS, { recursive: true, force: true })
   mkdirSync(SHOT_DIRS, { recursive: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
@@ -165,20 +165,20 @@ test('3. 拖选 + 点「确定」：图落进截图库扫得到的目录，并�
 
   // 正例 + 反例成对：只断「搜得到」的话，「搜索永远返回全部」那类 bug 也会通过
   const main = await getMainWindow()
-  const ours = await main.evaluate(() => window.api.shotIndex.search('name:Leaf-'))
+  const ours = await main.evaluate(() => window.api.shotIndex.search('name:Frond-'))
   expect(ours.success).toBe(true)
-  expect(ours.items.length, '按 name:Leaf- 过滤后一条都没有，说明查询没真生效').toBeGreaterThan(0)
-  expect(ours.items.every((r) => r.filePath.includes('Leaf-'))).toBe(true)
+  expect(ours.items.length, '按 name:Frond- 过滤后一条都没有，说明查询没真生效').toBeGreaterThan(0)
+  expect(ours.items.every((r) => r.filePath.includes('Frond-'))).toBe(true)
 
   const none = await main.evaluate(() => window.api.shotIndex.search('name:zzz-绝对不存在-xyz'))
   expect(none.items).toEqual([])
 
   // 文件真的在那个目录里（而不只是 DB 里有一行）
-  expect(readdirSync(SHOT_DIRS).filter((n) => n.startsWith('Leaf-')).length).toBeGreaterThan(0)
+  expect(readdirSync(SHOT_DIRS).filter((n) => n.startsWith('Frond-')).length).toBeGreaterThan(0)
 })
 
 test('4. 点「取消」不落盘', async () => {
-  const before = readdirSync(SHOT_DIRS).filter((n) => n.startsWith('Leaf-')).length
+  const before = readdirSync(SHOT_DIRS).filter((n) => n.startsWith('Frond-')).length
   const main = await getMainWindow()
   expect(await main.evaluate(() => window.api.screenshot.startCapture())).toEqual({
     success: true
@@ -189,5 +189,5 @@ test('4. 点「取消」不落盘', async () => {
   // 给上游走完 endCapture 的时间；不写文件是因为我们的 handler 没挂 cancel ——
   // 这条防的是以后有人「顺手在 cancel 里也存一张」，那样每次 esc 都往库里塞废图
   await new Promise((r) => setTimeout(r, 2000))
-  expect(readdirSync(SHOT_DIRS).filter((n) => n.startsWith('Leaf-')).length).toBe(before)
+  expect(readdirSync(SHOT_DIRS).filter((n) => n.startsWith('Frond-')).length).toBe(before)
 })

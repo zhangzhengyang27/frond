@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器胶囊窗
+ * Frond · 启动器胶囊窗
  *
  * 常驻隐藏的独立 BrowserWindow（frameless/透明/置顶/多屏跟随光标），
  * Alt+Space 全局唤起，失焦自动隐藏，ESC 由渲染端回传隐藏。

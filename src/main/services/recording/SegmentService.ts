@@ -1,5 +1,5 @@
 /**
- * Leaf · SegmentService
+ * Frond · SegmentService
  *
  * 职责：在录制暂停/恢复场景里，封装对 rec_segments 表的状态转换语义。
  *

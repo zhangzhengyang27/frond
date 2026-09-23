@@ -1,5 +1,5 @@
 /**
- * Leaf · AI 集成类型定义（P0-3）
+ * Frond · AI 集成类型定义（P0-3）
  *
  * OpenAI 兼容 API：支持自定义 base URL（可接 DeepSeek / 通义 / 本地 Ollama 等）。
  * 配置仅存本机（electron-store），不上传任何遥测。

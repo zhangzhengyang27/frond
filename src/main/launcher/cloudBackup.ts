@@ -1,11 +1,11 @@
 /**
- * Leaf · 云端整库备份（WebDAV，加密快照）
+ * Frond · 云端整库备份（WebDAV，加密快照）
  *
  * 机制（2026-09 决策：全库加密快照，定位是「备份」而非多设备同步）：
  * - 快照：better-sqlite3 db.backup()（在线一致性快照，不打断主连接）
  * - 加密：用户密码派生密钥 AES-256-GCM（crypto.encryptFileWithPassword），
- *   本地 .leaf-key 不参与——拿到网盘文件没有密码无法还原
- * - 远端布局：`<remoteDir>/full/leaf-full-<ts>.db.enc` + `latest.json` 指针，
+ *   本地 .frond-key 不参与——拿到网盘文件没有密码无法还原
+ * - 远端布局：`<remoteDir>/full/frond-full-<ts>.db.enc` + `latest.json` 指针，
  *   保留最近 KEEP_REMOTE 份（防「备份了坏状态还覆盖了唯一好备份」）
  * - 还原：下载 → 解密 → quick_check → 复用 dbBackup.applyDbFile 换库重启
  */
@@ -44,9 +44,9 @@ export interface CloudBackupListResult {
   error?: string
 }
 
-/** 云端 .enc 文件名中的时间戳解析（leaf-full-<ts>.db.enc） */
+/** 云端 .enc 文件名中的时间戳解析（frond-full-<ts>.db.enc） */
 export function tsFromFileName(name: string): number {
-  const m = name.match(/^leaf-full-(\d+)\.db\.enc$/)
+  const m = name.match(/^frond-full-(\d+)\.db\.enc$/)
   return m ? Number(m[1]) : 0
 }
 
@@ -81,7 +81,7 @@ export async function backupFullDb(
     const { client, config } = await getClient()
     // 1. 在线一致性快照（不关主连接；backup API 自带 WAL 合并）
     const ts = Date.now()
-    const tmpSnap = join(app.getPath('userData'), `leaf-cloud-snap-${ts}.db`)
+    const tmpSnap = join(app.getPath('userData'), `frond-cloud-snap-${ts}.db`)
     try {
       await database.handle.backup(tmpSnap)
       const problem = validateSqliteFile(tmpSnap)
@@ -95,11 +95,11 @@ export async function backupFullDb(
       const blob = encryptFileWithPassword(plain, password)
 
       // 3. 上传 + 指针
-      const file = `leaf-full-${ts}.db.enc`
+      const file = `frond-full-${ts}.db.enc`
       const remotePath = `${fullDir(config)}/${file}`
       await withTimeout(client.putFileContents(remotePath, blob), '上传备份')
       const manifest = {
-        app: 'leaf-cloud-backup',
+        app: 'frond-cloud-backup',
         schema: 1,
         file,
         createdAt: ts,
@@ -117,7 +117,7 @@ export async function backupFullDb(
         '列出远端备份'
       )) as Array<{ filename: string; basename: string }>
       const names = listing
-        .filter((e) => /^leaf-full-\d+\.db\.enc$/.test(e.basename))
+        .filter((e) => /^frond-full-\d+\.db\.enc$/.test(e.basename))
         .map((e) => e.basename)
       for (const stale of pickPruneCandidates(names)) {
         await client.deleteFile(`${fullDir(config)}/${stale}`).catch(() => undefined)
@@ -145,7 +145,7 @@ export async function listCloudBackups(): Promise<CloudBackupListResult> {
       '列出远端备份'
     )) as Array<{ filename: string; basename: string; size?: number }>
     const items: CloudBackupInfo[] = listing
-      .filter((e) => /^leaf-full-\d+\.db\.enc$/.test(e.basename))
+      .filter((e) => /^frond-full-\d+\.db\.enc$/.test(e.basename))
       .map((e) => ({ file: e.basename, createdAt: tsFromFileName(e.basename), size: e.size ?? 0 }))
       .sort((a, b) => b.createdAt - a.createdAt)
     return { ok: true, items, configured: true }
@@ -175,7 +175,7 @@ export async function restoreFullDb(
           '读取指针'
         )) as string
         const manifest = JSON.parse(raw) as { file?: string }
-        if (manifest.file && /^leaf-full-\d+\.db\.enc$/.test(manifest.file)) file = manifest.file
+        if (manifest.file && /^frond-full-\d+\.db\.enc$/.test(manifest.file)) file = manifest.file
       }
     }
     if (!file) {
@@ -184,7 +184,7 @@ export async function restoreFullDb(
         '列出远端备份'
       )) as Array<{ basename: string }>
       const names = listing
-        .filter((e) => /^leaf-full-\d+\.db\.enc$/.test(e.basename))
+        .filter((e) => /^frond-full-\d+\.db\.enc$/.test(e.basename))
         .map((e) => e.basename)
       file = pickPruneCandidates(names, 0)[0]
     }
@@ -206,7 +206,7 @@ export async function restoreFullDb(
 
     // 3. 解密 → 落临时文件 → 校验
     const plain = decryptFileWithPassword(Buffer.from(blob), password)
-    const tmpDb = join(app.getPath('userData'), `leaf-cloud-restore-${Date.now()}.db`)
+    const tmpDb = join(app.getPath('userData'), `frond-cloud-restore-${Date.now()}.db`)
     try {
       writeFileSync(tmpDb, plain)
       const problem = validateSqliteFile(tmpDb)

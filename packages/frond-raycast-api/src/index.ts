@@ -1,21 +1,21 @@
 /**
- * @leaf/raycast-api · `@raycast/api` 兼容别名层（#11 M3）
+ * @frond/raycast-api · `@raycast/api` 兼容别名层（#11 M3）
  *
  * 定位（照 docs/REACT_API_DESIGN.md 的口径）：让**会写 Raycast 的人**用 Raycast 的组件
- * 形态写 Leaf 插件；「直接跑未改动的商店扩展」是明确非目标。本层只做形状适配，
- * 渲染仍全部走 leaf-plugin-sdk → JSON 视图协议 → 宿主原生渲染。
+ * 形态写 Frond 插件；「直接跑未改动的商店扩展」是明确非目标。本层只做形状适配，
+ * 渲染仍全部走 frond-plugin-sdk → JSON 视图协议 → 宿主原生渲染。
  *
  * 插件侧接法（不冒用 @raycast 这个 npm scope，由构建工具把包名指过来）：
- *   esbuild:  alias: { '@raycast/api': '@leaf/raycast-api' }
- *   tsconfig: paths: { '@raycast/api': ['node_modules/@leaf/raycast-api'] }
+ *   esbuild:  alias: { '@raycast/api': '@frond/raycast-api' }
+ *   tsconfig: paths: { '@raycast/api': ['node_modules/@frond/raycast-api'] }
  *
  * 本层消化的形状差异：
- * - `List` 的条目在 Raycast 走 `items` prop → Leaf 是 children
- * - `List.Item` 的 `actions` 是 prop（且可不套 ActionPanel）→ Leaf 是 children 里的 ActionPanel
- * - `List.Item.accessories` 是 `{title?, value}[]` → Leaf 是 `string[]`
+ * - `List` 的条目在 Raycast 走 `items` prop → Frond 是 children
+ * - `List.Item` 的 `actions` 是 prop（且可不套 ActionPanel）→ Frond 是 children 里的 ActionPanel
+ * - `List.Item.accessories` 是 `{title?, value}[]` → Frond 是 `string[]`
  * - 字段组件的键在 Raycast 新版是 `name`、标签是 `title`、初值是 `defaultValue` →
- *   Leaf 的 `id` / `label` / `initial`
- * - `Form.Submit` 是显式子元素 → Leaf 由宿主渲染提交按钮（取其 title 作 submitLabel）
+ *   Frond 的 `id` / `label` / `initial`
+ * - `Form.Submit` 是显式子元素 → Frond 由宿主渲染提交按钮（取其 title 作 submitLabel）
  *
  * 宿主已有的能力已真接（P-2.3 / P-2.6）：Toast / LocalStorage / Cache / navigation.popToRoot /
  * List.isLoading / List.emptyView（收成一句 emptyMessage）。
@@ -51,14 +51,14 @@ import {
   type AlertAction,
   type FormFieldProps,
   type FormSelectProps
-} from 'leaf-plugin-sdk'
+} from 'frond-plugin-sdk'
 
 const warned = new Set<string>()
 
 function notSupported(what: string): void {
   if (warned.has(what)) return
   warned.add(what)
-  console.warn(`[leaf-raycast-api] ${what}：Leaf 宿主无对应能力，本次调用已忽略`)
+  console.warn(`[frond-raycast-api] ${what}：Frond 宿主无对应能力，本次调用已忽略`)
 }
 
 /** 展开 Fragment / 数组为扁平元素列表，并补齐 key（Raycast 习惯把数组直接喂给
@@ -132,7 +132,7 @@ export function ActionOpen(props: {
 }): ReactElement {
   return mapped(props as Record<string, unknown>, '打开', 'open', 'target')
 }
-/** Action.Close ≈ 关闭扩展：Leaf 的「根视图 pop」正是关闭插件 */
+/** Action.Close ≈ 关闭扩展：Frond 的「根视图 pop」正是关闭插件 */
 export function ActionClose(props: { title?: string; name?: string }): ReactElement {
   const nav = useSdkNavigation()
   return createElement(SdkAction, {
@@ -182,14 +182,14 @@ export interface ListItemProps {
   accessories?: Array<{ title?: string; value: string } | string>
   actions?: ReactNode
   children?: ReactNode
-  /** Leaf 专有：选中即展示的正文 */
+  /** Frond 专有：选中即展示的正文 */
   detail?: string
   detailFormat?: 'text' | 'markdown'
 }
 
 export function ListItem(props: ListItemProps): ReactElement {
   const { id, accessories, actions, children, ...forward } = props
-  void id // Raycast 用 id 定位条目；Leaf 由视图栈位置承担
+  void id // Raycast 用 id 定位条目；Frond 由视图栈位置承担
   return createElement(SdkList.Item, {
     ...forward,
     title: props.title ?? '',
@@ -224,7 +224,7 @@ export interface ListProps {
   emptyView?: ReactNode
 }
 
-/** Raycast 的 `<EmptyView title=… description=…/>` → Leaf 的一条空态文案 */
+/** Raycast 的 `<EmptyView title=… description=…/>` → Frond 的一条空态文案 */
 function emptyViewMessage(node: ReactNode): string | undefined {
   const el = (Array.isArray(node) ? node[0] : node) as ReactNode
   if (!isValidElement(el)) return undefined
@@ -304,7 +304,7 @@ interface RayField {
 }
 
 /** 字段形状对齐 SDK 导出类型（不用 as never 糊掉不匹配） */
-function toLeafField(props: RayField): FormFieldProps {
+function toFrondField(props: RayField): FormFieldProps {
   return {
     id: props.id ?? props.name ?? '',
     label: props.title ?? props.label,
@@ -314,20 +314,20 @@ function toLeafField(props: RayField): FormFieldProps {
 }
 
 export function FormTextField(props: RayField): ReactElement {
-  return createElement(SdkForm.TextField, toLeafField(props))
+  return createElement(SdkForm.TextField, toFrondField(props))
 }
 export function FormTextArea(props: RayField): ReactElement {
-  return createElement(SdkForm.TextArea, toLeafField(props))
+  return createElement(SdkForm.TextArea, toFrondField(props))
 }
 export function FormPassword(props: RayField): ReactElement {
-  return createElement(SdkForm.PasswordField, toLeafField(props))
+  return createElement(SdkForm.PasswordField, toFrondField(props))
 }
 export function FormDate(props: RayField): ReactElement {
-  return createElement(SdkForm.DateField, toLeafField(props))
+  return createElement(SdkForm.DateField, toFrondField(props))
 }
 /** 协议里 checkbox 的 initial 是 boolean（plugin-protocol FormField） */
 export function FormCheckbox(props: RayField): ReactElement {
-  const p = toLeafField(props)
+  const p = toFrondField(props)
   p.initial = props.defaultValue === true || props.default === true
   return createElement(SdkForm.Checkbox, p)
 }
@@ -345,7 +345,7 @@ export function FormDropdown(props: {
       return p.value ?? p.title ?? ''
     })
     .filter(Boolean)
-  const field: FormSelectProps = { ...toLeafField(props), options }
+  const field: FormSelectProps = { ...toFrondField(props), options }
   return createElement(SdkForm.Select, field)
 }
 FormDropdown.Item = function DropdownItem(_props: { title?: string; value?: string }): null {
@@ -420,7 +420,7 @@ export function useNavigation(): {
   }
 }
 
-/** Leaf 需要显式挂载入口组件（Raycast 由宿主调 main()） */
+/** Frond 需要显式挂载入口组件（Raycast 由宿主调 main()） */
 export function render(element: ReactNode): void {
   start(element)
 }
@@ -546,7 +546,7 @@ export async function open(url: string): Promise<void> {
 /**
  * 为什么只有它留着：读选中文本要 macOS 辅助功能权限下的 AX API（kAXSelectedText），
  * 本仓的宿主侧还没有这一层。常见的「模拟 ⌘C 再读剪贴板」在这里**不能用**——
- * Leaf 自己记录剪贴板历史，模拟一次复制就会往用户的历史里塞一条，
+ * Frond 自己记录剪贴板历史，模拟一次复制就会往用户的历史里塞一条，
  * 那是拿用户的真实数据换一次便利。见 P-4⑤ Screen Awareness 那条真机待办。
  */
 export function getSelectedText(): Promise<string> {

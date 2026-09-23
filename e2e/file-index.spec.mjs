@@ -1,7 +1,7 @@
 /**
- * Leaf · E2E：文件自建索引链路（#9，M1 仅 macOS）
+ * Frond · E2E：文件自建索引链路（#9，M1 仅 macOS）
  *
- * 前置（playwright.config）：LEAF_FILE_INDEX_SCOPES 指向 test-results/file-index-scopes，
+ * 前置（playwright.config）：FROND_FILE_INDEX_SCOPES 指向 test-results/file-index-scopes，
  * app 启动时对该目录做初始扫描 → FSEvents 增量。
  * 验收链路（设计文档 §6）：播种 → 名称/骨架词/内容命中 → 改名增量 → 排除目录不可见。
  *
@@ -39,7 +39,7 @@ test.beforeAll(async () => {
   writeFileSync(join(SCOPE_DIR, 'node_modules', 'x.js'), 'const x = 1')
 
   const env = { ...process.env }
-env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-file-index')
+env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-file-index')
   delete env.ELECTRON_RUN_AS_NODE
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
@@ -55,7 +55,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Leaf/.test(await w.title())) return w
+        if (/Frond/.test(await w.title())) return w
       } catch {
         /* noop */
       }

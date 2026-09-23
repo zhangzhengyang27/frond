@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：引导页的系统权限步骤（P-3.5）
+ * Frond · E2E：引导页的系统权限步骤（P-3.5）
  *
  * 断言的是「界面文字与主进程真状态同向」，不是「界面有没有画出来」：
  *  - 三行分别是辅助功能 / 日历 / 屏幕录制，且步序标签是 2 / 5（新插一步没把进度条与点号错位）
@@ -51,11 +51,11 @@ const getMainWindow = async () => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-onboarding-perms')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-onboarding-perms')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
   // 全新 userData = 必然落在引导页第一步，这正是本用例要的前提
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 
@@ -66,10 +66,10 @@ test.afterAll(async () => {
 test('1. 引导页第二步列出三项权限，文案与主进程真状态一致', async () => {
   if (!app) throw new Error('app not launched')
   const page = await getMainWindow()
-  await expect(page.getByText('欢迎来到 Leaf')).toBeVisible({ timeout: 30000 })
+  await expect(page.getByText('欢迎来到 Frond')).toBeVisible({ timeout: 30000 })
   await page.getByText('下一步').click()
 
-  const step2 = page.locator('section').filter({ has: page.getByText('给 Leaf 该有的系统权限') })
+  const step2 = page.locator('section').filter({ has: page.getByText('给 Frond 该有的系统权限') })
   await expect(step2).toBeVisible({ timeout: 10000 })
   await expect(page.getByText('步骤 2 / 5')).toBeVisible({ timeout: 10000 })
 
@@ -93,7 +93,7 @@ test('1. 引导页第二步列出三项权限，文案与主进程真状态一�
 test('2. 屏幕录制不给「申请」（无编程申请口），未授权时仍给「打开设置」', async () => {
   if (!app) throw new Error('app not launched')
   const page = await getMainWindow()
-  const step2 = page.locator('section').filter({ has: page.getByText('给 Leaf 该有的系统权限') })
+  const step2 = page.locator('section').filter({ has: page.getByText('给 Frond 该有的系统权限') })
   const screenRow = step2.locator('[data-perm-row="screenRecording"]')
   const state = await screenRow.getAttribute('data-perm-state')
 

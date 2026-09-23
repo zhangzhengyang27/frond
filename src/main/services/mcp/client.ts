@@ -1,5 +1,5 @@
 /**
- * Leaf · MCP stdio 客户端（P-4②）
+ * Frond · MCP stdio 客户端（P-4②）
  *
  * 本期只做「连上、列工具、能调一次」：不做 resources/prompts/sampling/进度通知。
  *

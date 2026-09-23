@@ -1,9 +1,9 @@
 /**
- * Leaf · SQLite 数据库单例
+ * Frond · SQLite 数据库单例
  *
  * 职责：
  * - 维护全局唯一的 better-sqlite3.Database handle
- * - 首次访问时懒打开 userData/leaf.db
+ * - 首次访问时懒打开 userData/frond.db
  * - 启用 WAL / foreign_keys / synchronous=NORMAL
  * - 按版本号顺序跑 migrations
  * - app.on('will-quit') 时 close
@@ -17,11 +17,11 @@ import { join } from 'node:path'
 import { copyFileSync, existsSync, statSync, readdirSync, unlinkSync } from 'node:fs'
 import { migrations, type Migration } from './migrations'
 
-const DB_FILE = 'leaf.db'
+const DB_FILE = 'frond.db'
 const BACKUP_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
 const BACKUP_KEEP = 3
 
-class LeafDatabase {
+class FrondDatabase {
   private db: Database.Database | null = null
   private dbPath: string | null = null
 
@@ -41,7 +41,7 @@ class LeafDatabase {
     return this.db
   }
 
-  /** 解析 leaf.db 绝对路径 */
+  /** 解析 frond.db 绝对路径 */
   resolvePath(): string {
     return join(app.getPath('userData'), DB_FILE)
   }
@@ -198,7 +198,7 @@ class LeafDatabase {
   }
 }
 
-export const database = new LeafDatabase()
+export const database = new FrondDatabase()
 
 /**
  * 主进程入口安装函数。

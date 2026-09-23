@@ -74,7 +74,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="LeafRaycastHome min-h-screen flex flex-col items-center justify-center px-6 py-12">
+  <div class="FrondRaycastHome min-h-screen flex flex-col items-center justify-center px-6 py-12">
     <!-- ═══ Logo + 标题 ═══ -->
     <div class="mb-8 text-center">
       <div
@@ -82,7 +82,7 @@ onMounted(() => {
       >
         <AppIcon icon="search-eye" :size="28" class="text-white" />
       </div>
-      <h1 class="text-[28px] font-semibold tracking-tight text-fg-primary">Leaf</h1>
+      <h1 class="text-[28px] font-semibold tracking-tight text-fg-primary">Frond</h1>
       <p class="mt-1 text-sm text-fg-muted">你的全能启动器 · 所有功能一键直达</p>
     </div>
 

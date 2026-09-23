@@ -1,5 +1,5 @@
 /**
- * Leaf · MCP 客户端的协议层（P-4②，纯函数）
+ * Frond · MCP 客户端的协议层（P-4②，纯函数）
  *
  * 只覆盖本产品的最小面：stdio 传输上的换行分隔 JSON-RPC 2.0，
  * 三个方法（initialize / tools/list / tools/call）加一个 notifications/initialized。
@@ -40,7 +40,7 @@ export function rpcRequest(id: number, method: string, params?: unknown): object
   return { jsonrpc: '2.0', id, method, ...(params === undefined ? {} : { params }) }
 }
 
-export function initializeRequest(id: number, clientName = 'leaf-launcher'): object {
+export function initializeRequest(id: number, clientName = 'frond-launcher'): object {
   return rpcRequest(id, 'initialize', {
     protocolVersion: MCP_PROTOCOL_VERSION,
     capabilities: {},

@@ -1,5 +1,5 @@
 /**
- * Leaf · GlobalShortcutService（PR-7a）
+ * Frond · GlobalShortcutService（PR-7a）
  *
  * 职责：注册/注销全局快捷键，控制录制的开始/停止、暂停/恢复。
  *

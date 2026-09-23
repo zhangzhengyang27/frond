@@ -1,10 +1,10 @@
 <!-- 2026-09-23 重建：原文件被截断，仅存 133 行真实代码（脚本主体），脚本头部与模板为重建 -->
 <script setup lang="ts">
 /**
- * Leaf · 数据迁移中心
+ * Frond · 数据迁移中心
  *
  * SettingsView 之外的「数据治理」专属页，让用户对所有持久化数据有完整掌控：
- * - 导出 / 导入 / 恢复出厂：leaf.db 整体备份还原
+ * - 导出 / 导入 / 恢复出厂：frond.db 整体备份还原
  * - legacy-backup：旧 electron-store JSON 归档的时间线，可还原 / 删除
  *
  * 危险操作走应用内二次确认（UModal），不用原生 window.confirm。

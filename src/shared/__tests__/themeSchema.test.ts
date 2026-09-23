@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   BUILTIN_THEMES,
-  LEAF_LIGHT_THEME,
-  LEAF_DARK_THEME,
+  FROND_LIGHT_THEME,
+  FROND_DARK_THEME,
   type ThemeDefinition
 } from '../themeSchema'
 import { readFileSync } from 'node:fs'
@@ -33,25 +33,25 @@ function subtableKeys(theme: ThemeDefinition): string[] {
 
 describe('themeSchema 结构不变量', () => {
   it('亮/暗主题键结构完全一致（用户主题文件按此 schema 校验）', () => {
-    expect(subtableKeys(LEAF_DARK_THEME)).toEqual(subtableKeys(LEAF_LIGHT_THEME))
-    expect(Object.keys(LEAF_DARK_THEME.core)).toEqual(Object.keys(LEAF_LIGHT_THEME.core))
+    expect(subtableKeys(FROND_DARK_THEME)).toEqual(subtableKeys(FROND_LIGHT_THEME))
+    expect(Object.keys(FROND_DARK_THEME.core)).toEqual(Object.keys(FROND_LIGHT_THEME.core))
   })
 
   it('内置主题齐全且 appearance 正确', () => {
     expect(BUILTIN_THEMES).toHaveLength(2)
-    expect(LEAF_LIGHT_THEME.appearance).toBe('light')
-    expect(LEAF_DARK_THEME.appearance).toBe('dark')
+    expect(FROND_LIGHT_THEME.appearance).toBe('light')
+    expect(FROND_DARK_THEME.appearance).toBe('dark')
   })
 
   it('core.bg 与 surface-0 一致（画布底色同源）', () => {
-    expect(LEAF_LIGHT_THEME.core.bg).toBe(LEAF_LIGHT_THEME.surface['surface-0'])
-    expect(LEAF_DARK_THEME.core.bg).toBe(LEAF_DARK_THEME.surface['surface-0'])
+    expect(FROND_LIGHT_THEME.core.bg).toBe(FROND_LIGHT_THEME.surface['surface-0'])
+    expect(FROND_DARK_THEME.core.bg).toBe(FROND_DARK_THEME.surface['surface-0'])
   })
 
   it('值与 tokens.css 同步（抽查语义层关键变量，防漂移）', () => {
     // 每条断言：CSS 变量的亮/暗值必须与 schema 一致——手改 CSS 忘改 schema 时此测试红
     const expectVarPair = (name: string, light: string, dark: string): void => {
-      expect(LEAF_LIGHT_THEME).toEqual(
+      expect(FROND_LIGHT_THEME).toEqual(
         expect.objectContaining({})
       )
       expect(light).toBeTruthy()
@@ -64,8 +64,8 @@ describe('themeSchema 结构不变量', () => {
         for (const t of tables) if (name in t) return t[name]
         return undefined
       }
-      expect(find(LEAF_LIGHT_THEME)).toBe(light)
-      expect(find(LEAF_DARK_THEME)).toBe(dark)
+      expect(find(FROND_LIGHT_THEME)).toBe(light)
+      expect(find(FROND_DARK_THEME)).toBe(dark)
       // CSS 侧：变量在 tokens.css 中定义且值包含主题字面量
       expect(tokensCss).toContain(`--${name}: ${light}`)
     }
@@ -80,10 +80,10 @@ describe('themeSchema 结构不变量', () => {
 
   it('core.accent 与品牌默认一致（launch 胶囊强调色为独立拍板，不在本 schema）', () => {
     // 浅色端 accent = brand-500；深色端 = systemBlue dark
-    expect(LEAF_LIGHT_THEME.core.accent).toBe('#007aff')
-    expect(LEAF_DARK_THEME.core.accent).toBe('#0a84ff')
+    expect(FROND_LIGHT_THEME.core.accent).toBe('#007aff')
+    expect(FROND_DARK_THEME.core.accent).toBe('#0a84ff')
     // 胶囊强调色（Raycast 红，Decision-010）独立于本 schema——确保未被误并
     expect(tokensCss).toContain('--launcher-accent: #ff6363')
-    expect(LEAF_LIGHT_THEME.core.accent).not.toBe('#ff6363')
+    expect(FROND_LIGHT_THEME.core.accent).not.toBe('#ff6363')
   })
 })

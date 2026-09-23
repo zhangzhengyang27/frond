@@ -118,7 +118,7 @@ const nowMs = ref(Date.now())
 const copiedFlash = ref(false)
 const flashText = ref('已复制到剪贴板')
 let flashTimer: ReturnType<typeof setTimeout> | null = null
-/** I2 目标级文案：唤起 Leaf 前的前台应用名（主进程隐藏期轮询缓存） */
+/** I2 目标级文案：唤起 Frond 前的前台应用名（主进程隐藏期轮询缓存） */
 const frontApp = ref('')
 
 /**

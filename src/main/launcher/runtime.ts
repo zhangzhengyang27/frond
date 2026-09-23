@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器插件运行时
+ * Frond · 启动器插件运行时
  *
  * 管理插件 BrowserView 的完整生命周期：
  * open（胶囊窗挂载）→ hooks(Enter/Ready) → SubInputChange / expandHeight 联动
@@ -455,10 +455,10 @@ export async function proxyPluginFetch(
 function sendHook(ctx: PluginViewContext, type: string, data?: unknown): void {
   const view = ctx.view
   if (view.webContents.isDestroyed()) return
-  // leafPluginHooks 由插件 preload 经 contextBridge 暴露（主世界可调用）
+  // frondPluginHooks 由插件 preload 经 contextBridge 暴露（主世界可调用）
   const evalJs = `(function(){
-    if (window.leafPluginHooks && typeof window.leafPluginHooks.emit === 'function') {
-      try { window.leafPluginHooks.emit(${JSON.stringify(type)}, ${data ? JSON.stringify(data) : 'null'}); return 'ok' }
+    if (window.frondPluginHooks && typeof window.frondPluginHooks.emit === 'function') {
+      try { window.frondPluginHooks.emit(${JSON.stringify(type)}, ${data ? JSON.stringify(data) : 'null'}); return 'ok' }
       catch (e) { return 'err: ' + e.message }
     }
     return 'no-hooks'
@@ -625,7 +625,7 @@ export function openPlugin(
   // Action 命令：视图创建但不挂窗——插件只跑逻辑，胶囊仍显示原来的列表
   if (!headless) win.addBrowserView(view)
   // 窗口标题反映插件状态（也便于自动化验收读取）
-  win.setTitle(`Leaf Launcher · ${plugin.name}`)
+  win.setTitle(`Frond Launcher · ${plugin.name}`)
 
   void view.webContents.loadURL(pluginEntryUrl(plugin))
 
@@ -796,7 +796,7 @@ export function closeActivePlugin(win: BrowserWindow): void {
   }
   viewsByWebContents.delete(wcId)
   active = null
-  win.setTitle('Leaf Launcher')
+  win.setTitle('Frond Launcher')
   notifyRenderer(win)
 }
 
@@ -850,7 +850,7 @@ export function detachActivePlugin(capsuleWin: BrowserWindow): boolean {
   createDetachWindow(ctx, { x: bounds.x + 60, y: bounds.y + 60, width: WINDOW_WIDTH, height: 420 })
 
   active = null
-  capsuleWin.setTitle('Leaf Launcher')
+  capsuleWin.setTitle('Frond Launcher')
   notifyRenderer(capsuleWin)
   return true
 }
@@ -868,7 +868,7 @@ function createDetachWindow(
     minWidth: 360,
     minHeight: 240,
     show: false,
-    title: `${ctx.plugin.name} · Leaf 启动器`,
+    title: `${ctx.plugin.name} · Frond 启动器`,
     backgroundColor: '#1e1e22',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

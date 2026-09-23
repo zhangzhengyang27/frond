@@ -1,8 +1,8 @@
 /**
- * leaf-plugin-sdk · Leaf 启动器 React 插件 SDK（#11）
+ * frond-plugin-sdk · Frond 启动器 React 插件 SDK（#11）
  *
  * 用法：
- *   import { render, List, List as _List } from 'leaf-plugin-sdk'
+ *   import { render, List, List as _List } from 'frond-plugin-sdk'
  *   render(<List>{items.map(i => <List.Item title={i.title}
  *     actions={<ActionPanel><Action title="打开" onAction={() => ...} /></ActionPanel>} />)}</List>)
  *

@@ -1,5 +1,5 @@
 {
-  "id": "com.leaf.example-react",
+  "id": "com.frond.example-react",
   "name": "React 示例",
   "version": "0.1.0",
   "description": "React 级扩展 API 演示：List / Detail / ActionPanel / 回调导航",
@@ -65,7 +65,7 @@
     }
   ],
   "preferences": [
-    { "name": "who", "label": "探针读取的偏好名", "type": "text", "default": "leaf" },
+    { "name": "who", "label": "探针读取的偏好名", "type": "text", "default": "frond" },
     { "name": "theme", "label": "偏好第二项（探针用）", "type": "text", "default": "dark" }
   ],
   "permissions": ["net", "schedule"]

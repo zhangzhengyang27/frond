@@ -10,7 +10,7 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      return '/tmp/leaf-test-user-data'
+      return '/tmp/frond-test-user-data'
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -77,7 +77,7 @@ describe('runPomodoroDurationMsMigration', () => {
     expect(rows[1].duration_ms).toBe(300_000)
   })
 
-  it('done 标记写入 leaf_meta，二次调用幂等不放大', () => {
+  it('done 标记写入 frond_meta，二次调用幂等不放大', () => {
     seedSecondsRow(db, 1500)
     runPomodoroDurationMsMigration()
 
@@ -89,7 +89,7 @@ describe('runPomodoroDurationMsMigration', () => {
     expect(row.duration_ms).toBe(1_500_000)
 
     const meta = db
-      .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+      .prepare('SELECT value FROM frond_meta WHERE key = ?')
       .get('data_migration_v4_pomodoro_ms') as { value: string }
     expect(meta.value).toBe('done')
   })
@@ -99,7 +99,7 @@ describe('runPomodoroDurationMsMigration', () => {
     expect(result.ran).toBe(true)
     expect(result.rowsUpdated).toBe(0)
     const meta = db
-      .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+      .prepare('SELECT value FROM frond_meta WHERE key = ?')
       .get('data_migration_v4_pomodoro_ms') as { value: string }
     expect(meta.value).toBe('done')
   })

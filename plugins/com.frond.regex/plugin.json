@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.regex",
+  "id": "com.frond.regex",
   "name": "正则测试",
   "version": "1.1.0",
   "description": "正则表达式测试：输入正则和测试文本，高亮匹配结果，显示捕获组，支持标志位",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

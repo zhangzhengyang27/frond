@@ -1,5 +1,5 @@
 /**
- * Leaf · AutoUpdateService（自动更新服务）
+ * Frond · AutoUpdateService（自动更新服务）
  *
  * 封装 electron-updater 6.x API，对外提供 4 个方法：
  * - checkForUpdates()    检查更新（拉远端 version manifest）
@@ -12,7 +12,7 @@
  *
  * 来源：docs/MODULE_TIERS.md「1.0 必须补的非功能模块」之「自动更新」。
  * 更新源：electron-builder.yml 的 publish 配置（GitHub Releases provider）。
- * 注意：owner/repo 当前是占位（leaf-app/leaf-desktop），首次发布前需改成
+ * 注意：owner/repo 当前是占位（frond-app/frond-desktop），首次发布前需改成
  * 实际 GitHub 仓库，并配置签名公证 secrets —— 见 docs/RELEASE.md 清单。
  */
 

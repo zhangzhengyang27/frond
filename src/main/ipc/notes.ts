@@ -1,5 +1,5 @@
 /**
- * Leaf · Notes IPC 处理器
+ * Frond · Notes IPC 处理器
  *
  * 轻量笔记的渲染端 ↔ 主进程通信层。
  */

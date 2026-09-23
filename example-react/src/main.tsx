@@ -14,7 +14,7 @@ import {
   scheduleCommand,
   listScheduledCommands,
   cancelScheduledCommand
-} from 'leaf-plugin-sdk'
+} from 'frond-plugin-sdk'
 import type { ReactElement } from 'react'
 
 /**
@@ -45,9 +45,9 @@ function DetailWithActions(): ReactElement {
 }
 
 const REPOS = [
-  { name: 'leaf/launcher', desc: '启动器主仓库', star: '1.2k' },
-  { name: 'leaf/plugin-sdk', desc: 'React 插件 SDK', star: '318' },
-  { name: 'leaf/docs', desc: '开发文档', star: '97' }
+  { name: 'frond/launcher', desc: '启动器主仓库', star: '1.2k' },
+  { name: 'frond/plugin-sdk', desc: 'React 插件 SDK', star: '318' },
+  { name: 'frond/docs', desc: '开发文档', star: '97' }
 ]
 
 function FeedbackForm() {
@@ -171,7 +171,7 @@ void (async () => {
   if (ctx?.cmd === 'platform') {
     const prefs = await getPreferenceValues<Record<string, unknown>>()
     const file = await openExternalUrl('file:///etc/passwd')
-    const https = await openExternalUrl('https://example.com/leaf-e2e')
+    const https = await openExternalUrl('https://example.com/frond-e2e')
     start(
       <Detail
         markdown={`# 平台能力探针\n\nwho=${String(prefs.who ?? 'null')}\ntheme=${String(prefs.theme ?? 'null')}\nfile=${String(file)}\nhttps=${String(https)}`}

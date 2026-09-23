@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器 IPC
+ * Frond · 启动器 IPC
  *
  * launcher:*  —— 胶囊窗控制 / 插件管理（主窗口管理页与胶囊窗 UI 使用）
  * plugapi:*   —— 插件受控 API（专用 preload 经 contextBridge 暴露，按 sender 解析插件身份）
@@ -111,7 +111,7 @@ const PLUGIN_DOC_MAX_COUNT = 500
 /**
  * 本地目录导入插件前的人工确认：渲染端（含被攻陷场景）可传任意目录，
  * 系统级模态框是攻击者无法自动点掉的一道闸。
- * E2E 环境（LEAF_E2E=1）旁路：Playwright 无法点击原生对话框。
+ * E2E 环境（FROND_E2E=1）旁路：Playwright 无法点击原生对话框。
  */
 
 /**

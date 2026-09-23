@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：React 视图协议闭环（#11）
+ * Frond · E2E：React 视图协议闭环（#11）
  *
  * 导入 example-react（manifest api:'react'）→ 打开插件 → SDK renderView 提交视图树 →
  * 主进程 parsePluginView 归一 → 胶囊原生渲染 List → 触发 callbackId →
@@ -28,7 +28,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Leaf/.test(await w.title())) return w
+        if (/Frond/.test(await w.title())) return w
       } catch {
         /* noop */
       }
@@ -56,12 +56,12 @@ const getCapsuleWindow = async () => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-react-view')
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-react-view')
   // 每次跑都从干净目录起：本文件把插件装进 userData，留着旧目录 = 用的是**上一次那份 manifest**
   // （改了 example-react/plugin.json 之后会出现「改了没生效」的假象）
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   delete env.ELECTRON_RUN_AS_NODE
-  env.LEAF_E2E = '1' // 插件导入确认闸旁路（Playwright 无法点原生对话框）
+  env.FROND_E2E = '1' // 插件导入确认闸旁路（Playwright 无法点原生对话框）
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 
@@ -88,18 +88,18 @@ test('React 视图协议：渲染 → 回调 → 导航详情', async () => {
   expect(install.success).toBe(true)
 
   // 打开插件（胶囊进入插件交互）
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react'))
   const capsule = await getCapsuleWindow()
   expect(capsule).toBeTruthy()
   await capsule.waitForLoadState('domcontentloaded')
 
   // SDK renderView → 归一后的列表被胶囊原生渲染
-  const item = capsule.locator('.plist-item', { hasText: 'leaf/launcher' })
+  const item = capsule.locator('.plist-item', { hasText: 'frond/launcher' })
   await expect(item).toBeVisible({ timeout: 20000 })
-  await expect(capsule.locator('.plist-item', { hasText: 'leaf/plugin-sdk' })).toBeVisible()
+  await expect(capsule.locator('.plist-item', { hasText: 'frond/plugin-sdk' })).toBeVisible()
 
   // 触发首个动作（callbackId）→ Callback 钩子 → SDK 分发 onAction → nav.push(Detail)
-  await capsule.evaluate(() => window.api.launcher.runPluginAction('com.leaf.example-react', 0, 0))
+  await capsule.evaluate(() => window.api.launcher.runPluginAction('com.frond.example-react', 0, 0))
 
   // 详情视图渲染（detail 视图降级为占位条目 + markdown 正文）
   await expect
@@ -124,13 +124,13 @@ test('M2 表单：渲染 → ⌘↵ 提交 → 值回传 onSubmit → 详情', a
 
   // 上一用例已把视图栈推到 detail：关闭并重开插件 → 插件页重建，回到列表
   await capsule.evaluate(() => window.api.launcher.closePlugin())
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react'))
-  await expect(capsule.locator('.plist-item', { hasText: 'leaf/launcher' })).toBeVisible({
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react'))
+  await expect(capsule.locator('.plist-item', { hasText: 'frond/launcher' })).toBeVisible({
     timeout: 20000
   })
 
   // 触发动作「提交反馈」→ nav.push(Form) → 表单视图（与列表互斥，存 declaredForm）
-  await capsule.evaluate(() => window.api.launcher.runPluginAction('com.leaf.example-react', 0, 1))
+  await capsule.evaluate(() => window.api.launcher.runPluginAction('com.frond.example-react', 0, 1))
   await expect
     .poll(
       async () => {
@@ -195,7 +195,7 @@ test('P-2.2 Action 命令（mode:"action"）：不挂插件视图、跑完自关
     (await capsule.evaluate(() => window.api.e2e.probeCounts()))['plugapi:notify'] ?? 0
   const before = await notifyCount()
 
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react', 'ping'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'ping'))
 
   // 1) 真副作用：插件确实执行了逻辑并发出通知（Action 命令的「有用」就在这）
   await expect.poll(notifyCount, { timeout: 15000, intervals: [500, 1000] }).toBeGreaterThan(before)
@@ -238,11 +238,11 @@ test('P-2.2 Action 命令真做出视图时升级为可见（promoteToVisible）
 
   // ping-view 声明了 mode:'action'，但插件走了 start(<App/>) 提交列表
   // —— 规则是「无界面是缺省，做出 UI 就给你」，所以这条必须升级为可见
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react', 'ping-view'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'ping-view'))
   const capsule = await getCapsuleWindow()
   await capsule.waitForLoadState('domcontentloaded')
   await expect(capsule.locator('.launcher-search-plugin')).toBeVisible({ timeout: 15000 })
-  await expect(capsule.locator('.plist-item', { hasText: 'leaf/launcher' }).first()).toBeVisible({
+  await expect(capsule.locator('.plist-item', { hasText: 'frond/launcher' }).first()).toBeVisible({
     timeout: 20000
   })
 })
@@ -266,7 +266,7 @@ test('P-2.2 Action 命令确实未挂视图，且不自关时被宿主兜底回�
     )
     .toBe(false)
 
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react', 'ping-hold'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'ping-hold'))
 
   // 判据取宿主真状态而不是 DOM：headless=true 且 attached=false 才是「视图没挂上窗」。
   // （只看 DOM 无法区分「未挂载」与「挂载了但没推快照」——那正是这格要防的自欺）
@@ -314,12 +314,12 @@ test('P-2.6 列表加载态与插件自定义空态文案（两个稳定态，�
 
   await ensureClosed()
   await main.evaluate(() =>
-    window.api.launcher.openPlugin('com.leaf.example-react', 'list-loading')
+    window.api.launcher.openPlugin('com.frond.example-react', 'list-loading')
   )
   await expect(empty).toHaveText('加载中…', { timeout: 15000 })
 
   await ensureClosed()
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react', 'list-empty'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'list-empty'))
   await expect(empty).toHaveText('还没有数据，先同步一次', { timeout: 15000 })
 })
 
@@ -338,7 +338,7 @@ test('P-2.6 Detail.actions：详情级动作降级到占位条目并可触发', 
     .toBe(false)
 
   await main.evaluate(() =>
-    window.api.launcher.openPlugin('com.leaf.example-react', 'detail-actions')
+    window.api.launcher.openPlugin('com.frond.example-react', 'detail-actions')
   )
   // 先等「带动作的详情」真的落地，再触发（runPluginAction 按当前声明视图取索引）
   await expect
@@ -351,7 +351,7 @@ test('P-2.6 Detail.actions：详情级动作降级到占位条目并可触发', 
     )
     .toBe(1)
 
-  await main.evaluate(() => window.api.launcher.runPluginAction('com.leaf.example-react', 0, 0))
+  await main.evaluate(() => window.api.launcher.runPluginAction('com.frond.example-react', 0, 0))
   await expect
     .poll(
       async () => {
@@ -379,10 +379,10 @@ test('P-2.5 平台能力：一次读全偏好 + open(url) 的两道闸', async (
   // 能在 e2e 里量，而不会在 CI 机器上真开一个浏览器标签
   await app.evaluate(({ shell }) => {
     const g = globalThis
-    g.__leafOpenedUrls = []
-    if (!g.__leafRealOpenExternal) g.__leafRealOpenExternal = shell.openExternal
+    g.__frondOpenedUrls = []
+    if (!g.__frondRealOpenExternal) g.__frondRealOpenExternal = shell.openExternal
     shell.openExternal = async (url) => {
-      g.__leafOpenedUrls.push(url)
+      g.__frondOpenedUrls.push(url)
       return true
     }
   })
@@ -393,7 +393,7 @@ test('P-2.5 平台能力：一次读全偏好 + open(url) 的两道闸', async (
   expect(install.success).toBe(true)
   const capsule = await getCapsuleWindow()
   await capsule.evaluate(() => window.api.launcher.closePlugin())
-  await main.evaluate(() => window.api.launcher.openPlugin('com.leaf.example-react', 'platform'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'platform'))
 
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
   const detailText = async () => {
@@ -406,7 +406,7 @@ test('P-2.5 平台能力：一次读全偏好 + open(url) 的两道闸', async (
   const detail = await detailText()
   // 偏好走 plugapi:listPreferences：没设过 → 落 manifest 声明的默认值
   // （这条同时证明 readManifest 真的收下了 preferences——清洗器一挡就会变 null）
-  expect(detail).toContain('who=leaf')
+  expect(detail).toContain('who=frond')
   expect(detail).toContain('theme=dark')
   /**
    * open(url) 的两道闸**分开量**（清单声明了 net，第二条才有意义）：
@@ -416,11 +416,11 @@ test('P-2.5 平台能力：一次读全偏好 + open(url) 的两道闸', async (
    */
   expect(detail).toContain('https=true')
   expect(detail).toContain('file=false')
-  const opened = await app.evaluate(() => globalThis.__leafOpenedUrls ?? [])
-  expect(opened).toEqual(['https://example.com/leaf-e2e'])
+  const opened = await app.evaluate(() => globalThis.__frondOpenedUrls ?? [])
+  expect(opened).toEqual(['https://example.com/frond-e2e'])
   // 换回去：这个 app 实例后面还有用例，别让它们在一个假 openExternal 上跑
   await app.evaluate(({ shell }) => {
     const g = globalThis
-    if (g.__leafRealOpenExternal) shell.openExternal = g.__leafRealOpenExternal
+    if (g.__frondRealOpenExternal) shell.openExternal = g.__frondRealOpenExternal
   })
 })

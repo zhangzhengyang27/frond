@@ -1,5 +1,5 @@
 /**
- * Leaf · 命令加载器（阶段1.1）
+ * Frond · 命令加载器（阶段1.1）
  *
  * 注册所有 CommandProvider，提供统一的命令获取和搜索接口。
  * 同时提供 Command → CommandEntry 适配器，供现有 LauncherApp 渐进式迁移。

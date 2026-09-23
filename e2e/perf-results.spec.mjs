@@ -1,5 +1,5 @@
 /**
- * Leaf · 根搜索列表性能实测（P-6④）
+ * Frond · 根搜索列表性能实测（P-6④）
  *
  * 要回答的问题很具体：**多渲染几条行，敲一个键要付多少钱**。
  * 旧结论（HANDOFF §8「Fuse 实例复用只省 11%」）是封顶 20 条时量的，
@@ -8,13 +8,13 @@
  *
  * A/B 的做法是**改 `useUnifiedSearch.ts` 里那几个常量 → 重新 build → 再跑本文件**，
  * 不在产品代码里留运行期开关（一个只有测试会碰的旋钮很容易被当成真功能）。
- * 用 `LEAF_PERF_LABEL` 标记这一次是哪个变体，结果写进
+ * 用 `FROND_PERF_LABEL` 标记这一次是哪个变体，结果写进
  * `test-results/perf-results-<label>.json`，两轮数字放一起比才有意义。
  *
  * 量的是端到端：填入查询 → 列表连续两次采样不再变。里面含 150ms 防抖与异步补充，
  * 这是刻意的——用户感知的就是这一整段；两个变体付的是同一份防抖，**差值才是行数带来的**。
  *
- * 用法：`npx electron-vite build && LEAF_PERF_LABEL=cap20 npx playwright test e2e/perf-results.spec.mjs`
+ * 用法：`npx electron-vite build && FROND_PERF_LABEL=cap20 npx playwright test e2e/perf-results.spec.mjs`
  */
 
 import { test, expect, _electron as electron } from 'playwright/test'
@@ -24,7 +24,7 @@ import { rmSync, writeFileSync, mkdirSync } from 'node:fs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
-const LABEL = process.env.LEAF_PERF_LABEL ?? 'default'
+const LABEL = process.env.FROND_PERF_LABEL ?? 'default'
 
 /**
  * 探测查询：**每个词只量一次**（同值重复填不会有 DOM 变化，中位数会被 0 糊掉），
@@ -134,13 +134,13 @@ const measure = (capsule, q) =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-perf-results')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-perf-results')
+  env.FROND_E2E = '1'
   // 这条用例量的是「面板真长到那么多行时多少钱」，所以命令表必须是真规模：
   // 不跳内置插件（跳了之后命令池小一倍，200 那一档根本填不满，量出来的是假数字）
-  delete env.LEAF_SKIP_BUILTIN_PLUGINS
+  delete env.FROND_SKIP_BUILTIN_PLUGINS
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

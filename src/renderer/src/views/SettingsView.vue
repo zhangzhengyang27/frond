@@ -726,7 +726,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
 
       <!-- 底部版本信息 -->
       <div class="border-t border-line-subtle px-4 py-3">
-        <div class="text-[11px] text-fg-tertiary">Leaf v{{ appVersion }}</div>
+        <div class="text-[11px] text-fg-tertiary">Frond v{{ appVersion }}</div>
       </div>
     </aside>
 
@@ -1707,7 +1707,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     <AppIcon icon="ri-information-line" :size="16" />
                   </div>
                   <div class="min-w-0 flex-1">
-                    <div class="text-[14px] font-medium text-fg-primary">关于 Leaf</div>
+                    <div class="text-[14px] font-medium text-fg-primary">关于 Frond</div>
                     <div class="text-[12px] text-fg-tertiary">版本、隐私、致谢</div>
                   </div>
                   <AppIcon icon="ri-arrow-right-s-line" :size="16" class="text-fg-tertiary" />
@@ -1734,7 +1734,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
           </section>
 
           <p class="text-center text-[12px] text-fg-tertiary">
-            Leaf · v{{ appVersion }} · 本地优先 / 开源
+            Frond · v{{ appVersion }} · 本地优先 / 开源
           </p>
         </template>
       </div>

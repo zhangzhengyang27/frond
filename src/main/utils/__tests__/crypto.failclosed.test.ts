@@ -10,7 +10,7 @@ import { join } from 'node:path'
 const { log } = vi.hoisted(() => ({ log: { error: vi.fn(), info: vi.fn(), warn: vi.fn() } }))
 
 vi.mock('electron', () => ({
-  app: { getPath: () => join(mkdtempSync(join(tmpdir(), 'leaf-crypto-')), 'userData') }
+  app: { getPath: () => join(mkdtempSync(join(tmpdir(), 'frond-crypto-')), 'userData') }
 }))
 vi.mock('../../services/LogService', () => ({ log }))
 // 强制 createCipheriv 抛错，模拟加密能力不可用（密钥环境损坏等）

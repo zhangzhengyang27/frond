@@ -1,5 +1,5 @@
 /**
- * Leaf · 词典服务（阶段3.3d）
+ * Frond · 词典服务（阶段3.3d）
  *
  * 支持两种查询方式：
  * 1. macOS 自带词典（dict:// URL scheme）

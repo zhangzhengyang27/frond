@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 011 — Pomodoro record task_title field
+ * Frond · Migration 011 — Pomodoro record task_title field
  *
  * 背景：
  * - 旧 schema 中 pom_pomodoros.note 字段被复用为「任务标题快照」

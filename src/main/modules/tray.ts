@@ -1,5 +1,5 @@
 /**
- * Leaf · 系统托盘（tray）
+ * Frond · 系统托盘（tray）
  *
  * 设计（来源：docs/DECISIONS.md「Dock / Tray 菜单重构」+ IA v2 阶段C「入口优先级」）
  * - 菜单构建统一在 src/main/modules/appMenu.ts（与 dockMenu 共用）

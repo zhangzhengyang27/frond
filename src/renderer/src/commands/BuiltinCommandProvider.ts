@@ -1,5 +1,5 @@
 /**
- * Leaf · 内置模块与系统页命令提供者（P-7②「注册表合一」的最后一批）
+ * Frond · 内置模块与系统页命令提供者（P-7②「注册表合一」的最后一批）
  *
  * 这批之前 Registry 只有 3 个 provider（应用 / 系统 / 第一方），而模块行与系统页行
  * 还留在 `shared/commands.ts` 的 `buildStaticCommands()` 里由调用方各自摊平。

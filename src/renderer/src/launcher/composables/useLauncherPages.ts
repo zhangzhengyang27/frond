@@ -1,5 +1,5 @@
 /**
- * Leaf · 胶囊内联页导航栈（M5.2，自 LauncherApp.vue 抽出）
+ * Frond · 胶囊内联页导航栈（M5.2，自 LauncherApp.vue 抽出）
  *
  * openFirstParty 压栈，ESC 逐级返回（Raycast push/pop）。
  * pageRef 指向当前内联页组件（页面需 defineExpose handleKey）。

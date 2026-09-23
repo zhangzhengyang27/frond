@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.lorem",
+  "id": "com.frond.lorem",
   "name": "Lorem Ipsum",
   "version": "1.0.1",
   "description": "生成占位文本：单词/句子/段落，支持自定义数量，经典 Lorem Ipsum 文本，一键复制",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

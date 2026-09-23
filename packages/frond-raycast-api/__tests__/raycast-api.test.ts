@@ -53,14 +53,14 @@ const flush = async (): Promise<void> => new Promise((r) => setTimeout(r, 40))
 const last = (): AnyView => submitted[submitted.length - 1]
 
 describe('List 族形状适配', () => {
-  it('items prop / actions prop / accessories 对象数组 → Leaf 协议', async () => {
+  it('items prop / actions prop / accessories 对象数组 → Frond 协议', async () => {
     const onGo = vi.fn()
     api.render(
       createElement(api.List, {
         items: [
           createElement(api.List.Item, {
-            id: 'ignored-in-leaf',
-            title: 'leaf/launcher',
+            id: 'ignored-in-frond',
+            title: 'frond/launcher',
             subtitle: '启动器主仓库',
             accessories: [{ title: 'star', value: '1.2k' }, 'plain'],
             actions: [
@@ -73,7 +73,7 @@ describe('List 族形状适配', () => {
     )
     await flush()
     const item = last().items?.[0]
-    expect(item?.title).toBe('leaf/launcher')
+    expect(item?.title).toBe('frond/launcher')
     expect(item?.accessories).toEqual(['1.2k', 'plain'])
     const actions = item?.actions as AnyView[]
     expect(actions.map((a) => a.label)).toEqual(['查看', '复制地址'])

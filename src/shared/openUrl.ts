@@ -1,5 +1,5 @@
 /**
- * Leaf · openUrl 白名单（V4 批次4 审查 I-diff2）
+ * Frond · openUrl 白名单（V4 批次4 审查 I-diff2）
  *
  * 背景：主进程 `system:openExternal` 仅放行 http(s)，而会议链接提取会产生
  * zoommtg:// 等客户端 scheme——手动入会（openUrl 动作）会静默失败，

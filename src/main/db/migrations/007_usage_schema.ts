@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 007 — Usage 模块 schema（最近使用 + 收藏）
+ * Frond · Migration 007 — Usage 模块 schema（最近使用 + 收藏）
  *
  * 表设计：
  * - usage_records(module_id, used_at)

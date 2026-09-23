@@ -1,12 +1,12 @@
 /**
- * Leaf · 片段文本扩展引擎（M5.1，Raycast Snippets 模式）
+ * Frond · 片段文本扩展引擎（M5.1，Raycast Snippets 模式）
  *
  * 全局监听按键（globalKeyHook），在任意应用里键入触发词（如 ";brb"）后：
  * 1. 注入 N 次退格删掉触发词
  * 2. 把片段文本写入系统剪贴板（先存旧内容）+ 模拟 ⌘V 粘贴 + 延迟还原剪贴板
  *
  * 约束：
- * - Leaf 自身窗口持有焦点时不触发（避免自己扩自己）
+ * - Frond 自身窗口持有焦点时不触发（避免自己扩自己）
  * - macOS 依赖辅助功能授权（监听与注入同一权限）；未授权时静默失效，
  *   由管理页「权限诊断」探测并引导
  * - 键位映射为 US 布局（见 keycodes.ts），触发词建议字母数字与常见符号
@@ -15,7 +15,7 @@
 import { clipboard, BrowserWindow, shell, app } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { globalKeyHook, hasFocusedLeafWindow, type GlobalKeyEvent } from './globalKeys'
+import { globalKeyHook, hasFocusedFrondWindow, type GlobalKeyEvent } from './globalKeys'
 import { isDirectTypable } from '../utils/pasteKeystroke'
 import {
   renderExpansionWithCursor,
@@ -157,8 +157,8 @@ class TextExpansionService {
     const hit = this.buffer.feed(e.keycode, e.shiftKey)
     if (!hit) return
     if (this.expanding) return // 注入期间不连环触发（字符已进缓冲，不丢键）
-    // Leaf 窗口持有焦点时不触发（管理页/片段编辑器里输入触发词不扩展）
-    if (hasFocusedLeafWindow(BrowserWindow.getAllWindows())) {
+    // Frond 窗口持有焦点时不触发（管理页/片段编辑器里输入触发词不扩展）
+    if (hasFocusedFrondWindow(BrowserWindow.getAllWindows())) {
       this.buffer.reset()
       return
     }

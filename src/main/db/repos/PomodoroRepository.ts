@@ -1,5 +1,5 @@
 /**
- * Leaf · PomodoroRepository
+ * Frond · PomodoroRepository
  *
  * 取代 PomodoroDataStore（251 行）。
  *

@@ -1,5 +1,5 @@
 /**
- * Leaf · 录制 IPC（新通道）
+ * Frond · 录制 IPC（新通道）
  *
  * 通道集合：recording.list / get / delete / markers.* / settings.* / recovery.*
  *
@@ -496,7 +496,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  // PR-7a: togglePause —— 转发为 renderer 事件（preload → leaf:shortcut-togglePause →
+  // PR-7a: togglePause —— 转发为 renderer 事件（preload → frond:shortcut-togglePause →
   // Layout → RecordPage 调单例 togglePause）。旧实现是空 handler，快捷键按了没效果。
   ipcMain.handle(
     'recording.togglePause',

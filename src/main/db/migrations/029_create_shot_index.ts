@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 029 — 截图库 OCR 索引（V4 差距分析 P1-10）
+ * Frond · Migration 029 — 截图库 OCR 索引（V4 差距分析 P1-10）
  *
  * 对齐 Raycast「Search Screenshots」：对既有截图文件建索引，on-device OCR
  * 提取图内文本供搜索。注意 ss_screenshots（001）是旧截图模块的历史库并已随

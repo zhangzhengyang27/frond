@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildComplexExportArgs } from '../RecordingExportService'
 
 /**
- * Leaf · 复杂导出（片头/片尾/BGM/转场）参数拼装测试
+ * Frond · 复杂导出（片头/片尾/BGM/转场）参数拼装测试
  *
  * ⚠ 恢复说明：本文件随 2026-09-22 删除事故丢了头部与用例正文，只剩下面这个 mk()
  * 默认值工厂的原文；原本唯一在册的「纯转码走简单路径」用例正文没找回，记作 it.todo。

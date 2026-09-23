@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器热键（M4：主热键可配置 + 命令级全局热键；
+ * Frond · 启动器热键（M4：主热键可配置 + 命令级全局热键；
  * 两段式直达：主热键后按住修饰键不放再按字母，GAP_ANALYSIS 维度 5 剩余差距）
  *
  * 配置存 launcher_docs kv（sys.hotkeys.config）：
@@ -311,9 +311,10 @@ export function registerAllHotkeys(): void {
         screenshotConflict = true
         console.warn('[Launcher] 截图热键注册失败（可能被占用）:', config.screenshot)
       }
-    } catch {
+    } catch (error) {
       screenshotConflict = true
-      console.warn('[Launcher] 截图热键加速器非法:', config.screenshot)
+      // 把原因写出来：以前只记一句「加速器非法」，配置来自 DB/同步，看不出是哪种脏值
+      console.warn('[Launcher] 截图热键注册异常:', config.screenshot, (error as Error).message)
     }
   }
 

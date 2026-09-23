@@ -1,5 +1,5 @@
 /**
- * Leaf · 片段编辑器搜索叠加层（自 Editor.vue 抽出）
+ * Frond · 片段编辑器搜索叠加层（自 Editor.vue 抽出）
  *
  * 基于 CodeMirror overlay 的高亮搜索：query 变化即重建 overlay 并滚动到
  * 首个匹配；editor 实例由宿主以 getter 传入（实例由宿主生命周期管理）。

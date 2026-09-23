@@ -1,5 +1,5 @@
 /**
- * Leaf · ShotIndexRepository — 截图库 OCR 索引（V4 P1-10，migration 029）
+ * Frond · ShotIndexRepository — 截图库 OCR 索引（V4 P1-10，migration 029）
  *
  * shot_index 表：文件系统上真实存在的截图（不捕捉、不复制，file_path 为绝对路径），
  * OCR 文本在主进程后台回填（ocr_status: pending | done | failed）。

@@ -1,24 +1,24 @@
 /**
- * Leaf · leaf:// URL Scheme 路由解析 + 标签页匹配纯函数（B4）
+ * Frond · frond:// URL Scheme 路由解析 + 标签页匹配纯函数（B4）
  *
  * 刻意不 import electron：路由表解析、URL 规范化/匹配是纯字符串逻辑，
  * 单测可直接覆盖，不依赖 Electron 运行时。
  *
- * leaf:// 路由表（B4）：
- * - leaf://launcher        → 唤起胶囊窗
- * - leaf://settings        → 显示并聚焦主窗设置路由
- * - leaf://plugin/<id>     → 在胶囊窗打开对应插件
+ * frond:// 路由表（B4）：
+ * - frond://launcher        → 唤起胶囊窗
+ * - frond://settings        → 显示并聚焦主窗设置路由
+ * - frond://plugin/<id>     → 在胶囊窗打开对应插件
  * 未识别路由由调用方静默忽略并 log。
  */
 
-/** 单个 leaf:// 路由（判别联合，kind 为路由段） */
-export type LeafRoute =
+/** 单个 frond:// 路由（判别联合，kind 为路由段） */
+export type FrondRoute =
   | { kind: 'launcher' }
   | { kind: 'settings' }
   | { kind: 'plugin'; pluginId: string }
 
-/** leaf:// scheme 名（与 setAsDefaultProtocolClient 注册保持一致） */
-export const LEAF_SCHEME = 'leaf'
+/** frond:// scheme 名（与 setAsDefaultProtocolClient 注册保持一致） */
+export const FROND_SCHEME = 'frond'
 
 /** decodeURIComponent 容错：畸形 % 序列按原样返回（深链来自系统，不可信） */
 function safeDecodeSegment(seg: string): string {
@@ -30,16 +30,16 @@ function safeDecodeSegment(seg: string): string {
 }
 
 /**
- * 解析 leaf:// 深链为路由对象；非 leaf:// / 无法解析 / 未识别路由返回 null。
- * 容错：大小写不敏感（LEAF://Launcher）、缺 `//` 的 leaf:launcher 形态、
+ * 解析 frond:// 深链为路由对象；非 frond:// / 无法解析 / 未识别路由返回 null。
+ * 容错：大小写不敏感（FROND://Launcher）、缺 `//` 的 frond:launcher 形态、
  * 尾随斜杠与多余 path 段、query/hash 忽略。
  */
-export function parseLeafUrl(raw: unknown): LeafRoute | null {
+export function parseFrondUrl(raw: unknown): FrondRoute | null {
   if (typeof raw !== 'string') return null
   const trimmed = raw.trim()
-  if (!/^leaf:/i.test(trimmed)) return null
-  // 容错 leaf:launcher（无 authority）形态 → 补 // 使 URL 解析器识别出 host
-  const normalized = /^leaf:\/\//i.test(trimmed) ? trimmed : trimmed.replace(/^leaf:/i, 'leaf://')
+  if (!/^frond:/i.test(trimmed)) return null
+  // 容错 frond:launcher（无 authority）形态 → 补 // 使 URL 解析器识别出 host
+  const normalized = /^frond:\/\//i.test(trimmed) ? trimmed : trimmed.replace(/^frond:/i, 'frond://')
   let url: URL
   try {
     url = new URL(normalized)

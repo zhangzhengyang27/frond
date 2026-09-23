@@ -80,13 +80,13 @@ describe('dirsForEvents', () => {
       dirsForEvents(
         scopes,
         [
-          'C:\\Users\\x\\Code\\leaf\\a.ts', // 文件事件 → 归到所在目录
-          'c:\\users\\x\\code\\leaf', // 目录事件（大小写混用也要归一）
+          'C:\\Users\\x\\Code\\frond\\a.ts', // 文件事件 → 归到所在目录
+          'c:\\users\\x\\code\\frond', // 目录事件（大小写混用也要归一）
           'C:\\Windows\\System32' // 范围外
         ],
         isDir
       )
-    ).toEqual(['C:/Users/x/Code/leaf', 'C:/Users/x/Code'])
+    ).toEqual(['C:/Users/x/Code/frond', 'C:/Users/x/Code'])
     Object.defineProperty(process, 'platform', { value: 'darwin' })
   })
 })

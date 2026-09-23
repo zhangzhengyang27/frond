@@ -12,7 +12,7 @@ import { safeOpenablePath } from '../openPathGuard'
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'leaf-openguard-'))
+  dir = mkdtempSync(join(tmpdir(), 'frond-openguard-'))
 })
 
 afterEach(() => {

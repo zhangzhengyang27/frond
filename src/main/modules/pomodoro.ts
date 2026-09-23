@@ -325,7 +325,7 @@ export function buildMarkdown(payload: ExportPayload, fileBaseName: string): str
     tableHeader,
     rows,
     '',
-    `> 由 Leaf 自动导出 · 文件名：${fileBaseName}`,
+    `> 由 Frond 自动导出 · 文件名：${fileBaseName}`,
     ''
   ]
     .filter((line, idx, arr) => !(line === '' && arr[idx - 1] === ''))

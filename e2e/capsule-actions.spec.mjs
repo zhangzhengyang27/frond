@@ -1,8 +1,8 @@
 /**
- * Leaf · E2E：修饰键二级动作直触（P-1.2）
+ * Frond · E2E：修饰键二级动作直触（P-1.2）
  *
  * 断言全部落在真实副作用上，不看「界面像不像响应了」：
- *  - ⌘⌫ → 主进程 `find:reveal` 计数 +1（证据来自 LEAF_E2E 专用探针，见 src/main/e2eProbe.ts）
+ *  - ⌘⌫ → 主进程 `find:reveal` 计数 +1（证据来自 FROND_E2E 专用探针，见 src/main/e2eProbe.ts）
  *  - ⌘⌫ 不得顺带打开 ⌘K 面板（那是另一条入口）
  *  - 在**没有** reveal 动作的行上，⌘⌫ 必须被吃掉且不改动查询词（保留组合）
  *
@@ -19,7 +19,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const ROOT = join(__dirname, '..')
 const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
-// 与 file-index.spec 共用 playwright.config 里的 LEAF_FILE_INDEX_SCOPES 目录
+// 与 file-index.spec 共用 playwright.config 里的 FROND_FILE_INDEX_SCOPES 目录
 const SCOPE_DIR = join(ROOT, 'test-results', 'file-index-scopes')
 const RUN = `e2e${Date.now().toString(36)}`
 const UNIQUE = `reveal-probe-${RUN}`
@@ -36,7 +36,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Leaf/.test(await w.title())) return w
+        if (/Frond/.test(await w.title())) return w
       } catch {
         /* 窗口可能已关闭 */
       }
@@ -98,12 +98,12 @@ test.beforeAll(async () => {
   writeFileSync(join(SCOPE_DIR, `${UNIQUE}.txt`), 'reveal probe\n')
 
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-capsule-actions')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-capsule-actions')
+  env.FROND_E2E = '1'
   // 每次从干净 userData 起：本目录会被历史跑残留（曾有 spec 往文件索引里加过「/」作用域，
   // 于是 'Safari' 的前 20 行全被 System/Library 的文件行占满，应用行根本进不了列表，
   // 表现就是「绕 4 圈没遇到应用行」——不是排序问题，是这台实例的索引范围被污染了）
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   delete env.ELECTRON_RUN_AS_NODE
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
@@ -144,7 +144,7 @@ test('⌘⇧K 切换 keep-open：键位到主进程一条不漏，指示点跟�
   const { capsule, input } = await searchInCapsule(main, '三模式')
   await expect(capsule.locator('.launcher-result').first()).toBeVisible()
 
-  // 为什么不断言「失焦就隐藏」：e2e 里 Leaf 不是前台应用，胶囊 show()+focus()
+  // 为什么不断言「失焦就隐藏」：e2e 里 Frond 不是前台应用，胶囊 show()+focus()
   // 拿不到真正的 key 状态，blur 事件压根不触发（试过 bringToFront 与另开真窗口抢
   // focus，两种都拿不到）。所以「钉住 → blur 不隐藏」由 shouldHideOnBlur 的 4 条
   // 单测覆盖，这里只钉住「键位 → 主进程生效 → 界面反馈」这一段真链路。

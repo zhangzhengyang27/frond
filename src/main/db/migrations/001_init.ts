@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 001 — initial schema
+ * Frond · Migration 001 — initial schema
  *
  * 覆盖 9 个核心模块的初始表结构。
  * 所有表都是 IF NOT EXISTS，重复跑幂等。

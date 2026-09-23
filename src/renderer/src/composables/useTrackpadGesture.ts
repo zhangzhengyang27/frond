@@ -1,5 +1,5 @@
 /**
- * Leaf · Trackpad / 触控板手势
+ * Frond · Trackpad / 触控板手势
  *
  * 设计：仿 macOS Safari 原生体验
  * - 双指水平 swipe（accumulated deltaX）：

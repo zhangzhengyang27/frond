@@ -1,5 +1,5 @@
 /**
- * Leaf · IPC Contract E2E 烟雾测试
+ * Frond · IPC Contract E2E 烟雾测试
  *
  * 目标：在不启动 Electron GUI 的前提下，验证主进程 / preload 之间
  * 的 IPC 通道对齐——这是 E2E 烟雾测试的「轻量版」。

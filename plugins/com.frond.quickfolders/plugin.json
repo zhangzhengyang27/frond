@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.quickfolders",
+  "id": "com.frond.quickfolders",
   "name": "常用目录",
   "version": "1.0.1",
   "description": "保存常用文件夹路径，从启动器直接搜索并打开；支持从剪贴板添加目录",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

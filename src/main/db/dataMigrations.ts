@@ -1,9 +1,9 @@
 /**
- * Leaf · 数据迁移器（版本 2）
+ * Frond · 数据迁移器（版本 2）
  *
  * 触发：installDatabase() 完成后调用一次。
  * 职责：把旧 electron-store JSON 文件一次性导入 SQLite。
- * 幂等：用 leaf_meta 表的 data_migration_v2 标志位。
+ * 幂等：用 frond_meta 表的 data_migration_v2 标志位。
  *
  * 覆盖（v1 → v2）：
  * - v1 (5-4) Preferences / Tag
@@ -95,16 +95,16 @@ export function runDataMigrations(): MigrationResult {
 
   const db = database.handle
 
-  // 确保 leaf_meta 表存在
+  // 确保 frond_meta 表存在
   db.exec(
-    `CREATE TABLE IF NOT EXISTS leaf_meta (
+    `CREATE TABLE IF NOT EXISTS frond_meta (
        key TEXT PRIMARY KEY,
        value TEXT,
        updated_at INTEGER NOT NULL
      )`
   )
 
-  // electron-store 双栈收尾：这五个域各自带 leaf_meta 标志位、幂等且自包含，
+  // electron-store 双栈收尾：这五个域各自带 frond_meta 标志位、幂等且自包含，
   // 必须**无条件**跑 —— 它们原先挂在下面 v1+v2 早退之后，于是凡是已经迁完 v1+v2 的机器
   // （= 每台老机器）这五路永远不执行：别名 / AI 配置 / 剪辑 / 录屏设置 / 时间标记全留在旧 JSON 里。
   migrateAliasesFromLegacyStore()
@@ -115,9 +115,9 @@ export function runDataMigrations(): MigrationResult {
 
   // 兼容旧 v1 标记：如果发现 v1 done，标记为 v2 done（v1 已包含的 4 类不再重复执行）
   const v1Done = db
-    .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+    .prepare('SELECT value FROM frond_meta WHERE key = ?')
     .get('data_migration_v1') as { value: string } | undefined
-  const v2Done = db.prepare('SELECT value FROM leaf_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
+  const v2Done = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
     { value: string } | undefined
   // 两段都完成才跳过；任一段上次因导入失败未标记，本次都要补跑
   // （importMany 均为 ON CONFLICT(id) DO UPDATE，重跑幂等）
@@ -171,11 +171,11 @@ export function runDataMigrations(): MigrationResult {
       log.error('dataMigration', `tags import failed: ${msg}`, e)
     }
 
-    // 标记 v1 完成（兼容旧 leaf_meta 标志位）——仅当本段没有导入失败时。
+    // 标记 v1 完成（兼容旧 frond_meta 标志位）——仅当本段没有导入失败时。
     // 失败时不标记、不归档：下次启动重跑（导入幂等），避免数据静默缺失。
     if (result.errors.length === v1ErrorsBefore) {
       db.prepare(
-        `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+        `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
       ).run('data_migration_v1', 'done', Date.now())
     } else {
@@ -278,7 +278,7 @@ export function runDataMigrations(): MigrationResult {
   // 失败时不标记：下次启动重跑（导入幂等）。
   if (result.errors.length === v2ErrorsBefore) {
     db.prepare(
-      `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+      `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
     ).run(DATA_MIGRATION_KEY, 'done', Date.now())
   } else {
@@ -295,14 +295,14 @@ export function runDataMigrations(): MigrationResult {
     // archiveLegacyJsonInDir 内部 try/catch，失败不影响主流程
     archiveLegacyJsonInDir(userData)
 
-    // 记录归档目录到 leaf_meta（供 SettingsView 展示）
+    // 记录归档目录到 frond_meta（供 SettingsView 展示）
     try {
       const dir = join(userData, 'legacy-backup')
       const subs = readdirSync(dir).sort().reverse()
       if (subs.length > 0) {
         const latest = join(dir, subs[0])
         db.prepare(
-          `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+          `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
         ).run('legacy_archive_dir', latest, Date.now())
       }
@@ -326,21 +326,21 @@ const ALIAS_MIGRATION_KEY = 'data_migration_aliases'
 
 /**
  * 别名存储迁移：electron-store 默认文件 config.json 的 aliases 键 → pref_preferences。
- * - 幂等：leaf_meta 标志位，成功跑过后跳过
+ * - 幂等：frond_meta 标志位，成功跑过后跳过
  * - 现值优先：pref 已有 aliases 时只打标志不覆盖
  * - 只读不删：config.json 还有 AI 配置 / 标记等其他域在用，不能归档或删除
  */
 export function migrateAliasesFromLegacyStore(): void {
   const db = database.handle
   try {
-    // 自包含：独立调用（早于 runDataMigrations 主流程）时 leaf_meta 可能尚未创建
-    db.exec(`CREATE TABLE IF NOT EXISTS leaf_meta (
+    // 自包含：独立调用（早于 runDataMigrations 主流程）时 frond_meta 可能尚未创建
+    db.exec(`CREATE TABLE IF NOT EXISTS frond_meta (
        key TEXT PRIMARY KEY,
        value TEXT,
        updated_at INTEGER NOT NULL
      )`)
     const done = db
-      .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+      .prepare('SELECT value FROM frond_meta WHERE key = ?')
       .get(ALIAS_MIGRATION_KEY) as { value: string } | undefined
     if (done) return
 
@@ -360,7 +360,7 @@ export function migrateAliasesFromLegacyStore(): void {
     }
 
     db.prepare(
-      `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+      `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
     ).run(ALIAS_MIGRATION_KEY, 'done', Date.now())
   } catch (e) {
@@ -390,14 +390,14 @@ function readLegacyJson(file: string, key?: string): unknown {
 
 function readMigrationFlag(db: Database.Database, key: string): boolean {
   return (
-    (db.prepare('SELECT value FROM leaf_meta WHERE key = ?').get(key) as
+    (db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(key) as
       { value: string } | undefined) !== undefined
   )
 }
 
 function writeMigrationFlag(db: Database.Database, key: string): void {
   db.prepare(
-    `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+    `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
   ).run(key, 'done', Date.now())
 }
@@ -405,13 +405,13 @@ function writeMigrationFlag(db: Database.Database, key: string): void {
 /**
  * AI 配置与会话：electron-store config.json 的 `ai.config` / `ai.sessions` → pref_preferences。
  * **密文原样搬运**：apiKey 存的就是 `enc:` 开头的密文，这里不解密也不重加密
- * （解密要用本机 .leaf-key，两台机器之间搬不动）。
+ * （解密要用本机 .frond-key，两台机器之间搬不动）。
  */
 export function migrateAiFromLegacyStore(): void {
   const db = database.handle
   try {
     db.exec(
-      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+      `CREATE TABLE IF NOT EXISTS frond_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
     )
     if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.ai)) return
     const legacy = readLegacyJson('config.json') as Record<string, unknown> | undefined
@@ -437,7 +437,7 @@ export function migrateClipsFromLegacyStore(): void {
   const db = database.handle
   try {
     db.exec(
-      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+      `CREATE TABLE IF NOT EXISTS frond_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
     )
     if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.clips)) return
     const legacy = readLegacyJson('clips.json')
@@ -463,7 +463,7 @@ export function migrateRecordingSettingsFromLegacyStore(): void {
   const db = database.handle
   try {
     db.exec(
-      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+      `CREATE TABLE IF NOT EXISTS frond_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
     )
     // 先把写错 key 的那一份挪到生产真正读的那把钥匙上：已经打过下面标志位的机器
     // 不会再走导入分支，不补这一步就永远看不见自己的录屏设置
@@ -492,13 +492,13 @@ export function migrateRecordingSettingsFromLegacyStore(): void {
  * → `rec_markers` 表（time_ms 单位**毫秒**）。
  * - id 原样保留（片段/标记之间靠它互相引用）
  * - recordingId 缺失时用外层 key；label 空串按 null 存（列表渲染时不显示空标签）
- * - 幂等靠 leaf_meta 标志：表里没有可判「是不是旧数据」的字段，只能记账
+ * - 幂等靠 frond_meta 标志：表里没有可判「是不是旧数据」的字段，只能记账
  */
 export function migrateMarkersFromLegacyStore(): void {
   const db = database.handle
   try {
     db.exec(
-      `CREATE TABLE IF NOT EXISTS leaf_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
+      `CREATE TABLE IF NOT EXISTS frond_meta (key TEXT PRIMARY KEY, value TEXT, updated_at INTEGER NOT NULL)`
     )
     if (readMigrationFlag(db, LEGACY_MIGRATION_KEYS.markers)) return
     const legacy = readLegacyJson('markers.json') as

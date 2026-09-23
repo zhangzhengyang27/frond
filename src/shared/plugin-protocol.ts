@@ -1,5 +1,5 @@
 /**
- * Leaf · 插件声明式 List 协议（M3.1）
+ * Frond · 插件声明式 List 协议（M3.1）
  *
  * 插件不写 UI：通过 launcherApi.renderList(items) 提交数据，
  * 宿主（胶囊窗）用原生组件渲染列表 / Detail / 动作——第三方插件零 UI 代码

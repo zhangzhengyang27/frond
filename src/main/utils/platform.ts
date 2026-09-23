@@ -1,5 +1,5 @@
 /**
- * Leaf · 平台差异集中工具
+ * Frond · 平台差异集中工具
  *
  * 目标：把所有 process.platform === 'darwin' / 'win32' / 'linux' 分支
  * 集中到这一处。模块代码直接 import 语义化函数（isMac / isWin / isLinux），

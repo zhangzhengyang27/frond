@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 003 — 5-6a：补 lib_files + 扩 wall_files
+ * Frond · Migration 003 — 5-6a：补 lib_files + 扩 wall_files
  *
  * 新增：
  * - lib_files(id, file_path UNIQUE, file_name, added_at, deleted_at)

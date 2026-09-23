@@ -1,5 +1,5 @@
 /**
- * Leaf · 浏览器标签服务（P1-5）
+ * Frond · 浏览器标签服务（P1-5）
  *
  * macOS 上通过 AppleScript 获取 Google Chrome / Safari 的当前标签列表，
  * 支持搜索标签标题/URL 并激活对应标签。

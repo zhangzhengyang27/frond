@@ -1,5 +1,5 @@
 /**
- * Leaf · 用户主题文件加载（#12 Phase 2，主进程）
+ * Frond · 用户主题文件加载（#12 Phase 2，主进程）
  *
  * 主题目录 = userData/themes/*.json，一份文件一套主题（对标 Vicinae extra/themes）。
  * 解析/校验/派生都在 src/shared/themeFile.ts（fail-closed + CSS 值白名单），

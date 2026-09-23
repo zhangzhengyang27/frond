@@ -3,9 +3,9 @@
  *
  * 插件页里宿主已注入 `launcherApi`（notify / copyText / readText / db…），
  * 但 React SDK 过去只导出 6 个视图组件 + useNavigation，这些能力对 React 插件不可达，
- * `@leaf/raycast-api` 只能把它们降级成 notSupported。本模块做的是纯接线：
+ * `@frond/raycast-api` 只能把它们降级成 notSupported。本模块做的是纯接线：
  * 把宿主已有能力包成 Raycast 的形状，**宿主没有的一律不假装**
- * （只剩 getSelectedText 仍不提供，见 leaf-raycast-api 里那条 notSupported）。
+ * （只剩 getSelectedText 仍不提供，见 frond-raycast-api 里那条 notSupported）。
  */
 
 interface PluginHostApi {

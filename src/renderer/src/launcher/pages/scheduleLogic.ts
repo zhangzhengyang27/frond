@@ -1,5 +1,5 @@
 /**
- * Leaf · My Schedule 分组逻辑（纯函数，可单测）
+ * Frond · My Schedule 分组逻辑（纯函数，可单测）
  *
  * 日视图分组：今天 / 明天 / 周X（含日期）；全天事件排每组最前；
  * 跨越 startOfDay 归属按开始时间。

@@ -1,5 +1,5 @@
 /**
- * Leaf · 剪贴板历史 IPC
+ * Frond · 剪贴板历史 IPC
  *
  * - cliphist:list/copy/remove/clear  基础历史操作
  * - cliphist:togglePin               置顶（置顶不受容量/保留期淘汰）

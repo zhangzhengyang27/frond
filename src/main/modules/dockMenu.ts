@@ -1,5 +1,5 @@
 /**
- * Leaf · Dock 菜单（macOS 专属）
+ * Frond · Dock 菜单（macOS 专属）
  *
  * 内容来源：src/main/modules/appMenu.ts（与 tray 共用 builder）
  * - 顶部：9 模块通过 IPC 跳转

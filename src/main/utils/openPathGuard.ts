@@ -1,5 +1,5 @@
 /**
- * Leaf · openPath 安全校验
+ * Frond · openPath 安全校验
  *
  * shell.openPath 会以系统默认程序打开目标：对被攻陷的渲染进程而言，
  * 任意路径 openPath ≈ 启动任意脚本/可执行文件。openPath 通道的语义是

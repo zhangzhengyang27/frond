@@ -10,7 +10,7 @@
       // （纯 ES5 脚本 + window.launcherApi），照着改就能起步。
       var api = window.launcherApi
       var currentCmd = 'list'
-      var prefs = { author: 'Leaf', theme: '原生质感', notifyOnCopy: true }
+      var prefs = { author: 'Frond', theme: '原生质感', notifyOnCopy: true }
 
       function item(o) {
         return o
@@ -33,7 +33,7 @@
             accessories: ['copy'],
             detail:
               '宿主直接写剪贴板。适合「结果就是一段文本」的命令：\n颜色值、Base64、格式化后的 JSON。',
-            actions: [{ type: 'copy', payload: 'com.leaf.example 的复制内容' }]
+            actions: [{ type: 'copy', payload: 'com.frond.example 的复制内容' }]
           }),
           item({
             title: 'open 动作：交给系统打开',

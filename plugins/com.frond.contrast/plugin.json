@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.contrast",
+  "id": "com.frond.contrast",
   "name": "颜色对比度",
   "version": "1.0.1",
   "description": "WCAG 颜色对比度检查：输入前景色和背景色，计算对比度比率，判断 AA/AAA 合规性",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

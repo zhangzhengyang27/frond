@@ -1,5 +1,5 @@
 /**
- * Leaf · GifEncoderService（PR-7c）
+ * Frond · GifEncoderService（PR-7c）
  *
  * 职责：把 mp4/webm 录制成 GIF。
  *

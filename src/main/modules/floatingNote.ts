@@ -1,5 +1,5 @@
 /**
- * Leaf · Floating Notes（浮动笔记）
+ * Frond · Floating Notes（浮动笔记）
  *
  * 对标 Raycast Floating Notes：全局热键呼出的置顶小窗口，
  * 支持 Markdown 快速记录，数据复用 notes 表。

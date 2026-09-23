@@ -1,11 +1,11 @@
 /**
- * Leaf · E2E：多参数命令全链路（P-2.7 dogfood + P-1.6 的参数预填）
+ * Frond · E2E：多参数命令全链路（P-2.7 dogfood + P-1.6 的参数预填）
  *
  * 链路：搜索「正则测试 \d+」→ 前缀命中参数化命令 → pluginarg 表单
  *      → 第一格已由查询尾部预填（argPrefill）→ 补测试文本 → ⌘↵
  *      → 插件 onEnter 收到 args → 渲染匹配结果。
  *
- * 为什么用 com.leaf.regex：它是全仓第一个真声明 arguments 的内置插件
+ * 为什么用 com.frond.regex：它是全仓第一个真声明 arguments 的内置插件
  * （此前 21 个零个用到，「多参数命令」这条能力一直没被 dogfood 过），
  * 而且它的 dropdown 参数能顺带验证「展示 title → 提交 value」的还原。
  *
@@ -20,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const ROOT = join(__dirname, '..')
 const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
-const PLUGIN_DIR = join(ROOT, 'plugins', 'com.leaf.regex')
+const PLUGIN_DIR = join(ROOT, 'plugins', 'com.frond.regex')
 
 let app = null
 
@@ -30,7 +30,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Leaf/.test(await w.title())) return w
+        if (/Frond/.test(await w.title())) return w
       } catch {
         /* 窗口可能已关闭 */
       }
@@ -58,8 +58,8 @@ const getCapsuleWindow = async () => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-plugin-args')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-plugin-args')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
   app = await electron.launch({ args: [MAIN_ENTRY], env })
   const main = await getMainWindow()

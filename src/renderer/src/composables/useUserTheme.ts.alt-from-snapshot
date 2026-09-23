@@ -1,5 +1,5 @@
 /**
- * Leaf · 用户主题注入（#12 Phase 2，渲染端）
+ * Frond · 用户主题注入（#12 Phase 2，渲染端）
  *
  * tokens.css 是静态基线（无 FOUC）；用户主题以「一段 :root 覆盖样式」叠加在其上，
  * 关闭即摘掉，不留残留。变量名与值虽然已在主进程侧过白名单，这里仍按 IPC 边界
@@ -12,7 +12,7 @@ import { ref, computed } from 'vue'
 import { themeToCssVars } from '@shared/themeFile'
 import type { ThemeDefinition } from '@shared/themeSchema'
 
-const STYLE_ID = 'leaf-user-theme-vars'
+const STYLE_ID = 'frond-user-theme-vars'
 const VAR_NAME_RE = /^--[a-z0-9-]+$/
 const VAR_VALUE_RE = /^(#[0-9a-fA-F]{3,8}|(?:rgb|rgba|hsl|hsla)\([\d.,%\s/-]+\)|[a-zA-Z]+)$/
 

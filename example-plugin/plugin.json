@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.example",
+  "id": "com.frond.example",
   "name": "示例插件",
   "version": "0.1.0",
   "description": "官方示例：声明式列表 / 偏好设置 / 受控 API 全演示",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {
@@ -32,7 +32,7 @@
       "name": "author",
       "label": "列表里显示的作者名",
       "type": "text",
-      "default": "Leaf"
+      "default": "Frond"
     },
     {
       "name": "theme",

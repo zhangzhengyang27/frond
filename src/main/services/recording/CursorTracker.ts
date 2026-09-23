@@ -1,5 +1,5 @@
 /**
- * Leaf · CursorTracker (main process)
+ * Frond · CursorTracker (main process)
  *
  * 职责：在录制时把系统鼠标坐标按 30fps 推送给 renderer，让 UI / canvas
  *      可以叠加鼠标光圈/高亮效果。

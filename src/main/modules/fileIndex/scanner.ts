@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件索引扫描器（#9，路径统一索引形态见 paths.ts）
+ * Frond · 文件索引扫描器（#9，路径统一索引形态见 paths.ts）
  *
  * - fullScan：初始全量，异步分片（每批 yield 事件循环，主进程单次阻塞 < 16ms）
  * - rescanDir：单目录增量 diff（事件批处理后调用），增/删/改全走
@@ -20,7 +20,7 @@ const BATCH_SIZE = 400
 /** 单批字节上限：better-sqlite3 单事务同步写，批的体积决定主进程单次阻塞时长
  * （实测 400 行 × 512KB content ≈ 276ms，远超 <16ms 预算——按字节分批，审查 I-4） */
 const BATCH_BYTES = 2 * 1024 * 1024
-const LEAF_IGNORE = '.leafignore'
+const FROND_IGNORE = '.frondignore'
 
 export interface FullScanOptions {
   roots: string[]
@@ -149,8 +149,8 @@ export async function fullScan(opts: FullScanOptions): Promise<FullScanResult> {
   const buffer = new RowBuffer(opts.db, opts.onProgress)
   const walk = async (dir: string, parent: string, name: string): Promise<void> => {
     if (opts.signal?.aborted) return
-    // .leafignore 标记目录整棵跳过（含 root 自身——审查 I-5 (a) 路径）
-    if (existsSync(join(dir, LEAF_IGNORE))) return
+    // .frondignore 标记目录整棵跳过（含 root 自身——审查 I-5 (a) 路径）
+    if (existsSync(join(dir, FROND_IGNORE))) return
     if (opts.maxEntries !== undefined && buffer.scanned >= opts.maxEntries) return
     // 目录行（root 行 parent 取其父；顶层 root 的 parent 为自身以免 parent 为空串）
     await buffer.push(await buildRow(dir, parent, name, opts.policy))
@@ -189,7 +189,7 @@ export async function fullScan(opts: FullScanOptions): Promise<FullScanResult> {
 
 /**
  * 单目录增量 diff：现读目录子项 vs DB 子项 → 增/删/改。
- * 目录水位推进；新增子目录递归全扫（须过 inScope 与 .leafignore 检查，审查 I-1/I-5 (b)）。
+ * 目录水位推进；新增子目录递归全扫（须过 inScope 与 .frondignore 检查，审查 I-1/I-5 (b)）。
  */
 export async function rescanDir(
   db: FileIndexDb,
@@ -203,8 +203,8 @@ export async function rescanDir(
     db.deleteByPaths([dir])
     return
   }
-  // .leafignore 标记目录：清掉已有行并跳过（增量路径的 (b) 分支）
-  if (existsSync(join(dir, LEAF_IGNORE))) {
+  // .frondignore 标记目录：清掉已有行并跳过（增量路径的 (b) 分支）
+  if (existsSync(join(dir, FROND_IGNORE))) {
     db.deleteByPrefix(`${dir}/`)
     db.deleteByPaths([dir])
     return
@@ -232,7 +232,7 @@ export async function rescanDir(
       if (
         !existing &&
         (!inScope || inScope(childPath)) &&
-        !existsSync(join(childPath, LEAF_IGNORE))
+        !existsSync(join(childPath, FROND_IGNORE))
       ) {
         await fullScan({ roots: [childPath], db, policy })
       }

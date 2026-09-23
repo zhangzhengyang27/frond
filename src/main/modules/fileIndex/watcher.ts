@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件索引事件源后端（#9 M2 跨平台）
+ * Frond · 文件索引事件源后端（#9 M2 跨平台）
  *
  * 两个平台的原生事件源都不是跨平台的包，且**只会用到当前平台那一个**：
  * - darwin：fsevents（package.json 里 os=["darwin"]，Windows 上根本不安装）

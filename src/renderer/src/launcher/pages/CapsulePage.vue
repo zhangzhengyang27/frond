@@ -47,7 +47,7 @@ const pageTitle = computed(() => pageTitleInjected?.value ?? null)
 
 /** 面包屑点击 = 逐级返回（LauncherApp 统一监听，页面无需各自接线） */
 function onBreadcrumb(): void {
-  window.dispatchEvent(new CustomEvent('leaf:launcher-pop'))
+  window.dispatchEvent(new CustomEvent('frond:launcher-pop'))
 }
 </script>
 

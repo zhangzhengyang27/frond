@@ -1,5 +1,5 @@
 /**
- * Leaf · libuiohook keycode 映射（纯函数，可单测）
+ * Frond · libuiohook keycode 映射（纯函数，可单测）
  *
  * uiohook-napi 上报的 keycode 是 libuiohook 的虚拟键码（VC），即 XT set-1
  * 扫描码体系——与 USB HID usage code 是两套编码（A 在 VC 里是 0x1E 而非

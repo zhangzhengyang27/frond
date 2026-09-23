@@ -1,5 +1,5 @@
 /**
- * Leaf 插件视图协议类型（#11）。
+ * Frond 插件视图协议类型（#11）。
  *
  * ⚠ 本文件是 src/shared/plugin-protocol.ts 中 React 视图协议的 SDK 侧副本：
  * SDK 必须可独立安装（不依赖宿主仓库路径），两处由 e2e 与文档保持同步。

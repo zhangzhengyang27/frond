@@ -12,7 +12,7 @@ vi.mock('electron', () => ({
   app: {
     isPackaged: false,
     getAppPath: () => '/repo/out/main',
-    getPath: () => '/tmp/leaf-userdata',
+    getPath: () => '/tmp/frond-userdata',
     getResourcesPath: () => '/repo/resources'
   }
 }))

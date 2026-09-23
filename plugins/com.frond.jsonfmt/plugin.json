@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.jsonfmt",
+  "id": "com.frond.jsonfmt",
   "name": "JSON 格式化",
   "version": "1.0.1",
   "description": "JSON 格式化与压缩：从剪贴板读取 JSON，格式化/压缩/转义，一键复制结果",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

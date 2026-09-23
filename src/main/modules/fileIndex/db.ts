@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件索引库（#9，独立 sqlite 文件 userData/file-index.db）
+ * Frond · 文件索引库（#9，独立 sqlite 文件 userData/file-index.db）
  *
  * files 主表 + files_fts（unicode61 主查询，FTS5 外部内容表 + 触发器同步）+
  * files_tri（trigram 影子表，中缀兜底）+ dirs 目录水位表 + meta。

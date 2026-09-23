@@ -1,5 +1,5 @@
 /**
- * Leaf · Automations 的数据形状（P-4④）
+ * Frond · Automations 的数据形状（P-4④）
  *
  * 放在 shared 是因为设置页要读写它，而主进程与渲染端都只依赖 shared 这一层。
  *

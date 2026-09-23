@@ -1,5 +1,5 @@
 /**
- * Leaf · IPC 登记册（typed subset，已接线的部分参与编译期约束）
+ * Frond · IPC 登记册（typed subset，已接线的部分参与编译期约束）
  *
  * - **key 就是通道原文**（既有 `recording.list` 这种点号命名，也有 `marker:addMarker`、
  *   `update:check` 这种冒号命名 —— 反映真实通道，不做统一改写）
@@ -97,7 +97,7 @@ import type {
   RecordingHistoryService,
   RecordingHistory
 } from '../main/services/RecordingHistoryService'
-import type { SystemInfo as LeafSystemInfo } from '../main/ipc/system'
+import type { SystemInfo as FrondSystemInfo } from '../main/ipc/system'
 import type { SystemInfo as HardwareInfo } from '../main/services/SystemInfoService'
 import type { NotificationType, NotificationOptions } from '../main/services/NotificationService'
 import type {
@@ -1200,7 +1200,7 @@ export interface IpcContract {
   // ─────────── 系统信息 / 通知 / 剪贴板历史 / 悬浮窗 / 专注屏蔽 ───────────
   // 两个同名不同义的 SystemInfo（系统路径信息 vs 硬件信息）必须分别起别名，
   // 否则这里 import 会撞名（此前 d.ts 靠手抄一份 HardwareInfo 绕开，抄丢过字段）。
-  'system:info': { req: void; res: LeafSystemInfo }
+  'system:info': { req: void; res: FrondSystemInfo }
   'system:hardware': { req: void; res: HardwareInfo }
   'system:openPath': { req: { p: string }; res: boolean }
   'system:openExternal': { req: { url: string }; res: boolean }
@@ -1427,7 +1427,7 @@ export interface IpcContract {
   }
   'find:reveal': { req: { filePath: string }; res: { ok: boolean; error?: string } }
 
-  /** E2E-only：主进程通道调用计数快照（仅 LEAF_E2E=1 时注册，见 src/main/e2eProbe.ts） */
+  /** E2E-only：主进程通道调用计数快照（仅 FROND_E2E=1 时注册，见 src/main/e2eProbe.ts） */
   'e2e:probeCounts': { req: void; res: Record<string, number> }
 
   'systemcmd:run': { req: { id: string }; res: { ok: boolean; error?: string } }

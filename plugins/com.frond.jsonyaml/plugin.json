@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.jsonyaml",
+  "id": "com.frond.jsonyaml",
   "name": "JSON↔YAML",
   "version": "1.0.1",
   "description": "JSON 与 YAML 互转：从剪贴板读取，自动识别格式，支持缩进配置，一键复制结果",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

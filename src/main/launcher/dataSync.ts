@@ -1,5 +1,5 @@
 /**
- * Leaf · 轻量多设备同步（V4 P0-2 / Decision-009 批次6）
+ * Frond · 轻量多设备同步（V4 P0-2 / Decision-009 批次6）
  *
  * 范围（用户 2026-09-17 确认）：配置+热键基底（pref_preferences + launcher_docs）、
  * 代码片段（snip_* / tag_tags）、笔记+提醒（notes / note_folders / reminders）、
@@ -47,8 +47,8 @@ export const SYNC_MARKER_PREF = 'launcher.syncData.lastAppliedAt'
 export const DEVICE_ID_PREF = 'launcher.sync.deviceId'
 /** 快照保留份数 */
 const SNAPSHOT_KEEP = 5
-const SYNC_REMOTE_DIR = 'leaf-data-sync'
-const SALT = 'leaf-data-sync-v1'
+const SYNC_REMOTE_DIR = 'frond-data-sync'
+const SALT = 'frond-data-sync-v1'
 
 /** 同步范围的一等定义：合并规格（含冲突策略与副本需要的 id / 标题列） */
 export interface SyncSpec extends SyncTableSpec {
@@ -138,7 +138,7 @@ export const SYNC_EXCLUDED_TABLES: Record<string, string> = {
   log_entries: '本机日志',
   wall_collections: '壁纸库：文件路径型',
   wall_files: '壁纸库：文件路径型',
-  music_playlists: '第三方音乐库的镜像（网易云），不是 Leaf 的数据',
+  music_playlists: '第三方音乐库的镜像（网易云），不是 Frond 的数据',
   music_playlist_items: '同上',
   music_tracks: '同上',
   om_user_playlists: 'OpenMusic 的远端目录缓存',

@@ -1,7 +1,7 @@
 /**
- * Leaf · HEIC/HEIF → PNG（2026-09-23 重建件：原件全盘无副本）
+ * Frond · HEIC/HEIF → PNG（2026-09-23 重建件：原件全盘无副本）
  *
- * `leaf-file://` 协议遇到 iPhone 拍的原图要把 HEIC 转成浏览器认的格式。
+ * `frond-file://` 协议遇到 iPhone 拍的原图要把 HEIC 转成浏览器认的格式。
  * 走 macOS 自带的 `sips`（`ipc/applications.ts` 的 icns→png 同一手法），不引新依赖。
  * 结果按「路径 + 修改时间」缓存到临时目录：同一张图重复加载只转一次，图被换掉则自然失效。
  */
@@ -23,7 +23,7 @@ export function isHeicPath(filePath: string): boolean {
 function cachePathFor(filePath: string): string {
   const { mtimeMs, size } = statSync(filePath)
   const key = createHash('sha1').update(`${filePath}:${mtimeMs}:${size}`).digest('hex')
-  return join(tmpdir(), `leaf-heic-${key}.png`)
+  return join(tmpdir(), `frond-heic-${key}.png`)
 }
 
 /** 转成 PNG 并返回其绝对路径；源文件不存在或 sips 失败都抛出，由调用方决定回什么状态码 */

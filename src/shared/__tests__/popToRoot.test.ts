@@ -7,7 +7,7 @@ import {
 
 /**
  * Pop to Root 三态（对标 Raycast「Pop to Root Search」设置）：
- * - immediately：隐藏即清栈，唤起必是根搜索（Leaf 现状，缺省）
+ * - immediately：隐藏即清栈，唤起必是根搜索（Frond 现状，缺省）
  * - afterInterval：隐藏保留状态，30 秒内再唤起回到上次位置，超过则清
  * - manually：唤起永不自动清栈，仅用户手动 Esc/Pop to Root 逐级返回
  */

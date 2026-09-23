@@ -1,9 +1,9 @@
 {
-  "id": "com.leaf.htmlentity",
+  "id": "com.frond.htmlentity",
   "name": "HTML 实体编解码",
   "version": "1.0.1",
   "description": "HTML 实体编码与解码：特殊字符转义/反转义，支持命名实体和数字实体，从剪贴板读取",
-  "author": "Leaf",
+  "author": "Frond",
   "main": "index.html",
   "commands": [
     {

@@ -38,7 +38,7 @@ function push(base, from) {
 for (const [base, froms] of [...missing].sort()) {
   const pools = [
     '/tmp/cache-dump/src/' + base.replace(/^src\/renderer\/src\//, ''),
-    '/Users/xiaoye/Documents/leaf-desktop-baseline-2026-09-22/recovery-material/partials--zcode-older/' + base,
+    '/Users/xiaoye/Documents/frond-desktop-baseline-2026-09-22/recovery-material/partials--zcode-older/' + base,
     '/Users/xiaoye/Desktop/_recovery-stitched/' + base
   ]
   const hit = pools.find((p) => fs.existsSync(p))

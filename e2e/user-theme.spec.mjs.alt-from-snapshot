@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：用户主题文件端到端（#12 Phase 2）
+ * Frond · E2E：用户主题文件端到端（#12 Phase 2）
  *
  * 真跑链路：userData/themes/*.json → 主进程解析派生 → 设置页列出 → 点选 →
  * 渲染端注入 :root 覆盖 → getComputedStyle 读到主题值；切回内置后覆盖摘除。
@@ -33,9 +33,9 @@ test.beforeAll(async () => {
   mkdirSync(THEMES, { recursive: true })
   writeFileSync(join(THEMES, 'plum-night.json'), JSON.stringify(PLUM, null, 2))
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = USER_DATA
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = USER_DATA
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
@@ -51,7 +51,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        // 按 URL 认，不按 title：胶囊窗的 title 也含 Leaf，胶囊一开就会先匹配到它，
+        // 按 URL 认，不按 title：胶囊窗的 title 也含 Frond，胶囊一开就会先匹配到它，
         // 于是后面的点击全发生在胶囊页里（表现为「等按钮等到超时」）
         const u = w.url()
         if (/\/index\.html/.test(u) && !/launcher\.html/.test(u)) return w
@@ -115,7 +115,7 @@ test('主题文件被列出 → 点选后 CSS 变量生效 → 切回内置后�
     expect(v).not.toBe(PLUM.core.bg)
     expect(v).toMatch(/^#/)
   }).toPass({ timeout: 5000 })
-  expect(await page.evaluate(() => document.getElementById('leaf-user-theme-vars') === null)).toBe(
+  expect(await page.evaluate(() => document.getElementById('frond-user-theme-vars') === null)).toBe(
     true
   )
 })

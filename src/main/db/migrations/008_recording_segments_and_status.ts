@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 008 — 屏幕录制：rec_recordings 扩字段 + 新增 rec_segments
+ * Frond · Migration 008 — 屏幕录制：rec_recordings 扩字段 + 新增 rec_segments
  *
  * 背景：
  * - 001_init 已建 rec_recordings / rec_markers / rec_clips，但 schema 是 1.0 之前的产物

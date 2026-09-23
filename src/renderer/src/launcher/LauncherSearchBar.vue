@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Leaf · 胶囊搜索输入区（P-1.6b 的前置拆分）
+ * Frond · 胶囊搜索输入区（P-1.6b 的前置拆分）
  *
  * 从 LauncherApp.vue（2400 行）搬出来的**纯搬运**：模板与样式逐字复制过来，状态与
  * 处理器全部留在父组件——这个组件只负责「长得一样、事件照原样发出去」。
@@ -330,7 +330,7 @@ defineExpose({ focus, element: () => inputEl.value, barHeight })
   border: 1px solid var(--launcher-border);
   border-radius: 4px;
   padding: 1px 5px;
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
 }
 
 .launcher-search-plugin {
@@ -349,7 +349,7 @@ defineExpose({ focus, element: () => inputEl.value, barHeight })
   font-size: 13px;
   font-weight: 500;
   color: var(--launcher-text);
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
   border: 1px solid var(--launcher-border);
   max-width: 46%;
   overflow: hidden;

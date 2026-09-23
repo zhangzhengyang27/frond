@@ -3,10 +3,10 @@ import { onMounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import UBadge from '@components/ui/UBadge.vue'
 
-const appName = 'Leaf'
+const appName = 'Frond'
 const tagline = 'Tools that breathe with your day.'
 const description =
-  'Leaf 是一款常驻 macOS 与 Windows 工作流的轻量桌面工具集，让创作、专注与娱乐在同一片"叶"上自然生长。'
+  'Frond 是一款常驻 macOS 与 Windows 工作流的轻量桌面工具集，让创作、专注与娱乐在同一片"叶"上自然生长。'
 
 const modules = [
   { icon: 'camera', label: '截图' },
@@ -36,7 +36,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="LeafAbout mx-auto w-full max-w-[760px] px-10 py-12">
+  <div class="FrondAbout mx-auto w-full max-w-[760px] px-10 py-12">
     <!-- Hero 卡：Logo + 版本徽标 -->
     <div
       class="relative mb-10 overflow-hidden rounded-lg border border-line-subtle bg-surface-1 p-8 shadow-sm"

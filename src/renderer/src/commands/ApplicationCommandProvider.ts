@@ -1,5 +1,5 @@
 /**
- * Leaf · 应用命令提供者（阶段1.1）
+ * Frond · 应用命令提供者（阶段1.1）
  *
  * 扫描系统应用，注册为标准 Command。
  * 复用现有 getApplications IPC，包装为 Command 格式。

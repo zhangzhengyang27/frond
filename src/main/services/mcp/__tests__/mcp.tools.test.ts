@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
  * 存储用真 sqlite（in-memory）而不是 mock prefRepository：这份缓存的坏法恰恰是
  * 「写进去的形状读出来不一样」，mock 掉读路径就什么都测不到。
  */
-const __userData = join(mkdtempSync(join(tmpdir(), 'leaf-mcp-tools-')), 'userData')
+const __userData = join(mkdtempSync(join(tmpdir(), 'frond-mcp-tools-')), 'userData')
 vi.mock('electron', () => ({
   app: { getPath: () => __userData, getVersion: () => '0.0.0-test', isReady: () => true },
   ipcMain: { handle: () => {} },

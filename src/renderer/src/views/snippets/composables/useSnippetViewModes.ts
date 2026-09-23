@@ -1,5 +1,5 @@
 /**
- * Leaf · 片段编辑器视图互斥开关（自 Editor.vue 抽出）
+ * Frond · 片段编辑器视图互斥开关（自 Editor.vue 抽出）
  *
  * 五个视图（代码预览 / Markdown 预览 / JSON 可视化 / 代码截图 / Markdown
  * 演示）互斥显示；切换前先 saveEditorContent（由宿主注入，避免展示旧内容）。

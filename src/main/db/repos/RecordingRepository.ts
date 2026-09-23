@@ -1,5 +1,5 @@
 /**
- * Leaf · RecordingRepository
+ * Frond · RecordingRepository
  *
  * 职责：管理 rec_recordings 主表（屏幕录制历史与当前录制）。
  *

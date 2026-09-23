@@ -1,5 +1,5 @@
 /**
- * Leaf · 全局按键监听服务（M5.1 两段式热键与片段文本扩展的共享基础设施）
+ * Frond · 全局按键监听服务（M5.1 两段式热键与片段文本扩展的共享基础设施）
  *
  * uiohook-napi（N-API 预编译，无需 electron-rebuild）监听系统级按键。
  * - 惰性加载：仅在有订阅者时动态 import 并 start，最后一个订阅者注销后 stop
@@ -134,7 +134,7 @@ export function probeGlobalKeys(
   })
 }
 
-/** Leaf 自身窗口持有焦点时返回 true（扩展引擎在该状态下不触发，避免自己扩自己） */
-export function hasFocusedLeafWindow(windows: BrowserWindow[]): boolean {
+/** Frond 自身窗口持有焦点时返回 true（扩展引擎在该状态下不触发，避免自己扩自己） */
+export function hasFocusedFrondWindow(windows: BrowserWindow[]): boolean {
   return windows.some((w) => !w.isDestroyed() && w.isFocused())
 }

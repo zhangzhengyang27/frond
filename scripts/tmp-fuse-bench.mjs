@@ -2,7 +2,7 @@
 import Fuse from 'fuse.js'
 
 const OPTS = { ignoreLocation: true, threshold: 0.4, includeMatches: true, includeScore: true }
-const CANDIDATES = Array.from({ length: 500 }, (_, i) => `leaf-module-${i}-filesystem-search`)
+const CANDIDATES = Array.from({ length: 500 }, (_, i) => `frond-module-${i}-filesystem-search`)
 const QUERIES = ['chorme', 'flie', 'serx', 'navigaton', 'clipbaord', 'pomodoro', 'launcher', 'setting', 'perferenes', 'shorcut']
 
 function bench(label, fn) {

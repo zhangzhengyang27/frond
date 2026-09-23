@@ -239,7 +239,7 @@
 
 <script setup lang="ts">
 /**
- * Leaf · 启动器胶囊窗（Raycast 式）
+ * Frond · 启动器胶囊窗（Raycast 式）
  *
  * 本组件是编排层：状态与领域逻辑拆在同目录 composables/
  * - useLauncherPages      内联页导航栈
@@ -1764,8 +1764,8 @@ onMounted(() => {
     popPage()
     searchBarRef.value?.focus()
   }
-  window.addEventListener('leaf:launcher-pop', onBreadcrumbPop)
-  unsubscribers.push(() => window.removeEventListener('leaf:launcher-pop', onBreadcrumbPop))
+  window.addEventListener('frond:launcher-pop', onBreadcrumbPop)
+  unsubscribers.push(() => window.removeEventListener('frond:launcher-pop', onBreadcrumbPop))
   // 快捷键面板「按任意键关闭」：捕获阶段吞掉按键，避免面板开着时按键漏进底层输入框
   const onShortcutsAnyKey = (e: KeyboardEvent): void => {
     if (!showShortcuts.value) return
@@ -1955,9 +1955,9 @@ onMounted(() => {
   overflow: hidden;
   border: 1px solid var(--launcher-border);
   /* 玻璃档（P-6）：变量没设时兜底回原 token，默认档下计算值与改动前一致 */
-  background: var(--leaf-capsule-bg, var(--launcher-bg));
-  backdrop-filter: var(--leaf-capsule-blur, var(--launcher-blur));
-  -webkit-backdrop-filter: var(--leaf-capsule-blur, var(--launcher-blur));
+  background: var(--frond-capsule-bg, var(--launcher-bg));
+  backdrop-filter: var(--frond-capsule-blur, var(--launcher-blur));
+  -webkit-backdrop-filter: var(--frond-capsule-blur, var(--launcher-blur));
   box-shadow: var(--launcher-shadow);
   box-sizing: border-box;
   position: relative;
@@ -2084,7 +2084,7 @@ onMounted(() => {
   border: 1px solid var(--launcher-border);
   border-radius: 4px;
   padding: 2px 6px;
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
   flex-shrink: 0;
 }
 
@@ -2135,7 +2135,7 @@ onMounted(() => {
   width: var(--launcher-detail-width);
   flex-shrink: 0;
   overflow: hidden;
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
 }
 
 .launcher-detail-loading-text {
@@ -2145,7 +2145,7 @@ onMounted(() => {
 }
 
 .launcher-section-label {
-  padding: var(--leaf-section-gap, 6px) 16px 4px;
+  padding: var(--frond-section-gap, 6px) 16px 4px;
   font-size: 11px;
   font-weight: 500;
   color: var(--launcher-text-muted);
@@ -2157,8 +2157,8 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   /* 密度档（P-6 Compact Mode）由根元素上的 CSS 变量给；这里的兜底值就是 comfortable */
-  padding: var(--leaf-row-pad-y, 8px) 16px;
-  min-height: var(--leaf-row-min-h, 38px);
+  padding: var(--frond-row-pad-y, 8px) 16px;
+  min-height: var(--frond-row-min-h, 38px);
   box-sizing: border-box;
   cursor: pointer;
   transition: background 0.1s ease;
@@ -2243,7 +2243,7 @@ onMounted(() => {
   text-align: center;
   padding: 1px 0;
   border-radius: 4px;
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
 }
 
 .launcher-result.selected .launcher-result-quick {
@@ -2405,7 +2405,7 @@ onMounted(() => {
   gap: 5px;
   height: 28px;
   border: 1px solid var(--launcher-border);
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
   color: var(--launcher-text-dim);
   font-size: 12px;
   font-weight: 500;
@@ -2429,7 +2429,7 @@ onMounted(() => {
   border: 1px solid var(--launcher-border);
   border-radius: 4px;
   padding: 1px 5px;
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
 }
 
 /* ── 快捷键速查面板 ── */
@@ -2445,7 +2445,7 @@ onMounted(() => {
 }
 
 .shortcuts-panel {
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
   border: 1px solid var(--launcher-border);
   border-radius: 12px;
   padding: 20px 24px;
@@ -2482,7 +2482,7 @@ onMounted(() => {
   border: 1px solid var(--launcher-border);
   border-radius: 4px;
   padding: 2px 6px;
-  background: var(--leaf-capsule-bg-elevated, var(--launcher-bg-elevated));
+  background: var(--frond-capsule-bg-elevated, var(--launcher-bg-elevated));
   min-width: 20px;
   text-align: center;
 }

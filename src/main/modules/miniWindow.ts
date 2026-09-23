@@ -1,5 +1,5 @@
 /**
- * Leaf · miniWindow（M5）
+ * Frond · miniWindow（M5）
  *
  * 迷你悬浮番茄钟：always-on-top、frameless、半透明，
  * 用于跨窗口置顶显示当前 focus timer 状态。

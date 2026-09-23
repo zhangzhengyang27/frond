@@ -7,7 +7,7 @@ import { join } from 'node:path'
  * AIService 配置/会话存储回归（迁移到 pref_preferences 后行为保持）。
  * 覆盖：默认值合并、apiKey 加解密往返、会话持久化与清空。
  */
-const __userData = join(mkdtempSync(join(tmpdir(), 'leaf-ai-service-')), 'userData')
+const __userData = join(mkdtempSync(join(tmpdir(), 'frond-ai-service-')), 'userData')
 vi.mock('electron', () => ({
   app: { getPath: () => __userData, getVersion: () => '0.0.0-test', isReady: () => true },
   ipcMain: { handle: () => {} },

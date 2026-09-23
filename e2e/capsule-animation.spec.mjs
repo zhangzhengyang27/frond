@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：胶囊显/隐动画（P-6⑤）
+ * Frond · E2E：胶囊显/隐动画（P-6⑤）
  *
  * 动画本身不好断言（帧是 15ms 的事），但有三条**能被观察的因果**是硬要求：
  *  1. `show()` 不能被动画拖慢——窗口在动画第一帧之前就已经可见（性能基线里
@@ -76,11 +76,11 @@ const capsuleState = () =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-capsule-animation')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-capsule-animation')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

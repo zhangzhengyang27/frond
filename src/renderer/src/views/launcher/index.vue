@@ -15,7 +15,7 @@
               <UBadge variant="neutral">Alt + Space 唤起</UBadge>
             </div>
             <div class="mt-0.5 text-xs text-fg-tertiary">
-              胶囊搜索窗：搜索应用 / Leaf 功能 / 插件命令，ESC 关闭
+              胶囊搜索窗：搜索应用 / Frond 功能 / 插件命令，ESC 关闭
             </div>
           </div>
         </div>
@@ -397,7 +397,7 @@
           <input
             v-model="syncForm.remoteDir"
             class="w-full rounded-md border border-line-subtle bg-surface-0 px-3 py-2 text-xs text-fg-primary outline-none focus:border-brand-500/40"
-            placeholder="远端目录（默认 /leaf-launcher）"
+            placeholder="远端目录（默认 /frond-launcher）"
           />
           <div class="flex items-center justify-between pt-1">
             <span class="text-xs text-fg-faint">
@@ -981,7 +981,7 @@ async function onProbePermission(): Promise<void> {
       probeFailed.value = true
       expansionHookOk.value = false
       toast.error('未捕获到按键：需要「辅助功能」授权', {
-        description: '打开授权设置，把 Leaf 加入辅助功能列表后重试'
+        description: '打开授权设置，把 Frond 加入辅助功能列表后重试'
       })
     }
   } catch {
@@ -1148,7 +1148,7 @@ function onTryRun(p: LauncherPlugin): void {
 }
 
 // ───── WebDAV 同步 ─────
-const syncForm = ref({ url: '', username: '', password: '', remoteDir: '/leaf-launcher' })
+const syncForm = ref({ url: '', username: '', password: '', remoteDir: '/frond-launcher' })
 const syncTesting = ref(false)
 const syncBacking = ref(false)
 const syncRestoring = ref(false)

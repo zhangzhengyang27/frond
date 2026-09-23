@@ -2,7 +2,7 @@
  * 发布链路自检（P-3.6）· 纯判定部分
  *
  * 为什么存在：仓库还没有真的发布目标（`electron-builder.yml` 的 publish 是占位
- * `leaf-app/leaf-desktop`），也没有 Apple 开发者账号。这两件事在产品里表现为
+ * `frond-app/frond-desktop`），也没有 Apple 开发者账号。这两件事在产品里表现为
  * 「自动更新永远查不到东西」和「下载下来 macOS 报已损坏」，而构建本身是**绿的**——
  * 绿色不代表能发。所以把判定写成显式的一档：
  *   blocking = 不能发（占位目标 / 版本不合法 / 没有上传用的 token）
@@ -12,7 +12,7 @@
  */
 
 /** 还没换成真仓库之前，构建可以跑、发布不能过的占位目标 */
-export const PLACEHOLDER_PUBLISH = { owner: 'leaf-app', repo: 'leaf-desktop' }
+export const PLACEHOLDER_PUBLISH = { owner: 'frond-app', repo: 'frond-desktop' }
 
 export function isPlaceholderTarget(owner, repo) {
   return owner === PLACEHOLDER_PUBLISH.owner && repo === PLACEHOLDER_PUBLISH.repo

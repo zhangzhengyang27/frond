@@ -1,5 +1,5 @@
 /**
- * Leaf · 性能基线（M0）
+ * Frond · 性能基线（M0）
  *
  * 产出 test-results/perf-baseline.json：
  * - coldStartMs      ：electron.launch → 主窗口 DOM 就绪（信息性，含进程拉起）
@@ -28,7 +28,7 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Leaf/.test(await w.title())) return w
+        if (/Frond/.test(await w.title())) return w
       } catch {
         /* 窗口可能已关闭 */
       }
@@ -40,7 +40,7 @@ const getMainWindow = async () => {
 
 test('性能基线：冷启动 / 胶囊唤起 / 内存', async () => {
   const env = { ...process.env }
-env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-perf-baseline')
+env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-perf-baseline')
   delete env.ELECTRON_RUN_AS_NODE
 
   const coldT0 = Date.now()

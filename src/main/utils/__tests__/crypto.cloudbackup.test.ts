@@ -4,7 +4,7 @@ import { encryptFileWithPassword, decryptFileWithPassword } from '../crypto'
 /**
  * 云备份的文件级密码加密容器：
  * 容器 = LEAFBAK1(8B) + salt(16B) + iv(12B) + tag(16B) + ciphertext
- * 密钥由 scrypt(password, salt) 派生——本地 .leaf-key 不随备份上云。
+ * 密钥由 scrypt(password, salt) 派生——本地 .frond-key 不随备份上云。
  */
 describe('encryptFileWithPassword / decryptFileWithPassword', () => {
   it('往返：任意二进制内容一致', () => {
@@ -33,9 +33,9 @@ describe('encryptFileWithPassword / decryptFileWithPassword', () => {
     expect(() => decryptFileWithPassword(blob, 'p')).toThrow()
   })
 
-  it('魔法数不对（非 Leaf 备份文件）抛错', () => {
+  it('魔法数不对（非 Frond 备份文件）抛错', () => {
     const fake = Buffer.concat([Buffer.from('NOTMAGIC'), Buffer.alloc(64)])
-    expect(() => decryptFileWithPassword(fake, 'p')).toThrow(/不是 Leaf 云备份文件/)
+    expect(() => decryptFileWithPassword(fake, 'p')).toThrow(/不是 Frond 云备份文件/)
   })
 
   it('文件过短直接抛错', () => {

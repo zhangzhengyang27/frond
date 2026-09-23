@@ -60,7 +60,7 @@ export function registerPreferencesIpcHandlers(preferencesStore: PreferencesData
       title: '选择主题文件',
       buttonLabel: '导入',
       properties: ['openFile'],
-      filters: [{ name: 'Leaf 主题 (JSON)', extensions: ['json'] }]
+      filters: [{ name: 'Frond 主题 (JSON)', extensions: ['json'] }]
     })
     const source = picked.filePaths[0]
     if (picked.canceled || !source) return { ok: false, canceled: true }

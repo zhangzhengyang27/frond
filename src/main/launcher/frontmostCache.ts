@@ -1,8 +1,8 @@
 /**
- * Leaf · 前台应用名缓存（UI 对标 I2：剪贴板「粘贴到 <应用名>」目标级文案）
+ * Frond · 前台应用名缓存（UI 对标 I2：剪贴板「粘贴到 <应用名>」目标级文案）
  *
- * 胶囊窗聚焦后用 osascript 查前台进程只能查到 Leaf 自己，
- * 而「粘贴回注」发生在胶囊 hide 之后——届时前台应用会恢复为唤起 Leaf 前的那个。
+ * 胶囊窗聚焦后用 osascript 查前台进程只能查到 Frond 自己，
+ * 而「粘贴回注」发生在胶囊 hide 之后——届时前台应用会恢复为唤起 Frond 前的那个。
  * 因此在胶囊隐藏期间低频轮询缓存前台应用名（首次被 IPC 调用时启用轮询），
  * 渲染端读缓存展示目标级提示。
  */
@@ -16,7 +16,7 @@ let cached: string | null = null
 let timer: ReturnType<typeof setInterval> | null = null
 
 function isSelfName(name: string): boolean {
-  // dev 进程名 Electron；打包后为可执行名（productName=Leaf，Windows 带 .exe）。
+  // dev 进程名 Electron；打包后为可执行名（productName=Frond，Windows 带 .exe）。
   // 审查修复：app.getName() 取 package.json 而非 OS 进程名，打包版会失配——
   // 改为与可执行文件名大小写不敏感比对。
   const exe = app.getPath('exe')

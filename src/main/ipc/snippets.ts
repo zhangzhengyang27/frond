@@ -62,7 +62,7 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
     const payload = buildExportPayload(snippets)
     const dialogResult = await showSaveDialogFor(win, {
       title: '导出代码片段',
-      defaultPath: `leaf-snippets-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.json`,
+      defaultPath: `frond-snippets-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.json`,
       filters: [{ name: 'JSON', extensions: ['json'] }]
     })
     if (dialogResult.canceled || !dialogResult.filePath) return { ok: false, canceled: true }

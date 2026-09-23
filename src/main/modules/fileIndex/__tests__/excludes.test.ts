@@ -30,8 +30,8 @@ describe('shouldExcludeDir', () => {
     expect(shouldExcludeDir('other', { hidden: true, extraDirs: ['scratch'] })).toBe(false)
   })
 
-  it('.leafignore 标记目录跳过', () => {
-    expect(shouldExcludeDir('anything', { hidden: true, leafIgnoreMarked: true })).toBe(true)
+  it('.frondignore 标记目录跳过', () => {
+    expect(shouldExcludeDir('anything', { hidden: true, frondIgnoreMarked: true })).toBe(true)
   })
 })
 

@@ -3,7 +3,7 @@ import { CountdownService, COUNTDOWN_CANCEL_EVENT } from '../CountdownService'
 import type { BrowserWindow } from 'electron'
 
 /**
- * Leaf · CountdownService 测试
+ * Frond · CountdownService 测试
  *
  * ⚠ 恢复说明：本文件随 2026-09-22 删除事故丢了文档注释开头与大部分用例。
  * 下面 makeWin 是找回的原文；三条用例是按当前实现的显式契约重写的

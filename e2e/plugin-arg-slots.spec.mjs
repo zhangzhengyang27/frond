@@ -1,12 +1,12 @@
 /**
- * Leaf · E2E：搜索框内联参数槽（P-1.6b）
+ * Frond · E2E：搜索框内联参数槽（P-1.6b）
  *
  * Raycast 的行内补全：选中一条带参数的命令后，命令名变一颗不可编辑的 chip，
  * 参数一格一格排在后面，光标落在第一格，←/→ 换格，↵ 直接执行——**不跳表单页**。
  * 这条用例钉的就是「没跳页」：整段流程里不出现 FormPage，参数却真的到了插件。
  *
  * 载体是 example-react 的 `argsum`（两个文本参数，第一个必填）：
- * 内置插件 `com.leaf.regex` 是 3 参数含 dropdown，那条**按设计仍走表单页**
+ * 内置插件 `com.frond.regex` 是 3 参数含 dropdown，那条**按设计仍走表单页**
  * （`MAX_INLINE_SLOTS = 2`、含 dropdown 即排除），它由 `plugin-args.spec.mjs` 守着。
  *
  * 用法：先 `npx electron-vite build`，再 `pnpm exec playwright test e2e/plugin-arg-slots.spec.mjs`
@@ -18,7 +18,7 @@ import { dirname, join } from 'node:path'
 import { rmSync } from 'node:fs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
-const PLUGIN_ID = 'com.leaf.example-react'
+const PLUGIN_ID = 'com.frond.example-react'
 const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
@@ -136,11 +136,11 @@ const enterOnRow = async (capsule, input, text) => {
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-arg-slots')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-arg-slots')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
   const main = await getMainWindow()
   await expect(main.getByText('跳过引导').first()).toBeVisible({ timeout: 30000 })
@@ -214,7 +214,7 @@ test('回车进内联槽：chip + 两格、不跳表单页，填完回车参数�
       { timeout: 20000 }
     )
     .toContain('a=X')
-  expect((await getPluginStateViaMain())?.pluginId).toBe('com.leaf.example-react')
+  expect((await getPluginStateViaMain())?.pluginId).toBe('com.frond.example-react')
   expect((await slotState(capsule)).chip, '提交后应退出槽态').toBeNull()
 
   // ⑥ 退槽：重新进槽态后按 Esc 回到搜索框（不是关窗）

@@ -1,5 +1,5 @@
 /**
- * Leaf · 文件索引路径形态（#9 M2，跨平台）
+ * Frond · 文件索引路径形态（#9 M2，跨平台）
  *
  * 索引内部（DB 的 path/parent、dirs 水位、scope、比较与删除前缀）**统一用正斜杠形态**：
  * scanner/service 里大量 `lastIndexOf('/')`、`deleteByPrefix(dir + '/')`、

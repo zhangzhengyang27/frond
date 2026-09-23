@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseThemeFile, themeToCssVars, builtinTheme, launcherThemeVars } from '../themeFile'
-import { LEAF_DARK_THEME } from '../themeSchema'
+import { FROND_DARK_THEME } from '../themeSchema'
 
 /**
  * 用户主题文件数据层（#12 Phase 2）：fail-closed 校验、core 派生、
@@ -38,8 +38,8 @@ describe('parseThemeFile', () => {
   it('不可从 core 派生的令牌继承同 appearance 的内置主题', () => {
     const r = parseThemeFile(VALID)
     if (!r.ok) throw new Error(r.error)
-    expect(r.theme.text['text-danger']).toBe(LEAF_DARK_THEME.text['text-danger'])
-    expect(r.theme.text['text-success']).toBe(LEAF_DARK_THEME.text['text-success'])
+    expect(r.theme.text['text-danger']).toBe(FROND_DARK_THEME.text['text-danger'])
+    expect(r.theme.text['text-success']).toBe(FROND_DARK_THEME.text['text-success'])
   })
 
   it('显式覆盖优先于派生值', () => {
@@ -164,7 +164,7 @@ describe('themeToCssVars', () => {
   })
 
   it('内置主题可按 id 取用', () => {
-    expect(builtinTheme('leaf-dark')?.appearance).toBe('dark')
+    expect(builtinTheme('frond-dark')?.appearance).toBe('dark')
     expect(builtinTheme('nope')).toBeNull()
   })
 })

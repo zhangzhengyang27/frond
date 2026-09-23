@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：AI 进动作面板（P-4③）
+ * Frond · E2E：AI 进动作面板（P-4③）
  *
  * 断言的是「动作出现与否跟着真状态走」+「点了真会带着这条上下文去问」：
  *  - AI 未配置：面板里没有「问 AI」（摆一条按下去必失败的动作是噪音）
@@ -101,11 +101,11 @@ const selectedTitle = async (capsule) =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-ai-action')
-  env.LEAF_E2E = '1'
-  env.LEAF_SKIP_BUILTIN_PLUGINS = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-ai-action')
+  env.FROND_E2E = '1'
+  env.FROND_SKIP_BUILTIN_PLUGINS = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

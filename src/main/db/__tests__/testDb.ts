@@ -1,8 +1,8 @@
 /**
- * Leaf · 测试基建：临时 in-memory sqlite + 跑 migrations
+ * Frond · 测试基建：临时 in-memory sqlite + 跑 migrations
  *
  * 关键点：
- * - 测试不依赖 LeafDatabase 单例（避免与生产并发初始化互相影响）
+ * - 测试不依赖 FrondDatabase 单例（避免与生产并发初始化互相影响）
  * - 每次 beforeEach 拿全新 :memory: db，所有测试彼此隔离
  * - 跑全部 migrations 重现生产 schema
  * - afterEach 关闭 + 还原

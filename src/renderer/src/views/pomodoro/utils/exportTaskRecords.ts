@@ -101,7 +101,7 @@ async function sendTask(format: 'csv' | 'markdown', args: TaskExportArgs): Promi
     projectName: args.project?.name ?? null,
     records: args.records.map(asExportRecord)
   }
-  return writeViaDialog(format, `leaf_pomodoro_${safeName(args.task.title)}`, payload)
+  return writeViaDialog(format, `frond_pomodoro_${safeName(args.task.title)}`, payload)
 }
 
 /** 文件名里的项目名要先把跨平台非法字符压掉，没项目名时用 all */
@@ -120,7 +120,7 @@ function bulkFileBaseName({ projectName, from, to }: BulkExportArgs): string {
         .slice(0, 30)
     : 'all'
   const fmt = (ts: number): string => new Date(ts).toISOString().slice(0, 10)
-  return `leaf_pomodoro_bulk_${safeProject}_${fmt(from)}_to_${fmt(to)}`
+  return `frond_pomodoro_bulk_${safeProject}_${fmt(from)}_to_${fmt(to)}`
 }
 
 function bulkPayload(args: BulkExportArgs): ExportPayload {

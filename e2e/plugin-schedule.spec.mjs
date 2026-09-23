@@ -1,12 +1,12 @@
 /**
- * Leaf · E2E：插件登记自己的定时任务（P-2③ 受限排程通道）
+ * Frond · E2E：插件登记自己的定时任务（P-2③ 受限排程通道）
  *
  * 真跑的一条链：插件页调 SDK → preload → plugapi handler（认 sender 身份 + 权限）
  * → Automation 存储的四道闸 → 落 pref → 设置页看得见 → 「立刻跑一次」→ 引擎 detached 起插件。
  * 载体是 example-react 的 `schedule-selftest` 探针命令：它把三道闸的结果原样渲染出来，
  * 所以「被拒的理由有没有回到插件」这件事在界面上可读，而不是只看单测里我怎么写断言。
  *
- * 用法：先重建 SDK 与 example-react（`cd packages/leaf-plugin-sdk && npm run build`、
+ * 用法：先重建 SDK 与 example-react（`cd packages/frond-plugin-sdk && npm run build`、
  * `cd example-react && npm run build`），再 `npx electron-vite build`，
  * 最后 `pnpm exec playwright test e2e/plugin-schedule.spec.mjs`
  */
@@ -18,7 +18,7 @@ import { rmSync } from 'node:fs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
-const PLUGIN_ID = 'com.leaf.example-react'
+const PLUGIN_ID = 'com.frond.example-react'
 
 let app = null
 
@@ -62,10 +62,10 @@ const myTasks = async (main) =>
 
 test.beforeAll(async () => {
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-plugin-schedule')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-plugin-schedule')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
   const main = await getMainWindow()
   await expect(main.getByText('跳过引导').first()).toBeVisible({ timeout: 30000 })

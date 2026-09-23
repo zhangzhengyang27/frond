@@ -1,5 +1,5 @@
 /**
- * Leaf · Emoji 数据集（常用 Emoji + 中英文关键词）
+ * Frond · Emoji 数据集（常用 Emoji + 中英文关键词）
  *
  * 对标 Raycast Emoji Search：输入关键词搜索 Emoji，回车复制。
  * 数据集包含常用 Emoji，覆盖表情、手势、物品、自然、符号等类别。

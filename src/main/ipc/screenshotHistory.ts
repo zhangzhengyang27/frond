@@ -1,5 +1,5 @@
 /**
- * Leaf · Screenshot History IPC Handlers
+ * Frond · Screenshot History IPC Handlers
  *
  * 截图历史记录的 IPC 处理
  */

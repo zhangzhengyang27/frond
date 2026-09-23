@@ -46,13 +46,13 @@ describe('createPinningLookup', () => {
     expect(rows.map((r) => r.address)).toEqual(['93.184.216.34'])
   })
 
-  it('全部命中内网 → ELEAF_BLOCKED_LOCAL（重绑定在此被拦下）', async () => {
+  it('全部命中内网 → EFROND_BLOCKED_LOCAL（重绑定在此被拦下）', async () => {
     const resolver: DnsResolver = async () => [rec('127.0.0.1'), rec('10.0.0.5')]
     const lookup = createPinningLookup(resolver)
     const { result, fn } = makeCallback()
     lookup('evil.com', {}, fn)
     await new Promise((r) => setTimeout(r, 0))
-    expect(result.err?.code).toBe('ELEAF_BLOCKED_LOCAL')
+    expect(result.err?.code).toBe('EFROND_BLOCKED_LOCAL')
     // 阻断时交给连接层的是空列表（无地址可连）
     expect(result.address).toEqual([])
   })
@@ -74,7 +74,7 @@ describe('createPinningLookup', () => {
     const { result, fn } = makeCallback()
     lookup('v6.evil.com', {}, fn)
     await new Promise((r) => setTimeout(r, 0))
-    expect(result.err?.code).toBe('ELEAF_BLOCKED_LOCAL')
+    expect(result.err?.code).toBe('EFROND_BLOCKED_LOCAL')
   })
 
   it('family 过滤：请求 v4 而解析只有 v6 → 阻断', async () => {
@@ -83,7 +83,7 @@ describe('createPinningLookup', () => {
     const { result, fn } = makeCallback()
     lookup('example.com', { family: 4 }, fn)
     await new Promise((r) => setTimeout(r, 0))
-    expect(result.err?.code).toBe('ELEAF_BLOCKED_LOCAL')
+    expect(result.err?.code).toBe('EFROND_BLOCKED_LOCAL')
   })
 
   it('解析失败 → 原样回调错误（fail closed）', async () => {

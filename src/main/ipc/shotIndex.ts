@@ -1,5 +1,5 @@
 /**
- * Leaf · 截图库 OCR 索引 IPC（V4 P1-10）
+ * Frond · 截图库 OCR 索引 IPC（V4 P1-10）
  *
  * - shotidx:status        索引状态（总数 / OCR 进度 / 是否扫描中）
  * - shotidx:scan          手动触发扫描（胶囊页「重新扫描」）

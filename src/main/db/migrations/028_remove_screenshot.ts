@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 028 — 下线 截图 模块，删除其全部表
+ * Frond · Migration 028 — 下线 截图 模块，删除其全部表
  *
  * 截图功能迁移至独立项目，从应用中移除。此迁移：
  * 1. 删除 ss_screenshots（001_init 引入；含 OCR 文本与软删除列）

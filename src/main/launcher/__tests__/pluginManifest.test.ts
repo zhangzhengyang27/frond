@@ -9,7 +9,7 @@ import { join } from 'node:path'
  */
 vi.mock('electron', () => ({
   app: {
-    getPath: () => '/tmp/leaf-manifest-test',
+    getPath: () => '/tmp/frond-manifest-test',
     getVersion: () => '0.0.0-test',
     isReady: () => true
   }
@@ -21,7 +21,7 @@ describe('readManifest permissions 归一化', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = join(mkdtempSync(join(tmpdir(), 'leaf-manifest-')), 'plugin')
+    dir = join(mkdtempSync(join(tmpdir(), 'frond-manifest-')), 'plugin')
     mkdirSync(dir, { recursive: true })
   })
 
@@ -61,7 +61,7 @@ describe('readManifest commands arguments 清洗（多参数命令）', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = join(mkdtempSync(join(tmpdir(), 'leaf-manifest-')), 'plugin')
+    dir = join(mkdtempSync(join(tmpdir(), 'frond-manifest-')), 'plugin')
     mkdirSync(dir, { recursive: true })
   })
 
@@ -126,7 +126,7 @@ describe('readManifest commands[].mode 清洗（View / Action 命令，P-2.1）'
   let dir: string
 
   beforeEach(() => {
-    dir = join(mkdtempSync(join(tmpdir(), 'leaf-manifest-')), 'plugin')
+    dir = join(mkdtempSync(join(tmpdir(), 'frond-manifest-')), 'plugin')
     mkdirSync(dir, { recursive: true })
   })
 
@@ -156,7 +156,7 @@ describe('readManifest commands arguments 清洗（多参数命令）', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = join(mkdtempSync(join(tmpdir(), 'leaf-manifest-')), 'plugin')
+    dir = join(mkdtempSync(join(tmpdir(), 'frond-manifest-')), 'plugin')
     mkdirSync(dir, { recursive: true })
   })
 

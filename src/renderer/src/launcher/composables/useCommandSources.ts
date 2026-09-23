@@ -1,5 +1,5 @@
 /**
- * Leaf · 胶囊命令源聚合（自 LauncherApp.vue 抽出）
+ * Frond · 胶囊命令源聚合（自 LauncherApp.vue 抽出）
  *
  * 四个来源：统一 Registry（应用 + 系统/窗口 + 第一方 + 模块/系统页）/ 插件命令 /
  * 插件 searchable 条目 / Quicklinks。别名（拼音首字母 + 用户自定义）就绪后

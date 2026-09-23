@@ -1,13 +1,13 @@
 /**
- * Leaf · 数据迁移中心 IPC
+ * Frond · 数据迁移中心 IPC
  *
  * 暴露给「迁移中心」页面的操作：
  * - migration:listArchives    列出所有 legacy-backup 时间戳目录
  * - migration:restoreArchive 把某个 archive 还原回 userData 根
  * - migration:deleteArchive  删除某个 archive（不可恢复）
- * - migration:exportDb       showSaveDialog + 复制当前 leaf.db
- * - migration:importDb       showOpenDialog + 覆盖 leaf.db + 重启
- * - migration:factoryReset   删 leaf.db + 重启
+ * - migration:exportDb       showSaveDialog + 复制当前 frond.db
+ * - migration:importDb       showOpenDialog + 覆盖 frond.db + 重启
+ * - migration:factoryReset   删 frond.db + 重启
  *
  * 安全策略：所有破坏性操作（restore / import / reset）内部用 dialog
  * 二次确认；这里只暴露 IPC 入口。

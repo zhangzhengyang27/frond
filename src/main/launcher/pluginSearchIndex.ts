@@ -1,7 +1,7 @@
 /**
- * Leaf · 插件搜索索引（#5 插件双通道，主进程侧）
+ * Frond · 插件搜索索引（#5 插件双通道，主进程侧）
  *
- * Leaf 的插件是 BrowserView，无法后台常驻跑 JS——「双通道」适配为：
+ * Frond 的插件是 BrowserView，无法后台常驻跑 JS——「双通道」适配为：
  * 插件打开时经 launcherApi.submitSearchItems(items) 把可搜索条目集持久化到
  * 主进程（docStore 按 pluginId 限定 KV），关闭后条目仍进根搜索；插件每次打开
  * 重新提交即完成刷新（onReady / onEnter 钩子均可）。

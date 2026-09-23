@@ -55,7 +55,7 @@ function lastListView(): { $t: string; items: Array<Record<string, unknown>> } {
   return last as { $t: string; items: Array<Record<string, unknown>> }
 }
 
-describe('leaf-plugin-sdk 序列化', () => {
+describe('frond-plugin-sdk 序列化', () => {
   it('start 后回调只分发一次（C1 回归：重复安装桥 → 双倍触发）', async () => {
     expect(callbackSink).toBeTruthy()
     const onAction = vi.fn()

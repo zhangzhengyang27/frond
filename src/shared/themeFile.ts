@@ -1,5 +1,5 @@
 /**
- * Leaf · 用户主题文件（#12 Phase 2，对标 Vicinae extra/themes/*.toml）
+ * Frond · 用户主题文件（#12 Phase 2，对标 Vicinae extra/themes/*.toml）
  *
  * 主题文件 = 少量 core 值 + 可选语义子表覆盖，缺失的语义值由 core 派生
  * （docs/DESIGN_TOKENS.md「演进路径」第 1-3 步）。本文件只做数据层：
@@ -18,8 +18,8 @@
  */
 import {
   BUILTIN_THEMES,
-  LEAF_DARK_THEME,
-  LEAF_LIGHT_THEME,
+  FROND_DARK_THEME,
+  FROND_LIGHT_THEME,
   type ThemeDefinition
 } from './themeSchema'
 
@@ -187,7 +187,7 @@ function brandText(accent: Rgba, bg: Rgba, fg: Rgba): string {
 
 const cloneBase = (appearance: 'light' | 'dark'): ThemeDefinition =>
   JSON.parse(
-    JSON.stringify(appearance === 'dark' ? LEAF_DARK_THEME : LEAF_LIGHT_THEME)
+    JSON.stringify(appearance === 'dark' ? FROND_DARK_THEME : FROND_LIGHT_THEME)
   ) as ThemeDefinition
 
 /**

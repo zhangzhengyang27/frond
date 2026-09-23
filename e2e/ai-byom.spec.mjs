@@ -1,5 +1,5 @@
 /**
- * Leaf · E2E：BYOM 多 provider（P-4①）
+ * Frond · E2E：BYOM 多 provider（P-4①）
  *
  * 真起一个本机 http 服务当「本地模型端点」，走完 UI → IPC → 端点守卫 → fetch → 解析 → 回填：
  *  - 点 provider 芯片要把 Base URL / 模型填对（Ollama 那条要带 ../api/tags 能回退的形态）
@@ -56,10 +56,10 @@ test.beforeAll(async () => {
   origin = `http://127.0.0.1:${server.address().port}`
 
   const env = { ...process.env }
-  env.LEAF_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-ai-byom')
-  env.LEAF_E2E = '1'
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-ai-byom')
+  env.FROND_E2E = '1'
   delete env.ELECTRON_RUN_AS_NODE
-  rmSync(env.LEAF_USER_DATA_DIR, { recursive: true, force: true })
+  rmSync(env.FROND_USER_DATA_DIR, { recursive: true, force: true })
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
 

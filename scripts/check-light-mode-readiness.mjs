@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Leaf · Light-mode 静态兼容检查
+ * Frond · Light-mode 静态兼容检查
  *
  * 报告三类问题：
  * 1. hardcoded hex 颜色（#xxx / #xxxxxx）—— light / dark 模式都锁定

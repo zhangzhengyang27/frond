@@ -12,7 +12,7 @@ describe('parsePluginView', () => {
       $t: 'list',
       items: [
         {
-          title: 'leaf/launcher',
+          title: 'frond/launcher',
           subtitle: '主仓库',
           icon: 'git-repository-line',
           accessories: ['TS'],
@@ -27,7 +27,7 @@ describe('parsePluginView', () => {
       ]
     })
     expect(items).toHaveLength(1)
-    expect(items[0]).toMatchObject({ title: 'leaf/launcher', subtitle: '主仓库' })
+    expect(items[0]).toMatchObject({ title: 'frond/launcher', subtitle: '主仓库' })
     expect(items[0].actions[1].callbackId).toBe('cb-1')
   })
 

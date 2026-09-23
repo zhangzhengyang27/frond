@@ -1,5 +1,5 @@
 /**
- * Leaf · 结果级 ⌘K 动作面板（M1.2，自 LauncherApp.vue 抽出）
+ * Frond · 结果级 ⌘K 动作面板（M1.2，自 LauncherApp.vue 抽出）
  *
  * 按选中条目的 action 类型生成可用动作列表；动作执行后统一关面板，
  * 需要收起胶囊的动作额外调 hideWindow。

@@ -37,7 +37,7 @@ describe('DENSITY 档位', () => {
 
   it('像素值都写成 px 且能解析（样式侧靠 var() 读，写成 rem/数字会让兜底失效）', () => {
     for (const v of Object.values(DENSITY.comfortable)) expect(v).toMatch(/^\d+(\.\d+)?px$/)
-    expect(Object.values(DENSITY_CSS_VARS).every((n) => n.startsWith('--leaf-'))).toBe(true)
+    expect(Object.values(DENSITY_CSS_VARS).every((n) => n.startsWith('--frond-'))).toBe(true)
   })
 })
 
@@ -53,12 +53,12 @@ describe('applyDensityVars', () => {
     }
     applyDensityVars(fake, 'compact')
     expect(set).toEqual({
-      '--leaf-row-pad-y': DENSITY.compact.rowPadY,
-      '--leaf-row-min-h': DENSITY.compact.rowMinHeight,
-      '--leaf-section-gap': DENSITY.compact.sectionGap
+      '--frond-row-pad-y': DENSITY.compact.rowPadY,
+      '--frond-row-min-h': DENSITY.compact.rowMinHeight,
+      '--frond-section-gap': DENSITY.compact.sectionGap
     })
 
     applyDensityVars(fake, '不认识的档' as never)
-    expect(set['--leaf-row-min-h']).toBe(DENSITY.comfortable.rowMinHeight)
+    expect(set['--frond-row-min-h']).toBe(DENSITY.comfortable.rowMinHeight)
   })
 })

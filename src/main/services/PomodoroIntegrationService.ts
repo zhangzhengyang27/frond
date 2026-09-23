@@ -1,5 +1,5 @@
 /**
- * Leaf · PomodoroIntegrationService
+ * Frond · PomodoroIntegrationService
  *
  * 负责番茄钟三件集成能力：
  * - 桌面通知策略（普通 / 强提醒 / 静默）

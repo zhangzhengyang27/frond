@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 002 — tag_tags 软删除 + partial unique 索引
+ * Frond · Migration 002 — tag_tags 软删除 + partial unique 索引
  *
  * 背景：
  * - 001_init 的 tag_tags 表无 deleted_at；所有「删除」都是硬删

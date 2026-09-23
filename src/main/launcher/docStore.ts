@@ -1,5 +1,5 @@
 /**
- * Leaf · 启动器插件文档存储
+ * Frond · 启动器插件文档存储
  *
  * 每插件隔离的 KV 文档（launcher_docs 表，m019）。
  * doc_id 在存储层以 '<pluginId>:<docId>' 复合，插件侧永远只能触达自己的命名空间。

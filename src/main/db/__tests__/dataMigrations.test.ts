@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import Database from 'better-sqlite3'
 
 /**
- * Leaf · 旧 JSON 数据迁移（runDataMigrations）的原子性测试
+ * Frond · 旧 JSON 数据迁移（runDataMigrations）的原子性测试
  *
  * 断言的核心是「失败段不得标记 done、原料不得被归档搬走」——标记 done 等于宣布该模块
  * 已迁移，用户数据就永久缺一段；归档搬走原料则让下一次重试无料可用。
@@ -19,8 +19,8 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      if (!process.env.__LEAF_TEST_USER_DATA) throw new Error('test env not set up')
-      return process.env.__LEAF_TEST_USER_DATA
+      if (!process.env.__FROND_TEST_USER_DATA) throw new Error('test env not set up')
+      return process.env.__FROND_TEST_USER_DATA
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -48,7 +48,7 @@ interface TestEnv {
 }
 
 function metaValue(db: Database.Database, key: string): string | undefined {
-  const row = db.prepare('SELECT value FROM leaf_meta WHERE key = ?').get(key) as
+  const row = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(key) as
     | { value: string }
     | undefined
   return row?.value
@@ -61,8 +61,8 @@ describe('runDataMigrations', () => {
   beforeEach(() => {
     db = freshDb()
     injectDb(db)
-    const tmpDir = mkdtempSync(join(tmpdir(), 'leaf-data-migration-'))
-    process.env.__LEAF_TEST_USER_DATA = tmpDir
+    const tmpDir = mkdtempSync(join(tmpdir(), 'frond-data-migration-'))
+    process.env.__FROND_TEST_USER_DATA = tmpDir
     env = {
       tmpDir,
       writeJson: (name, value) => writeFileSync(join(tmpDir, name), JSON.stringify(value), 'utf-8')
@@ -71,7 +71,7 @@ describe('runDataMigrations', () => {
 
   afterEach(() => {
     rmSync(env.tmpDir, { recursive: true, force: true })
-    delete process.env.__LEAF_TEST_USER_DATA
+    delete process.env.__FROND_TEST_USER_DATA
     db.close()
   })
 

@@ -9,7 +9,7 @@ function quote(value: string): string {
 }
 
 /**
- * Leaf · macOS 原生输入框（osascript `display dialog ... default answer`）
+ * Frond · macOS 原生输入框（osascript `display dialog ... default answer`）
  *
  * 片段占位符展开时向用户取值。取消 → osascript 非零退出 → 返回 null，调用方据此放弃整次展开。
  * 不设 timeout：display dialog 本就阻塞到用户作答，超时等于替用户取消。

@@ -1,5 +1,5 @@
 /**
- * Leaf · 片段扩展动态占位符（纯函数，可单测）
+ * Frond · 片段扩展动态占位符（纯函数，可单测）
  *
  * 对标 Raycast Dynamic Placeholders 的常用子集：
  * {date} → 2026-09-06 · {time} → 14:30 · {datetime} → 组合 · {clipboard} → 当前剪贴板文本

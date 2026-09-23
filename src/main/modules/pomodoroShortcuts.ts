@@ -1,5 +1,5 @@
 /**
- * Leaf · 番茄钟全局快捷键（2026-09-23 重建件：原件全盘无副本）
+ * Frond · 番茄钟全局快捷键（2026-09-23 重建件：原件全盘无副本）
  *
  * 形状由三处现存调用点钉住：`pomodoro.ts`  startup 注册一次、`setShortcut` / `resetShortcuts`
  * 改键后重注册、`addShortcutRestorer` 在 `globalShortcuts.unregisterAll()` 之后恢复本模块的键。

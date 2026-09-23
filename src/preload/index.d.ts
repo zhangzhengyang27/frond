@@ -42,7 +42,7 @@ import type {
 } from '../main/db/repos/NotesRepository'
 import type { focusShield } from '../main/modules/focusShield'
 import type { MainAction } from '../main/launcher/actionHandlers'
-import type { SystemInfo as LeafSystemInfo } from '../main/ipc/system'
+import type { SystemInfo as FrondSystemInfo } from '../main/ipc/system'
 import type { Screenshot } from '../main/db/repos/ScreenshotRepository'
 import type { SystemInfo as HardwareInfoType } from '../main/services/SystemInfoService'
 
@@ -248,7 +248,7 @@ export interface ShotDirRes {
 }
 
 export interface API {
-  /** E2E-only：主进程通道调用计数快照（未设 LEAF_E2E 时主进程不注册，调用会 reject） */
+  /** E2E-only：主进程通道调用计数快照（未设 FROND_E2E 时主进程不注册，调用会 reject） */
   e2e: { probeCounts: () => Promise<Record<string, number>> }
   getApplications: () => Promise<Application[]>
   refreshApplications: () => Promise<Application[]>
@@ -629,7 +629,7 @@ export interface API {
     onEvent: (cb: (e: UpdateEvent) => void) => () => void
   }
   system: {
-    info: () => Promise<LeafSystemInfo>
+    info: () => Promise<FrondSystemInfo>
     hardware: () => Promise<HardwareInfoType>
     openPath: (p: string) => Promise<boolean>
     openExternal: (url: string) => Promise<boolean>

@@ -1,5 +1,5 @@
 /**
- * Leaf · RecordingSettingsRepository
+ * Frond · RecordingSettingsRepository
  *
  * 职责：管理录制默认设置，存到 pref_preferences（key='recording.default'，value=JSON）。
  *

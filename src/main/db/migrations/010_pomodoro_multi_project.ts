@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 010 — Pomodoro multi-project timer (P1-2)
+ * Frond · Migration 010 — Pomodoro multi-project timer (P1-2)
  *
  * 背景：
  * - P1-2 升级：番茄钟支持「按项目并行」

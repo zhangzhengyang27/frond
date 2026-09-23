@@ -1,5 +1,5 @@
 /**
- * Leaf · UsageRepository
+ * Frond · UsageRepository
  *
  * 取代 plan 中的 usageStore（之前没有 facade，Hub 一直用占位）。
  *

@@ -1,5 +1,5 @@
 /**
- * Leaf · Migration 006 — OnlineMusic 模块 schema
+ * Frond · Migration 006 — OnlineMusic 模块 schema
  *
  * OnlineMusicDataStore 用 6 张表（liked tracks / playlists / albums / artists / mvs + playHistory）。
  * 5-2 时漏了 schema，现在 5-6c 补齐。

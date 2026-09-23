@@ -11,8 +11,8 @@ vi.mock('electron', () => ({
   app: {
     getPath: (key: string) => {
       if (key !== 'userData') throw new Error(`unexpected getPath(${key})`)
-      if (!process.env.__LEAF_TEST_USER_DATA) throw new Error('test env not set up')
-      return process.env.__LEAF_TEST_USER_DATA
+      if (!process.env.__FROND_TEST_USER_DATA) throw new Error('test env not set up')
+      return process.env.__FROND_TEST_USER_DATA
     },
     getVersion: () => '0.0.0-test',
     isReady: () => true
@@ -58,8 +58,8 @@ describe('migrateMarkersFromLegacyStore', () => {
   let userData: string
 
   beforeEach(() => {
-    userData = mkdtempSync(join(tmpdir(), 'leaf-markers-migration-'))
-    process.env.__LEAF_TEST_USER_DATA = userData
+    userData = mkdtempSync(join(tmpdir(), 'frond-markers-migration-'))
+    process.env.__FROND_TEST_USER_DATA = userData
     db = freshDb()
     injectDb(db)
   })
@@ -68,7 +68,7 @@ describe('migrateMarkersFromLegacyStore', () => {
     injectDb(new Database(':memory:'))
     db.close()
     rmSync(userData, { recursive: true, force: true })
-    delete process.env.__LEAF_TEST_USER_DATA
+    delete process.env.__FROND_TEST_USER_DATA
   })
 
   it('markers.json 导入 rec_markers：秒 → 毫秒、color 落列、id 保留', () => {

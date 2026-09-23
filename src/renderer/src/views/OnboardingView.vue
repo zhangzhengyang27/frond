@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Leaf · 首次启动引导（Onboarding）
+ * Frond · 首次启动引导（Onboarding）
  *
  * 5 步骤全屏向导：
- *   1. 欢迎：Leaf 是什么 + 解决什么问题
+ *   1. 欢迎：Frond 是什么 + 解决什么问题
  *   2. 系统权限：辅助功能 / 日历 / 屏幕录制的真状态 + 就地申请 + 跳转设置（P-3.5）
  *   3. 主题：light / dark / auto，立即生效
  *   4. 常用模块：9 模块 chips 多选（影响 Hub「收藏」区）
@@ -156,7 +156,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
 
 <template>
   <div
-    class="leaf-onboarding fixed inset-0 z-modal flex items-center justify-center bg-overlay backdrop-blur-md"
+    class="frond-onboarding fixed inset-0 z-modal flex items-center justify-center bg-overlay backdrop-blur-md"
   >
     <!-- 跳过按钮（右上角） -->
     <button
@@ -180,7 +180,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
       <!-- 进度条 -->
       <div class="flex h-1 bg-surface-0">
         <div
-          class="bg-brand-500 transition-all duration-slow ease-leaf"
+          class="bg-brand-500 transition-all duration-slow ease-frond"
           :style="{ width: `${(step / TOTAL_STEPS) * 100}%` }"
         />
       </div>
@@ -199,7 +199,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
               🌿
             </div>
             <h2 class="mb-3 text-2xl font-semibold tracking-tight text-fg-primary">
-              欢迎来到 Leaf
+              欢迎来到 Frond
             </h2>
             <p class="max-w-md text-base leading-relaxed text-fg-secondary">
               <span class="text-fg-primary">你的桌面工具箱</span>
@@ -235,7 +235,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
               {{ stepLabel }}
             </div>
             <h2 class="mb-2 text-center text-2xl font-semibold tracking-tight text-fg-primary">
-              给 Leaf 该有的系统权限
+              给 Frond 该有的系统权限
             </h2>
             <p class="mb-6 text-center text-sm text-fg-secondary">
               没授权时这些功能不是「坏了」，是按了没反应。现在不开也行，之后在设置里随时补

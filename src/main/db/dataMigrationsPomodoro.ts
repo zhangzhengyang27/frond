@@ -1,5 +1,5 @@
 /**
- * Leaf · 番茄钟时长单位修复迁移（v4）
+ * Frond · 番茄钟时长单位修复迁移（v4）
  *
  * 背景：修复前渲染端 addRecord 传入的 duration 是「秒」（durationFor 返回
  * Math.floor(分钟 × 60)），repository 直接把它写进 pom_pomodoros.duration_ms；
@@ -10,7 +10,7 @@
  * 发版同步改为毫秒语义（useMultiPomodoroTimer onComplete payload × 1000），
  * 因此迁移必须先于/伴随新写入生效，且只可执行一次。
  *
- * 幂等：leaf_meta.data_migration_v4_pomodoro_ms 标记位；UPDATE 与标记同事务，
+ * 幂等：frond_meta.data_migration_v4_pomodoro_ms 标记位；UPDATE 与标记同事务，
  * 避免出现「已放大但未标记」导致重跑双重放大。
  *
  * 注意：v2 legacy 导入（dataMigrations.ts importRecords）仍写入秒值，依赖本
@@ -35,14 +35,14 @@ export function runPomodoroDurationMsMigration(): PomodoroMsMigrationResult {
   const db = database.handle
 
   // 标记表由各 data migration 自建（不依赖 v2/v3 的执行顺序）
-  db.exec(`CREATE TABLE IF NOT EXISTS leaf_meta (
+  db.exec(`CREATE TABLE IF NOT EXISTS frond_meta (
     key TEXT PRIMARY KEY,
     value TEXT,
     updated_at INTEGER NOT NULL
   )`)
 
   const done = db
-    .prepare('SELECT value FROM leaf_meta WHERE key = ?')
+    .prepare('SELECT value FROM frond_meta WHERE key = ?')
     .get(DATA_MIGRATION_KEY) as { value: string } | undefined
   if (done?.value === 'done') {
     log.info('dataMigration.v4', 'already done, skip')
@@ -56,7 +56,7 @@ export function runPomodoroDurationMsMigration(): PomodoroMsMigrationResult {
       .run()
     result.rowsUpdated = info.changes
     db.prepare(
-      `INSERT INTO leaf_meta (key, value, updated_at) VALUES (?, ?, ?)
+      `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`
     ).run(DATA_MIGRATION_KEY, 'done', Date.now())
   })

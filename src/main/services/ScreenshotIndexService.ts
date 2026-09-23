@@ -1,5 +1,5 @@
 /**
- * Leaf · ScreenshotIndexService — 截图库 OCR 索引（V4 P1-10，对齐 Raycast Search Screenshots）
+ * Frond · ScreenshotIndexService — 截图库 OCR 索引（V4 P1-10，对齐 Raycast Search Screenshots）
  *
  * 只索引不捕捉：扫描截图目录（桌面 + 系统 com.apple.screencapture location）里的
  * 图片文件，on-device OCR（tesseract.js，与剪贴板历史同管线）提取图内文本，
@@ -23,7 +23,7 @@ import { isMac } from '../utils/platform'
 
 const execFileAsync = promisify(execFile)
 
-/** 索引文件数上限（最新优先；Raycast 用保留期，Leaf 用条数上限 + 文件消失即清） */
+/** 索引文件数上限（最新优先；Raycast 用保留期，Frond 用条数上限 + 文件消失即清） */
 export const SCAN_MAX_FILES = 300
 /** 单次 OCR 批量上限（防止首次扫描把 CPU 吃满；剩余下一轮继续） */
 export const OCR_BATCH_SIZE = 40
@@ -72,9 +72,9 @@ export function parseShotQuery(
 
 /** 候选目录：桌面 + 系统截图保存位置（mac defaults 探测，读取失败跳过） */
 export async function screenshotDirs(): Promise<string[]> {
-  // e2e 覆盖：LEAF_SHOT_DIRS（JSON 数组或单路径）。持久化与扫描都走这一个函数，
+  // e2e 覆盖：FROND_SHOT_DIRS（JSON 数组或单路径）。持久化与扫描都走这一个函数，
   // 覆盖后两边一致 —— 否则测试会往真实桌面写图，且扫整个桌面的图片去做 OCR
-  const envDirs = process.env.LEAF_SHOT_DIRS
+  const envDirs = process.env.FROND_SHOT_DIRS
   if (envDirs) {
     let parsed: unknown = envDirs
     try {

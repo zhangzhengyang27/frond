@@ -335,9 +335,15 @@ npx vitest run   # 88/108 文件、789 用例绿；20 文件红（下表逐条�
 
 ### F 类 · 掐头件（同一文件头被吞，`TS18004` + `TS2304` 是签名）
 
-`composables/useMarkdown.ts`、`composables/useTags.ts`（两个都是：import 与 state 声明没了，
-`return { tags, isLoading, … }` 的简写找不到值）；`views/screenshot/components/ScreenshotsCanvas.vue`
-缺 `useDispatcher`。**先按 recovery 记忆里的三步查**：source map 解码 → `=== X ===` 拼接缝 → 池内副本。
+~~`composables/useMarkdown.ts`、`composables/useTags.ts`~~ **已按签名重建（2026-09-23）**：
+两个都只剩「签名 + return」，而**那份签名就是规格**（`scale: ShallowRef<string|undefined>`、
+`getTagsByIds(ids) => Promise<Tag[]>`），实现照 `window.api.tag.*` 通道与
+`MarkdownPreview` 既有的缩放口径（0.5–2、±0.1）填。缩放是我选的口径，
+所以补了 4 条用例钉住（`useMarkdown.test.ts`，该文件此前零测试）。
+`typecheck:web` 138 → **122**（这两文件与它们的消费方全部干净）。
+
+**同型但没救回来的一条**：`views/screenshot/components/ScreenshotsCanvas.vue` 引用
+`useDispatcher`，全盘无此模块 —— 那不是掐头，是整件丢了，归 C 类。**先按 recovery 记忆里的三步查**：source map 解码 → `=== X ===` 拼接缝 → 池内副本。
 
 ### G 类 · 通道登记册不一致（不是缺功能，是账不平）
 

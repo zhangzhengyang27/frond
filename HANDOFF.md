@@ -279,7 +279,19 @@ npx vitest run   # 836 用例绿 / 8 红（红的全是结构性缺件：ipcCont
 > + 12 个 `screenshot:history:*`）。
 > 读数：幽灵 API **28 → 2**；dead handler **35 → 17**；无监听推送 **5 → 3**；
 > `typecheck:web` 146 → 143；`typecheck:node` 43（本批 0 新增）。
-> **剩下的 17 条不是同一种病**：`pin:*`（10 个 handler + 3 个推送）连**创建钉图窗口的代码都不在树里**，
+> **2026-09-23 第三轮（`573c4e1`）**：钉图桥已接回 —— `screenshot.pin.*` 的 10 个 handler 与
+> PinService 的 3 条推送都上了桥，dead handler **17 → 7**、无监听推送 **3 → 0**、幽灵 API **2 → 1**。
+> 上面那句「连创建钉图窗口的代码都不在树里」是**错的**：`src/main/ipc/pin.ts` 与
+> `src/main/services/PinService.ts` 一直在，PinPage.vue 也照着 `window.api.screenshot.pin` 写了监听，
+> 缺的只是 preload 那一层。
+> 剩下 7 条**不是缺桥**：`platform:{setDockBadge,setProgressBar,requestUserAttention}` 与
+> `recording.markers:{list,add,remove,rename}` 是主进程里的**第二套无人调用的实现** ——
+> 标记走另一套 `marker:*`（preload 与主进程都在），角标由 PomodoroIntegrationService 直接调。
+> 删掉还是并成一套要拍板；本轮没有为了让测试变绿去造调用方。
+> 最后 1 条幽灵 `window.api.video.readFile`（PlaybackPanel 读录像文件）需要「只允许读历史里记过的路径」
+> 这类守卫，属设计决定，没顺手写。
+>
+> ~~剩下的 17 条不是同一种病~~ 当时的判断：`pin:*`（10 个 handler + 3 个推送）连**创建钉图窗口的代码都不在树里**，
 > 归 C 类；`platform:{setDockBadge,setProgressBar,requestUserAttention}` 与
 > `recording.markers.{list,add,remove,rename}`（4 条）才是同型的缺桥。
 > 另有 3 条 preload 写了、主进程没有：`pomodoro:dispatchShortcut`、`region-overlay:submit/cancel`

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import TransitionSelector from '@views/screenRecorder/components/TransitionSelector.vue'
+import { useToast } from '@composables/useToast'
 import type { Clip, ExportOptions } from '@composables/useVideoClip'
 
 interface Props {
@@ -31,6 +32,8 @@ const exportOptions = ref<Omit<ExportOptions, 'clips'>>({
   transition: 'cut',
   outputPath: ''
 })
+
+const toast = useToast()
 
 // 选择片头
 const handleSelectIntro = async (): Promise<void> => {
@@ -86,7 +89,7 @@ const handleSelectOutputPath = async (): Promise<void> => {
 // 导出
 const handleExport = (): void => {
   if (!exportOptions.value.outputPath) {
-    alert('请选择保存路径')
+    toast.warning('请选择保存路径')
     return
   }
   emit('export', exportOptions.value as ExportOptions)

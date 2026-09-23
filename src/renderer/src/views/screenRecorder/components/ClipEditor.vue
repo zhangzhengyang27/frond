@@ -9,6 +9,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import ExportDialog from '@views/screenRecorder/components/ExportDialog.vue'
 import { useVideoClip } from '@composables/useVideoClip'
+import { useToast } from '@composables/useToast'
 import type { Clip, ExportOptions, VideoInfo } from '@composables/useVideoClip'
 
 interface Props {
@@ -25,6 +26,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   'go-back': []
 }>()
+
+const toast = useToast()
 
 // 计算视频文件名
 const videoFileName = computed(() => {
@@ -151,7 +154,7 @@ const handleClipUpdate = async (updatedClip: Clip): Promise<void> => {
     })
   } catch (error) {
     console.error('更新剪辑失败:', error)
-    alert(`更新失败: ${(error as Error).message}`)
+    toast.error('更新失败', { description: (error as Error).message })
   }
 }
 
@@ -161,7 +164,7 @@ const handleAddClipFromTimeline = async (startTime: number, endTime: number): Pr
     await addClip(startTime, endTime)
   } catch (error) {
     console.error('添加剪辑失败:', error)
-    alert(`添加失败: ${(error as Error).message}`)
+    toast.error('添加失败', { description: (error as Error).message })
   }
 }
 
@@ -190,7 +193,7 @@ const handleEditClip = (clip: Clip): void => {
 // 保存剪辑
 const handleSaveClip = async (): Promise<void> => {
   if (clipForm.value.startTime >= clipForm.value.endTime) {
-    alert('开始时间必须小于结束时间')
+    toast.warning('开始时间必须小于结束时间')
     return
   }
 
@@ -203,7 +206,7 @@ const handleSaveClip = async (): Promise<void> => {
     showClipDialog.value = false
   } catch (error) {
     console.error('保存剪辑失败:', error)
-    alert(`保存失败: ${(error as Error).message}`)
+    toast.error('保存失败', { description: (error as Error).message })
   }
 }
 
@@ -214,7 +217,7 @@ const handleRemoveClip = async (clipId: string): Promise<void> => {
       await removeClip(clipId)
     } catch (error) {
       console.error('删除剪辑失败:', error)
-      alert(`删除失败: ${(error as Error).message}`)
+      toast.error('删除失败', { description: (error as Error).message })
     }
   }
 }
@@ -226,7 +229,7 @@ const handleClearClips = async (): Promise<void> => {
       await clearClips()
     } catch (error) {
       console.error('清空剪辑失败:', error)
-      alert(`清空失败: ${(error as Error).message}`)
+      toast.error('清空失败', { description: (error as Error).message })
     }
   }
 }
@@ -239,7 +242,7 @@ const handlePreviewClip = async (clip: Clip): Promise<void> => {
     console.log('预览路径:', previewPath)
   } catch (error) {
     console.error('预览失败:', error)
-    alert(`预览失败: ${(error as Error).message}`)
+    toast.error('预览失败', { description: (error as Error).message })
   }
 }
 
@@ -247,11 +250,11 @@ const handlePreviewClip = async (clip: Clip): Promise<void> => {
 const handleExport = async (options: Omit<ExportOptions, 'clips'>): Promise<void> => {
   try {
     const result = await exportClips(options)
-    alert(`导出成功: ${result}`)
+    toast.success('导出完成', { description: result })
     showExportDialog.value = false
   } catch (error) {
     console.error('导出失败:', error)
-    alert(`导出失败: ${(error as Error).message}`)
+    toast.error('导出失败', { description: (error as Error).message })
   }
 }
 // ─── 重建区（2026-09-23）：原件脚本头部丢失，以下胶水为新增 ───

@@ -29,18 +29,25 @@ export class SourceMapConsumer {
   version = 3 as const
   sources: string[] = []
   names: string[] = []
-  constructor(_rawSourceMap?: unknown) {}
+  rawSourceMap: unknown
+  constructor(rawSourceMap?: unknown) {
+    this.rawSourceMap = rawSourceMap
+  }
   originalPositionFor(): { source: null; line: null; column: null; name: null } {
     return { source: null, line: null, column: null, name: null }
   }
   generatedPositionFor(): { line: null; column: null } {
     return { line: null, column: null }
   }
-  eachMapping(_cb: unknown): void {}
+  eachMapping(cb: unknown): void {
+    void cb // 惰性替身：不遍历
+  }
   sourceContentFor(): null {
     return null
   }
-  destroy(): void {}
+  destroy(): void {
+    this.rawSourceMap = null
+  }
 }
 
 export class SourceNode {
@@ -53,8 +60,12 @@ export class SourceNode {
   toStringWithSourceMap(): { code: string; map: SourceMapGenerator } {
     return { code: '', map: new SourceMapGenerator() }
   }
-  walk(): void {}
-  walkSourceContents(): void {}
+  walk(cb: unknown): void {
+    void cb
+  }
+  walkSourceContents(cb: unknown): void {
+    void cb
+  }
   setSourceContent(): this {
     return this
   }

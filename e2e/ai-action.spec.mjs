@@ -89,16 +89,6 @@ const searchInCapsule = async (main, term) => {
   return { capsule, input }
 }
 
-/** 当前高亮行的标题（回车/动作会作用在这一条上） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
-const selectedTitle = async (capsule) =>
-  (
-    (await capsule
-      .locator('.launcher-result.selected .launcher-result-title')
-      .first()
-      .textContent()) ?? ''
-  ).trim()
-
 test.beforeAll(async () => {
   const env = { ...process.env }
   env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-ai-action')

@@ -26,13 +26,13 @@ import {
   clearSessions
 } from '../AIService'
 import type { AIChatSession } from '../../../shared/ai'
+import Database from 'better-sqlite3'
 
 function injectDb(db: import('better-sqlite3').Database): void {
   ;(database as unknown as { db: import('better-sqlite3').Database | null }).db = db
 }
 
 function freshDb(): import('better-sqlite3').Database {
-  const Database = require('better-sqlite3')
   const db = new Database(':memory:')
   db.pragma('foreign_keys = ON')
   for (const m of migrations) {
@@ -55,7 +55,7 @@ describe('AIService（SQLite 存储）', () => {
   })
 
   afterEach(() => {
-    injectDb(new (require('better-sqlite3'))(':memory:'))
+    injectDb(new Database(':memory:'))
     db.close()
   })
 

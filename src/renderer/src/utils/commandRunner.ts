@@ -181,29 +181,6 @@ export async function executeCommand(entry: CommandEntry, opts: CommandRunOption
       window.api.launcher.openPlugin(a.pluginId)
       break
     }
-    case 'pluginSearch': {
-      // #5 插件双通道：searchable 插件持久化条目（搜索词驱动出现，不进 frecency）。
-      // 动作语义与声明式 List 条目一致（PluginListPage.runItem）：
-      // copy=复制后收起；open=http(s) 走浏览器 / 否则按路径打开；callback=打开插件继续交互
-      const pa = a.action
-      if (pa.type === 'copy') {
-        await window.api.action.invoke({ type: 'copyText', text: pa.payload ?? '' })
-        close()
-        break
-      }
-      if (pa.type === 'open' && pa.payload) {
-        if (/^https?:\/\//.test(pa.payload)) {
-          void window.api.system.openExternal(pa.payload)
-        } else {
-          void window.api.system.openPath(pa.payload)
-        }
-        close()
-        break
-      }
-      // callback：打开插件（胶囊保持可见进入插件交互，与 plugin 动作一致）
-      window.api.launcher.openPlugin(a.pluginId)
-      break
-    }
     case 'openUrl': {
       // 会议入会链接：scheme 白名单（zoommtg 等客户端 scheme，审查 I-diff2）——白名单在执行端内
       await window.api.action.invoke({ type: 'openUrl', url: a.url })

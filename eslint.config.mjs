@@ -5,7 +5,20 @@ import eslintPluginVue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
 
 export default defineConfig(
-  { ignores: ['**/node_modules', '**/dist', '**/out', 'scripts/**', 'extension/**'] }, // extension/：浏览器扩展独立产物，chrome 全局/JS 运行时不适用应用 TS 规则集
+  // references/：外部参考仓库（ueli / vicinae）自带代码，不属本仓库。
+  // .gitignore 与 vitest 的 exclude 都已排除它，但这里此前漏了 —— 于是 `pnpm lint`
+  // 会对第三方源码报 6 条错（5 条解析错 + 1 条 no-unused-expressions），
+  // 而 CONTRIBUTING 又要求「提交前 pnpm lint 无 error」。
+  {
+    ignores: [
+      '**/node_modules',
+      '**/dist',
+      '**/out',
+      'scripts/**',
+      'extension/**',
+      'references/**'
+    ]
+  }, // extension/：浏览器扩展独立产物，chrome 全局/JS 运行时不适用应用 TS 规则集
   tseslint.configs.recommended,
   eslintPluginVue.configs['flat/recommended'],
   {

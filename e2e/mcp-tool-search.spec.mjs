@@ -60,19 +60,6 @@ const getCapsuleWindow = async () => {
   throw new Error('找不到胶囊窗')
 }
 
-/** 当前高亮行的「标题 + 徽标」——回车就作用在这一行上（别猜下标，见仓库 e2e 约定） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
-const selectedRow = (capsule) =>
-  capsule.evaluate(() => {
-    const el = document.querySelector('.launcher-result.selected')
-    return el
-      ? {
-          title: el.querySelector('.launcher-result-title')?.textContent?.trim() ?? '',
-          badge: el.querySelector('.launcher-result-badge')?.textContent?.trim() ?? ''
-        }
-      : null
-  })
-
 /**
  * 走到「徽标是 MCP 且标题含 text」的那一行再回车。
  *
@@ -84,7 +71,9 @@ const selectedRow = (capsule) =>
 const rowIndexes = (capsule, text) =>
   capsule.evaluate((t) => {
     const rows = [...document.querySelectorAll('.launcher-result')]
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
     const badge = (el) => el.querySelector('.launcher-result-badge')?.textContent?.trim() ?? ''
+    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
     const title = (el) => el.querySelector('.launcher-result-title')?.textContent?.trim() ?? ''
     return {
       n: rows.length,

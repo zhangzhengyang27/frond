@@ -1,9 +1,45 @@
-# 交接文档：IPC 单对象约定已全仓库接线 + 项目全景
+# 交接文档：项目全景与历史决策
 
 > 写给下一个接手的 AI。本文档自包含：读完即可继续，无需上游会话历史。
-> 写作时间：2026-09-19（IPC 全量迁移完成后更新；flake 结论见 §0/§3，迁移落点见 §8 第 4 条）。
+> 写作时间：2026-09-19；**最近校订：2026-09-24**（评审整改批次 1-3 落库后）。
+>
+> ⚠ **本文档里的数字分两类，别混**：
+> - **历史读数**（例如 §10 各处「836 passed / 8 failed」）记的是**当时那一刻**的状态，
+>   是诚实的现场记录，**不要改写它们**——那会让「哪一步把什么修好了」失去依据。
+> - **当前读数**一律不要手抄，跑这条命令拿：
+>   ```bash
+>   node scripts/recovery/snapshot-readings.mjs          # 静态读数（秒级）
+>   node scripts/recovery/snapshot-readings.mjs --tests  # 附带单测用例数（约 1 分钟）
+>   ```
+>   2026-09-24 校正时它报的是：src 源文件 402 / 单测文件 122 / 迁移 31 /
+>   重建件 34 / e2e spec 31 / IPC 契约通道 **428** / 主进程裸 `ipcMain.handle` 8。
+>   本文档此前多处写「391 通道」「836 用例绿」——都已过时。
+>
+> ⚠ **标题原先断言「IPC 单对象约定已全仓库接线」，这句当时是假的**：2026-09-22 基线重建
+> 时 preload 按单对象重建、主进程 handler 保留位置参数，**39 条通道因此静默失效**
+> （打开外链、回收站、云备份、录屏写盘、迁移中心还原/删除备份…），2026-09-24 才补齐。
+> 详见下面的「校订说明」。
 
 ---
+
+## 校订说明（2026-09-24，建议先读这段）
+
+上一轮评审（`.workbuddy-ai/review/2026-09-23-consolidated-review.md`）的整改结果，
+以及**评审本身被证伪的几条**——后者同样重要，避免下一个人照着错的结论再走一遍：
+
+| 评审条目 | 实测结论 |
+| --- | --- |
+| P1-4「20+ 处裸 `ipcMain.handle`」 | 方向对，数量错：实测 **141 处**。其中 **39 条真的错位**（preload 发对象、handler 读位置参数），已全量转 `typedHandle` 并加门禁。 |
+| P1-2「导航层完全没有设防」 | **不成立**。守卫早已存在三处（`src/main/index.ts` 全局、`launcher/runtime.ts` 插件视图、`modules/windows.ts` 主窗）。真实缺口是 `setPermissionRequestHandler` 缺失（Electron 不注册它时**默认放行**权限请求）→ 已补，且**必须放行第一方 `media`**，否则录屏全废。 |
+| P1-9「固定 sleep 换轮询」 | **基本不需要做**。已有 105 处 `expect.poll` + 193 处显式 timeout，≥300ms 固定等待只剩 11 处且全是刻意用法（负向断言 / 动画时序定位 / perf 协议）。真正坏的是另一半：`trace: 'on-first-retry'` + `retries` 默认 0 = **trace 永远不会产生**。 |
+| P1-6「只差证书」 | **不成立**。还差 `build/entitlements.mac.plist`（被 yml 引用而 `build/` 目录不存在 → mac 打包直接失败）、图标、根 `LICENSE`。 |
+| P2-13「弱断言 193 行」 | **前提不成立**。当前 `toBeDefined()` 仅 6 处且都在 `expectIpcOk()` 的正确模式里。 |
+| P1-1 自建 reconciler | 处置 = **锁版本 + 升级守卫**（`react-reconciler` 钉 `0.34.0` + `hostconfig-contract.test.ts` 运行时量实参），不降级、不换方案。 |
+
+> 这些误判的**共同成因是同一个**：评审当时用的 `grep -rn` 在本机环境里**静默失败**
+> （无匹配 exit 1、有匹配也可能空输出）。本仓一切「全仓零命中」类结论都应当用
+> 内置 Grep 或 `node -e` 复核后再写进文档。
+
 
 ## 0. 结论（TL;DR）
 
@@ -26,8 +62,11 @@
   就落在不存在的动作上、连 Callback 都不发。快机器上抢在详情落地前发出所以「绿」——
   这正是 solo 绿/套跑红的来源。已把 spec 拆成两个用例并按视图状态串行等待。
 
-**本轮另一件大事**：IPC「单对象入参」全仓库迁移完成（391 通道进登记册、两端编译期强制、
+**本轮另一件大事**：IPC「单对象入参」全仓库迁移完成（**当时 391 通道**进登记册、两端编译期强制、
 d.ts 顺手拆掉十余处手抄/擦除）——落点、两个必踩过的坑、闸口都在 §8 第 4 条。
+> ⚠ 2026-09-24 校正：「全仓库迁移完成」这句当时**不成立**——主进程那一侧有 39 条通道
+> 仍是位置参数写法，静默失效了近两个月。现登记册是 **428 条**，且加了「契约 req 非 void
+> ⇒ 必须 `typedHandle`」的门禁。详见 §12。
 
 诊断手段（本轮用过后已撤销）：主进程 `console-message` 转发插件页 console +
 `sanitizeValue` 打键路径。**下一步若要复现同类问题，直接照 §3 的链路图加这两处**。
@@ -36,7 +75,10 @@ d.ts 顺手拆掉十余处手抄/擦除）——落点、两个必踩过的坑�
 
 ## 1. 项目背景
 
-仓库：`/Users/xiaoye/Desktop/electron-tools`（Electron 启动器「Frond」，对标 Raycast，macOS+Windows）。
+仓库：`/Users/xiaoye/Desktop/publish/frond`（Electron 启动器「Frond」，对标 Raycast，macOS+Windows）。
+> ⚠ 2026-09-24 校正：此前这里写的是 `/Users/xiaoye/Desktop/electron-tools` —— 那是
+> 2026-09-22 桌面删除事故前的旧路径，仓库早已搬走。照旧路径找会一头雾水。
+> 判据：以 `git rev-parse --show-toplevel` 的输出为准，别信文档里写死的路径。
 本轮工作主题：按 Vicinae/ueli 两个开源项目的借鉴清单落地功能，共 **12 项全部完成**
 （清单与每项状态：`docs/REFERENCE_VICINAE_UELI.md`；审查记录都在 commit message 里）。
 
@@ -426,7 +468,9 @@ e2e 侧另有一类损坏，**不是渲染层的**：
   git 全历史都没有第二份 → 没有可回灌的东西。现在改成一条显式 `test.skip` 并写明原因，
   不写「看起来会过、其实什么都没测」的替身。启动器链路目前由 capsule-*/command-palette/
   plugin-arg-slots 那几个 spec 覆盖。
-- 自查命令：`for f in e2e/*.mjs; do node --check "$f" || echo FAIL $f; done`（32 个 spec 现在全过）。
+- 自查命令：`for f in e2e/*.mjs; do node --check "$f" || echo FAIL $f; done`。
+  （spec 数量别写死：`ls e2e/*.spec.mjs | wc -l`。2026-09-24 校正时是 **31** ——
+  此前这里写的 32 含批次 1 清掉的 `zz-scratch*` 草稿 spec。）
 
 （上面这张「剩 12 个」的旧表已被 10.2 取代：`BackgroundSwitch`、5 个统计组件、`USkeleton`、
 `RecordingSettingsDialog` 都已到位，同时暴露出更大的盘面。）

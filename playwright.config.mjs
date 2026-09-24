@@ -19,6 +19,9 @@ process.env.FROND_FILE_INDEX_SCOPES = join(process.cwd(), 'test-results', 'file-
 
 export default defineConfig({
   testDir: './e2e',
+  // 开跑前重建插件产物（SDK → example-react）：dist 不入库，陈旧产物曾让 22 条
+  // e2e 被误判成回归（见 e2e/global-setup.mjs 文件头）
+  globalSetup: './e2e/global-setup.mjs',
   timeout: 30_000,
   fullyParallel: false,
   workers: 1,

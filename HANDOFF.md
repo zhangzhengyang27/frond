@@ -776,12 +776,18 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   翻转侧红/基线绿，`mcp-tool-search:168` 基线红/翻转侧绿；retries=0 下的 flake 互换形态）。
   结论：**27 条红全部是存量，与翻转无关**。
 - **⚠ e2e 基线真相核查（比翻转本身更重要）**：HANDOFF 挂账原记「e2e 7 条红（density 2 +
-  market-index 5）」，实测 **27 条红**（10.2 分钟，1 skip）。多出的 22 条：react-view 5、
-  mcp-tool-search 4、plugin-arg-slots 3、plugin-schedule 3、ai-action 2、ai-byom 2、
-  a11y 1、command-palette 1、file-index 1、capsule-animation 1。可见线索：react-view:422
-  期望 `https://example.com/frond-e2e` 实得 `leaf-e2e`（§12 改名残留）——launcher/插件
-  React 协议一整簇红，像同一根因。「7 条红」的挂账**严重过时**；这 22 条的逐条归因
-  （改名残留 / 09-24 之后的回归 / 环境漂移）是**新挂账**，动 launcher 或插件协议前先清。
+  market-index 5）」，实测 **27 条红**（10.2 分钟，1 skip）——挂账严重过时。同日归因咬到
+  第一个根因：**example-react/dist 是 09-22（改名前一天）构建的陈旧产物**（dist 不入库，
+  dist 里 `leaf/launcher` 实证、源码已干净），react-view / capsule-animation 等 spec 拿它
+  播种插件，断言等的是 frond/* 前缀 → 必红。重建 dist 后该簇转绿（27 → 23 红）。
+  根治：playwright 挂 globalSetup（`e2e/global-setup.mjs`，开跑前重建 SDK → example-react，
+  与 vitest.global-setup 同一模式；smoke 子集 12/12 验过接线）。
+- **仍剩 23 条红（新挂账，动 launcher / 插件协议前先清）**：market-index 5（旧账）+ 18 条
+  集中在「真正执行插件动作/命令」一层——plugin-arg-slots 3、plugin-schedule 3、
+  mcp-tool-search 4（①列表过、②③⑤执行红）、ai-action 2、ai-byom 2、a11y:137、
+  command-palette:68、file-index:95、react-view P-2.6。症状样例：arg-slots 等「计数 > 0」
+  的 predicate 25s 超时（插件命令表没送达）。注意 react-view 前三条（渲染/回调/M2 表单）
+  转绿 → 基础 React 视图协议是好的，坏的更靠动作分发一侧。
 
 ### 剩下的账（2026-09-23 收工口径）
 

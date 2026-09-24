@@ -46,7 +46,7 @@
     },
     {
       "code": "argsum",
-      "title": "参数求和（内联参数槽）",
+      "title": "两格参数（内联槽）",
       "description": "两个文本参数、第一个必填：P-1.6b 内联槽的载体，选中后不跳表单页",
       "arguments": [
         { "name": "a", "type": "text", "placeholder": "第一个参数（必填）", "required": true },

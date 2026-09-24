@@ -56,6 +56,23 @@ describe('parsePluginView', () => {
     expect(items[0].detailFormat).toBe('text')
   })
 
+  it('detail 视图携带 Detail.actions（P-2.6：动作挂上占位条目；非法动作剔除）', () => {
+    // SDK 侧 reconciler 把 ActionPanel 序列化到 detail 节点的 actions 字段（见该文件
+    // 「动作挂到那条占位条目上即可复用既有的 runPluginAction 通路」），宿主必须接住 ——
+    // 2026-09-24 前 host 侧硬编码 actions:[] 把它丢了，react-view P-2.6 因此恒红
+    const items = parsePluginView({
+      $t: 'detail',
+      markdown: '# 详情',
+      actions: [
+        { type: 'callback', label: '复制结果', callbackId: 'copy-1' },
+        { label: '缺 type 的非法动作' },
+        'not-an-object'
+      ]
+    })
+    expect(items[0].actions).toHaveLength(1)
+    expect(items[0].actions[0]).toMatchObject({ label: '复制结果', callbackId: 'copy-1' })
+  })
+
   it('非法视图：未知 $t / 非对象 / 空 detail 拒绝；超长 markdown 截断', () => {
     expect(parsePluginView({ $t: 'grid' })).toEqual([])
     expect(parsePluginView('list')).toEqual([])

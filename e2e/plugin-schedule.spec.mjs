@@ -97,24 +97,27 @@ test('① 三道闸的结果在插件侧读得到：收下的回 id，被拒的�
   // mode 闸：视图命令不该能在没人看着的时候弹界面
   await expect(capsule.locator('text=view=只能排').first()).toBeVisible()
   // 收下的那条只有一条（labels 里不该出现被拒的那两条的名字）
-  await expect(capsule.locator('text=count=1').first()).toBeVisible()
-  await expect(capsule.locator('text=labels=e2e 排程').first()).toBeVisible()
+  // 收下的是两条：*/15 那条 + 给 ② 用的「一分钟后」那条（探针刻意排的，见 main.tsx）。
+  // 被拒的「太密」「视图命令」不得出现在列表里 —— 这条断言钉的是三道闸的「拒」真的拒了
+  await expect(capsule.locator('text=count=2').first()).toBeVisible()
+  await expect(capsule.locator('text=labels=e2e 一分钟后排程,e2e 排程').first()).toBeVisible()
 
   const tasks = await myTasks(main)
-  expect(tasks).toHaveLength(1)
-  expect(tasks[0]).toMatchObject({
+  expect(tasks).toHaveLength(2)
+  const paced = tasks.find((t) => t.cron === '*/15 * * * *')
+  expect(paced).toMatchObject({
     owner: `plugin:${PLUGIN_ID}`,
-    cron: '*/15 * * * *',
     label: 'e2e 排程',
     enabled: true
   })
-  expect(tasks[0].action.type).toBe('plugin')
+  expect(paced.action.type).toBe('plugin')
 })
 
 test('② 到点真跑：活跃视图占着槽时跳过，关掉插件后才投给插件', async () => {
   const main = await getMainWindow()
   const capsule = await getCapsuleWindow()
-  const [task] = await myTasks(main)
+  // ① 收下了两条，这里只驱动 */15 那条（「一分钟后」那条是 ② 的心跳参照，别拿错）
+  const task = (await myTasks(main)).find((t) => t.cron === '*/15 * * * *')
   expect(task, '① 排的那条要在').toBeTruthy()
 
   // 探针自己的视图还开着（活跃槽只有一个）：这一次必须跳过，而不是把用户手上的插件挤掉
@@ -131,11 +134,11 @@ test('② 到点真跑：活跃视图占着槽时跳过，关掉插件后才投�
 
   const ran = await main.evaluate((id) => window.api.ai.automationRunNow(id), task.id)
   expect(ran).toMatchObject({ ok: true })
-  // 历史写回任务：设置页那一格靠它显示「已交给插件」
+  // 历史写回任务：设置页那一格靠它显示「已交给插件」（同样只看 */15 那条）
   await expect
     .poll(
       async () => {
-        const [t] = await myTasks(main)
+        const t = (await myTasks(main)).find((x) => x.cron === '*/15 * * * *')
         return t.lastOk === true && t.lastFiredAt ? 'ok' : `pending:${t.lastOk}:${t.lastError}`
       },
       { timeout: 15000 }

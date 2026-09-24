@@ -279,7 +279,7 @@ export interface PluginViewSection {
 
 export type PluginViewNode =
   | { $t: 'list'; sections?: PluginViewSection[]; items?: PluginViewListItem[] }
-  | { $t: 'detail'; markdown?: string; text?: string }
+  | { $t: 'detail'; markdown?: string; text?: string; actions?: unknown }
 
 /** 视图条目 / 正文上限 */
 export const PLUGIN_MAX_VIEW_ITEMS = 300
@@ -368,12 +368,22 @@ export function parsePluginView(raw: unknown): PluginViewListItem[] {
         ? { text: node.text.slice(0, PLUGIN_MAX_VIEW_TEXT), format: 'text' as const }
         : null
     if (!detail) return []
+    // Detail.actions（P-2.6）挂在占位条目上：SDK 侧已把 ActionPanel 序列化进 detail 节点
+    //（见 frond-plugin-sdk reconciler serializeActions），宿主接住后复用既有的 runPluginAction
+    // 通路。fail-closed 与 list 条目同一套清洗：非法动作剔除、封顶 10。
+    const actions: PluginViewAction[] = []
+    const rawActions = Array.isArray(node.actions) ? node.actions : []
+    for (const a of rawActions) {
+      const action = sanitizeViewAction(a)
+      if (action) actions.push(action)
+      if (actions.length >= 10) break
+    }
     return [
       {
         title: '',
         detail: detail.text,
         detailFormat: detail.format,
-        actions: []
+        actions
       }
     ]
   }

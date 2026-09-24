@@ -86,6 +86,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # ⚠ 临时诊断（2026-09-24）：24 个 DB 测试文件的 fork 在 CI 三平台秒死、本地
+      # 全绿且带 GITHUB_ACTIONS=true 也全绿。直跑一个 DB 文件 + 裸 require 两个
+      # 嫌疑原生依赖，把被 vitest 吞掉的 fork stderr 打进日志。定位后删除本步。
+      - name: Diagnose worker crash (temporary)
+        continue-on-error: true
+        run: |
+          node -e "console.log('electron typeof:', typeof require('electron'))"
+          node -e "const D=require('better-sqlite3'); const db=new D(':memory:'); db.exec('create table t(a)'); db.close(); console.log('better-sqlite3 OK')"
+          pnpm exec vitest run src/main/db/__tests__/migrations.test.ts --reporter=basic --disable-console-intercept 2>&1 | tail -40 || true
+
       - name: Run tests
         run: pnpm test -- --reporter=verbose
 

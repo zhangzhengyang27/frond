@@ -782,12 +782,21 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   播种插件，断言等的是 frond/* 前缀 → 必红。重建 dist 后该簇转绿（27 → 23 红）。
   根治：playwright 挂 globalSetup（`e2e/global-setup.mjs`，开跑前重建 SDK → example-react，
   与 vitest.global-setup 同一模式；smoke 子集 12/12 验过接线）。
-- **仍剩 23 条红（新挂账，动 launcher / 插件协议前先清）**：market-index 5（旧账）+ 18 条
-  集中在「真正执行插件动作/命令」一层——plugin-arg-slots 3、plugin-schedule 3、
-  mcp-tool-search 4（①列表过、②③⑤执行红）、ai-action 2、ai-byom 2、a11y:137、
-  command-palette:68、file-index:95、react-view P-2.6。症状样例：arg-slots 等「计数 > 0」
-  的 predicate 25s 超时（插件命令表没送达）。注意 react-view 前三条（渲染/回调/M2 表单）
-  转绿 → 基础 React 视图协议是好的，坏的更靠动作分发一侧。
+- **e2e 清红战果（2026-09-24 晚，27 → 18 红，修 9 条，eb6ae56）**：三簇根因已修——
+  ①argsum 标题漂移：3d555fe 重建 manifest 时臆造标题「参数求和（内联参数槽）」，恢复原件
+  spec 等的是「两格参数（内联槽）」，搜索按标题匹配 → 永远 0 行（arg-slots 3 绿）；
+  ②`parsePluginView` detail 分支把 actions 硬编码 `[]`——SDK 明言「挂占位条目复用
+  runPluginAction」，宿主把字段丢了（恢复期丢的行为细节；单测先红后绿钉死，P-2.6 绿）。
+  ⚠ 改 shared/主进程代码后必须 `pnpm build` 再验 e2e，out/ 陈旧会让修复**假性无效**（本批实测咬过）；
+  ③schedule ①断言与探针互斥（spec 期望 count=1，探针为 ② 刻意排 2 条）——按真实契约
+  对齐为 count=2，且 ①②③ 一律按 `cron='*/15 * * * *'` 精确取任务（不再依赖数组顺序）。
+- **剩 18 红按簇证据（新挂账）**：market-index 5（旧账，网络类）；**plugin-schedule ②③**
+  ——`automationRunNow` 返回 ok 但 `lastOk` 恒 null（投递回写断链），设置页 autoTasks 行
+  不渲染（`automationList()` API 有数据、UI 空——疑同一渲染端数据面）；**mcp-tool-search 4**
+  ——`mcpToolCommands()` API 返回 2 但胶囊搜索无 MCP 行（① 曾单跑绿，flake/时序待查）；
+  ai-action 2 / ai-byom 2 / a11y:137 / command-palette:68 / file-index:95 ——未归因，
+  下一步逐簇按同法处理（先读 error-context 快照，再对照 API 层数据，分清「数据没有」
+  还是「数据在、渲染丢」）。
 
 ### 剩下的账（2026-09-23 收工口径）
 

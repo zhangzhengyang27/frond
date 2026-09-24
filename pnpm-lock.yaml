@@ -227,7 +227,7 @@ importers:
         specifier: ^19.0.0
         version: 19.3.0
       react-reconciler:
-        specifier: ^0.34.0
+        specifier: 0.34.0
         version: 0.34.0(react@19.3.0)
       typescript:
         specifier: ^5.0.0

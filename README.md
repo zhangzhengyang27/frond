@@ -8,11 +8,15 @@ Frond 是一款本地优先的轻量桌面工具集：**启动器（Alt+Space �
 
 | 模块 | 能力 |
 | --- | --- |
-| 启动器 | Alt+Space 呼出胶囊窗、统一命令注册表、⌘K 命令面板、剪贴板历史 / 文件搜索 / 提醒 / 日历 / AI Chat 等 17+ 内联页 |
+| 启动器 | Alt+Space 呼出胶囊窗、统一命令注册表、⌘K 命令面板、剪贴板历史 / 文件搜索 / 提醒 / 日历 / AI Chat 等 20+ 内联页 |
 | 插件系统 | BrowserView 沙箱运行时、声明式 List 协议、静态市场、devServer 热重载；内置 21 个官方插件 |
 | 录屏 | 区域录制、回放、时间线剪辑、GIF 导出、摄像头画中画、崩溃恢复 |
 | 番茄钟 | 三模式计时、任务/项目、统计热力图、白噪音、专注护盾（应用屏蔽）、迷你悬浮窗 |
 | 代码片段 | 多文件夹管理、触发词文本扩展（动态占位符）、导入导出 |
+
+> 上面的数字是**量级**，别当成权威口径 —— 要准确值跑
+> `node scripts/recovery/snapshot-readings.mjs`（会给出源文件数 / 单测文件数 /
+> 迁移数 / 重建件数 / e2e spec 数 / IPC 契约通道数）。
 
 ## 平台支持
 
@@ -38,17 +42,19 @@ pnpm dev              # 开发模式
 | `pnpm dev` | 开发模式（electron-vite dev） |
 | `pnpm build` | 类型检查 + 生产构建 |
 | `pnpm test` | Vitest 单元测试 |
-| `pnpm test:e2e` | Playwright e2e（需先 `pnpm build`；CI 上由 xvfb 包装） |
-| `pnpm test:e2e:smoke` | 仅核心启动冒烟 |
+| `pnpm test:e2e` | Playwright e2e（需先 `pnpm build`；受限环境见 CONTRIBUTING 的「E2E 写法约定」） |
+| `pnpm test:e2e:smoke` | e2e 冒烟子集（CI 与本地跑同一份） |
 | `pnpm lint` / `pnpm lint:css:changed` | ESLint / 增量 CSS design-token 检查 |
 | `pnpm typecheck` | 主进程 + 渲染层双 typecheck |
+| `pnpm release:preflight` | 发布前自检（目标/版本/token/签名/发布资产），`--strict` 有阻塞则 exit 1 |
 | `pnpm build:mac` / `build:win` / `build:linux` | electron-builder 打包 |
+| `node scripts/recovery/snapshot-readings.mjs` | **权威读数**（迁移数 / 重建件数 / 通道数…），文档里的数字以它为准 |
 
 ## 项目结构
 
 ```
 src/
-├── main/        # 主进程：ipc/ 注册器、services/ 业务、stores/、db/（SQLite + 25 个迁移）
+├── main/        # 主进程：ipc/ 注册器、services/ 业务、stores/、db/（SQLite + 迁移）、security/ 导航与权限守卫
 ├── preload/     # contextBridge 暴露的白名单 API（index.ts 应用 API、plugin.ts 插件 API）
 ├── renderer/    # Vue 3 界面：主窗口 / 胶囊启动台 / 专注护盾 三入口
 └── shared/      # 主渲染共享：命令注册表、模块清单、IPC 契约、插件协议

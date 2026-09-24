@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, Tray, shell } from 'electron'
+import { app, BrowserWindow, protocol, session, Tray } from 'electron'
 import { fileIndex } from './modules/fileIndex/service'
 import { migrateLegacyBrandData } from './modules/brandMigration'
 
@@ -15,7 +15,6 @@ app.setPath(
 // requestSingleInstanceLock() 之前——那一步会创建 userData 目录。
 migrateLegacyBrandData(app.getPath('userData'))
 import { join, resolve } from 'path'
-import { fileURLToPath } from 'node:url'
 import { electronApp } from '@electron-toolkit/utils'
 
 // 自定义协议特权（必须在 app ready 前注册）：plugin:// 承载启动器插件页面
@@ -124,43 +123,24 @@ import { registerWindowSwitcherIpc } from './services/WindowSwitcherService'
 import { registerTrashIpc } from './services/TrashService'
 import { registerDictionaryIpc } from './services/DictionaryService'
 import { typedHandle } from './ipc/typedIpc'
+import {
+  defaultFirstPartyContext,
+  installNavigationGuards,
+  installPermissionGuards,
+  resolveAppRoot
+} from './security/navigationGuard'
 
 let mainWindow: BrowserWindow | null = null
 
 // ─────────── 全局 webContents 安全兜底 ───────────
-// 所有窗口/视图创建时统一挂 window-open 与导航守卫，防止个别创建路径遗漏
-// （此前胶囊窗与 detach 承载窗无守卫：插件 markdown 详情里的链接经 window.open
-// 会让新窗口继承全量 preload 的 window.api 后加载远程页面）。窗口若自带更严格
-// 的 handler（主窗 windows.ts / 插件 view runtime.ts）会覆盖此兜底，行为不变。
-function isFirstPartyUrl(url: string): boolean {
-  if (url === 'about:blank' || url.startsWith('devtools://')) return true
-  if (url.startsWith('plugin://') || url.startsWith('frond://')) return true
-  // 打包态 file:// 页面仅限构建产物目录；dev 态仅限本地 dev server
-  if (url.startsWith('file://')) {
-    try {
-      return fileURLToPath(url).startsWith(join(__dirname, '..'))
-    } catch {
-      return false
-    }
-  }
-  const devServer = process.env.ELECTRON_RENDERER_URL
-  return !!devServer && url.startsWith(devServer)
-}
-
-app.on('web-contents-created', (_event, contents) => {
-  contents.setWindowOpenHandler((details) => {
-    // 仅放行 http(s) 转系统浏览器：file:/自定义协议交给系统打开可能执行任意程序
-    if (/^https?:\/\//i.test(details.url)) {
-      void shell.openExternal(details.url)
-    }
-    return { action: 'deny' }
-  })
-  contents.on('will-navigate', (e, url) => {
-    if (isFirstPartyUrl(url)) return
-    e.preventDefault()
-    log.warn('webContents', `blocked navigation to non-first-party url: ${url.slice(0, 200)}`)
-  })
-})
+// 判定与装配都在 ./security/navigationGuard（判据是纯函数，可单测）：
+// - 导航 / 服务端重定向白名单：仅第一方（产物目录 file:// / devServer / plugin:// /
+//   frond:// / devtools / about:blank）+ 内部哨兵 frond-region://（录屏框选，见模块注释）
+// - window.open 一律 deny，http(s) 转系统浏览器
+// - <webview> 拒绝（纵深防御）
+// - 权限请求白名单：⚠ 第一方 media 必须放行，否则录屏的麦克风/摄像头全废
+const firstPartyCtx = defaultFirstPartyContext(resolveAppRoot())
+installNavigationGuards(firstPartyCtx)
 
 // 系统托盘相关
 let tray: Tray | null = null
@@ -299,6 +279,11 @@ app.whenReady().then(() => {
   // 依赖 AX 的功能（菜单栏搜索类）都需要渲染层可被辅助功能读取。
   // Electron 默认只在探测到辅助技术时开启，这里显式常开（对齐 Raycast）。
   app.setAccessibilitySupportEnabled(true)
+
+  // 权限请求白名单（必须 ready 后、用真实 session 注册）。
+  // 不注册时 Electron **默认放行**权限请求 —— 等于任意 web 内容都能静默开麦/开摄像头。
+  // 白名单见 security/navigationGuard.ts 的 PERMISSION_ALLOWLIST（第一方 media 必需）。
+  installPermissionGuards(session.defaultSession, firstPartyCtx)
 
   // 注册协议（image:// 和 video://）
   registerProtocols()

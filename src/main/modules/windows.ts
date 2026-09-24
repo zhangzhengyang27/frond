@@ -58,6 +58,20 @@ export function createWindow(
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
+      /**
+       * ⚠ 本仓**唯一**一个 `sandbox: false` 的窗口 —— 其余 6 处
+       * （launcher/window.ts、runtime.ts ×2、floatingNote.ts、miniWindow.ts、
+       * RegionOverlay.ts）都是 `sandbox: true`。
+       *
+       * 现状说明（2026-09-24 评审核对）：preload（src/preload/index.ts）只用
+       * `ipcRenderer` / `contextBridge`，且被 electron-vite 打成单文件，理论上
+       * `sandbox: true` 可跑；但主窗承载全部内联页与录屏 UI，翻转它属于
+       * 「安全模型变更」，必须在真机上跑完整 e2e（尤其录屏、剪贴板、文件索引）
+       * 才能确认，不能靠推断。故此处先如实标注，翻转单列一项。
+       *
+       * 在此期间的风险面已被收窄：导航 / 开窗 / 权限三道守卫都在全局兜底里
+       * （src/main/security/navigationGuard.ts），不依赖 renderer 沙箱。
+       */
       sandbox: false,
       spellcheck: false,
       webSecurity: true

@@ -264,7 +264,15 @@ const container: HostNode = { type: 'list', props: {}, children: [] }
 // registry 以 lazy 方式引入（避免与组件文件形成初始化环）
 import * as registryModule from './registry'
 
-const reconciler = Reconciler({
+/**
+ * 宿主配置。
+ *
+ * **导出是为了可测**：react-reconciler 是按位置传参调用它的，形参一错位就是
+ * 静默炸栈（见下面 commitUpdate 的注释）。`__tests__/hostconfig-contract.test.ts`
+ * 会真的跑一次 render+update，把 reconciler 实际传进来的实参个数与位置钉住 ——
+ * 这比读源码做文本分析可靠，也是升级 react-reconciler 时必须重跑的那道闸。
+ */
+export const hostConfig = {
   isPrimaryRenderer: true,
   supportsMutation: true,
   supportsPersistence: false,
@@ -408,7 +416,9 @@ const reconciler = Reconciler({
   scheduleMicrotask(fn: () => void): void {
     fn()
   }
-})
+}
+
+const reconciler = Reconciler(hostConfig as never)
 
 let root: unknown = null
 let mounted = false

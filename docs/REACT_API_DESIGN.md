@@ -3,7 +3,17 @@
 > 对应 `RAYCAST_GAP_ANALYSIS_V4.md` §2.11 的核心缺口：插件只有声明式数据协议（v1
 > renderList），没有组件级 UI API。参考 `references/vicinae/src/typescript/`（react-reconciler
 > 序列化 + 函数 props 回调 id 注册表 + 宿主 model-parser 原生渲染）。
-> **状态：设计稿，待确认后实施。**
+>
+> **状态（2026-09-24 校正）：已实施，非设计稿。** 本文此前长期标着「设计稿，待确认后
+> 实施」，而 SDK 早已落地并在用（M1 / M2 / M3 均已完成，`example-react` 是活样例）。
+> 下文保留设计意图，但**以代码为准**；实现细节与本稿不符之处已在对应段落标注。
+>
+> ⚠ **改这个 SDK 前必读**：`react-reconciler` 是**按位置传参**调用宿主配置的，
+> 且它的小版本会改调用签名 —— 2026-09-22 就因 `commitUpdate` 沿用旧版形参顺序
+> 出过一次真事故（fiber 被写进 `HostNode.props` → 序列化爆栈 → **此后所有视图提交
+> 静默消失**，而单测 / typecheck / 构建全绿）。现在 `packages/frond-plugin-sdk/package.json`
+> 把版本**钉成精确值**，并有 `__tests__/hostconfig-contract.test.ts` 在运行时量出
+> reconciler 实际传了几个实参、每一位是什么。**升级前先跑它**。
 
 ## 1. 目标与非目标
 
@@ -45,11 +55,19 @@
   把树映射进**现有 PluginListPage 渲染管线**——v2 是 v1 的组件化超集，不是重写
 - 视图种类 v1：`list`（含 section 分组）/ `detail`（markdown|text）/ `form`（字段协议
   复用 #3 FormField）/ `action-panel`
-- rAF 合并提交：reconcile 高频变化（输入态）在 SDK 侧按帧合并，避免 IPC 风暴
+- 提交合并：reconcile 高频变化（输入态）在 SDK 侧合并后再提交，避免 IPC 风暴。
+  **实现与本稿不同**：用的是 `queueMicrotask` 而**不是 rAF** —— 隐藏页面（声明模式
+  插件视图）的 rAF / setTimeout 会被 Chromium 后台节流冻结，回调后的视图提交将
+  无限延迟。React commit 本身已按批次收敛，微任务直发即最及时且不被节流
+  （见 `src/reconciler.ts` 的 `scheduleSubmit`）
 
 ## 4. SDK 形态（frond-plugin-sdk）
 
-- 依赖：`react`（peer）+ `react-reconciler`（SDK 内置）——只在插件侧，宿主零 React
+- 依赖：`react`（peer，范围 `>=18`）+ `react-reconciler`（**peer + dev 两处都钉精确
+  版本 `0.34.0`，不带 `^`/`~`**）——只在插件侧，宿主零 React。
+  钉死的原因见文首的升级守卫说明：宿主配置按位置传参，签名漂移是**静默**故障。
+  升版流程 = 改 `package.json` 两处 + 改 `hostconfig-contract.test.ts` 里的
+  `PINNED_RECONCILER_VERSION` + 跑它确认实参个数与位置没变
 - 组件：List / List.Item / List.Section / Detail / Form.* / ActionPanel / Action
 - Hooks v1：`useNavigation()`（push/pop 视图栈，插件内自管）、`useLocalStorage()`（走
   既有 plugapi:db* 通道）
@@ -78,9 +96,16 @@
 
 ## 6. 测试与验收
 
-- SDK 单测：reconciler 序列化快照（树形状 / 回调 id 替换 / 卸载清理）、rAF 合并
+- SDK 单测（`packages/frond-plugin-sdk/__tests__/`，测的是 `dist/`，由
+  `vitest.global-setup.ts` 每次从 src 重建 —— 杜绝「改了源码却测着旧字节码」）：
+  - `sdk.test.ts`：序列化行为（Section 拍平不重复、嵌套函数 props 清洗、环状 props
+    切断、回调 id 失效可诊断、useNavigation 引用稳定、List 加载/空态、Detail actions）
+  - `hostconfig-contract.test.ts`：**react-reconciler 调用约定契约**（版本钉死 +
+    运行时量实参个数与位置 + 宿主配置形参顺序）
+  - `platform.test.ts`：平台能力门控
 - 宿主解析器单测：JSON 树 → 视图模型（含非法节点 fail-closed 剔除）
 - e2e：example-react 插件 → 胶囊打开 → List 渲染 → 回车触发回调 → 详情切换
+  （`e2e/react-view.spec.mjs`）
 
 ## 7. 备选方案对比（已否决 Option B）
 
@@ -88,8 +113,14 @@
 割裂（每个插件一套 UI 风格）；(2) 插件 DOM 直接运行在宿主进程窗口，攻击面↑；(3) 与
 「声明式、宿主渲染」的既有 M3.1 决策相悖。Vicinae/ueli 生态均走宿主渲染路线。
 
-## 8. 需拍板事项
+## 8. 需拍板事项（**均已有结论**，2026-09-24 回填）
 
-1. **SDK 分发形态**：仓库 workspace 包（`pnpm-workspace` + `file:../sdk` 引用，发布 npm 后切包名）vs 单文件 ESM（插件 `<script>` 直引）
-2. **v1 组件面**：List + Detail + ActionPanel + useNavigation（推荐）vs 同期加 Form
-3. **API 命名**：Frond 自有命名（`frond-plugin-sdk`，Raycast 风格但独立品牌）vs 同期做 `@raycast/api` 兼容别名
+1. **SDK 分发形态** → **仓库 workspace 包**（`packages/frond-plugin-sdk`，
+   `pnpm-workspace.yaml` 收录；插件侧经 dist 引用）。发布 npm 仍待办。
+2. **v1 组件面** → **同期就含 Form**：`List` / `List.Item` / `List.Section` /
+   `Detail` / `Form.*` / `ActionPanel` / `Action` 均已实现（见 §4）。
+3. **API 命名** → **两条都做**：自有命名 `frond-plugin-sdk` + `@frond/raycast-api`
+   兼容别名层（M3 已完成）。
+
+> 本节此前列的三条「需拍板」其实早已由实现回答，长期没回填 —— 属于本仓库
+> 「文档自称事实源、实际已漂」的典型。回填后本节保留作决策留痕，不再表示待办。

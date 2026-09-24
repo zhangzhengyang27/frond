@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { FileIndexDb } from '../db'
 import { fullScan, rescanDir, compensateStaleDirs } from '../scanner'
+// 索引里存的路径是 normPath 的 '/' 规范形态；断言与生产函数同源，win32 才不会
+// 因 join() 的反斜杠假红（2026-09-24 CI windows 咬到）
+import { normPath } from '../paths'
 
 /**
  * 扫描器（#9）：初始全量 + 单目录增量 diff。
@@ -71,7 +74,7 @@ describe('fullScan', () => {
     const db = makeDb()
     await fullScan({ roots: [root], db, policy: { hidden: true } })
     const hits = db.search(['独特正文'], { mode: 'content', limit: 5 })
-    expect(hits.map((h) => h.path)).toContain(join(root, 'doc.md'))
+    expect(hits.map((h) => h.path)).toContain(normPath(join(root, 'doc.md')))
   })
 })
 

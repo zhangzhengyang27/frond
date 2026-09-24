@@ -95,6 +95,22 @@ const showResults = async (main) => {
   return capsule
 }
 
+/**
+ * 进设置页并切到「启动器」节。
+ *
+ * ⚠ 设置页是**分节签**结构（`activeSection`：通用 / 启动器 / AI / 专注 / 插件 / …），
+ * 密度与紧凑模式控件都在「启动器」节里 —— 只改 hash 不切节，那些控件被 `v-if` 掉、
+ * 根本不在 DOM 里。此前这里只改 hash 就等文案，2026-09-24 起必然超时。
+ */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+const gotoSettingsLauncherSection = async (main) => {
+  await main.evaluate(() => {
+    window.location.hash = '#/settings'
+  })
+  await main.getByRole('button', { name: '启动器' }).first().click()
+  await main.getByText('结果列表密度').first().waitFor({ timeout: 15000 })
+}
+
 test('1. 默认是宽松档，切到紧凑档后行高真的变小、字号不变', async () => {
   if (!app) throw new Error('app not launched')
   const main = await getMainWindow()
@@ -107,10 +123,7 @@ test('1. 默认是宽松档，切到紧凑档后行高真的变小、字号不�
   expect(wide.height).toBeGreaterThan(30)
 
   // 走 UI 改档（不是直接调 API）：设置页那一行按钮也得真的接着
-  await main.evaluate(() => {
-    window.location.hash = '#/settings'
-  })
-  await main.getByText('结果列表密度').first().waitFor({ timeout: 15000 })
+  await gotoSettingsLauncherSection(main)
   await main.locator('[data-density-opt="compact"]').click()
   expect(await main.evaluate(() => window.api.preferences.getDensity())).toBe('compact')
 
@@ -125,6 +138,8 @@ test('1. 默认是宽松档，切到紧凑档后行高真的变小、字号不�
 test('2. 设置页与主进程说的是同一个档', async () => {
   if (!app) throw new Error('app not launched')
   const main = await getMainWindow()
+  // 不依赖上一条用例把页面停在哪儿：自己重新切一次（幂等）
+  await gotoSettingsLauncherSection(main)
   const shown = await main.locator('[data-density-opt="compact"]').evaluate((el) =>
     el.classList.contains('bg-brand-500')
   )

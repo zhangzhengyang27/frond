@@ -765,6 +765,24 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   【未跑】CI 本身仍无远端可跑；diff 口径的 push/PR 路径只经注入式单测与本地 `--base` 验证，
   真实 GITHUB_ACTIONS 环境未跑过。
 
+#### 10.12 主窗 sandbox 翻转落地 + e2e 基线真相核查（2026-09-24）
+
+- **主窗 `sandbox: false → true`**（`src/main/modules/windows.ts`）—— 本仓最后一处非沙箱化
+  webPreferences 消失，9 处全部 `sandbox: true`。原注释要求「真机跑完整 e2e 才翻转，不能靠
+  推断」——照办了：preload 运行时依赖仅 `ipcRenderer`/`contextBridge`（其余 import 全是
+  type-only，编译期擦除；`process.contextIsolated` 在沙箱 preload 可用）。
+- **翻转无罪的对照证据**：翻转后全量 e2e 27 红/72 过；随后 stash 翻转、重建基线包、只跑同样
+  11 个失败 spec —— 基线同样 27 红，失败集合一致，仅一对互相颠倒（`capsule-animation:93`
+  翻转侧红/基线绿，`mcp-tool-search:168` 基线红/翻转侧绿；retries=0 下的 flake 互换形态）。
+  结论：**27 条红全部是存量，与翻转无关**。
+- **⚠ e2e 基线真相核查（比翻转本身更重要）**：HANDOFF 挂账原记「e2e 7 条红（density 2 +
+  market-index 5）」，实测 **27 条红**（10.2 分钟，1 skip）。多出的 22 条：react-view 5、
+  mcp-tool-search 4、plugin-arg-slots 3、plugin-schedule 3、ai-action 2、ai-byom 2、
+  a11y 1、command-palette 1、file-index 1、capsule-animation 1。可见线索：react-view:422
+  期望 `https://example.com/frond-e2e` 实得 `leaf-e2e`（§12 改名残留）——launcher/插件
+  React 协议一整簇红，像同一根因。「7 条红」的挂账**严重过时**；这 22 条的逐条归因
+  （改名残留 / 09-24 之后的回归 / 环境漂移）是**新挂账**，动 launcher 或插件协议前先清。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

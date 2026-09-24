@@ -798,6 +798,48 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   下一步逐簇按同法处理（先读 error-context 快照，再对照 API 层数据，分清「数据没有」
   还是「数据在、渲染丢」）。
 
+#### 10.13 发布链路首跑五连战：v0.1.0 真实上线 + CI 首跑真相（2026-09-24）
+
+- **发布目标落地（d5ca865）**：publish 三处换真仓库 `zhangzhengyang27/frond`
+  （`electron-builder.yml` / `dev-app-update.yml` / `AutoUpdateService.ts` 头注释）；
+  `scripts/lib/releasePreflight.mjs` 的 `PLACEHOLDER_PUBLISH` 保留作**回归绊网**（谁改回占位值
+  就拦），单测钉住真仓库解析（`releasePreflight.test.ts`）。同批对齐 RELEASE.md 承诺：
+  release.yml 补 `CSC_IDENTITY_AUTO_DISCOVERY=false`（未签名豁免，D2）、发布资产补
+  `latest-mac.yml` + `SHA256SUMS`（publish job 展平产物后生成，`sha256sum` 与 mac
+  `shasum -a 256 -c` 格式兼容）、Release 正文带未签名告警。
+- **五跑战果（tag v0.1.0 每跑一修一重指）**：跑1 `pnpm/action-setup` 传 `version: 9` 与
+  packageManager 的 sha512 钉定冲突（"Multiple versions of pnpm specified"）→ 去掉 version
+  输入（11701af）；跑2 `ERR_PNPM_OUTDATED_LOCKFILE` —— **b77fdaf（P1-1）把
+  frond-plugin-sdk 的 react-reconciler 钉成精确 0.34.0 却没重生成 lockfile**，本机
+  node_modules 已装好从不复检，CI `--frozen-lockfile` 秒咬 → `pnpm install --lockfile-only`
+  补同步，diff 恰一行 specifier（4297812）；跑3 node-gyp 9.4.1 `import distutils` 挂——
+  runner 默认 Python 3.13+，且 **postinstall 的 `install-app-deps` 不受 `npmRebuild:false`
+  门控**（app-builder-lib `installOrRebuild` 无此检查，packager.js 的打包路径才有），
+  `@parcel/watcher` 与 rebuild:native 的 better-sqlite3 都走 node-gyp → 各 job 钉
+  `setup-python 3.11`（a24187f）；跑4 **空串 CSC_LINK 被当证书路径**——secret 缺失时
+  Actions 注入空串而非 unset，`getCscLink` 的 `chooseNotNull` 不把空串当 null →
+  `importCertificate` 把 `resolve("")`=项目目录当 .p12 → "not a file"；
+  `CSC_IDENTITY_AUTO_DISCOVERY=false` 只挡 keychain 发现、挡不住显式 CSC_LINK →
+  运行前 `[ -n "${CSC_LINK:-}" ] || unset CSC_LINK`（b108a84）；**跑5 全绿**：
+  v0.1.0 上线 https://github.com/zhangzhengyang27/frond/releases/tag/v0.1.0
+  （Frond-0.1.0-arm64-mac.zip 164MB / frond-desktop-0.1.0.dmg 171MB / latest-mac.yml /
+  SHA256SUMS，未签名说明在 Release 正文，manifest 里 name 是 frond-desktop 故 dmg 前缀如此）。
+- **tag 重指史**：v0.1.0 四次 `-f` 重指（4c509ad→d5ca865→11701af→4297812→a24187f→b108a84），
+  每次被指提交的运行都未产出 Release 对象、tag 无任何消费者后才重指——不算「移动已发布 tag」。
+- **CI 首跑真相（新挂账，与发布分开单开）**：①ubuntu/windows 的 Install dependencies 挂在
+  postinstall 重编 `uiohook-napi` —— Linux 缺 X11 头文件（libx11-dev/libxt-dev/libxtst-dev
+  一族，e2e job 装的是运行库不是头文件）；windows 未拉日志未归因；②**macOS 单测 3 红
+  （909 过）全在 `lintCssChanged.test.ts` CLI 集成**：浅克隆下按 push 口径 diff
+  `event.before..HEAD` → "Invalid revision range"——lint job 特意加了 `fetch-depth: 0`
+  （ci.yml 注释），**单测 job 漏加**，一行可修；③e2e smoke / Build(Linux) 被 needs 连坐。
+  修法都便宜，但要单开一批，别混进发布验证。
+- **沉淀**：①Actions secret 缺失注入的是**空串**，凡用 `process.env.X != null` 判定的库都会
+  中招，belt 是运行前 unset 空值；②`--frozen-lockfile` 这类一致性检查只在**干净环境**有牙，
+  本机永远验不出 lockfile 漂移——lockfile 变更必须与 manifest 同 commit；③本机推送 GitHub
+  的可用姿势：直连 + `http.version=HTTP/1.1`，或 `http.proxy=http://127.0.0.1:7890`（系统
+  代理 Clash 7890，git 不读 macOS 系统代理）；api.github.com 与日志 CDN 跳转域直连不稳，
+  走代理 + `--http1.1`。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

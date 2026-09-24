@@ -32,6 +32,8 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 const SRC_DIR = join(__dirname, '..', '..')
+/** 仓库根：`RECOVERED_WITHOUT_MARKER` 的路径一律以它为基准（含 packages/ 下的文件） */
+const REPO_ROOT = join(__dirname, '..', '..', '..')
 
 /**
  * 标记格式：`2026-09-2X 重建件（…）` 或 `2026-09-2X 重建：…`，两种写法都算。
@@ -88,6 +90,42 @@ const KNOWN_REBUILD_FILES = [
   'renderer/src/components/CodePreview.vue',
   'renderer/src/components/BackgroundSwitch.vue',
   'renderer/src/components/LaserPointer.vue'
+]
+
+/**
+ * **恢复件，但不带 `2026-09-2X 重建` 标记** —— 靠措辞匹配抓不到的那一批。
+ *
+ * 为什么需要这份显式清单：上面 `rebuildFiles()` 是**按措辞匹配**的
+ * （`/2026-09-2[23]\s*重建/`），而同样是「事故后恢复出来的」文件，措辞并不统一：
+ * 有的写「从 dev 缓存取出」、有的写「重建，非原件」、有的写「恢复说明」。
+ * 实测（2026-09-24）漏了 4 个 —— 其中 `main.css` 的漏登记还**直接导致过一个真 bug**
+ * 被漏看：它是 2026-09-22 的静态 CSS 转储，只含转储那一刻的工具类，设置页因此有个
+ * 开关渲染成 0×0（详见 `renderer/src/styles/recovered-css-gap.css` 的文件头）。
+ *
+ * 为什么**不**把正则放宽去覆盖它们：试过，会大量误伤 —— 「恢复」是录屏模块的功能名
+ * （`RecoveryManager`）、「重建」是索引模块的功能名（`fileIndex` 的全量重建）、
+ * `dbBackup` 是备份还原功能。靠措辞判断「这文件是不是恢复件」本身就不可靠。
+ * 所以走**显式清单**：漏一个就补一个，每条的判据写清楚。
+ *
+ * 判据（每条都必须能回答「凭什么是恢复件」）：文件头自己声明了它是恢复/转储出来的。
+ */
+const RECOVERED_WITHOUT_MARKER: ReadonlyArray<{ rel: string; why: string }> = [
+  {
+    rel: 'src/renderer/src/assets/main.css',
+    why: '文件头：「2026-09-22 从 dev 缓存的 CSS 模块取出的 __vite__css 原文」——静态转储，无生成管线'
+  },
+  {
+    rel: 'src/renderer/src/views/pomodoro/utils/exportTaskRecords.ts',
+    why: '文件头：「2026-09-22 恢复事故里这文件只剩 10 行…其余按调用形态与契约重建」'
+  },
+  {
+    rel: 'src/main/db/__tests__/5_6b.pomodoro.test.ts',
+    why: '文件头：「恢复说明：头与末随 2026-09-22 删除事故丢失…保留的是找回的断言原文」'
+  },
+  {
+    rel: 'packages/frond-plugin-sdk/tsconfig.json',
+    why: '文件头：「⚠ 重建，非原件：…随 2026-09-22 桌面删除事故丢失」'
+  }
 ]
 
 /** 递归收集 src 下所有文件（相对 src 的路径） */
@@ -148,5 +186,41 @@ describe('重建件台账', () => {
     const known = new Set(KNOWN_REBUILD_FILES)
     const unregistered = rebuildFiles().filter((rel) => !known.has(rel))
     expect(unregistered, '这些文件带重建标记但不在台账里，请补进 KNOWN_REBUILD_FILES').toEqual([])
+  })
+
+  /**
+   * 「恢复件但措辞不同」的那一批（靠标记匹配抓不到，走显式清单）。
+   * 这组断言守三件事：
+   *   1. 清单里的文件都在（删了要同步改清单）
+   *   2. 它们**确实不带**标记 —— 带了就该并进上面那份，而不是两边都登记
+   *   3. 路径基准统一为**仓库根**，避免「相对 src 还是相对根」的歧义
+   */
+  it('不带标记的恢复件：逐条存在、且确实没带标记（防措辞漂移漏登记）', () => {
+    expect(
+      RECOVERED_WITHOUT_MARKER.length,
+      '清单为空 = 这条断言空转；若恢复件已全部带标记，请删掉本用例'
+    ).toBeGreaterThan(0)
+
+    const markerFiles = new Set(rebuildFiles())
+    const missing: string[] = []
+    const wronglyMarked: string[] = []
+
+    for (const { rel } of RECOVERED_WITHOUT_MARKER) {
+      if (!existsSync(join(REPO_ROOT, rel))) {
+        missing.push(rel)
+        continue
+      }
+      // 相对 src 的路径 = 去掉前缀 src/
+      const relToSrc = rel.startsWith('src/') ? rel.slice('src/'.length) : null
+      if (relToSrc && markerFiles.has(relToSrc)) wronglyMarked.push(rel)
+    }
+
+    expect(missing, '清单里的恢复件在磁盘上找不到了（删了要同步改 RECOVERED_WITHOUT_MARKER）').toEqual(
+      []
+    )
+    expect(
+      wronglyMarked,
+      '这些文件现在带了重建标记 —— 说明措辞统一了，应把它们并进 KNOWN_REBUILD_FILES 并从这里删掉'
+    ).toEqual([])
   })
 })

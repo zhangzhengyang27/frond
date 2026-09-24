@@ -12,10 +12,14 @@ import { join } from 'node:path'
 const BUILD_IN_ORDER = ['frond-plugin-sdk', 'frond-raycast-api']
 
 export default function setup(): void {
+  // Windows 上 npm 是 npm.cmd，不带 shell 的 execFileSync 直接 ENOENT
+  // （2026-09-24 CI windows 首跑咬到）
+  const isWin = process.platform === 'win32'
   for (const pkg of BUILD_IN_ORDER) {
-    execFileSync('npm', ['run', 'build'], {
+    execFileSync(isWin ? 'npm.cmd' : 'npm', ['run', 'build'], {
       cwd: join(process.cwd(), 'packages', pkg),
-      stdio: 'ignore'
+      stdio: 'ignore',
+      shell: isWin
     })
   }
 }

@@ -77,19 +77,14 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
 
-      # rebuild:native（electron-rebuild → node-gyp 9.4.1）在 ubuntu/macos 真编
-      # better-sqlite3，需要 distutils；runner 默认 Python 3.12+ 已移除，钉 3.11
-      # （windows 无 VS 检测 → 走下面 rebuild 步的 || echo 降级，用 node 预编译件）
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      # ⚠ 这里刻意【不跑】rebuild:native：vitest 在 Node 里跑，需要 better-sqlite3 的
+      # node 预编译件（install 脚本自动下载）。electron-rebuild 重编出的 Electron-ABI
+      # 产物在 Node 里载入即崩——2026-09-24 CI 实测：恰好 24 个 DB 测试文件的 fork
+      # 全部秒死（migrations/db/storage/dataSync/mcp…），两平台死法一致。
+      # Electron-ABI 重编只属于 release/e2e（真 Electron 运行时）那两个 job。
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build native modules
-        # NAPI 产物 node/electron 通用；windows 编不了时降级为 prebuild 下载的 node 件
-        run: pnpm rebuild:native || echo "Native rebuild skipped (no better-sqlite3)"
 
       - name: Run tests
         run: pnpm test -- --reporter=verbose

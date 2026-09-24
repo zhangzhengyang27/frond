@@ -24,3 +24,7 @@ vibe_images/
 # 恢复后补：第三方参考克隆（ueli/vicinae，可重新 clone）与 Playwright 产物
 references/
 test-results/
+
+# 2026-09-22 删除事故残留：Vite dev server 在错误工作目录下把 /@fs/ URL 落盘的
+# 空文件树（全 0 字节，路径镜像旧仓库 electron-tools）。可安全删除。
+/@fs/

@@ -1,4 +1,4 @@
 provider: github
-owner: frond-app
-repo: frond-desktop
+owner: zhangzhengyang27
+repo: frond
 updaterCacheDirName: frond-updater

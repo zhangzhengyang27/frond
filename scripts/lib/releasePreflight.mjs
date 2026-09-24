@@ -1,17 +1,18 @@
 /**
  * 发布链路自检（P-3.6）· 纯判定部分
  *
- * 为什么存在：仓库还没有真的发布目标（`electron-builder.yml` 的 publish 是占位
- * `frond-app/frond-desktop`），也没有 Apple 开发者账号。这两件事在产品里表现为
- * 「自动更新永远查不到东西」和「下载下来 macOS 报已损坏」，而构建本身是**绿的**——
- * 绿色不代表能发。所以把判定写成显式的一档：
- *   blocking = 不能发（占位目标 / 版本不合法 / 没有上传用的 token）
+ * 为什么存在：发布目标 / 版本 / 上传 token / build/ 资产引用这几件事，任何一件没到位时
+ * `pnpm build` 都**照样是绿的**——但产物要么更新不到、要么 mac 打包直接失败。
+ * 绿色不代表能发，所以把判定写成显式的一档：
+ *   blocking = 不能发（占位绊网目标 / 版本不合法 / 没有上传用的 token / 资产缺失）
  *   warnings = 能发，但必须对用户说清楚（未签名 / 已签名未公证）
+ * 2026-09-24 起真仓库 zhangzhengyang27/frond 已落地，PLACEHOLDER_PUBLISH 保留作回归绊网：
+ * 谁把 publish 改回占位/模板值，这条 blocking 会再次拦下发布。
  * 签名这一档按 D2（无账号）刻意不算 blocking：现阶段就是发未签名产物，
  * 等账号到位把 CSC_LINK 配上，warnings 自己会少一条。
  */
 
-/** 还没换成真仓库之前，构建可以跑、发布不能过的占位目标 */
+/** 占位/模板值——换真仓库之后留作回归绊网，见文件头注释 */
 export const PLACEHOLDER_PUBLISH = { owner: 'frond-app', repo: 'frond-desktop' }
 
 export function isPlaceholderTarget(owner, repo) {

@@ -31,10 +31,11 @@ describe('readPublishTarget', () => {
   it('解析真实 electron-builder.yml（解析器飘了就等于自检全瞎）', () => {
     const __dirname = dirname(fileURLToPath(import.meta.url))
     const yml = readFileSync(join(__dirname, '..', '..', 'electron-builder.yml'), 'utf-8')
+    // 钉真仓库：解析器飘了等于自检全瞎；publish 目标换仓库时这里必须跟着改
     expect(readPublishTarget(yml)).toEqual({
       provider: 'github',
-      owner: 'frond-app',
-      repo: 'frond-desktop'
+      owner: 'zhangzhengyang27',
+      repo: 'frond'
     })
   })
 

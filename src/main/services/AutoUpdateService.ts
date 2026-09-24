@@ -11,9 +11,10 @@
  * 渲染端用 window.api.update.onEvent(cb) 订阅。
  *
  * 来源：docs/MODULE_TIERS.md「1.0 必须补的非功能模块」之「自动更新」。
- * 更新源：electron-builder.yml 的 publish 配置（GitHub Releases provider）。
- * 注意：owner/repo 当前是占位（frond-app/frond-desktop），首次发布前需改成
- * 实际 GitHub 仓库，并配置签名公证 secrets —— 见 docs/RELEASE.md 清单。
+ * 更新源：electron-builder.yml 的 publish 配置（GitHub Releases provider，
+ * 2026-09-24 已由占位 frond-app/frond-desktop 落地为 zhangzhengyang27/frond）。
+ * 注意：mac 未签名/未公证期间（决策 D2）检查更新可用、静默安装信任链不完整，
+ * 未签名期间不要把自动更新当主推荐路径 —— 见 docs/RELEASE.md。
  */
 
 import { BrowserWindow, app } from 'electron'

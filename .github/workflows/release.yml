@@ -32,6 +32,7 @@ jobs:
             artifact_glob: |
               out/make/**/*.dmg
               out/make/**/*.zip
+              out/make/**/latest-mac.yml
             release_assets: |
               *.dmg
               *.zip
@@ -58,7 +59,7 @@ jobs:
           fi
 
       - name: Release preflight
-        # 先于一切耗时步骤跑：发布目标仍是占位 / 版本不合法 / 没有上传 token /
+        # 先于一切耗时步骤跑：发布目标是占位绊网值 / 版本不合法 / 没有上传 token /
         # electron-builder.yml 引用的 build/ 资产缺失 —— 这几种状态下 `pnpm build`
         # **照样是绿的**，但产物要么更新不到、要么 mac 打包直接失败。
         # 判定本体：scripts/lib/releasePreflight.mjs（纯函数 + 单测）
@@ -87,7 +88,11 @@ jobs:
       - name: electron-builder (${{ matrix.target }})
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # —— macOS 签名 / 公证 ——
+          # —— macOS 签名 / 公证（当前未配置，产物未签名，决策 D2）——
+          # 显式关掉签名身份自动发现：无证书的 runner 上 electron-builder 只 warn 不炸
+          # （读 25.1.8 源码确认：notarize 无凭据时同样 warn 跳过，notarize: true 不拦 CI）。
+          # 配上 secrets 后删掉这一行即可恢复签名链路。
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           # Apple 开发者账号（去 https://appleid.apple.com → App-Specific Passwords 生成）
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -147,6 +152,16 @@ jobs:
       - name: List downloaded assets
         run: ls -la dist/ && find dist -type f | head -30
 
+      - name: Flatten artifacts & generate SHA256SUMS
+        # Release 资产是平铺的，download-artifact 会带 release-mac/ 一层，先展平；
+        # SHA256SUMS 是未签名阶段唯一的完整性凭据（docs/RELEASE.md「发布后核对」），
+        # 用 sha256sum 生成、格式与 mac 上 `shasum -a 256 -c` 兼容。
+        run: |
+          cd dist
+          find . -mindepth 2 -type f -exec mv -t . {} +
+          find . -mindepth 1 -type d -empty -delete
+          sha256sum ./*.dmg ./*.zip > SHA256SUMS
+
       - name: Create / update GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -154,8 +169,16 @@ jobs:
           name: ${{ steps.tag.outputs.name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
+          # latest-mac.yml 是 electron-updater 的 feed 文件（--publish=never 下 zip
+          # 目标仍会生成，见 app-builder-lib PublishManager 的 isWriteUpdateInfo 块）
+          body: |
+            > ⚠️ 未签名产物（决策 D2，等 Apple 开发者账号）：macOS 首次打开需**右键 → 打开**；
+            > 本版本自动更新不可用，请从本页手动下载。完整性校验：下载 `SHA256SUMS` 后在
+            > 同目录执行 `shasum -a 256 -c SHA256SUMS`。
           files: |
-            dist/**/*.dmg
-            dist/**/*.zip
+            dist/*.dmg
+            dist/*.zip
+            dist/latest-mac.yml
+            dist/SHA256SUMS
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

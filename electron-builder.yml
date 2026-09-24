@@ -106,8 +106,8 @@ npmRebuild: false
 # - 私有仓库或需要统计时可改用 generic provider + 自建静态服务器
 publish:
   provider: github
-  owner: frond-app
-  repo: frond-desktop
+  owner: zhangzhengyang27
+  repo: frond
   releaseType: release
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

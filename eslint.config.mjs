@@ -57,5 +57,14 @@ export default defineConfig(
       ]
     }
   },
+  // .js/.mjs（e2e 探针 / playwright spec / 配置件）写不了 TS 返回类型注解，
+  // 该规则对纯 JS 的裸函数恒报 error——与上面存量降级同理降为 warn（CI 只挡 error）。
+  // 首跑咬到 e2e/global-setup.mjs 的 export default function setup()。
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    rules: {
+      '@typescript-eslint/explicit-function-return-type': 'warn'
+    }
+  },
   eslintConfigPrettier
 )

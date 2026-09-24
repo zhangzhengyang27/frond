@@ -160,17 +160,23 @@ describe('CLI 集成（真实 stylelint）', () => {
     writeFileSync(join(tmp, 'bad.css'), '.a { color: #ffffff; }\n')
     execFileSync('git', ['init'], { cwd: tmp })
     execFileSync('git', ['add', 'bad.css'], { cwd: tmp })
+    // 这两个用例钉的是本地 status 口径；Actions 上进程环境自带 GITHUB_ACTIONS=true，
+    // 会把 CLI 切进 push diff 口径，而临时仓库里没有 event.before 那个提交 → 显式压掉
     const r = spawnSync('node', [CLI], {
       cwd: tmp,
       encoding: 'utf8',
-      env: { ...process.env, STRICT_CSS_LINT: '1' }
+      env: { ...process.env, GITHUB_ACTIONS: '', STRICT_CSS_LINT: '1' }
     })
     expect(r.status, `stdout: ${r.stdout}\nstderr: ${r.stderr}`).toBe(1)
     expect(r.stdout).toContain('color-no-hex')
   })
 
   it('同一文件、非 strict（存量容忍口径）→ exit 0 但列出 warning', () => {
-    const r = spawnSync('node', [CLI], { cwd: tmp, encoding: 'utf8' })
+    const r = spawnSync('node', [CLI], {
+      cwd: tmp,
+      encoding: 'utf8',
+      env: { ...process.env, GITHUB_ACTIONS: '' }
+    })
     expect(r.status).toBe(0)
     expect(r.stdout).toContain('color-no-hex')
   })

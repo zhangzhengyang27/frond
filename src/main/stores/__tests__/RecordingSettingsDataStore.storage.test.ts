@@ -13,6 +13,44 @@ vi.mock('electron', () => ({
   ipcMain: { handle: () => {} }
 }))
 
+/**
+ * electron-store 必须 mock 掉（2026-09-24）。
+ *
+ * 只 mock `electron` 是不够的：electron-store 在**非 Electron 进程**里根本不查
+ * `app.getPath('userData')`，而是走 env-paths 的默认目录。实测跑一次本文件就会
+ * 刷新真实的 `~/Library/Preferences/electron-store-nodejs/recording-settings.json`，
+ * 并留下 `.tmp-*` 残骸（沙箱拦截写入时尤其明显）——测试污染了开发者的真实用户数据。
+ *
+ * 这里换成进程内内存实现：按 name 隔离，语义上仍保留「新实例能读到已写入的值」，
+ * 但那句断言现在验的是本类的合并/读写逻辑，而不是 electron-store 的文件 IO。
+ */
+vi.mock('electron-store', () => {
+  const disk = new Map<string, Record<string, unknown>>()
+  class MemoryStore {
+    private readonly name: string
+    private readonly defaults: Record<string, unknown>
+    constructor(options: { name?: string; defaults?: Record<string, unknown> } = {}) {
+      this.name = options.name ?? 'config'
+      this.defaults = structuredClone(options.defaults ?? {})
+      if (!disk.has(this.name)) disk.set(this.name, structuredClone(this.defaults))
+    }
+    get(key: string): unknown {
+      const data = disk.get(this.name) as Record<string, unknown>
+      return key in data ? data[key] : this.defaults[key]
+    }
+    set(key: string, value: unknown): void {
+      ;(disk.get(this.name) as Record<string, unknown>)[key] = value
+    }
+    delete(key: string): void {
+      delete (disk.get(this.name) as Record<string, unknown>)[key]
+    }
+    clear(): void {
+      disk.set(this.name, structuredClone(this.defaults))
+    }
+  }
+  return { default: MemoryStore }
+})
+
 import Database from 'better-sqlite3'
 import { migrations } from '../../db/migrations'
 import { database } from '../../db/database'

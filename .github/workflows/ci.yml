@@ -31,6 +31,11 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      # 同上：node-gyp 9.4.1 重编原生模块需要 Python 3.11（distutils）
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -70,6 +75,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
 
+      # postinstall（electron-builder install-app-deps）重编原生模块需要
+      # node-gyp 9.4.1 → distutils；runner 默认 Python 3.12+ 已移除，钉 3.11
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -97,6 +108,11 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+
+      # 同上：node-gyp 9.4.1 重编原生模块需要 Python 3.11（distutils）
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -142,6 +158,11 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+
+      # 同上：node-gyp 9.4.1 重编原生模块需要 Python 3.11（distutils）
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

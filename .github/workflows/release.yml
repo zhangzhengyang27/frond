@@ -49,6 +49,14 @@ jobs:
           node-version: 20
           cache: pnpm
 
+      # node-gyp 9.4.1（@electron/rebuild 重编 @parcel/watcher、electron-rebuild 重编
+      # better-sqlite3 都会走它）import distutils——Python 3.12+ 已移除该模块，runner
+      # 默认 3.13+ 必挂（2026-09-24 三跑咬到，即 HANDOFF §12.2 记录的本机同款故障）。
+      # 显式给 3.11（最后一个自带 distutils 的稳定线）。
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Verify tag matches package.json version
         if: github.ref_type == 'tag'
         run: |

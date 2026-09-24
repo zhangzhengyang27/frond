@@ -23,8 +23,23 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   reporter: 'list',
+  /**
+   * retries 与 trace 是**一对**，不能只改一个（P1-9）。
+   *
+   * 此前配置是 `trace: 'on-first-retry'` 而 retries 没设（默认 0）—— 于是
+   * **trace 永远不会产生**：`on-first-retry` 的语义是「第一次重试时开始录」，
+   * 没有重试就永远不录。结果任何失败都只有一行错误信息，没有 trace / 截图可看，
+   * 定位只能靠猜（本仓多次出现「本地复现不了、CI 上一片红」）。
+   *
+   * 现在两头都补上：
+   * - `trace: 'retain-on-failure'`：每个用例都录，通过则丢弃 —— **不依赖重试**，
+   *   本地跑失败时也有 trace（这是 Playwright 官方推荐的调试默认值）
+   * - `retries`：本地 0（不让本地变慢、也不掩盖 flake）；CI 1（容忍基础设施抖动，
+   *   且重试用例同样留 trace）
+   */
+  retries: process.env.CI ? 1 : 0,
   use: {
-    trace: 'on-first-retry'
+    trace: 'retain-on-failure'
   },
   // electron 项目没有 webServer，由 beforeAll 里 _electron.launch 启动
   projects: [

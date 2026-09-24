@@ -840,6 +840,39 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   代理 Clash 7890，git 不读 macOS 系统代理）；api.github.com 与日志 CDN 跳转域直连不稳，
   走代理 + `--http1.1`。
 
+#### 10.14 CI 清绿四轮战：首个全绿 CI（2026-09-24，接 §10.13 的新挂账）
+
+§10.13 挂的三笔 CI 账清完，四轮迭代后 **run 36019789211（f386e1a）首次全绿**：
+lint / 单测×3（node 24）/ Build(Linux) / e2e smoke（xvfb 首跑即绿）。
+
+- **轮1（0398eb6）**：①摘除 package.json 的 postinstall（install-app-deps 强制重编一切带
+  gyp 的包——uiohook-napi/@parcel/watcher 都有 NAPI 预编译件，重编纯多余；ubuntu 缺
+  `X11/keysym.h`、windows node-gyp 认不出 VS 全是它）→ 三平台 install 全过；②单测 job
+  补 `fetch-depth: 0`（lintCssChanged CLI 集成 diff `event.before..HEAD`）。**附带根治
+  §12.2「pnpm install 本机必挂」**。
+- **轮2（88a18ee）**：lint 首跑咬出唯一 error——`e2e/global-setup.mjs` 的
+  `explicit-function-return-type`（.mjs 写不了 TS 注解，恒报）→ 按存量降级哲学对
+  `.js/.mjs` 降 warn；单测 2 红 = **GITHUB_ACTIONS 泄漏进集成测试**（CLI 读它切 CI 口径，
+  临时仓库没有 event.before 提交）→ spawn 时显式置空。lint job 转绿。
+- **轮3（59c1f15→bdf5dc4）**：单测三平台 103 文件过、**24 个 fork 毫秒级连崩**，两平台
+  死法完全一致。差集（缺席文件集）显示恰好全是 DB 测试 → 临时诊断步（beded65）实证：
+  **`require('better-sqlite3')` 在 CI 的 node20 下 Segmentation fault**——13.x tar 包内的
+  prebuild 与 node20 ABI 不兼容，node24 正常 → 单测 matrix 20→24。同批修 windows 假红：
+  **`.gitattributes` 全仓 LF**（CRLF 破坏 api-parity 的 `$` 锚点正则）、
+  sourceSizeRatchet/rebuildLedger 的 walk 输出统一 `'/'` 规范、plugin-manifest 用
+  `basename(dir)`、navigationGuard 夹具按平台构造（fileURLToPath/relative 是平台语义，
+  POSIX 硬编码在 win32 必假红）。
+- **轮4（9ba72d5 + f386e1a）**：windows 剩最后 1 条——scanner 断言用 win32 `join` 与
+  索引的 normPath `'/'` 规范形态比对 → 断言改用生产函数同源。build/e2e 的
+  rebuild:native 挂在 uiohook → **`-w` 在 @electron/rebuild 4.x 是「额外重编」语义
+  （进 extraModules），限流器是 `--only`** → 只重编真正需要 Electron-ABI 的
+  better-sqlite3。全绿。
+- **沉淀**：①pnpm `onlyBuiltDependencies` 白名单（electron/esbuild）会静默跳过其余包的
+  install 脚本——install 日志里「build scripts that were ignored」那行必须读
+  （better-sqlite3 13 tar 包自带 prebuilds 所以无碍，但别的包不一定）；②vitest fork
+  「Worker exited unexpectedly」不带 stderr，定位套路 = 缺席文件差集 + 临时诊断步裸 require；
+  ③升级依赖时旗标语义会变（-w→--only），报错文件不是被重编的那个时先查旗标。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

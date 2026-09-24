@@ -51,13 +51,20 @@ extraResources:
       - '**/*.d.ts'
 win:
   executableName: Frond
+  # 未提供 .ico 时 electron-builder 会由 build/icon.png 转换（源图 1024×1024）
+  icon: build/icon.png
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
-  entitlementsInherit: build/entitlements.mac.plist
+  icon: build/icon.icns
+  # 主 app 的 hardened runtime 授权：按本应用真实用到的能力逐条给，
+  # 每条的依据写在 plist 的注释里（JIT / 原生模块与 ffmpeg / 网络 / 麦克风与摄像头 / 用户选定文件）
+  entitlements: build/entitlements.mac.plist
+  # 子进程（Electron helper / ffmpeg）不会自动继承主进程授权，必须显式给 inherit
+  entitlementsInherit: build/entitlements.mac.inherit.plist
   extendInfo:
     NSCameraUsageDescription: Application requests access to the device's camera.
     NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -85,7 +92,9 @@ linux:
     - AppImage
     - snap
     - deb
-  maintainer: electronjs.org
+  icon: build/icon.png
+  # deb 的 Maintainer 字段不能留 electronjs.org 这类占位（会写进包元数据）
+  maintainer: Frond <frond-app@users.noreply.github.com>
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}

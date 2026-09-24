@@ -57,6 +57,15 @@ jobs:
             exit 1
           fi
 
+      - name: Release preflight
+        # 先于一切耗时步骤跑：发布目标仍是占位 / 版本不合法 / 没有上传 token /
+        # electron-builder.yml 引用的 build/ 资产缺失 —— 这几种状态下 `pnpm build`
+        # **照样是绿的**，但产物要么更新不到、要么 mac 打包直接失败。
+        # 判定本体：scripts/lib/releasePreflight.mjs（纯函数 + 单测）
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm run release:preflight -- --strict
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   evaluateReleaseReadiness,
   parseReleaseVersion,
   readPublishTarget,
-  isPlaceholderTarget
+  isPlaceholderTarget,
+  readReferencedBuildAssets,
+  checkReleaseAssets,
+  REQUIRED_ROOT_ASSETS
 } from '../lib/releasePreflight.mjs'
 
 /**
@@ -128,5 +131,81 @@ describe('evaluateReleaseReadiness', () => {
     const r = evaluateReleaseReadiness({ ...REAL, version: '1.0.0', platform: 'win32' })
     expect(r.signed).toBeNull()
     expect(r.warnings).toEqual([])
+  })
+})
+
+/**
+ * 发布资产自检（P1-6）。
+ *
+ * 判据从 electron-builder.yml **反解**，而不是硬编码清单 —— 以后往 yml 里加一个
+ * `build/xxx` 引用，自检自动跟着要求它存在。下面第一条就是真正的门禁：它读真实的
+ * yml，然后要求磁盘上每个被引用的资产都在。
+ */
+describe('readReferencedBuildAssets / checkReleaseAssets', () => {
+  const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+  const yml = readFileSync(join(REPO_ROOT, 'electron-builder.yml'), 'utf-8')
+
+  it('从真实 electron-builder.yml 里反解出 entitlements 与图标', () => {
+    const refs = readReferencedBuildAssets(yml)
+    // entitlements 两个都要（主 app + 子进程 inherit），图标两个都要（icns / png）
+    expect(refs).toContain('build/entitlements.mac.plist')
+    expect(refs).toContain('build/entitlements.mac.inherit.plist')
+    expect(refs).toContain('build/icon.icns')
+    expect(refs).toContain('build/icon.png')
+    // 体量哨兵：至少 4 条，防止解析退化成空数组后下面那条门禁空转
+    expect(refs.length).toBeGreaterThanOrEqual(4)
+    expect(new Set(refs).size).toBe(refs.length) // 去重
+  })
+
+  it('electron-builder.yml 引用的每个 build/* 资产都真实存在（P1-6 的门禁）', () => {
+    const referenced = readReferencedBuildAssets(yml)
+    const { required, missing } = checkReleaseAssets(
+      (rel) => existsSync(join(REPO_ROOT, rel)),
+      referenced
+    )
+    expect(required.length).toBeGreaterThanOrEqual(5) // 4 个 build/* + LICENSE
+    expect(
+      missing,
+      '这些资产被 electron-builder.yml 引用（或为分发必需）却不存在 ——\n' +
+        '`pnpm build` 在多数平台仍是绿的，但 mac 打包会直接失败 / 产物退回默认图标：'
+    ).toEqual([])
+  })
+
+  it('根 LICENSE 必须在（electron-builder 会打进安装包；MIT 要求随分发物给出声明）', () => {
+    expect(REQUIRED_ROOT_ASSETS).toContain('LICENSE')
+    expect(existsSync(join(REPO_ROOT, 'LICENSE'))).toBe(true)
+  })
+
+  it('package.json 声明了 license 字段（与 LICENSE 文件同源，不能只有一个）', () => {
+    const pkg = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf-8')) as {
+      license?: string
+    }
+    expect(pkg.license).toBe('MIT')
+  })
+
+  it('checkReleaseAssets 把缺失项报全（注入 exists，不碰真实文件系统）', () => {
+    const have = new Set(['LICENSE', 'build/icon.png'])
+    const { required, missing } = checkReleaseAssets(
+      (rel) => have.has(rel),
+      ['build/icon.png', 'build/icon.icns', 'build/entitlements.mac.plist']
+    )
+    expect(required).toEqual([
+      'LICENSE',
+      'build/icon.png',
+      'build/icon.icns',
+      'build/entitlements.mac.plist'
+    ])
+    expect(missing).toEqual(['build/icon.icns', 'build/entitlements.mac.plist'])
+  })
+
+  it('全部就位时 missing 为空（防止判据写反成恒报缺失）', () => {
+    const { missing } = checkReleaseAssets(() => true, ['build/icon.icns'])
+    expect(missing).toEqual([])
+  })
+
+  it('yml 里没有 build/ 引用时只要求 LICENSE', () => {
+    const { required, missing } = checkReleaseAssets((rel) => rel === 'LICENSE', [])
+    expect(required).toEqual(['LICENSE'])
+    expect(missing).toEqual([])
   })
 })

@@ -103,3 +103,43 @@ export function readPublishTarget(ymlText) {
   }
   return { provider: out.provider ?? null, owner: out.owner ?? null, repo: out.repo ?? null }
 }
+
+/**
+ * 发布资产自检（P1-6）
+ *
+ * 为什么需要：`electron-builder.yml` 里的 `build/...` 路径是**字符串引用**，
+ * 文件不存在时 electron-builder 要么直接报错、要么悄悄退回默认图标 —— 而
+ * `pnpm typecheck && pnpm build` 在这种状态下**照样是绿的**。实测事故形态：
+ * `mac.entitlementsInherit: build/entitlements.mac.plist` 指向一个不存在的
+ * `build/` 目录（HANDOFF 说「只差证书」，其实还差 entitlements 四件套 + 图标）。
+ *
+ * 判据刻意**从 yml 反解**而不是硬编码清单：以后往 yml 里加一个 `build/xxx`
+ * 引用，自检自动跟着要求它存在，不会漏。
+ */
+
+/** 从 yml 文本里取出所有 `build/...` 形态的资产引用（去重、保序） */
+export function readReferencedBuildAssets(ymlText) {
+  const out = []
+  for (const m of String(ymlText).matchAll(/(?:^|[\s:'"])(build\/[A-Za-z0-9._/-]+)/g)) {
+    if (!out.includes(m[1])) out.push(m[1])
+  }
+  return out
+}
+
+/**
+ * 除 yml 引用的资产外，还必须有根 LICENSE。
+ * electron-builder 会把它打进安装包；仓库无 LICENSE 时 README 的链接指向空，
+ * 而且 MIT 的「保留版权声明」要求随分发物一起给出。
+ */
+export const REQUIRED_ROOT_ASSETS = ['LICENSE']
+
+/**
+ * @param exists (relPath) => boolean —— 注入以便单测，不碰真实文件系统
+ * @param referenced yml 里引用的 build/* 路径
+ */
+export function checkReleaseAssets(exists, referenced = []) {
+  const required = [...REQUIRED_ROOT_ASSETS, ...referenced]
+  const missing = required.filter((rel) => !exists(rel))
+  return { required, missing }
+}
+

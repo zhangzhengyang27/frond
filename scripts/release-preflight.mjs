@@ -11,17 +11,23 @@
  * 而这两种状态下发出去的东西要么更新不到、要么被 macOS 判「已损坏」。
  * 判定本体在 scripts/lib/releasePreflight.mjs（纯函数 + 单测），这里只做输入装配。
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { evaluateReleaseReadiness, readPublishTarget } from './lib/releasePreflight.mjs'
+import {
+  evaluateReleaseReadiness,
+  readPublishTarget,
+  readReferencedBuildAssets,
+  checkReleaseAssets
+} from './lib/releasePreflight.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const strict = process.argv.includes('--strict')
 const targetOnly = process.argv.includes('--target-only')
 
 const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
-const target = readPublishTarget(readFileSync(join(ROOT, 'electron-builder.yml'), 'utf-8'))
+const ymlText = readFileSync(join(ROOT, 'electron-builder.yml'), 'utf-8')
+const target = readPublishTarget(ymlText)
 
 if (targetOnly) {
   console.log(target.owner && target.repo ? `${target.owner}/${target.repo}` : '')
@@ -39,13 +45,28 @@ const result = evaluateReleaseReadiness({
   platform: process.platform === 'darwin' ? 'mac' : process.platform
 })
 
-console.log(`发布目标：${result.target ?? '（未配置）'}　版本：${result.version ?? pkg.version}`)
-for (const line of result.blocking) console.log(`✗ ${line}`)
-for (const line of result.warnings) console.log(`! ${line}`)
-if (result.ok && result.warnings.length === 0) console.log('✓ 发布链路就绪（目标已配置、已签名并公证）')
-else if (result.ok) console.log('✓ 可以发布（上面 ! 的几项要在发布说明里讲清楚）')
+// 资产缺失也算 blocking：electron-builder.yml 引用了不存在的文件时，
+// `pnpm build` 在多数平台上仍是绿的，但 mac 打包会直接失败 / 产物退回默认图标。
+const assets = checkReleaseAssets(
+  (rel) => existsSync(join(ROOT, rel)),
+  readReferencedBuildAssets(ymlText)
+)
+const blocking = [
+  ...result.blocking,
+  ...assets.missing.map((rel) => `发布资产缺失：${rel}（被 electron-builder.yml 引用或为分发必需）`)
+]
+const ok = blocking.length === 0
 
-if (strict && !result.ok) {
-  console.error(`\n${result.blocking.length} 项阻塞，发布不予放行`)
+console.log(
+  `发布目标：${result.target ?? '（未配置）'}　版本：${result.version ?? pkg.version}　` +
+    `资产：${assets.required.length - assets.missing.length}/${assets.required.length}`
+)
+for (const line of blocking) console.log(`✗ ${line}`)
+for (const line of result.warnings) console.log(`! ${line}`)
+if (ok && result.warnings.length === 0) console.log('✓ 发布链路就绪（目标已配置、资产齐备、已签名并公证）')
+else if (ok) console.log('✓ 可以发布（上面 ! 的几项要在发布说明里讲清楚）')
+
+if (strict && !ok) {
+  console.error(`\n${blocking.length} 项阻塞，发布不予放行`)
   process.exit(1)
 }

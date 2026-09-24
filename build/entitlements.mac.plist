@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Frond 主 app 的 hardened runtime 授权（entitlements）。
+
+  原则：**只给本应用真实用到的能力**，每条都写明依据；不要照抄 Electron 模板里的
+  全部键，也不要为了「跑起来再说」加宽授权。改这个文件前先确认对应的功能确实存在。
+
+  对应 electron-builder.yml 的 mac.entitlements（主 app）与
+  mac.entitlementsInherit（子进程，见 entitlements.mac.inherit.plist）。
+-->
+<plist version="1.0">
+  <dict>
+    <!-- ── Electron / V8 运行必需 ─────────────────────────────── -->
+    <!-- Chromium 的 V8 需要 JIT；hardened runtime 默认禁止，不加则启动即崩 -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- V8 会申请可写可执行内存（wasm / 优化编译） -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Electron 通过 DYLD_* 注入自己的 helper 与 framework -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+
+    <!-- ── 原生模块与外部可执行文件 ───────────────────────────── -->
+    <!-- 本应用加载多个第三方原生模块（better-sqlite3 / uiohook-napi /
+         node-screenshots / @parcel/watcher），并用 child_process 起
+         @ffmpeg-installer 提供的 ffmpeg 做录屏转码与剪辑导出。
+         这些二进制不由本团队同一证书签名，hardened runtime 的库校验会拒绝加载。 -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+
+    <!-- ── 网络 ──────────────────────────────────────────────── -->
+    <!-- 插件市场索引、WebDAV 云备份、AI（BYOM）出站请求、MCP 客户端 -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- MCP 允许连本地 server（127.0.0.1），需要监听能力 -->
+    <key>com.apple.security.network.server</key>
+    <true/>
+
+    <!-- ── 设备（录屏模块真实使用） ───────────────────────────── -->
+    <!-- 录屏的麦克风音轨（recording.settings 里 hasMic / audioEnabled） -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <!-- 摄像头：录制设置的 hasCamera 开关（画中画） -->
+    <key>com.apple.security.device.camera</key>
+    <true/>
+
+    <!-- ── 用户文件 ──────────────────────────────────────────── -->
+    <!-- 录屏保存路径 / 导出目录 / 导入 frond.db / 迁移中心选归档目录，
+         均经 dialog 由用户主动选择（不申请全盘访问） -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+  </dict>
+</plist>

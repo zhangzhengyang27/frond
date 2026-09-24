@@ -3,6 +3,7 @@
   "productName": "Frond",
   "version": "0.1.0",
   "description": "Frond · 桌面工具集（录屏、剪辑、番茄钟、代码片段…）",
+  "license": "MIT",
   "main": "./out/main/index.js",
   "author": "Frond",
   "homepage": "https://github.com/frond-app/frond-desktop",
@@ -31,6 +32,7 @@
     "build:win": "pnpm run build && electron-builder --win",
     "build:mac": "pnpm run build && electron-builder --mac",
     "build:linux": "pnpm run build && electron-builder --linux",
+    "release:preflight": "node scripts/release-preflight.mjs",
     "typecheck:prodcheck": "tsc -p tsconfig.prodcheck.json"
   },
   "dependencies": {

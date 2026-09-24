@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Frond 子进程（helper / 渲染进程 / 通过 child_process 起的 ffmpeg）的授权。
+
+  对应 electron-builder.yml 的 mac.entitlementsInherit。
+  hardened runtime 下，子进程**不会**自动继承主进程的授权 —— 必须显式给
+  com.apple.security.inherit，否则 Electron 的 GPU/渲染 helper 起不来。
+-->
+<plist version="1.0">
+  <dict>
+    <!-- 子进程继承父进程的沙箱与授权；Electron helper 必需 -->
+    <key>com.apple.security.inherit</key>
+    <true/>
+    <!-- 渲染进程里的 V8 同样要 JIT -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- ffmpeg 是未由本团队签名的外部二进制，需关掉库校验才能加载 -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <!-- 录屏的麦克风音轨在渲染进程侧采集 -->
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>

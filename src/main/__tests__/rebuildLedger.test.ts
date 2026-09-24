@@ -23,8 +23,13 @@
  *   第二梯队 —— 番茄钟 7 件组件（TimerRing / ModeSelector / FocusRecordPanel /
  *              TaskListPanel / TaskEditDialog / SettingsDialog / FocusAssets）
  *   第三梯队 —— 迁移与设置类页面：MigrationCenterView / SourceSelector 等
- * 注：录屏那一梯队的「数据链路」已由 e2e/recording-clip.spec.mjs 覆盖；
- * 这里要补的是**渲染件本身**（时间轴非空、导出对话框默认参数等 UI 断言）。
+ *
+ * **进度（2026-09-24）**：
+ *   - 录屏那一梯队的「数据链路」已由 `e2e/recording-clip.spec.mjs` 覆盖
+ *   - 渲染件本身：`ClipTimeline`（`components/__tests__/clipTimeline.test.ts`）与
+ *     `ExportDialog`（`components/__tests__/exportDialog.test.ts`）已补 —— 后者尤其要紧，
+ *     它的**整个 `<template>` 块是随事故丢失后按 script 反推的**，默认参数全是推断值。
+ *   - 仍缺：`ClipEditor`、`PreviewPanel`；第二 / 三梯队未动。
  */
 
 import { describe, it, expect } from 'vitest'

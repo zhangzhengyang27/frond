@@ -21,9 +21,10 @@ jobs:
           # lint:css:changed 的增量口径需要 git 历史（push 与 event.before diff、PR 与 base diff）
           fetch-depth: 0
 
+      # pnpm 版本一律读 package.json 的 packageManager 字段（带 sha512 钉定）。
+      # 此处不得再传 version 输入：两者并存会报
+      # 「Multiple versions of pnpm specified」（2026-09-24 首跑咬到）。
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -63,8 +64,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -93,8 +92,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -140,8 +137,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:

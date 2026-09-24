@@ -40,9 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm 版本读 package.json 的 packageManager 字段——传 version 输入会与其
+      # sha512 钉定冲突：「Multiple versions of pnpm specified」（2026-09-24 首跑咬到）
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:

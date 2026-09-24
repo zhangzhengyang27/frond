@@ -30,9 +30,13 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 let app = null
 
 /**
- * 获取主窗口（按标题匹配）。
- * 不依赖 app.firstWindow() 的窗口序：历史上有隐藏窗口先创建导致竞态，
- * 标题匹配对窗口创建顺序鲁棒。
+ * 获取主窗口（按 url 匹配 out/renderer/index.html）。
+ *
+ * 不用 title 匹配：胶囊窗的 title 是 "Frond Launcher"，同样命中 `/Frond/`，
+ * 选到哪个取决于窗口创建顺序 —— 当前恰好 index.html 先建，属潜在竞态。
+ * 也不用 app.firstWindow()：它返回**第一个被创建**的窗口，本应用启动时先冒出
+ * electron-screenshots 的截图覆盖层窗口（title "Rsbuild App"，没有 window.api），
+ * 拿它跑断言会全军覆没。找不到主窗口就应该响亮地失败。
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const getMainWindow = async () => {
@@ -40,14 +44,14 @@ const getMainWindow = async () => {
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Frond/.test(await w.title())) return w
+        if (/\/index\.html/.test(w.url())) return w
       } catch {
         // 窗口可能已关闭
       }
     }
     await new Promise((r) => setTimeout(r, 200))
   }
-  return app.firstWindow()
+  throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
 test.beforeAll(async () => {

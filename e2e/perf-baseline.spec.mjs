@@ -22,20 +22,21 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
+// 按 url 匹配主窗口（title 匹配会连胶囊窗 "Frond Launcher" 一起命中）。
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Frond/.test(await w.title())) return w
+        if (/\/index\.html/.test(w.url())) return w
       } catch {
         /* 窗口可能已关闭 */
       }
     }
     await new Promise((r) => setTimeout(r, 100))
   }
-  return app.firstWindow()
+  throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
 test('性能基线：冷启动 / 胶囊唤起 / 内存', async () => {

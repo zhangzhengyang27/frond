@@ -91,4 +91,41 @@ describe('e2e 启动配置完整性', { timeout: 30_000 }, () => {
     expect(cfg).toContain('FROND_USER_DATA_DIR')
     expect(cfg).toContain('test-results')
   })
+
+  /**
+   * 窗口选择方式（2026-09-24）
+   *
+   * 曾经有 7 个 spec 用「标题命中 /Frond/」来选主窗口。问题是胶囊窗的 title 是
+   * "Frond Launcher"，**同样命中** —— 选到哪个完全取决于窗口创建顺序（实测
+   * react-screenshots 覆盖层 → index.html → launcher.html，当前恰好选对），
+   * 属潜在竞态。pomodoro 那次 8 条用例全绿而覆盖率为零，病根之一就在这里。
+   *
+   * 统一改为按 url 匹配 `/\/index\.html/`（本仓 23 个 spec 已在用）。
+   */
+  it('e2e/*.mjs 不得用窗口标题选窗口（胶囊窗 title 同样命中 /Frond/）', () => {
+    const specs = listSpecs()
+    expect(specs.length, 'e2e spec 一个都没扫到 = 路径错').toBeGreaterThan(25)
+
+    // 哨兵：必须真有 spec 在用 url 选主窗口，否则本门禁可能扫错了目录
+    const withUrlMatch = specs.filter((f) => /index\\\.html/.test(readFileSync(f, 'utf-8')))
+    expect(withUrlMatch.length, '没有任何 spec 用 url 选主窗口 = 门禁可能扫错目录').toBeGreaterThan(
+      15
+    )
+
+    const offenders: string[] = []
+    for (const f of specs) {
+      const code = stripLineComments(readFileSync(f, 'utf-8'))
+      const rel = f.slice(REPO_ROOT.length + 1)
+      code.split('\n').forEach((line, i) => {
+        if (/\.title\(\)/.test(line)) offenders.push(`${rel}:${i + 1} ${line.trim()}`)
+      })
+    }
+
+    expect(
+      offenders,
+      `以下位置用窗口标题选窗口 —— 胶囊窗 title 是 "Frond Launcher"，同样命中 /Frond/，\n` +
+        `选到哪个取决于窗口创建顺序（属潜在竞态）：\n  ${offenders.join('\n  ')}\n` +
+        `（正确写法：if (/\\/index\\.html/.test(w.url())) return w）`
+    ).toEqual([])
+  })
 })

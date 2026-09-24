@@ -37,19 +37,20 @@ async function launch() {
   delete env.ELECTRON_RUN_AS_NODE
   const app = await electron.launch({ args: [MAIN_ENTRY], env })
 
+  // 按 url 匹配主窗口：title 匹配会连胶囊窗 "Frond Launcher" 一起命中。
   const main = await (async () => {
     const deadline = Date.now() + 30000
     while (Date.now() < deadline) {
       for (const w of app.windows()) {
         try {
-          if (/Frond/.test(await w.title())) return w
+          if (/\/index\.html/.test(w.url())) return w
         } catch {
           /* 窗口尚未就绪 */
         }
       }
       await new Promise((r) => setTimeout(r, 200))
     }
-    return app.firstWindow()
+    throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
   })()
   await main.evaluate(async () => {
     if (window.api?.preferences?.setOnboardingCompleted) {

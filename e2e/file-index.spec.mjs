@@ -49,20 +49,22 @@ test.afterAll(async () => {
   rmSync(SCOPE_DIR, { recursive: true, force: true })
 })
 
+// 按 url 匹配主窗口：胶囊窗 title 是 "Frond Launcher"，同样命中 `/Frond/`，
+// 用 title 选窗口依赖创建顺序（当前恰好 index.html 先建，属潜在竞态）。
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
     for (const w of app.windows()) {
       try {
-        if (/Frond/.test(await w.title())) return w
+        if (/\/index\.html/.test(w.url())) return w
       } catch {
         /* noop */
       }
     }
     await new Promise((r) => setTimeout(r, 200))
   }
-  return app.firstWindow()
+  throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
 /** 轮询索引就绪（初始全量完成后 status = ready） */

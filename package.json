@@ -25,7 +25,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test e2e/launch-smoke.spec.mjs e2e/settings-theme.spec.mjs e2e/pomodoro.spec.mjs",
-    "rebuild:native": "electron-rebuild -f -w better-sqlite3",
+    "rebuild:native": "electron-rebuild -f --only better-sqlite3",
     "postadd:native": "pnpm rebuild:native",
     "build:unpack": "pnpm run build && electron-builder --dir",
     "build:win": "pnpm run build && electron-builder --win",

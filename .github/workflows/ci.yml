@@ -61,8 +61,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # ⚠ node 20 不能用：better-sqlite3 13 tar 包内 prebuild 与 node20 ABI 不兼容，
+        # require 直接段错误（2026-09-24 诊断步实证：node -e require 即 SIGSEGV，
+        # 24 个 DB 测试文件 fork 全灭）。24 = 本地开发实际版本。
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node-version: [20]
+        node-version: [24]
     steps:
       - uses: actions/checkout@v4
         # lintCssChanged 的 CLI 集成测试按 push 口径 diff event.before..HEAD，
@@ -85,16 +88,6 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      # ⚠ 临时诊断（2026-09-24）：24 个 DB 测试文件的 fork 在 CI 三平台秒死、本地
-      # 全绿且带 GITHUB_ACTIONS=true 也全绿。直跑一个 DB 文件 + 裸 require 两个
-      # 嫌疑原生依赖，把被 vitest 吞掉的 fork stderr 打进日志。定位后删除本步。
-      - name: Diagnose worker crash (temporary)
-        continue-on-error: true
-        run: |
-          node -e "console.log('electron typeof:', typeof require('electron'))"
-          node -e "const D=require('better-sqlite3'); const db=new D(':memory:'); db.exec('create table t(a)'); db.close(); console.log('better-sqlite3 OK')"
-          pnpm exec vitest run src/main/db/__tests__/migrations.test.ts --reporter=basic --disable-console-intercept 2>&1 | tail -40 || true
 
       - name: Run tests
         run: pnpm test -- --reporter=verbose

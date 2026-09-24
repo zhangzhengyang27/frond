@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 /**
  * 导航 / 权限守卫的判据回归。
@@ -25,11 +27,16 @@ import {
   type FirstPartyContext
 } from '../navigationGuard'
 
-const APP_ROOT = '/Applications/Frond.app/Contents/Resources/app.asar/out'
+// 夹具按「当前平台的真实产物路径形态」构造：守卫内部 fileURLToPath + path.relative
+// 都是平台语义，硬编码 POSIX 形态在 win32 上必假红（2026-09-24 CI windows 首跑咬到）。
+const APP_ROOT =
+  process.platform === 'win32'
+    ? join('C:', 'Program Files', 'Frond', 'resources', 'app.asar', 'out')
+    : '/Applications/Frond.app/Contents/Resources/app.asar/out'
 const CTX: FirstPartyContext = { appRoot: APP_ROOT, devServerUrl: undefined }
 const DEV_CTX: FirstPartyContext = { appRoot: APP_ROOT, devServerUrl: 'http://localhost:5173' }
 
-const RENDERER = `file://${APP_ROOT}/renderer/index.html`
+const RENDERER = pathToFileURL(join(APP_ROOT, 'renderer', 'index.html')).href
 
 describe('isAllowedNavigation', () => {
   it('放行内部哨兵 frond-region://（录屏框选靠它，不是真导航）', () => {
@@ -42,14 +49,14 @@ describe('isAllowedNavigation', () => {
 
   it('放行第一方产物目录下的 file:// 页面', () => {
     expect(isAllowedNavigation(RENDERER, CTX)).toBe(true)
-    expect(isAllowedNavigation(`file://${APP_ROOT}/renderer/launcher.html`, CTX)).toBe(true)
+    expect(isAllowedNavigation(pathToFileURL(join(APP_ROOT, 'renderer', 'launcher.html')).href, CTX)).toBe(true)
   })
 
   it('拦掉产物目录之外的 file://（读本地文件即逃逸）', () => {
     expect(isAllowedNavigation('file:///etc/passwd', CTX)).toBe(false)
     expect(isAllowedNavigation('file:///Users/someone/.ssh/id_rsa', CTX)).toBe(false)
     // 前缀相近但不在目录内的也要拦（/out-evil 不是 /out）
-    expect(isAllowedNavigation(`file://${APP_ROOT}-evil/index.html`, CTX)).toBe(false)
+    expect(isAllowedNavigation(pathToFileURL(join(APP_ROOT + '-evil', 'index.html')).href, CTX)).toBe(false)
   })
 
   it('拦掉远程 http(s)（含看起来像第一方的域名）', () => {

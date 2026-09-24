@@ -20,7 +20,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 const SRC_DIR = join(__dirname, '..', '..')
 
@@ -50,7 +50,8 @@ function walk(dir: string, out: string[] = []): string[] {
       if (entry.name === 'node_modules' || entry.name === '__tests__') continue
       walk(full, out)
     } else if (/\.(ts|vue)$/.test(entry.name) && !entry.name.endsWith('.d.ts')) {
-      out.push(relative(SRC_DIR, full))
+      // 清单是 '/' 规范形态；win32 的 relative 产出 '\'，比对前统一
+      out.push(relative(SRC_DIR, full).split(sep).join('/'))
     }
   }
   return out

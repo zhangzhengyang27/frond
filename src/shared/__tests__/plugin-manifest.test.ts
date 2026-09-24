@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
-import { resolve, join } from 'node:path'
+import { resolve, join, basename } from 'node:path'
 
 /**
  * 内置插件清单（plugin.json）静态审计（ROADMAP D2「先修内功」）：
@@ -47,7 +47,7 @@ describe('内置插件清单审计', () => {
         }
       }
       // id 与目录名一致（安装目录由 id 决定，不一致会导致安装路径错乱）
-      if (typeof m.id === 'string' && m.id !== dir.split('/').pop()) {
+      if (typeof m.id === 'string' && m.id !== basename(dir)) {
         problems.push(`${rel}: id "${m.id}" 与目录名不一致`)
       }
       // 版本号 semver（内置插件自动更新按版本号比对覆盖）

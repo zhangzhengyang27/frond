@@ -21,7 +21,7 @@ function resolveRepoRoot(): string {
 
 /** 从 preload/index.ts 静态解析暴露面：'ns.method' / 'ns.sub.method' / 顶层 'method' */
 function extractExposedApiSurface(): Set<string> {
-  const source = readFileSync(join(repoRoot, 'src/preload/index.ts'), 'utf-8')
+  const source = readFileSync(join(repoRoot, 'src/preload/index.ts'), 'utf-8').replace(/\r\n/g, '\n')
   const lines = source.split('\n').filter((l) => {
     const t = l.trimStart()
     return !(t.startsWith('//') || t.startsWith('/*') || t.startsWith('*'))
@@ -78,7 +78,7 @@ describe('渲染端 window.api 奇偶校验', { timeout: 120_000 }, () => {
 
     for (const file of files) {
       const rel = file.slice(repoRoot.length + 1)
-      const src = readFileSync(file, 'utf-8')
+      const src = readFileSync(file, 'utf-8').replace(/\r\n/g, '\n')
       const code = src
         .split('\n')
         .filter((l) => {

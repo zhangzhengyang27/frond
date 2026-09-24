@@ -15,7 +15,8 @@ const repoRoot = resolve(__dirname, '../../..')
 
 /** 从 preload 源码静态解析 launcherApi 暴露的方法名（顶层 + 命名空间子方法） */
 function extractExposedApi(): Set<string> {
-  const source = readFileSync(resolve(repoRoot, 'src/preload/plugin.ts'), 'utf-8')
+  // CRLF 环境（win32 checkout）下 $ 锚点正则会被 \r 破坏，读入即归一
+  const source = readFileSync(resolve(repoRoot, 'src/preload/plugin.ts'), 'utf-8').replace(/\r\n/g, '\n')
   const start = source.indexOf('const launcherApi = {')
   const end = source.indexOf('export type', start)
   expect(start, 'plugin.ts 中应存在 launcherApi 定义').toBeGreaterThan(-1)

@@ -34,7 +34,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 
 const SRC_DIR = join(__dirname, '..', '..')
 /** 仓库根：`RECOVERED_WITHOUT_MARKER` 的路径一律以它为基准（含 packages/ 下的文件） */
@@ -152,7 +152,8 @@ function walk(dir: string, out: string[] = []): string[] {
       if (entry.name === 'node_modules') continue
       walk(full, out)
     } else {
-      out.push(relative(SRC_DIR, full))
+      // 台账清单是 '/' 规范形态；win32 的 relative 产出 '\'，比对前统一
+      out.push(relative(SRC_DIR, full).split(sep).join('/'))
     }
   }
   return out

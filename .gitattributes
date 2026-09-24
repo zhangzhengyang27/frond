@@ -1,0 +1,18 @@
+# 仓库规范：文本一律 LF（含 windows checkout）。
+# 台账/棘轮门禁按字节级内容与 '/' 规范路径比对，CRLF 会让它们在 windows 上假红。
+* text=auto eol=lf
+
+# 二进制资产显式声明（防止 text=auto 误伤）
+*.png binary
+*.icns binary
+*.ico binary
+*.node binary
+*.woff binary
+*.woff2 binary
+*.traineddata binary
+*.zip binary
+*.dmg binary
+*.gif binary
+*.jpg binary
+*.jpeg binary
+*.webp binary

@@ -1,0 +1,63 @@
+/**
+ * Frond · 补 `assets/main.css` 缺失的工具类（2026-09-24）
+ *
+ * ── 为什么需要这个文件 ────────────────────────────────────────────────
+ *
+ * `src/renderer/src/assets/main.css` 是**重建件**：它自己的文件头写着
+ * 「2026-09-22 从 dev 缓存的 CSS 模块取出的 `__vite__css` 原文」—— 那是一次
+ * **静态转储**（4577 行、无任何 Tailwind 指令、没有生成管线）。
+ *
+ * 于是它只包含**转储那一刻**已经存在的工具类。设置页（`views/SettingsView.vue`）
+ * 是在那之后写的，它用到的一批类从没进过转储 —— 结果不是「样式略有偏差」，
+ * 而是**控件直接不可见**：
+ *
+ *   「紧凑模式」开关（`h-[22px] w-[38px] rounded-full … ring-1 ring-line-subtle`）
+ *   实测渲染为 **0×0**（`getBoundingClientRect()` → `width: 0, height: 0`），
+ *   对用户也是不可见控件。`e2e/capsule-compact.spec.mjs` 与 `e2e/density.spec.mjs`
+ *   报的就是它 —— 那三条失败是 **true positive，不是陈旧测试**。
+ *
+ * 影响面已核实**收敛在一个文件**：`ring-line-subtle` 23 处、尺寸类各 1 处，
+ * 全部只在 `SettingsView.vue`（它是唯一「在转储之后写的页面」）。
+ *
+ * ── 这些值是怎么定的（不是猜的）────────────────────────────────────
+ *
+ * - `ring-line-subtle`：按同族既有规则推导 —— `main.css` 里
+ *   `.border-line-subtle { border-color: var(--border-subtle) }`，
+ *   而 `.ring-<色>` 一族在 `main.css` 里只做一件事：设 `--tw-ring-color`。
+ *   故本条 = `--tw-ring-color: var(--border-subtle)`。token 名取自兄弟规则，
+ *   没有新造 token。
+ * - 尺寸类：`h-[Npx]` / `w-[Npx]` 就是字面量（与转储里既有的
+ *   `.h-\[18px\] { height: 18px }` 同形）。
+ *
+ * ── 长期修法（比本文件重要）────────────────────────────────────────
+ *
+ * 正解是**恢复真正的 Tailwind 生成管线**，让工具类重新由源码派生；
+ * 本文件只是把「转储之后新增的类」这一缺口补上，它**不会**自动跟着新代码增长。
+ * 每次往设置页（或任何「转储后新增」的页面）加新工具类，都要回来看这里。
+ * 台账层面还暴露了另一个问题：`main.css` 明明是恢复件，却**不在 34 条重建件台账里**
+ * （台账靠正则匹配字面量「重建」，而它的措辞是「从 dev 缓存取出」）—— 台账判据有盲区。
+ */
+
+.ring-line-subtle {
+  --tw-ring-color: var(--border-subtle);
+}
+
+.h-\[22px\] {
+  height: 22px;
+}
+
+.h-\[24px\] {
+  height: 24px;
+}
+
+.w-\[18px\] {
+  width: 18px;
+}
+
+.w-\[38px\] {
+  width: 38px;
+}
+
+.w-\[42px\] {
+  width: 42px;
+}

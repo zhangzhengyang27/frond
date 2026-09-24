@@ -1,4 +1,7 @@
 import './assets/main.css'
+// main.css 是 2026-09-22 的静态转储（重建件），不含转储之后新增的工具类 ——
+// 设置页的「紧凑模式」开关因此渲染成 0×0。补齐缺口，理由与取值依据见该文件头。
+import './styles/recovered-css-gap.css'
 import 'remixicon/fonts/remixicon.css'
 
 import { createApp } from 'vue'

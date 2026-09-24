@@ -296,9 +296,8 @@ import { useCommandSources, moduleToEntry } from './composables/useCommandSource
 import { pickPageView, type LauncherViewCtx } from './composables/launcherPageViews'
 import { useUnifiedSearch } from './composables/useUnifiedSearch'
 import { useActionPanel } from './composables/useActionPanel'
+import { useCapsuleAppearance } from './composables/useCapsuleAppearance'
 import { buildEntryAsk, type AiAskSource } from '@shared/aiAsk'
-import { applyDensityVars, type Density } from '@shared/density'
-import { applyGlassVars } from '@shared/capsuleGlass'
 import {
   argLayoutOf,
   backspaceExits,
@@ -1672,17 +1671,13 @@ onUnmounted(() => {
   unsubscribers.length = 0
 })
 
-/**
- * P-6 密度档：变量写在根元素上，样式里读（见 .launcher-result 的 var(...) 兜底）。
- * 不另开一条推送通道：胶囊每次被唤起都会重新可见，那时补读一次就够，
- * 而密度是在设置页改的——改完必然要回到胶囊，看不到才奇怪。
- */
-const density = ref<Density>('comfortable')
-/** 胶囊玻璃档（P-6）：默认 opaque 不覆盖任何变量 */
 /* ── 紧凑模式（P-6⑤）：空查询时整窗收成一条栏 ──
  * 默认关：开着它空态那一屏（下一个会议、固定建议、最近搜索）就不显示了，
  * 那是另一格 Raycast 对齐拍板过的东西，不能被这个开关悄悄推翻，所以做成可选项。 */
-const compactModePref = ref(false)
+const { compactModePref, start: startCapsuleAppearance } = useCapsuleAppearance({
+  barOnly: () => barOnlyMode.value,
+  barHeight: () => searchBarRef.value?.barHeight() ?? 0
+})
 const compactIdle = computed(
   () =>
     compactModePref.value &&
@@ -1697,65 +1692,11 @@ const compactIdle = computed(
  *  槽态必须收——不搜的话整窗是 64px 栏 + 456px 空白，正是紧凑模式要治的那个症状。 */
 const barOnlyMode = computed(() => compactIdle.value || argModeOn.value)
 
-/** 高度由这里量：搜索行多高只有渲染端知道（主进程复制一份 CSS 值必然漂移） */
-function reportCompact(): void {
-  if (!barOnlyMode.value) {
-    void window.api.launcher.setCompact(false, 0)
-    return
-  }
-  // +2：窗口自己那圈 1px 描边，不加会露出 2px 的透明缝
-  void window.api.launcher.setCompact(true, (searchBarRef.value?.barHeight() ?? 0) + 2)
-}
-
-watch(barOnlyMode, () => reportCompact())
-
-async function initCompact(): Promise<void> {
-  try {
-    compactModePref.value = await window.api.preferences.getCompactMode()
-  } catch {
-    compactModePref.value = false // 读不到就按关：保持整屏建议列表在
-  }
-  reportCompact()
-}
-
-async function applyGlass(): Promise<void> {
-  try {
-    applyGlassVars(document.documentElement, await window.api.preferences.getCapsuleGlass())
-  } catch {
-    /* 读不到就不覆盖：胶囊保持默认的不透明底 */
-  }
-}
-async function applyDensity(): Promise<void> {
-  try {
-    const d = await window.api.preferences.getDensity()
-    density.value = d
-    applyDensityVars(document.documentElement, d)
-  } catch {
-    /* 读不到就用样式里的 comfortable 兜底值 */
-  }
-}
-
 onMounted(() => {
-  void applyDensity()
-  // 主进程改档会推过来（与主题同一路子）；可见时再补读一次，兜住推送前就开窗的情况
-  const unsubDensity = window.api.preferences.onDensityChanged((d) => {
-    density.value = d
-    applyDensityVars(document.documentElement, d)
-  })
-  unsubscribers.push(unsubDensity)
-  void initCompact()
-  const unsubCompact = window.api.preferences.onCompactModeChanged((on) => {
-    compactModePref.value = on
-  })
-  unsubscribers.push(unsubCompact)
-  void applyGlass()
-  const unsubGlass = window.api.preferences.onCapsuleGlassChanged((g) =>
-    applyGlassVars(document.documentElement, g)
-  )
-  unsubscribers.push(unsubGlass)
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void applyDensity()
-  })
+  // 密度档 / 玻璃档 / 紧凑模式：读偏好 → 应用到根元素（或上报主进程）→ 订阅变更，
+  // 统一由 useCapsuleAppearance 管（C3-3 Step 1 从本文件抽出，现在可单测）。
+  // 注意它在 onMounted 里调而不是 setup 期：内部的 watch 会立刻求值 barOnlyMode。
+  unsubscribers.push(startCapsuleAppearance())
   searchBarRef.value?.focus()
   // I7 面包屑点击 = 逐级返回（CapsulePage 经 CustomEvent 上抛，页面无需各自接线）
   const onBreadcrumbPop = (): void => {

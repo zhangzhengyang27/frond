@@ -735,6 +735,36 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
 `e2e/screenshot-overlay.spec.mjs` 第 3 条（画一个矩形让撤销解锁）就是为形状 1 与 2 各配一枚
 断言写的，且它的判别性已核（退回形状 1 的写法只有第 3 条红）。
 
+#### 10.11 `lint-css-changed` 与 stylelint 配置：两个「从未入库」的门禁件（2026-09-24 重建）
+
+增量 CSS 门禁在事故后实际处于**三层全断**状态，且每一层都是静默的：
+
+1. `scripts/lint-css-changed.mjs` 丢失且 `git log --all` 无任何提交史 —— package.json 的
+   `lint:css:changed` 一直 MODULE_NOT_FOUND（README / CONTRIBUTING / ci.yml:39 四处调用点
+   全在指向一个不存在的文件，ci.yml lint job 首跑必红）。
+2. stylelint 配置同样从未入库、随事故从磁盘消失 —— `pnpm exec stylelint <任何文件>` 一直抛
+   `ConfigurationError`（2026-09-24 实测复现）。
+3. `lint:css` 尾巴上的 `|| true` 把 2 吞掉 —— 全量 CSS lint 事故后从未真正运行过。
+
+这与 B16「lint-css-changed 静默跳过已暂存文件」同类：**静默跳过比失败更危险**。
+（`docs/BUGS.md` B16 写「已修复」指的只是事故前磁盘上那份，修复件从未进 git。）
+
+两个文件已按可考的调用点契约重建（原件永远找不回来，性质同 §10.9）：
+
+- `scripts/lint-css-changed.mjs`：契约 = B16 的 `^(..)\s+(.+)$` 三态解析 + ci.yml:36-39 的
+  增量零容忍 + CONTRIBUTING 的 .css/.less/.vue 范围。**与原件的声明差异**：新增 CI diff 口径
+  （push 与 `event.before`、PR 与 base 的 merge-base）与 `--base` 参数 —— 原件只有 status
+  口径，在 CI 的干净工作区下什么也查不到，「增量零容忍」只有 diff 口径才成立。
+- `stylelint.config.mjs`（仓库根）：规则按文档契约重定 —— `color-no-hex` warning 级
+  （存量容忍、增量由 STRICT_CSS_LINT=1 拦停）；**未** extends stylelint-config-standard，
+  避免触碰旧文件时被与本次改动无关的存量 error 拦住，存量清账后再收紧。
+- 两件均已登记恢复件台账（`rebuildLedger.test.ts` 的 RECOVERED_WITHOUT_MARKER）；重建契约
+  固化在 `scripts/__tests__/lintCssChanged.test.ts`（B16 staged 截断是首条回归用例）。
+- 配套：ci.yml lint job 的 checkout 补 `fetch-depth: 0`、lint:css:changed 步骤补
+  `STRICT_CSS_LINT=1`；package.json `lint:css` 去掉 `|| true`。
+  【未跑】CI 本身仍无远端可跑；diff 口径的 push/PR 路径只经注入式单测与本地 `--base` 验证，
+  真实 GITHUB_ACTIONS 环境未跑过。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

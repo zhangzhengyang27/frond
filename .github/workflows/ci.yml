@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # lint:css:changed 的增量口径需要 git 历史（push 与 event.before diff、PR 与 base diff）
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -33,9 +36,12 @@ jobs:
       - name: Lint (ESLint)
         run: pnpm run lint
 
-      # Stylelint 门禁：全量 lint:css 存量 946 warnings 已知，只对增量 changed/untracked
-      # 做零容忍（新增代码必须用 design token 写颜色），存量渐进清零
-      - name: Lint CSS (增量：只查本次 changed / untracked)
+      # Stylelint 门禁：全量 lint:css 容忍存量 warnings（渐进清零），只对增量零容忍
+      # （新增代码必须用 design token 写颜色）。CI 走 diff 口径（push 与 event.before、
+      # PR 与 base 的改动文件），本地默认走 status 口径（staged/unstaged/untracked）
+      - name: Lint CSS (增量：本次 push/PR 改动的样式文件，零容忍)
+        env:
+          STRICT_CSS_LINT: '1'
         run: pnpm run lint:css:changed
 
       - name: Typecheck (Node)

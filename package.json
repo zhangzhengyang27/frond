@@ -10,7 +10,7 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
-    "lint:css": "stylelint \"src/**/*.{css,less,vue}\" --max-warnings 99999 || true",
+    "lint:css": "stylelint \"src/**/*.{css,less,vue}\" --max-warnings 99999",
     "lint:css:changed": "node scripts/lint-css-changed.mjs",
     "check:light": "node scripts/check-light-mode-readiness.mjs",
     "lint:all": "pnpm run lint && pnpm run lint:css",

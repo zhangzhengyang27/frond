@@ -106,6 +106,9 @@ const KNOWN_REBUILD_FILES = [
  * 实测（2026-09-24）漏了 4 个 —— 其中 `main.css` 的漏登记还**直接导致过一个真 bug**
  * 被漏看：它是 2026-09-22 的静态 CSS 转储，只含转储那一刻的工具类，设置页因此有个
  * 开关渲染成 0×0（详见 `renderer/src/styles/recovered-css-gap.css` 的文件头）。
+ * 2026-09-24 二批：重建 `scripts/lint-css-changed.mjs` 与根 `stylelint.config.mjs` 时
+ * 又登记 2 个（清单末两条）—— 两者从未入库、随事故丢失，`pnpm lint:css` 因此一直在抛
+ * ConfigurationError 被 `|| true` 吞掉（HANDOFF §10.11）。
  *
  * 为什么**不**把正则放宽去覆盖它们：试过，会大量误伤 —— 「恢复」是录屏模块的功能名
  * （`RecoveryManager`）、「重建」是索引模块的功能名（`fileIndex` 的全量重建）、
@@ -130,6 +133,14 @@ const RECOVERED_WITHOUT_MARKER: ReadonlyArray<{ rel: string; why: string }> = [
   {
     rel: 'packages/frond-plugin-sdk/tsconfig.json',
     why: '文件头：「⚠ 重建，非原件：…随 2026-09-22 桌面删除事故丢失」'
+  },
+  {
+    rel: 'scripts/lint-css-changed.mjs',
+    why: '文件头：「2026-09-24 重建件（原件随 2026-09-22 删除事故丢失、从未入库）」——按 B16/ci.yml/CONTRIBUTING 的调用点契约重写，与原件的声明差异（新增 CI diff 口径）在文件头'
+  },
+  {
+    rel: 'stylelint.config.mjs',
+    why: '文件头：「2026-09-24 重建件（原配置从未入库，随 2026-09-22 删除事故丢失）」——事故后 lint:css 一直抛 ConfigurationError 被 || true 吞掉；规则按文档契约（0 hex / 增量零容忍）重定'
   }
 ]
 

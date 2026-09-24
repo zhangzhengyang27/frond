@@ -110,9 +110,17 @@ jobs:
           #           -o cert.p12 "Developer ID Application: Your Name"
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-        run: pnpm exec electron-builder --${{ matrix.target }} --publish=never
         # --publish=never：手动控制 release 资产上传
         # 避免自动调用 GH publish provider 与本 workflow 重复上传
+        run: |
+          # secret 未配置时 Actions 注入的是空串而非 unset；空 CSC_LINK 会被
+          # electron-builder 当证书路径解析（platformPackager 的 chooseNotNull 不把
+          # 空串当 null → resolve("")=项目目录 → "not a file"，2026-09-24 四跑咬到；
+          # CSC_IDENTITY_AUTO_DISCOVERY=false 挡不住这条显式路径）。
+          # 空值就地 unset——签名 secret 配好后自动生效，无需改这里。
+          [ -n "${CSC_LINK:-}" ] || unset CSC_LINK
+          [ -n "${CSC_KEY_PASSWORD:-}" ] || unset CSC_KEY_PASSWORD
+          pnpm exec electron-builder --${{ matrix.target }} --publish=never
 
       - name: List build artifacts
         run: ls -la out/make/ 2>&1 | head -20

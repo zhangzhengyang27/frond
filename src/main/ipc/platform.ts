@@ -9,9 +9,17 @@
  * 平台差异由 src/main/utils/platform.ts 统一处理，渲染端不用关心。
  */
 
-import { ipcMain, BrowserWindow } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { setDockBadge, setProgressBar, requestUserAttention } from '../utils/platform'
 
+/**
+ * ⚠ 这 3 条通道**刻意留在 ipc-contract 之外**，因此这里用裸 ipcMain.handle + 位置参数。
+ *
+ * 原因：preload 侧（`platform.setDockBadge` 等）用的是裸 `ipcRenderer.invoke(ch, ...args)`
+ * 位置参数形式，两边形状一致、行为正确。它们没有进契约登记册，所以 typedHandle 的
+ * `IpcKey` 约束用不上。把它们收进契约是另一件事（要同时改 preload 与 req/res 定义），
+ * 不在本次「修错位」的范围内——**不要**为了让它们编译过去而随手加个假契约条目。
+ */
 export function registerPlatformIpcHandlers(getMainWindow: () => BrowserWindow | null): void {
   ipcMain.handle('platform:setDockBadge', (_e, text: string | number | null): void => {
     setDockBadge(text)

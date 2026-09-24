@@ -16,7 +16,7 @@
  * 严禁 shell 字符串拼接；脚本内插值仅限模块内常量（音量档位 / NX 媒体键码），
  * 需要运行时参数的一律走 osascript `on run argv`（execFile 参数数组，无 shell 层）。
  */
-import { app, ipcMain, screen, Notification } from 'electron'
+import { app, screen, Notification } from 'electron'
 import { exec, execFile } from 'child_process'
 import { promisify } from 'util'
 import { basename } from 'path'
@@ -24,6 +24,7 @@ import { isMac, isWin } from '../utils/platform'
 import { getLauncherWindow } from '../launcher/window'
 import { computeWindowRect, roundRect, type Rect } from './windowGeometry'
 import { prefRepository } from '../db/repos'
+import { typedHandle } from '../ipc/typedIpc'
 
 /** 窗口 gap（px，窗口与屏幕边缘留白；pref launcher:windowGap，默认 0）。
  *  每次执行时实时读，设置页改动即时生效（V4 P1-7 批次3） */
@@ -843,7 +844,8 @@ export async function runWindowAction(action: WinAction): Promise<{ ok: boolean;
 }
 
 export function registerSystemCommandIpc(): void {
-  ipcMain.handle('systemcmd:run', async (_e, id: string) => {
+  typedHandle('systemcmd:run', async (_e, req) => {
+    const id = req.id
     let result: { ok: boolean; error?: string }
     if (id.startsWith('system.')) {
       result = await runSystemCommand(id)
@@ -866,7 +868,7 @@ export function registerSystemCommandIpc(): void {
     }
     return result
   })
-  ipcMain.handle('systemcmd:ids', () => ({
+  typedHandle('systemcmd:ids', () => ({
     system: getSystemCommandIds(),
     window: getWindowActionIds()
   }))

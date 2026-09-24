@@ -8,16 +8,15 @@
  * - shotidx:pasteLatest   粘贴最近截图（独立命令入口）
  * - shotidx:changed       索引/OCR 进度变化推送（胶囊页刷新列表）
  */
-import { ipcMain } from 'electron'
 import { screenshotIndexService } from '../services/ScreenshotIndexService'
 import { typedHandle } from './typedIpc'
 
 const SEARCH_LIMIT = 60
 
 export function registerShotIndexIpc(): void {
-  ipcMain.handle('shotidx:status', () => screenshotIndexService.status())
+  typedHandle('shotidx:status', () => screenshotIndexService.status())
 
-  ipcMain.handle('shotidx:scan', async () => {
+  typedHandle('shotidx:scan', async () => {
     try {
       const r = await screenshotIndexService.scan()
       return { success: true, added: r.added }
@@ -39,10 +38,14 @@ export function registerShotIndexIpc(): void {
     }
   })
 
-  ipcMain.handle('shotidx:pastePath', async (_e, filePath: unknown) => {
-    if (typeof filePath !== 'string' || !filePath) return { ok: false, error: 'path required' }
-    return screenshotIndexService.pastePath(filePath)
+  // ⚠ 此前第二个参数标成 `unknown`，tsc 抓不到错位：preload 发的是 `{ filePath }`，
+  // `typeof filePath !== 'string'` 恒真 → 永远返回 'path required'。改为读 req.filePath。
+  typedHandle('shotidx:pastePath', async (_e, req) => {
+    if (typeof req.filePath !== 'string' || !req.filePath) {
+      return { ok: false, error: 'path required' }
+    }
+    return screenshotIndexService.pastePath(req.filePath)
   })
 
-  ipcMain.handle('shotidx:pasteLatest', async () => screenshotIndexService.pasteLatest())
+  typedHandle('shotidx:pasteLatest', async () => screenshotIndexService.pasteLatest())
 }

@@ -7,8 +7,8 @@
  * 存储：SQLite pref_preferences（原 electron-store，双栈收尾第一批迁移；
  * 旧 config.json 的 aliases 由 dataMigrations.migrateAliasesFromLegacyStore 导入）。
  */
-import { ipcMain } from 'electron'
 import { prefRepository } from '../db/repos'
+import { typedHandle } from '../ipc/typedIpc'
 
 const ALIAS_KEY = 'aliases'
 
@@ -63,12 +63,8 @@ export function getAliasesForCommand(commandKey: string): string[] {
 }
 
 export function registerAliasIpc(): void {
-  ipcMain.handle('alias:getAll', () => getAliases())
-  ipcMain.handle('alias:get', (_e, commandKey: string) => getAliasesForCommand(commandKey))
-  ipcMain.handle('alias:set', (_e, commandKey: string, alias: string) =>
-    setAlias(commandKey, alias)
-  )
-  ipcMain.handle('alias:remove', (_e, commandKey: string, alias: string) =>
-    removeAlias(commandKey, alias)
-  )
+  typedHandle('alias:getAll', () => getAliases())
+  typedHandle('alias:get', (_e, req) => getAliasesForCommand(req.commandKey))
+  typedHandle('alias:set', (_e, req) => setAlias(req.commandKey, req.alias))
+  typedHandle('alias:remove', (_e, req) => removeAlias(req.commandKey, req.alias))
 }

@@ -9,9 +9,10 @@
  *   renderer -> main:  `pomodoro:mini:toggle` / `show` / `hide`
  */
 
-import { BrowserWindow, ipcMain, screen } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
+import { typedHandle } from '../ipc/typedIpc'
 
 let miniWindow: BrowserWindow | null = null
 
@@ -98,17 +99,17 @@ export function isMiniWindowVisible(): boolean {
 }
 
 export function registerMiniWindowIpc(): void {
-  ipcMain.handle('pomodoro:mini:show', () => {
+  typedHandle('pomodoro:mini:show', () => {
     showMiniWindow()
     return true
   })
-  ipcMain.handle('pomodoro:mini:hide', () => {
+  typedHandle('pomodoro:mini:hide', () => {
     hideMiniWindow()
     return true
   })
-  ipcMain.handle('pomodoro:mini:toggle', () => {
+  typedHandle('pomodoro:mini:toggle', () => {
     const w = toggleMiniWindow()
     return !!w
   })
-  ipcMain.handle('pomodoro:mini:isVisible', () => isMiniWindowVisible())
+  typedHandle('pomodoro:mini:isVisible', () => isMiniWindowVisible())
 }

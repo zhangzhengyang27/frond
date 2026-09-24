@@ -1,4 +1,4 @@
-import { ipcMain, desktopCapturer, shell, app, systemPreferences } from 'electron'
+import { desktopCapturer, shell, app, systemPreferences } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { showSaveDialogFor } from '../modules/dialogs'
@@ -6,17 +6,18 @@ import { grantRecordingSavePath } from './recordingSavePathGrants'
 import type { BrowserWindow } from 'electron'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { typedHandle } from './typedIpc'
 
 const execAsync = promisify(exec)
 
 export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWindow | null): void {
   // 获取可用的屏幕源
-  ipcMain.handle('screen-recorder:getSources', async (_event, options: Electron.SourcesOptions) => {
+  typedHandle('screen-recorder:getSources', async (_event, req) => {
     try {
       // 确保 options 有合理的默认值（避免重复指定同名属性）
       const defaultOptions: Electron.SourcesOptions = {
         thumbnailSize: { width: 200, height: 150 },
-        ...options
+        ...req.options
       }
       if (!defaultOptions.types || defaultOptions.types.length === 0) {
         defaultOptions.types = ['screen', 'window']
@@ -67,7 +68,7 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
       const errorMessage = (error as Error).message || String(error)
       console.error('获取屏幕源失败:', {
         error: errorMessage,
-        options: JSON.stringify(options),
+        options: JSON.stringify(req.options),
         platform: process.platform
       })
 
@@ -114,7 +115,7 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
   })
 
   // 请求屏幕录制权限（打开系统设置）
-  ipcMain.handle('screen-recorder:requestPermission', async () => {
+  typedHandle('screen-recorder:requestPermission', async () => {
     if (process.platform === 'darwin') {
       try {
         // macOS: 打开系统设置的屏幕录制权限页面
@@ -163,7 +164,7 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
   })
 
   // 检查屏幕录制权限状态
-  ipcMain.handle('screen-recorder:checkPermission', async () => {
+  typedHandle('screen-recorder:checkPermission', async () => {
     if (process.platform !== 'darwin') {
       return { hasPermission: true, message: '非 macOS 平台，无需检查' }
     }
@@ -190,7 +191,7 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
   })
 
   // 获取默认保存路径（使用日期格式文件名）
-  ipcMain.handle('screen-recorder:getDefaultSavePath', async () => {
+  typedHandle('screen-recorder:getDefaultSavePath', async () => {
     // 生成日期格式的文件名：2025-11-08 18-52-14
     const now = new Date()
     const pad = (n: number): string => String(n).padStart(2, '0')
@@ -210,7 +211,7 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
   // 选择保存录制文件的路径
   // 只允许 webm：MediaRecorder 输出固定是 webm 容器，旧实现同时提供 mp4 过滤器，
   // 用户选了 .mp4 会得到「webm 数据 + mp4 后缀」的假容器文件
-  ipcMain.handle('screen-recorder:selectSavePath', async () => {
+  typedHandle('screen-recorder:selectSavePath', async () => {
     const mainWindow = getMainWindow()
     const result = await showSaveDialogFor(mainWindow, {
       title: '保存录制文件',

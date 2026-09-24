@@ -4,13 +4,12 @@
  * 通道集合：recording.list / get / delete / markers.* / settings.* / recovery.*
  *
  * 设计边界：
- * - 本文件**仅新增** ipcMain.handle 注册；不动现有 screen-recorder:* / recording-history:* /
+ * - 本文件**仅新增** typedHandle 注册；不动现有 screen-recorder:* / recording-history:* /
  *   recording-settings:*（这三条保留 6 个月，由 §6 实施计划逐步切换）
  * - 渲染端调用：window.api.recording.list(...) 等
  * - 业务实现全部走 SQLite Repository，不依赖 RecordingHistoryServiceLegacy
  */
 
-import { ipcMain } from 'electron'
 import { randomUUID } from 'node:crypto'
 import {
   recordingRepository,
@@ -35,6 +34,7 @@ import { CountdownService } from '../services/recording/CountdownService'
 import { getRecoveryManager } from '../services/recording/RecoveryManager'
 import type { BrowserWindow } from 'electron'
 import type { RecordingSummary } from '../../shared/ipc-contract'
+import { typedHandle } from './typedIpc'
 
 /** RecordingRow (snake_case) → RecordingSummary (camelCase) */
 function toSummary(row: RecordingRow): RecordingSummary {
@@ -63,11 +63,15 @@ function toSummary(row: RecordingRow): RecordingSummary {
 
 /** 通用 wrap：异常 → console.error + 重抛（支持同步和异步 handler）。
  * ipcMain.handle 回调签名是 (event, ...payload)：此前单参 handler 的 req
- * 绑定到 event，业务字段全为 undefined——这里剥掉 event 再传业务参数 */
+ * 绑定到 event，业务字段全为 undefined——这里剥掉 event 再传业务参数。
+ *
+ * 返回类型写 `Promise<Awaited<TResult>>` 而不是 `Promise<TResult>`：handler 本身
+ * 常是 async（TResult 已是 Promise），再套一层就成了 `Promise<Promise<T>>`，
+ * 与实际运行值（只 await 一次）不符，会让 typedHandle 的返回类型校验失败。 */
 function wrap<TArgs extends unknown[], TResult>(
   handler: (...args: TArgs) => TResult
-): (_event: Electron.IpcMainInvokeEvent, ...payload: TArgs) => Promise<TResult> {
-  return async (_event, ...payload) => {
+): (_event: Electron.IpcMainInvokeEvent, ...payload: TArgs) => Promise<Awaited<TResult>> {
+  return async (_event, ...payload): Promise<Awaited<TResult>> => {
     try {
       return await handler(...payload)
     } catch (err) {
@@ -97,7 +101,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   // PR-7a: 加载持久化快捷键配置（不注册，直到有 renderer attach 回调）
   shortcutService.load()
   // ── Library ────────────────────────────────────────────────
-  ipcMain.handle(
+  typedHandle(
     'recording.list',
     wrap((req: { filter?: RecordingFilter; limit?: number; offset?: number }) => {
       const filter: RecordingFilter = {}
@@ -114,7 +118,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.get',
     wrap((req: { id: string }) => {
       const row = recordingRepository.findById(req.id)
@@ -122,7 +126,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.delete',
     wrap((req: { id: string; hard?: boolean; deleteFile?: boolean }) => {
       if (req.hard) {
@@ -136,25 +140,25 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // ── Settings ───────────────────────────────────────────────
-  ipcMain.handle(
+  typedHandle(
     'recording.settings.get',
     wrap((): RecordingDefaultSettings => recordingSettingsRepository.get())
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.settings.patch',
     wrap((req: Partial<RecordingDefaultSettings>): RecordingDefaultSettings =>
       recordingSettingsRepository.patch(req)
     )
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.settings.reset',
     wrap((): RecordingDefaultSettings => recordingSettingsRepository.reset())
   )
 
   // ── Recovery ───────────────────────────────────────────────
-  ipcMain.handle(
+  typedHandle(
     'recording.recovery.scan',
     wrap(() => {
       const r = getRecoveryManager().scan()
@@ -171,12 +175,12 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
 
   // 恢复对话框的两个动作。实现一直在 RecoveryManager 里（recover 认「DB 有行/没行」两种崩法，
   // discard 只删临时片），注册被恢复事故吞掉后：scan 列得出来、按钮按下去永远 reject。
-  ipcMain.handle(
+  typedHandle(
     'recording.recovery.recover',
     wrap(async (req: { filePath: string }) => getRecoveryManager().recover(req.filePath))
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.recovery.discard',
     wrap((req: { filePath: string }) => getRecoveryManager().discard(req.filePath))
   )
@@ -184,7 +188,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   // ── Segments（PR-3 暂停/恢复） ──────────────────────────────
   // 注意：recordingId 参数直接传入（renderer 端已生成 UUID），无需后端分配
   // 段序号（seg_index）由 RecordingSegmentRepository 自动维护
-  ipcMain.handle(
+  typedHandle(
     'recording.segments.open',
     wrap((req: { recordingId: string }) => {
       const row = segmentService.openSegment(req.recordingId)
@@ -192,14 +196,14 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.segments.close',
     wrap((req: { recordingId: string; segmentId?: number }) => {
       return segmentService.closeOpenSegment(req.recordingId, req.segmentId)
     })
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.segments.list',
     wrap((req: { recordingId: string }) => {
       const items = recordingSegmentRepository.listByRecording(req.recordingId).map((s) => ({
@@ -213,7 +217,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.segments.totalDuration',
     wrap((req: { recordingId: string; asOf?: number }) => {
       const totalMs = recordingSegmentRepository.totalDurationMs(req.recordingId, req.asOf)
@@ -222,7 +226,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // PR-3: 录制启动时新建 recording 行（status='recording'），返回 id 供 renderer 使用
-  ipcMain.handle(
+  typedHandle(
     'recording.start',
     wrap((req: { fileName: string; defaultSavePath?: string | null }) => {
       const recordingId = randomUUID()
@@ -237,7 +241,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // PR-3: 录制结束 / 暂停时长合并 → 写回总时长
-  ipcMain.handle(
+  typedHandle(
     'recording.finalize',
     wrap(
       (req: {
@@ -263,7 +267,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
 
   // ── PR-4 + PR-6: 区域选择 / 多显示器 ────────────────────────────
   // 透明 overlay 唤起 user 选 region；返回主显示器坐标系下的 {x,y,w,h}
-  ipcMain.handle(
+  typedHandle(
     'recording.region.open',
     wrap(async () => {
       const region = await RegionOverlay.open()
@@ -272,7 +276,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // PR-6: 在指定显示器内选择
-  ipcMain.handle(
+  typedHandle(
     'recording.region.openForDisplay',
     wrap(async (req: { displayId: number }) => {
       return await RegionOverlay.openForDisplay(req.displayId)
@@ -280,7 +284,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // PR-6: 跨所有显示器一次性框选
-  ipcMain.handle(
+  typedHandle(
     'recording.region.openCrossDisplay',
     wrap(async () => {
       return await RegionOverlay.openCrossDisplay()
@@ -288,7 +292,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // PR-6: 列出所有显示器
-  ipcMain.handle(
+  typedHandle(
     'recording.region.listDisplays',
     wrap(() => {
       return listDisplays()
@@ -296,7 +300,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // 程序主动关闭 overlay（防 race）
-  ipcMain.handle(
+  typedHandle(
     'recording.region.cancel',
     wrap(() => {
       RegionOverlay.cancel()
@@ -307,7 +311,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   // 系统音频探测（renderer 已先请求了 getUserMedia，把 audio track label 传回来做匹配）
   // 平台无关的"系统音频"探测：检查 label 是否匹配常见虚拟设备名
   // 返回：{ available: boolean, matches: string[], recommendedDeviceId?: string }
-  ipcMain.handle(
+  typedHandle(
     'recording.systemAudio.probe',
     wrap((req: { devices: Array<{ kind: string; deviceId: string; label: string }> }) => {
       return probeSystemAudio(req.devices)
@@ -316,17 +320,17 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
 
   // PR-4: cursor 追踪（renderer 调用以开始/结束光圈推送）
   // 不走 wrap()：需要拿到 IpcMainInvokeEvent.webContents.id
-  ipcMain.handle('recording.cursor.start', (e) => {
+  typedHandle('recording.cursor.start', (e) => {
     CursorTracker.start(e.sender.id)
     return { ok: true as const }
   })
-  ipcMain.handle('recording.cursor.stop', (e) => {
+  typedHandle('recording.cursor.stop', (e) => {
     CursorTracker.stop(e.sender.id)
     return { ok: true as const }
   })
 
   // PR-5b + PR-6 + PR-7c: 单录制导出（含可选 intro/outro/bgm/transition/fade/gif）
-  ipcMain.handle(
+  typedHandle(
     'recording.export.start',
     wrap(
       (req: {
@@ -431,7 +435,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     )
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.export.cancel',
     wrap((req: { jobId: string }) => {
       const job = activeExports.get(req.jobId)
@@ -442,7 +446,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  ipcMain.handle(
+  typedHandle(
     'recording.export.getInfo',
     wrap(async (req: { filePath: string }) => {
       const sec = await exportService.probeDurationSec(req.filePath)
@@ -451,24 +455,24 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // ── PR-7a: 全局快捷键 ─────────────────────────────────────
-  ipcMain.handle(
+  typedHandle(
     'recording.shortcut.getConfig',
     wrap(() => shortcutService.getConfig())
   )
-  ipcMain.handle(
+  typedHandle(
     'recording.shortcut.setConfig',
     wrap((req: { enabled?: boolean; start?: string; togglePause?: string }) =>
       shortcutService.setConfig(req)
     )
   )
-  ipcMain.handle(
+  typedHandle(
     'recording.shortcut.registered',
     wrap(() => ({ accels: shortcutService.registeredList() }))
   )
 
   // PR-7a: shortcut 实际注册 — renderer attach 后通过 IPC 推回调
   // 这里用一个 internal handler for "renderer attach"（window.onload 单次调用）
-  ipcMain.handle(
+  typedHandle(
     'recording.shortcut.attach',
     wrap(() => {
       const sender = getMainWindowFn?.() ?? null
@@ -488,7 +492,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
       return { ok: true }
     })
   )
-  ipcMain.handle(
+  typedHandle(
     'recording.shortcut.detach',
     wrap(() => {
       shortcutService.detach()
@@ -498,7 +502,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
 
   // PR-7a: togglePause —— 转发为 renderer 事件（preload → frond:shortcut-togglePause →
   // Layout → RecordPage 调单例 togglePause）。旧实现是空 handler，快捷键按了没效果。
-  ipcMain.handle(
+  typedHandle(
     'recording.togglePause',
     wrap(() => {
       const win = getMainWindowFn?.() ?? null
@@ -510,7 +514,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   )
 
   // ── PR-7b: 倒计时 ─────────────────────────────────────────
-  ipcMain.handle(
+  typedHandle(
     'recording.countdown.start',
     wrap((req: { seconds: number; reason: 'recording' }) => {
       if (!countdownService) {
@@ -527,7 +531,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
       return ok ? { ok: true } : { ok: false, error: 'countdown already active' }
     })
   )
-  ipcMain.handle(
+  typedHandle(
     'recording.countdown.cancel',
     wrap(() => {
       if (countdownService) countdownService.cancel()

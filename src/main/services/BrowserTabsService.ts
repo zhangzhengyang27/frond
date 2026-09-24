@@ -7,8 +7,8 @@
  * 权限：需要 macOS 辅助功能权限（自动化控制浏览器）。
  * 非 macOS 平台返回空列表。
  */
-import { ipcMain } from 'electron'
 import { execFile } from 'child_process'
+import { typedHandle } from '../ipc/typedIpc'
 
 export interface BrowserTab {
   id: string
@@ -141,14 +141,14 @@ export async function listAllBrowserTabs(): Promise<BrowserTab[]> {
 export { activateTab as activateBrowserTab }
 
 export function registerBrowserTabsIpc(): void {
-  ipcMain.handle('browser:tabs:list', async () => {
+  typedHandle('browser:tabs:list', async () => {
     if (process.platform !== 'darwin') return { ok: true, tabs: [], supported: false }
     return { ok: true, tabs: await listAllBrowserTabs(), supported: true }
   })
 
-  ipcMain.handle('browser:tabs:activate', async (_e, tab: BrowserTab) => {
+  typedHandle('browser:tabs:activate', async (_e, req) => {
     if (process.platform !== 'darwin') return { ok: false, error: '仅支持 macOS' }
-    const success = await activateTab(tab)
+    const success = await activateTab(req.tab)
     return { ok: success }
   })
 }

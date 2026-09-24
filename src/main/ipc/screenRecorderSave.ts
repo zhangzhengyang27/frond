@@ -1,4 +1,4 @@
-import { app, ipcMain } from 'electron'
+import { app } from 'electron'
 import {
   writeFileSync,
   statSync,
@@ -13,6 +13,7 @@ import { MarkerService } from '../services/MarkerService'
 import { recordingSegmentRepository } from '../db/repos/RecordingSegmentRepository'
 import { recordingRepository } from '../db/repos/RecordingRepository'
 import { resolveGrantedRecordingPath, revokeRecordingSavePath } from './recordingSavePathGrants'
+import { typedHandle } from './typedIpc'
 
 interface WriteSession {
   ws: WriteStream
@@ -140,8 +141,8 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
   }
 
   // ── 分片流式写盘（长录制内存 O(1)，替代一次性 IPC 传整段视频） ──
-  ipcMain.handle('screen-recorder:beginWrite', async (_event, filePath: string) => {
-    const target = resolveGrantedRecordingPath(filePath)
+  typedHandle('screen-recorder:beginWrite', async (_event, req) => {
+    const target = resolveGrantedRecordingPath(req.filePath)
     if (!target) {
       return { ok: false, error: 'refused: path was not issued by the main process' }
     }
@@ -166,15 +167,15 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
     }
   })
 
-  ipcMain.handle(
+  typedHandle(
     'screen-recorder:appendChunk',
-    async (_event, filePath: string, chunk: Uint8Array) => {
-      const target = resolveGrantedRecordingPath(filePath)
+    async (_event, req) => {
+      const target = resolveGrantedRecordingPath(req.filePath)
       const session = target ? activeWriteSessions.get(target) : undefined
       if (!session) return { ok: false, error: 'no active write session' }
       if (session.error) return { ok: false, error: session.error.message }
       try {
-        const nodeBuffer = Buffer.from(chunk)
+        const nodeBuffer = Buffer.from(req.chunk)
         await new Promise<void>((resolve, reject) => {
           session.ws.write(nodeBuffer, (err) => (err ? reject(err) : resolve()))
         })
@@ -187,8 +188,8 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
   )
 
   // 中止写盘会话：关闭流并删除半截文件，不写历史（写盘出错/启动失败时用）
-  ipcMain.handle('screen-recorder:abortWrite', async (_event, filePath: string) => {
-    const target = resolveGrantedRecordingPath(filePath)
+  typedHandle('screen-recorder:abortWrite', async (_event, req) => {
+    const target = resolveGrantedRecordingPath(req.filePath)
     const session = target ? activeWriteSessions.get(target) : undefined
     if (!target || !session) return { ok: false }
     activeWriteSessions.delete(target)
@@ -202,17 +203,17 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
     return { ok: true }
   })
 
-  ipcMain.handle(
+  typedHandle(
     'screen-recorder:endWrite',
-    async (_event, filePath: string, duration?: number, recordingId?: string) => {
-      const target = resolveGrantedRecordingPath(filePath)
+    async (_event, req) => {
+      const target = resolveGrantedRecordingPath(req.filePath)
       const session = target ? activeWriteSessions.get(target) : undefined
       if (!target || !session) return { success: false, error: 'no active write session' }
       activeWriteSessions.delete(target)
       try {
         await endStream(session.ws)
         if (session.error) throw session.error
-        return finalizeSavedFile(target, duration, recordingId)
+        return finalizeSavedFile(target, req.duration, req.recordingId)
       } catch (error) {
         console.error('[screenRecorderSave] endWrite failed:', error)
         return { success: false, error: (error as Error).message }
@@ -221,28 +222,19 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
   )
 
   // 保存录制文件（一次性写盘：旧链路兜底，渲染端优先走上面的分片写盘）
-  ipcMain.handle(
-    'screen-recorder:saveFile',
-    async (
-      _event,
-      filePath: string,
-      buffer: Uint8Array,
-      duration?: number,
-      recordingId?: string
-    ) => {
-      const target = resolveGrantedRecordingPath(filePath)
-      if (!target) {
-        return { success: false, error: 'refused: path was not issued by the main process' }
-      }
-      try {
-        const nodeBuffer = Buffer.from(buffer)
-        writeFileSync(target, nodeBuffer)
-        return finalizeSavedFile(target, duration, recordingId)
-      } catch (error) {
-        console.error('保存录制文件失败:', error)
-        return { success: false, error: (error as Error).message }
-      }
+  typedHandle('screen-recorder:saveFile', async (_event, req) => {
+    const target = resolveGrantedRecordingPath(req.filePath)
+    if (!target) {
+      return { success: false, error: 'refused: path was not issued by the main process' }
     }
-  )
+    try {
+      const nodeBuffer = Buffer.from(req.buffer)
+      writeFileSync(target, nodeBuffer)
+      return finalizeSavedFile(target, req.duration, req.recordingId)
+    } catch (error) {
+      console.error('保存录制文件失败:', error)
+      return { success: false, error: (error as Error).message }
+    }
+  })
 }
 

@@ -88,6 +88,8 @@ export function registerScreenshotHandlers(): void {
   })
 
   // 按窗口抓图：上游没有这个能力，桥与 handler 一起留着（渲染端暂无入口，账见 §11）
+  // ⚠ 这 4 条 screenshot:* 通道刻意不进 ipc-contract：preload 侧用裸 ipcRenderer.invoke
+  // + 位置参数，两边形状一致。见 src/preload/index.ts 的 screenshot 命名空间注释。
   ipcMain.removeHandler('screenshot:getWindowList')
   ipcMain.removeHandler('screenshot:captureWindow')
   ipcMain.handle('screenshot:getWindowList', () => listWindowSources())

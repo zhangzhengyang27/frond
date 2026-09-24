@@ -27,6 +27,3 @@ export { registerNotesIpc } from './notes'
 export { registerRemindersIpc } from './reminders'
 export { registerPermissionsIpcHandlers } from './permissions'
 export { registerCloudBackupIpcHandlers } from './cloudBackup'
-
-// 导出工具函数
-export { registerHandlers, registerPrefixedHandlers } from './utils'

@@ -8,23 +8,23 @@
  * 密码经 IPC 传入主进程：与 ai:setConfig 携带 apiKey 同一信任边界
  * （preload 是唯一入口，渲染进程沙箱化）。
  */
-import { ipcMain } from 'electron'
 import { backupFullDb, listCloudBackups, restoreFullDb } from '../launcher/cloudBackup'
+import { typedHandle } from './typedIpc'
 
 export function registerCloudBackupIpcHandlers(): void {
-  ipcMain.handle('cloudBackup:list', () => listCloudBackups())
+  typedHandle('cloudBackup:list', () => listCloudBackups())
 
-  ipcMain.handle('cloudBackup:backup', (_e, password: string) => {
-    if (typeof password !== 'string' || !password.trim()) {
+  typedHandle('cloudBackup:backup', (_e, req) => {
+    if (typeof req.password !== 'string' || !req.password.trim()) {
       return { ok: false, error: '密码不能为空' }
     }
-    return backupFullDb(password)
+    return backupFullDb(req.password)
   })
 
-  ipcMain.handle('cloudBackup:restore', (_e, password: string, fileName?: string) => {
-    if (typeof password !== 'string' || !password.trim()) {
+  typedHandle('cloudBackup:restore', (_e, req) => {
+    if (typeof req.password !== 'string' || !req.password.trim()) {
       return { ok: false, error: '密码不能为空' }
     }
-    return restoreFullDb(password, typeof fileName === 'string' ? fileName : undefined)
+    return restoreFullDb(req.password, typeof req.fileName === 'string' ? req.fileName : undefined)
   })
 }

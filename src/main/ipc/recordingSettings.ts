@@ -1,9 +1,9 @@
-import { ipcMain } from 'electron'
 import {
   RecordingSettingsDataStore,
   QUALITY_PRESETS,
   type RecordingSettings
 } from '../stores/RecordingSettingsDataStore'
+import { typedHandle } from './typedIpc'
 
 /**
  * IPC Handler 包装器：统一错误处理
@@ -37,7 +37,7 @@ export function registerRecordingSettingsIpcHandlers(): void {
   }
 
   // 获取录制设置
-  ipcMain.handle(
+  typedHandle(
     'recording-settings:getSettings',
     wrapHandler(() => {
       return recordingSettingsStore.getSettings()
@@ -45,7 +45,7 @@ export function registerRecordingSettingsIpcHandlers(): void {
   )
 
   // 更新录制设置
-  ipcMain.handle(
+  typedHandle(
     'recording-settings:updateSettings',
     wrapHandler((_event, updates: Partial<RecordingSettings>) => {
       return recordingSettingsStore.updateSettings(updates)
@@ -53,7 +53,7 @@ export function registerRecordingSettingsIpcHandlers(): void {
   )
 
   // 重置为默认设置
-  ipcMain.handle(
+  typedHandle(
     'recording-settings:resetToDefaults',
     wrapHandler(() => {
       return recordingSettingsStore.resetToDefaults()
@@ -61,14 +61,16 @@ export function registerRecordingSettingsIpcHandlers(): void {
   )
 
   // 获取质量预设
-  ipcMain.handle(
+  typedHandle(
     'recording-settings:getQualityPreset',
-    wrapHandler((_event, quality: 'low' | 'medium' | 'high') => {
-      const preset = QUALITY_PRESETS[quality]
-      if (!preset) {
-        throw new Error(`无效的质量预设: ${quality}`)
+    wrapHandler(
+      (_event: Electron.IpcMainInvokeEvent, req: { quality: 'low' | 'medium' | 'high' }) => {
+        const preset = QUALITY_PRESETS[req.quality]
+        if (!preset) {
+          throw new Error(`无效的质量预设: ${req.quality}`)
+        }
+        return preset
       }
-      return preset
-    })
+    )
   )
 }

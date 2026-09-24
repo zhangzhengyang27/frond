@@ -5,7 +5,7 @@
  * macOS 下通过 AppleScript + System Events 获取窗口信息。
  */
 import { execFile } from 'child_process'
-import { ipcMain } from 'electron'
+import { typedHandle } from '../ipc/typedIpc'
 
 /**
  * 运行 osascript：脚本作为独立参数传给 osascript，不经 shell，
@@ -115,11 +115,11 @@ export async function activateWindow(pid: number, title: string): Promise<boolea
 
 /** 注册窗口切换 IPC */
 export function registerWindowSwitcherIpc(): void {
-  ipcMain.handle('windows:list', async () => {
+  typedHandle('windows:list', async () => {
     return getWindows()
   })
 
-  ipcMain.handle('windows:activate', async (_e, pid: number, title: string) => {
-    return activateWindow(Number(pid), typeof title === 'string' ? title : '')
+  typedHandle('windows:activate', async (_e, req) => {
+    return activateWindow(Number(req.pid), typeof req.title === 'string' ? req.title : '')
   })
 }

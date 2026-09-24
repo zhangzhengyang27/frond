@@ -9,12 +9,13 @@
  * remote 模式在 1.0 不实现，仅占位。
  */
 
-import { dialog, ipcMain, shell } from 'electron'
+import { dialog, shell } from 'electron'
 import { log } from '../services/LogService'
 import type { TelemetryMode } from '../../shared/types'
+import { typedHandle } from './typedIpc'
 
 export function registerLogIpcHandlers(): void {
-  ipcMain.handle('log:export', async (): Promise<string | null> => {
+  typedHandle('log:export', async (): Promise<string | null> => {
     const filePath = await log.export()
     if (!filePath) return null
     // 友好地弹一个「保存到…」对话框，让用户主动选路径
@@ -32,9 +33,9 @@ export function registerLogIpcHandlers(): void {
     return filePath
   })
 
-  ipcMain.handle('log:getMode', (): TelemetryMode => log.getMode())
-  ipcMain.handle('log:setMode', (_e, mode: TelemetryMode): TelemetryMode => {
-    log.setMode(mode)
+  typedHandle('log:getMode', (): TelemetryMode => log.getMode())
+  typedHandle('log:setMode', (_e, req): TelemetryMode => {
+    log.setMode(req.mode)
     return log.getMode()
   })
 }

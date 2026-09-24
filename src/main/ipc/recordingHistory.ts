@@ -2,6 +2,7 @@ import { ipcMain, shell } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { RecordingHistoryService, type RecordingHistory } from '../services/RecordingHistoryService'
 import { safeOpenablePath } from '../utils/openPathGuard'
+import { typedHandle } from './typedIpc'
 
 /**
  * 整段读入内存的上限：超过直接拒绝。
@@ -14,20 +15,17 @@ export function registerRecordingHistoryIpcHandlers(): void {
   const recordingHistoryService = RecordingHistoryService.getInstance()
 
   // 获取录制历史
-  ipcMain.handle('recording-history:getHistory', () => {
+  typedHandle('recording-history:getHistory', () => {
     return recordingHistoryService.getHistory()
   })
 
   // 根据日期范围获取历史
-  ipcMain.handle(
-    'recording-history:getHistoryByDateRange',
-    (_event, start: number, end: number) => {
-      return recordingHistoryService.getHistoryByDateRange(new Date(start), new Date(end))
-    }
-  )
+  typedHandle('recording-history:getHistoryByDateRange', (_event, req) => {
+    return recordingHistoryService.getHistoryByDateRange(new Date(req.start), new Date(req.end))
+  })
 
   // 添加录制历史
-  ipcMain.handle(
+  typedHandle(
     'recording-history:addHistory',
     (_event, recording: Omit<RecordingHistory, 'id' | 'createdAt'>) => {
       return recordingHistoryService.addHistory(recording)
@@ -35,34 +33,34 @@ export function registerRecordingHistoryIpcHandlers(): void {
   )
 
   // 删除历史记录
-  ipcMain.handle('recording-history:deleteHistory', (_event, id: string) => {
-    return recordingHistoryService.deleteHistory(id)
+  typedHandle('recording-history:deleteHistory', (_event, req) => {
+    return recordingHistoryService.deleteHistory(req.id)
   })
 
   // 清空历史记录
-  ipcMain.handle('recording-history:clearHistory', () => {
+  typedHandle('recording-history:clearHistory', () => {
     recordingHistoryService.clearHistory()
   })
 
   // 生成缩略图
-  ipcMain.handle('recording-history:generateThumbnail', async (_event, videoPath: string) => {
-    return await recordingHistoryService.generateThumbnail(videoPath)
+  typedHandle('recording-history:generateThumbnail', async (_event, req) => {
+    return await recordingHistoryService.generateThumbnail(req.videoPath)
   })
 
   // 更新缩略图
-  ipcMain.handle('recording-history:updateThumbnail', async (_event, id: string) => {
-    return await recordingHistoryService.updateThumbnail(id)
+  typedHandle('recording-history:updateThumbnail', async (_event, req) => {
+    return await recordingHistoryService.updateThumbnail(req.id)
   })
 
   // 获取统计信息
-  ipcMain.handle('recording-history:getStatistics', () => {
+  typedHandle('recording-history:getStatistics', () => {
     return recordingHistoryService.getStatistics()
   })
 
   // 打开文件
-  ipcMain.handle('recording-history:openFile', async (_event, filePath: string) => {
+  typedHandle('recording-history:openFile', async (_event, req) => {
     try {
-      const target = safeOpenablePath(filePath)
+      const target = safeOpenablePath(req.filePath)
       if (!target) return { success: false, error: 'File not found' }
       await shell.openPath(target)
       return { success: true }
@@ -75,6 +73,9 @@ export function registerRecordingHistoryIpcHandlers(): void {
   /**
    * 回放读文件（2026-09-23 补）：PlaybackPanel 要把录像读进内存再挂 blob URL。
    * 路径来自渲染端，所以只认「录制历史里记过的路径」——否则这条通道就是任意文件读取。
+   *
+   * ⚠ 刻意留在 ipc-contract 之外：preload 侧用裸 ipcRenderer.invoke + 位置参数
+   * （见 src/preload/index.ts 的 video.readFile），两边形状一致。收进契约是另一件事。
    */
   ipcMain.handle('video:readFile', async (_event, filePath: string): Promise<ArrayBuffer> => {
     const known = recordingHistoryService.getHistory().some((r) => r.filePath === filePath)
@@ -84,9 +85,9 @@ export function registerRecordingHistoryIpcHandlers(): void {
   })
 
   // 在文件夹中显示文件
-  ipcMain.handle('recording-history:showInFolder', async (_event, filePath: string) => {
+  typedHandle('recording-history:showInFolder', async (_event, req) => {
     try {
-      shell.showItemInFolder(filePath)
+      shell.showItemInFolder(req.filePath)
       return { success: true }
     } catch (error) {
       console.error('显示文件失败:', error)

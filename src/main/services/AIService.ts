@@ -11,7 +11,7 @@
  * - baseUrl 可自定义（DeepSeek / 通义 / Ollama 等 OpenAI 兼容端点）
  * - 请求超时 60s，避免挂起
  */
-import { ipcMain, type WebContents } from 'electron'
+import { type WebContents } from 'electron'
 import { prefRepository } from '../db/repos'
 import type {
   AIConfig,
@@ -30,6 +30,7 @@ import {
 } from '../../shared/ai'
 import { encryptText, decryptText } from '../utils/crypto'
 import { assertAiEndpointAllowed } from '../utils/aiEndpointGuard'
+import { typedHandle } from '../ipc/typedIpc'
 
 const STORE_KEY = 'ai.config'
 const SESSIONS_KEY = 'ai.sessions'
@@ -453,38 +454,38 @@ export async function applyModelPreset(id: string): Promise<AIConfig | null> {
 
 /** 注册 AI IPC 处理器 */
 export function registerAIIpc(): void {
-  ipcMain.handle('ai:getConfig', () => getAIConfig())
+  typedHandle('ai:getConfig', () => getAIConfig())
 
-  ipcMain.handle('ai:setConfig', (_e, patch: Partial<AIConfig>) => setAIConfig(patch))
+  typedHandle('ai:setConfig', (_e, req) => setAIConfig(req.patch))
 
-  ipcMain.handle('ai:isConfigured', () => isAIConfigured())
+  typedHandle('ai:isConfigured', () => isAIConfigured())
   // 「拉取模型」（P-4① BYOM）：填的是地址，不拉一下用户不知道自己写对没有
-  ipcMain.handle('ai:listModels', () => listModels())
+  typedHandle('ai:listModels', () => listModels())
 
   // ─── 对话历史 IPC ───
-  ipcMain.handle('ai:listSessions', () => listSessions())
-  ipcMain.handle('ai:getSession', (_e, id: string) => getSession(id) ?? null)
-  ipcMain.handle('ai:saveSession', (_e, session: AIChatSession) => saveSession(session))
-  ipcMain.handle('ai:deleteSession', (_e, id: string) => {
-    deleteSession(id)
+  typedHandle('ai:listSessions', () => listSessions())
+  typedHandle('ai:getSession', (_e, req) => getSession(req.id) ?? null)
+  typedHandle('ai:saveSession', (_e, session: AIChatSession) => saveSession(session))
+  typedHandle('ai:deleteSession', (_e, req) => {
+    deleteSession(req.id)
     return true
   })
-  ipcMain.handle('ai:clearSessions', () => {
+  typedHandle('ai:clearSessions', () => {
     clearSessions()
     return true
   })
 
   // ─── 模型预设 IPC ───
-  ipcMain.handle('ai:listPresets', () => listModelPresets())
-  ipcMain.handle('ai:savePreset', (_e, preset: AIModelPreset) => saveModelPreset(preset))
-  ipcMain.handle('ai:deletePreset', (_e, id: string) => deleteModelPreset(id))
-  ipcMain.handle('ai:applyPreset', (_e, id: string) => applyModelPreset(id))
+  typedHandle('ai:listPresets', () => listModelPresets())
+  typedHandle('ai:savePreset', (_e, req) => saveModelPreset(req.preset))
+  typedHandle('ai:deletePreset', (_e, req) => deleteModelPreset(req.id))
+  typedHandle('ai:applyPreset', (_e, req) => applyModelPreset(req.id))
 
   /**
    * 流式聊天：渲染端传入 sessionId 用于区分多次对话，
    * 主进程通过 ai:stream-chunk 事件推送增量。
    */
-  ipcMain.handle(
+  typedHandle(
     'ai:chat',
     async (event, payload: { sessionId: string; messages: AIChatMessage[] }) => {
       const cfg = getAIConfig()

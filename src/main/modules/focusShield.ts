@@ -12,12 +12,13 @@
  *
  * 限制：只是提醒不是强制：遮罩可被 ⌘Tab 绕过，与 Raycast 同级，不做内核级拦截。
  */
-import { BrowserWindow, app, ipcMain, screen } from 'electron'
+import { BrowserWindow, app, screen } from 'electron'
 import { execFile } from 'child_process'
 import { join } from 'path'
 import { promisify } from 'util'
 import { getLauncherDocStore } from '../launcher/docStore'
 import { isMac, isWin } from '../utils/platform'
+import { typedHandle } from '../ipc/typedIpc'
 
 const execFileAsync = promisify(execFile)
 
@@ -330,8 +331,8 @@ class FocusShieldService {
 export const focusShield = new FocusShieldService()
 
 export function registerFocusShieldIpc(): void {
-  ipcMain.handle('focus-shield:getConfig', () => focusShield.getConfig())
-  ipcMain.handle('focus-shield:setConfig', (_e, patch: Partial<FocusShieldConfig>) => {
+  typedHandle('focus-shield:getConfig', () => focusShield.getConfig())
+  typedHandle('focus-shield:setConfig', (_e, patch: Partial<FocusShieldConfig>) => {
     // 渲染端传入白名单字段，apps/websites 逐项 trim 与上限防护
     const apps = Array.isArray(patch.apps)
       ? patch.apps
@@ -353,13 +354,13 @@ export function registerFocusShieldIpc(): void {
       ...(websites ? { websites } : {})
     })
   })
-  ipcMain.handle('focus-shield:setActive', (_e, active: boolean) => {
-    focusShield.setActive(Boolean(active))
+  typedHandle('focus-shield:setActive', (_e, req) => {
+    focusShield.setActive(Boolean(req.active))
     return true
   })
-  ipcMain.handle('focus-shield:temporaryAllow', () => {
+  typedHandle('focus-shield:temporaryAllow', () => {
     focusShield.temporaryAllow()
     return true
   })
-  ipcMain.handle('focus-shield:currentState', () => focusShield.currentState())
+  typedHandle('focus-shield:currentState', () => focusShield.currentState())
 }

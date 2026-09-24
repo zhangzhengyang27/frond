@@ -5,11 +5,11 @@
  * - syncdata:push     推送本地到云端（后写覆盖）
  * - syncdata:pull     拉平（LWW 决策；覆盖前本地快照）
  */
-import { ipcMain } from 'electron'
 import { dataSyncStatus, pullDataSync, pushDataSync } from '../launcher/dataSync'
+import { typedHandle } from './typedIpc'
 
 export function registerDataSyncIpc(): void {
-  ipcMain.handle('syncdata:status', () => dataSyncStatus())
-  ipcMain.handle('syncdata:push', async () => pushDataSync())
-  ipcMain.handle('syncdata:pull', async () => pullDataSync())
+  typedHandle('syncdata:status', () => dataSyncStatus())
+  typedHandle('syncdata:push', async () => pushDataSync())
+  typedHandle('syncdata:pull', async () => pullDataSync())
 }

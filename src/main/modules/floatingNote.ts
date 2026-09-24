@@ -9,10 +9,11 @@
  * 窗口位置和大小自动持久化到 userData/floating-note-window.json。
  */
 
-import { BrowserWindow, ipcMain, screen, app } from 'electron'
+import { BrowserWindow, screen, app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
+import { typedHandle } from '../ipc/typedIpc'
 
 let floatingWindow: BrowserWindow | null = null
 
@@ -187,19 +188,19 @@ export function toggleFloatingNoteWindow(): void {
 }
 
 export function registerFloatingNoteIpc(): void {
-  ipcMain.handle('floatingNote:toggle', () => {
+  typedHandle('floatingNote:toggle', () => {
     toggleFloatingNoteWindow()
     return true
   })
-  ipcMain.handle('floatingNote:show', () => {
+  typedHandle('floatingNote:show', () => {
     showFloatingNoteWindow()
     return true
   })
-  ipcMain.handle('floatingNote:hide', () => {
+  typedHandle('floatingNote:hide', () => {
     hideFloatingNoteWindow()
     return true
   })
-  ipcMain.handle('floatingNote:isVisible', () => {
+  typedHandle('floatingNote:isVisible', () => {
     return floatingWindow ? !floatingWindow.isDestroyed() && floatingWindow.isVisible() : false
   })
 }

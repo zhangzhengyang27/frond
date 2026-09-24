@@ -7,7 +7,8 @@
  */
 import * as fs from 'fs'
 import * as path from 'path'
-import { app, ipcMain, shell } from 'electron'
+import { app, shell } from 'electron'
+import { typedHandle } from '../ipc/typedIpc'
 
 export interface TrashItem {
   /** 文件名 */
@@ -149,13 +150,11 @@ export async function openTrashInFinder(): Promise<void> {
 
 /** 注册回收站 IPC */
 export function registerTrashIpc(): void {
-  ipcMain.handle('trash:list', async () => listTrash())
-  ipcMain.handle('trash:empty', async () => emptyTrash())
-  ipcMain.handle('trash:restore', async (_e, itemPath: string) =>
-    restoreItem(String(itemPath ?? ''))
-  )
-  ipcMain.handle('trash:delete', async (_e, itemPath: string) => deleteItem(String(itemPath ?? '')))
-  ipcMain.handle('trash:open', async () => {
+  typedHandle('trash:list', async () => listTrash())
+  typedHandle('trash:empty', async () => emptyTrash())
+  typedHandle('trash:restore', async (_e, req) => restoreItem(String(req.itemPath ?? '')))
+  typedHandle('trash:delete', async (_e, req) => deleteItem(String(req.itemPath ?? '')))
+  typedHandle('trash:open', async () => {
     await openTrashInFinder()
     return true
   })

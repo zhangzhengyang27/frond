@@ -13,13 +13,14 @@
  * 二次确认；这里只暴露 IPC 入口。
  */
 
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { listArchives, deleteArchive, restoreArchive, type ArchiveInfo } from '../db/legacyArchive'
 import { exportDb, importDb, factoryReset } from '../db/dbBackup'
 import { log } from '../services/LogService'
+import { typedHandle } from './typedIpc'
 
 export function registerMigrationIpcHandlers(getMainWindow: () => BrowserWindow | null): void {
-  ipcMain.handle('migration:listArchives', (): ArchiveInfo[] => {
+  typedHandle('migration:listArchives', (): ArchiveInfo[] => {
     try {
       return listArchives(app.getPath('userData'))
     } catch (e) {
@@ -28,32 +29,33 @@ export function registerMigrationIpcHandlers(getMainWindow: () => BrowserWindow 
     }
   })
 
-  ipcMain.handle(
-    'migration:deleteArchive',
-    (_e, archivePath: string): { ok: boolean; error?: string } => {
-      return deleteArchive(app.getPath('userData'), archivePath)
-    }
-  )
+  // ⚠ 这里曾经是裸 ipcMain.handle + 位置参数 `(_e, archivePath: string)`。
+  // preload 早已按单对象约定发 `{ archivePath }`，于是 handler 收到的其实是那个
+  // 对象，`resolveContainedArchive` 的 `typeof archivePath !== 'string'` 直接判非，
+  // 「还原备份」「删除备份」两个按钮永远返回 refused —— 静默失效，无报错。
+  typedHandle('migration:deleteArchive', (_e, req): { ok: boolean; error?: string } => {
+    return deleteArchive(app.getPath('userData'), req.archivePath)
+  })
 
-  ipcMain.handle(
+  typedHandle(
     'migration:restoreArchive',
-    (_e, archivePath: string): { ok: boolean; restored: string[]; errors: string[] } => {
-      return restoreArchive(app.getPath('userData'), archivePath)
+    (_e, req): { ok: boolean; restored: string[]; errors: string[] } => {
+      return restoreArchive(app.getPath('userData'), req.archivePath)
     }
   )
 
-  ipcMain.handle('migration:exportDb', async (): Promise<string | null> => {
+  typedHandle('migration:exportDb', async (): Promise<string | null> => {
     return exportDb(getMainWindow)
   })
 
-  ipcMain.handle(
+  typedHandle(
     'migration:importDb',
     async (): Promise<{ imported: boolean; filePath: string | null }> => {
       return importDb(getMainWindow)
     }
   )
 
-  ipcMain.handle('migration:factoryReset', async (): Promise<boolean> => {
+  typedHandle('migration:factoryReset', async (): Promise<boolean> => {
     return factoryReset(getMainWindow)
   })
 }

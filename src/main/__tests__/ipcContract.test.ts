@@ -20,7 +20,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { execSync } from 'node:child_process'
 
 const REPO_ROOT = join(__dirname, '../../..')
@@ -517,5 +517,144 @@ describe('环境 / 仓库 sanity', () => {
     } catch {
       throw new Error('当前目录不在 git 仓库内（CI 异常？）')
     }
+  })
+})
+
+/**
+ * 单对象入参门禁（2026-09-24）
+ *
+ * 契约里 req 非 void 的通道，注册点**必须**是 typedHandle —— 只有这样 handler 的
+ * 入参形状才受 IpcContract 约束。
+ *
+ * 为什么需要这条：裸 ipcMain.handle 的 handler 形参不受任何检查。2026-09-24 查出
+ * 39 条通道错位：preload 早已按单对象约定发 `{ x }`，handler 却按位置参数读 `x` ——
+ * 拿到的是整个对象，于是 `typeof x === 'string'` 判非、`String(x)` 得到
+ * "[object Object]"，功能**静默失效**（不报错、不留日志）。受害面覆盖：
+ * 打开外链 / 在访达中显示、回收站恢复与删除、词典、命令别名、AI 会话与预设、
+ * 云备份、录屏分片写盘与保存、旧录制历史、迁移中心「还原备份 / 删除备份」等。
+ *
+ * 例外（有意为之，不在本门禁范围）：
+ * - 契约里 req 为 void 的通道：handler 本来就忽略入参，形状无从错位。
+ * - 不在契约里的通道（screenshot:* / platform:* / video:readFile）：preload 侧用
+ *   裸 ipcRenderer.invoke + 位置参数，两端形状一致、行为正确；把它们收进契约
+ *   是另一件事（要同时改 preload 与 req/res 定义）。
+ */
+describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', { timeout: 120_000 }, () => {
+  /** channel → req 是否为 void（只解析登记册里的条目） */
+  function contractReqVoidFlags(): Map<string, boolean> {
+    const src = readSource(join(REPO_ROOT, 'src/shared/ipc-contract.ts'))
+    const out = new Map<string, boolean>()
+    const keyRe = /'([^']+)'\s*:\s*\{/g
+    let m: RegExpExecArray | null
+    while ((m = keyRe.exec(src))) {
+      const channel = m[1]
+      const open = m.index + m[0].length - 1
+      // 找配平的 '}'
+      let depth = 0
+      let end = open
+      for (; end < src.length; end++) {
+        const c = src[end]
+        if (c === '{') depth++
+        else if (c === '}') {
+          depth--
+          if (depth === 0) break
+        }
+      }
+      const body = src.slice(open + 1, end)
+      const reqMatch = /(?:^|[\s{,])req\s*:/.exec(body)
+      if (!reqMatch) {
+        out.set(channel, false)
+        continue
+      }
+      const afterReq = body.slice(reqMatch.index + reqMatch[0].length)
+      // 截到顶层 ';' 或顶层 'res:'（有些条目 req 后没有分号）
+      let d = 0
+      let cut = afterReq.length
+      for (let i = 0; i < afterReq.length; i++) {
+        const c = afterReq[i]
+        if ('{(['.includes(c)) d++
+        else if ('})]'.includes(c)) d--
+        else if (d === 0) {
+          if (c === ';') {
+            cut = i
+            break
+          }
+          if (afterReq.startsWith('res', i) && /^res\s*:/.test(afterReq.slice(i))) {
+            cut = i
+            break
+          }
+        }
+      }
+      out.set(channel, afterReq.slice(0, cut).trim() === 'void')
+    }
+    return out
+  }
+
+  /** 用裸 ipcMain.handle('ch', …) 注册的通道（channel → 文件） */
+  function bareHandleChannels(): Map<string, string> {
+    const out = new Map<string, string>()
+    for (const f of walkTsFiles(join(REPO_ROOT, 'src/main'))) {
+      const code = readSource(f)
+        .split('\n')
+        .filter((l) => {
+          const t = l.trimStart()
+          return !(t.startsWith('//') || t.startsWith('/*') || t.startsWith('*'))
+        })
+        .join('\n')
+      const re = /ipcMain\.handle\(\s*['"`]([^'"`]+)['"`]/g
+      let m: RegExpExecArray | null
+      while ((m = re.exec(code))) out.set(m[1], f)
+    }
+    return out
+  }
+
+  it('登记册解析没有退化（体量哨兵：解析空掉会让下一条门禁空转）', () => {
+    const flags = contractReqVoidFlags()
+    expect(flags.size).toBeGreaterThan(300)
+    const nonVoid = [...flags.values()].filter((v) => v === false).length
+    // 实测约 200 条 req 非 void；门槛留足余量，只拦「解析全废」这种情况
+    expect(nonVoid).toBeGreaterThan(120)
+  })
+
+  it('契约 req 非 void 的通道没有一条用裸 ipcMain.handle 注册', () => {
+    const flags = contractReqVoidFlags()
+    const bare = bareHandleChannels()
+    expect(bare.size).toBeGreaterThan(0) // 哨兵：扫描没退化
+
+    const violations: string[] = []
+    for (const [ch, file] of bare) {
+      const isVoid = flags.get(ch)
+      if (isVoid === undefined) continue // 不在契约里 —— 见 describe 注释的例外
+      if (isVoid) continue
+      violations.push(`${ch}  (${relative(REPO_ROOT, file)})`)
+    }
+
+    expect(
+      violations,
+      '这些通道契约里 req 非 void，却用裸 ipcMain.handle 注册 —— handler 形参不受约束，' +
+        '极易出现「preload 发对象 / handler 读位置参数」的静默失效。请改注册点为 typedHandle：\n  ' +
+        violations.join('\n  ')
+    ).toEqual([])
+  })
+
+  it('门禁有判别力：已知的例外通道不在违规清单里（避免把合法用法误报）', () => {
+    const flags = contractReqVoidFlags()
+    const bare = bareHandleChannels()
+    // 这 8 条不在契约里，应当被跳过而不是报错
+    const knownOutsideContract = [
+      'screenshot:getWindowList',
+      'screenshot:captureWindow',
+      'screenshot:startCapture',
+      'screenshot:endCapture',
+      'platform:setDockBadge',
+      'platform:setProgressBar',
+      'platform:requestUserAttention',
+      'video:readFile'
+    ]
+    for (const ch of knownOutsideContract) {
+      expect(flags.has(ch), `${ch} 不该出现在登记册里（若已收编请更新本用例）`).toBe(false)
+    }
+    const stillBare = [...bare.keys()].filter((ch) => knownOutsideContract.includes(ch))
+    expect(stillBare.sort()).toEqual([...knownOutsideContract].sort())
   })
 })

@@ -31,10 +31,8 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      # 同上：node-gyp 9.4.1 重编原生模块需要 Python 3.11（distutils）
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      # lint/类型检查不碰原生模块：postinstall（install-app-deps）已从 package.json
+      # 移除，这里连 Python 都不用了（rebuild:native 只在 test/build/e2e job 有）
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -67,6 +65,10 @@ jobs:
         node-version: [20]
     steps:
       - uses: actions/checkout@v4
+        # lintCssChanged 的 CLI 集成测试按 push 口径 diff event.before..HEAD，
+        # 浅克隆没有基线提交 → "Invalid revision range"（2026-09-24 首跑 macOS 3 红）
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
 
@@ -75,8 +77,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
 
-      # postinstall（electron-builder install-app-deps）重编原生模块需要
-      # node-gyp 9.4.1 → distutils；runner 默认 Python 3.12+ 已移除，钉 3.11
+      # rebuild:native（electron-rebuild → node-gyp 9.4.1）在 ubuntu/macos 真编
+      # better-sqlite3，需要 distutils；runner 默认 Python 3.12+ 已移除，钉 3.11
+      # （windows 无 VS 检测 → 走下面 rebuild 步的 || echo 降级，用 node 预编译件）
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -85,6 +88,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build native modules
+        # NAPI 产物 node/electron 通用；windows 编不了时降级为 prebuild 下载的 node 件
         run: pnpm rebuild:native || echo "Native rebuild skipped (no better-sqlite3)"
 
       - name: Run tests
@@ -109,7 +113,8 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      # 同上：node-gyp 9.4.1 重编原生模块需要 Python 3.11（distutils）
+      # rebuild:native（electron-rebuild → node-gyp 9.4.1）真编 better-sqlite3
+      # 需要 distutils；runner 默认 Python 3.12+ 已移除，钉 3.11
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -133,7 +138,7 @@ jobs:
           retention-days: 7
 
   # 六期：E2E 冒烟上 CI（此前仅本地）。Linux 下 Electron 依赖系统库，用 xvfb 包装。
-  # 注意：CI 尚无远端仓库、从未真实运行过——首次运行若暴露环境性 flake，
+  # 2026-09-24 首跑（此前无远端仓库）；若暴露环境性 flake，
   # 优先修环境（依赖库/xvfb 参数）而不是回退 continue-on-error。
   #
   # 冒烟集合由 `pnpm run test:e2e:smoke` 定义（CI 与本地跑同一份，不再两处各写一遍）。
@@ -159,7 +164,8 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      # 同上：node-gyp 9.4.1 重编原生模块需要 Python 3.11（distutils）
+      # rebuild:native（electron-rebuild → node-gyp 9.4.1）真编 better-sqlite3
+      # 需要 distutils；runner 默认 Python 3.12+ 已移除，钉 3.11
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

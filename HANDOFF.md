@@ -829,7 +829,15 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   viewCtx getter 与槽态分发器调用点不变。第三刀已落：Quicklink 参数段 →
   `composables/useQuicklinkArgLaunch.ts`（2281 行，三刀累计 -160；途中发现并拆开了
   openQuicklinkArg「一个名字身兼两职」——分发入口 vs 表单提交，两接口签名由 typecheck
-  钉死）。下一刀候选：AI 接线段、收藏/别名字段、剪贴板过滤段。
+  钉死）。第四刀已落（**未提交，等作者拍板**）：AI 接线段 →
+  `composables/useAiLaunch.ts`（三个「交文字给 AI 页」入口共用 queueOnAiPage 管线；
+  aiReady/refreshAiReady 出状态，watch(actionPanelEntry) 留在宿主——依赖 actionPanelEntry
+  且它出自 useActionPanel，有先后约束）。四刀累计 2441 → 2236（-205）。
+  第五刀已落（**与第四刀同批未提交**）：内联槽引擎 →
+  `composables/useArgSlots.ts`（110 行状态+按键整段；提交去向经 deps.dispatch 回调交还
+  宿主——引擎必须先于三个发射段创建，dispatch 用提升的函数声明接线，规避 TDZ 且
+  typecheck 钉死签名）。五刀累计 2441 → 2146（**-295**）。
+  下一刀候选：收藏/别名字段、剪贴板过滤段（两段都偏小，或直接转 preload d.ts 代码生成）。
   拆分纪律：每刀独立提交、抽前后 e2e 实跑对照、lint/typecheck 全过。
 - **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
   「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道

@@ -826,8 +826,11 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   上限）→ **2319**。两刀同构：MCP 工具发射段 → `composables/useMcpToolLaunch.ts`、
   插件带参发射段 → `composables/usePluginArgLaunch.ts`（各 ~80/60 行，依赖显式注入：
   query / searchBarRef（只依赖 focus() 能力）/ pushPage / popPage / enterArgSlots）。
-  viewCtx getter 与槽态分发器调用点不变。下一刀候选：Quicklink 参数段（qlArg*，同构）、
-  AI 接线段。拆分纪律：每刀独立提交、抽前后 e2e 实跑对照、lint/typecheck 全过。
+  viewCtx getter 与槽态分发器调用点不变。第三刀已落：Quicklink 参数段 →
+  `composables/useQuicklinkArgLaunch.ts`（2281 行，三刀累计 -160；途中发现并拆开了
+  openQuicklinkArg「一个名字身兼两职」——分发入口 vs 表单提交，两接口签名由 typecheck
+  钉死）。下一刀候选：AI 接线段、收藏/别名字段、剪贴板过滤段。
+  拆分纪律：每刀独立提交、抽前后 e2e 实跑对照、lint/typecheck 全过。
 - **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
   「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道
   （market:setIndexUrl/refreshIndex/indexInfo 全在，唯独没有 UI）重建于

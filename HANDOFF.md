@@ -798,11 +798,19 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   原样读回、sanitizeTasks 留在两个真入口；tick 落盘改重读合并防旁路覆盖；
   automationResultLabel 按设计契约（runtime.ts:736）对插件任务显示「已交给插件」。
   探针方法论：console.error 走 **stderr**；产物验证 grep 代码标记不是注释（剥注释）。
-- **剩 15 红按簇证据**：market-index 5（旧账，网络类）；**mcp-tool-search 4** ——
-  主进程契约无损（stopServer 不清缓存），渲染端启动期竞态（推送早于订阅、补拉早于
-  连接完成），修法候选=每次唤起再补拉一轮；ai-action 2 / ai-byom 2 / a11y:137 /
-  command-palette:68 / file-index:95 —— 未归因，按既定方法逐簇处理（先 error-context
-  快照、再对照 API 层数据、分清「数据没有」还是「数据在、渲染丢」）。
+- **清红战果 II（2026-09-25，8806b21）：15 → 6 红**。mcp 4 / ai-action 2 / ai-byom 2 /
+  a11y 3/3 / command-palette 全绿。三段链根因：①MCP 推送从不存在（无人发 source='mcp'）
+  + 渲染端处理器漏 loadMcpCommands；②**响应式 Proxy 过不了 IPC 结构化克隆**（commandRunner
+  面板转交 + McpCallPage props.args，异常被吞成「按下去没反应」，toRaw 修）；③
+  system.hideAll/showDesktop 双注册死灰复燃（删 hideAll，键名按 syscmd: 既成身份对齐）；
+  ④screenRecorder label 漂移（「屏幕录制」→ 按命名家族与 spec 契约改回「录屏」）；
+  ⑤BYOM fixture 补 Ollama 形状 /api/tags。方法论：探针 + 主窗/胶囊 console 分开捕；
+  mcp/store 引 launcher/ipc 须动态 import（否则具名导入毒化单测）。
+- **剩 6 红与归因现状**：market-index 5（旧账，走真实 fetch 失败路径，慢且抖——待单独
+  一轮带 fixture 本地化重写）；**file-index 1** —— FROND_FILE_INDEX_SCOPES 是首启
+  写库后粘滞的（service.ts:135 getMeta 有值即跳过），实测查询 `x.js` 返回 out/renderer/
+  assets 102 文件：scopes 未生效或内容搜索越界，需新会话带探针钉死（先验证 file-index.db
+  的 meta 与 userData 是否真新）。
 
 #### 10.13 发布链路首跑五连战：v0.1.0 真实上线 + CI 首跑真相（2026-09-24）
 

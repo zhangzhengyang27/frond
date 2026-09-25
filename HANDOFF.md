@@ -790,13 +790,18 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   ⚠ 改 shared/主进程代码后必须 `pnpm build` 再验 e2e，out/ 陈旧会让修复**假性无效**（本批实测咬过）；
   ③schedule ①断言与探针互斥（spec 期望 count=1，探针为 ② 刻意排 2 条）——按真实契约
   对齐为 count=2，且 ①②③ 一律按 `cron='*/15 * * * *'` 精确取任务（不再依赖数组顺序）。
-- **剩 18 红按簇证据（新挂账）**：market-index 5（旧账，网络类）；**plugin-schedule ②③**
-  ——`automationRunNow` 返回 ok 但 `lastOk` 恒 null（投递回写断链），设置页 autoTasks 行
-  不渲染（`automationList()` API 有数据、UI 空——疑同一渲染端数据面）；**mcp-tool-search 4**
-  ——`mcpToolCommands()` API 返回 2 但胶囊搜索无 MCP 行（① 曾单跑绿，flake/时序待查）；
-  ai-action 2 / ai-byom 2 / a11y:137 / command-palette:68 / file-index:95 ——未归因，
-  下一步逐簇按同法处理（先读 error-context 快照，再对照 API 层数据，分清「数据没有」
-  还是「数据在、渲染丢」）。
+- **剩 18 红按簇证据（2026-09-25 更新，fc9a53e）**：market-index 5（旧账，网络类）；
+  **plugin-schedule ②③** —— 已修两处确定性缺陷（runTaskNow 从不回写 lastOk/lastFiredAt；
+  设置页加载链上无守卫的 `await loadMcp()` 一抛就断、loadAutomations 永不执行），但复跑
+  仍红：**最新假设是 tick() 的读-改-写竞态** —— tick 读 tasks→跑→save(updated) 整表落盘，
+  与 runTaskNow 回写并发时（② 的断言窗口恰横跨「一分钟后排程」触发分钟）拿旧快照把刚写入
+  的 lastOk 覆盖回 null；③ 的另一假设：跳过引导后 hash 已是 #/settings，测试再设同值
+  不触发重挂载、加载链不重跑。下一手：tick 落盘改按 id 合并 + 运行时探针证实时序；
+  **mcp-tool-search 4** —— 主进程契约无损（stopServer 只杀会话不清缓存，mcpToolCommands
+  仍返回 2），渲染端启动补拉点已有（LauncherApp 1876-77）但都可能早于连接完成、推送又可
+  早于订阅 → 启动期竞态（① 时绿时红与此吻合）。修法候选：每次唤起（show）再补拉一轮；
+  ai-action 2 / ai-byom 2 / a11y:137 / command-palette:68 / file-index:95 —— 未归因，
+  按既定方法逐簇处理。
 
 #### 10.13 发布链路首跑五连战：v0.1.0 真实上线 + CI 首跑真相（2026-09-24）
 

@@ -436,7 +436,22 @@ export async function runTaskNow(id: string): Promise<{ ok: boolean; error?: str
   const t = readTasks().find((x) => x.id === id)
   if (!t) return { ok: false, error: '没有这个任务' }
   try {
-    return await executeAction(t.action, ownerPluginId(t.owner))
+    const res = await executeAction(t.action, ownerPluginId(t.owner))
+    // 手动跑也要回写历史（与 tick 同一形状）：设置页那一格的「已交给插件」和
+    // 最近成败全靠它。回写丢了，用户手动触发就永远是「从没跑过」。
+    writeTasks(
+      readTasks().map((x) =>
+        x.id === id
+          ? {
+              ...x,
+              lastOk: res.ok,
+              lastFiredAt: Date.now(),
+              ...(res.ok ? {} : { lastError: res.error ?? '执行失败' })
+            }
+          : x
+      )
+    )
+    return res
   } catch (error) {
     return { ok: false, error: (error as Error).message }
   }

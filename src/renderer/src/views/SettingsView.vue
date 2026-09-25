@@ -259,8 +259,14 @@ async function loadAIConfig(): Promise<void> {
   } catch {
     /* AI 配置读取失败 */
   }
-  // MCP 与 AI 配置是两回事：上面失败也要能管服务器
-  await loadMcp()
+  // MCP 与 AI 配置是两回事：上面失败也要能管服务器。这里同样不许让 loadMcp 的
+  // 异常炸断整条加载链 —— 2026-09-24 前它一抛，后面的 loadAutomations 就永远不执行，
+  // 设置页定时任务一行不渲染（e2e plugin-schedule ③ 红的根因）。
+  try {
+    await loadMcp()
+  } catch {
+    /* MCP 读取失败不阻塞其余设置项 */
+  }
   try {
     density.value = normalizeDensity(await window.api.preferences.getDensity())
     glass.value = normalizeGlass(await window.api.preferences.getCapsuleGlass())

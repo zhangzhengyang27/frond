@@ -822,6 +822,12 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   「扫描恰好在首次查询前完成」的窗口里可见（早晨能绿、晚上挂，全看扫描与查询
   谁先到）。修法：useCommandSources 加 onSlowBatch 钩子（慢批落地回调），LauncherApp
   传 rerunSearch。capsule-actions 5/5 绿（5.2s，此前每轮空烧 60-120s）。
+- **巨型组件拆分启动（2026-09-25，1bb1aee + a05847e）**：LauncherApp.vue 2441（棘轮
+  上限）→ **2319**。两刀同构：MCP 工具发射段 → `composables/useMcpToolLaunch.ts`、
+  插件带参发射段 → `composables/usePluginArgLaunch.ts`（各 ~80/60 行，依赖显式注入：
+  query / searchBarRef（只依赖 focus() 能力）/ pushPage / popPage / enterArgSlots）。
+  viewCtx getter 与槽态分发器调用点不变。下一刀候选：Quicklink 参数段（qlArg*，同构）、
+  AI 接线段。拆分纪律：每刀独立提交、抽前后 e2e 实跑对照、lint/typecheck 全过。
 - **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
   「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道
   （market:setIndexUrl/refreshIndex/indexInfo 全在，唯独没有 UI）重建于

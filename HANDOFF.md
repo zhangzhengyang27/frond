@@ -816,6 +816,12 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   条目同族问题）；③toPass 提到 120s。**仍挂**：120s 内应用行始终不出现 → 嫌疑
   收窄到 fetchApplicationsListDeduped 扫描本身（e2e 实例耗时/失败），需探针直打
   `window.api.getApplications()` 看返回与耗时；待专攻。
+  **✅ 已破案（2026-09-25 深夜，下一提交）**：不是扫描慢——是**应用慢批落地后没人
+  重跑当前查询**。loadRegistryCommands 里 `void getAppCommands().then(...)` 发射后
+  不管，外层 Promise 在快批后就 resolve，挂它后面的重跑时机是错的；应用行只在
+  「扫描恰好在首次查询前完成」的窗口里可见（早晨能绿、晚上挂，全看扫描与查询
+  谁先到）。修法：useCommandSources 加 onSlowBatch 钩子（慢批落地回调），LauncherApp
+  传 rerunSearch。capsule-actions 5/5 绿（5.2s，此前每轮空烧 60-120s）。
 - **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
   「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道
   （market:setIndexUrl/refreshIndex/indexInfo 全在，唯独没有 UI）重建于

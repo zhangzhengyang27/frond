@@ -1,0 +1,60 @@
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
+.workbuddy/
+tsconfig.*.tsbuildinfo
+.pnpm-store/
+
+# 临时图片/附件（非项目资源）
+vibe_images/
+
+# Agent 工作区临时目录
+.zcode/
+
+# WorkBuddy 的项目数据目录（评审报告、工作记忆等）。不是缓存，不要删；
+# 也不该进版本库（内容是会话产物，不是仓库资产）。
+.workbuddy-ai/
+
+# OCR 训练数据（运行时下载，不入库）
+*.traineddata
+
+# 恢复后补：第三方参考克隆（ueli/vicinae，可重新 clone）与 Playwright 产物
+references/
+test-results/
+
+# 2026-09-22 删除事故残留：Vite dev server 在错误工作目录下把 /@fs/ URL 落盘的
+# 空文件树（全 0 字节，路径镜像旧仓库 electron-tools）。可安全删除。
+/@fs/
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+bower_components/
+jspm_packages/
+__pycache__/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）

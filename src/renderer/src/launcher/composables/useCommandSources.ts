@@ -30,8 +30,10 @@ import { latestOnly } from './launcherInteractions'
  *
  * `afterTableChange`：命令表被**推送**刷新之后要做的事（胶囊传的是「按当前查询重跑」——
  * 它那份结果是命令式的 ref，不重跑就还是旧的一屏；主窗 ⌘K 面板的结果是 computed，不用传）。
+ * `onSlowBatch`：应用扫描慢批（冷启动 5-15s+，负载下更久）落地后的重跑回调——
+ * 不重跑的话应用行要再敲一个字才看得到（capsule-actions:211 的 flake 根因）。
  */
-export function useCommandSources(afterTableChange?: () => void) {
+export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: () => void) {
   /** 插件命令（每次唤起刷新，管理页装/停插件后立即生效） */
   const pluginCommands = ref<CommandEntry[]>([])
 
@@ -77,6 +79,9 @@ export function useCommandSources(afterTableChange?: () => void) {
         registryEntries.value = commandsToEntries(registryCommands.value)
         // 应用行的拼音别名/用户别名补一轮（与既有的多次 enrich 同一套路）
         void enrichAliases()
+        // 应用扫描是**慢批**（冷启动 5-15s+，负载下更久）：落地后必须通知消费方
+        // 重跑当前查询，否则应用行要再敲一个字才出现（capsule-actions:211 flake 根因）
+        onSlowBatch?.()
       })
     } catch (err) {
       console.warn('[Launcher] loadRegistryCommands failed:', err)

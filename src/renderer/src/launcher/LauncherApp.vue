@@ -289,6 +289,7 @@ import {
   useLauncherPages
 } from './composables/useLauncherPages'
 import { useLauncherBusy } from './composables/useLauncherBusy'
+import { useMcpToolLaunch } from './composables/useMcpToolLaunch'
 import type { KindFilter } from './pages/clipboardLogic'
 import { useSearchHistoryNav } from './composables/useSearchHistoryNav'
 import { useIdleWatcher } from './composables/useIdleWatcher'
@@ -691,87 +692,24 @@ const pluginArgValueMap = computed<Map<string, string>>(() => {
   return map
 })
 
-/* ── MCP 工具进根搜索（P-4② 收尾）：参数格走内联槽或 mcparg 表单，结果进 mcpcall 页 ──
+/* ── MCP 工具进根搜索（P-4② 收尾）：发射段抽在 composables/useMcpToolLaunch.ts ──
  * 三条路共用一份参数清单（`action.args`，出自主进程的工具清单缓存）：
  * 0 个参数直接跑、≤2 格内联填、第 3 格起进表单。判定在 shared/argSlots，这里只管现场。 */
-const mcpArgTarget = ref<CommandEntry | null>(null)
-const mcpArgPrefill = ref('')
-/** seq 只为「同一个工具连跑两次也要重挂载重发」：ref 内容相同 Vue 会复用组件 */
-const mcpCall = ref<{
-  serverId: string
-  serverLabel: string
-  tool: string
-  args: Record<string, string>
-  seq: number
-} | null>(null)
-let mcpCallSeq = 0
-
-/** mcparg 表单字段：description 当标签（服务器写的），没写就用参数名 */
-const mcpArgFields = computed<FormField[]>(() => {
-  const t = mcpArgTarget.value
-  if (!t || t.action.type !== 'mcpTool') return []
-  const firstText = t.action.args.find((arg) => arg.required)?.name ?? t.action.args[0]?.name
-  const prefill = mcpArgPrefill.value
-  return t.action.args.map((arg) => ({
-    key: arg.name,
-    label: arg.description || arg.name,
-    type: 'text' as const,
-    placeholder:
-      arg.type === 'boolean' ? 'true / false' : arg.type === 'number' || arg.type === 'integer' ? '数字' : undefined,
-    initial: arg.name === firstText && prefill ? prefill : undefined
-  }))
+const {
+  mcpArgTarget,
+  mcpArgFields,
+  mcpArgInitial,
+  mcpCall,
+  openMcpTool,
+  runMcpToolEntry,
+  submitMcpArg
+} = useMcpToolLaunch({
+  query,
+  searchBarRef,
+  pushPage,
+  popPage,
+  enterArgSlots
 })
-
-/** 初值只落一格：与内联槽同一条规矩（多参数时按空格切剩余词是在猜） */
-const mcpArgInitial = computed<Record<string, string>>(() => {
-  const first = mcpArgFields.value[0]
-  return first && mcpArgPrefill.value ? { [first.key]: mcpArgPrefill.value } : {}
-})
-
-/** 真跑一个工具：不在这等结果（未连接时主进程要先连接，可能十几秒），交给结果页显示等待态 */
-function runMcpToolEntry(target: CommandEntry, values: Record<string, string>): void {
-  const a = target.action
-  if (a.type !== 'mcpTool') return
-  mcpCall.value = {
-    serverId: a.serverId,
-    serverLabel: a.serverLabel,
-    tool: a.tool,
-    args: values,
-    seq: ++mcpCallSeq
-  }
-  query.value = ''
-  pushPage('mcpcall')
-}
-
-/** 回车一条 MCP 命令：该填参数的先填（内联优先），无参数的直接跑 */
-function openMcpTool(target: CommandEntry): void {
-  if (target.action.type !== 'mcpTool') return
-  if (enterArgSlots(target)) return
-  if (target.action.args.length > 0) {
-    mcpArgTarget.value = target
-    mcpArgPrefill.value = argPrefill(query.value, target.title)
-    pushPage('mcparg')
-    query.value = ''
-    searchBarRef.value?.focus()
-    return
-  }
-  runMcpToolEntry(target, {})
-}
-
-/** mcparg 表单提交：必填没填就留在表单（主进程那一关还会按活会话的 schema 再定一次型） */
-function submitMcpArg(values: Record<string, string | boolean>): void {
-  const target = mcpArgTarget.value
-  if (!target || target.action.type !== 'mcpTool') return
-  const args: Record<string, string> = {}
-  for (const spec of target.action.args) {
-    const v = String(values[spec.name] ?? '').trim()
-    if (!v && spec.required) return
-    if (v) args[spec.name] = v
-  }
-  mcpArgTarget.value = null
-  popPage() // 退出参数页，结果页不再压回表单（Esc 从结果直接回根列表）
-  runMcpToolEntry(target, args)
-}
 
 /**
  * 插件有没有接管胶囊的搜索区：挂了视图（含 headless 升级出来的可见视图）、

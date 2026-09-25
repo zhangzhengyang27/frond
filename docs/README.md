@@ -33,7 +33,3 @@
 | [PLUGIN_QA_CHECKLIST.md](./PLUGIN_QA_CHECKLIST.md) | 内置插件真机验证清单（D2 内功） |
 | [../PLUGIN_DEV.md](../PLUGIN_DEV.md) | 10 分钟上手速览（仓库根目录） |
 | [../example-plugin/](../example-plugin/) | 插件模板（最小可运行：清单 + 运行页 + API 类型声明） |
-
-## 模块文档
-
-见 [modules/INDEX.md](./modules/INDEX.md)。

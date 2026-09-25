@@ -5,8 +5,8 @@
 
 ## 当前状态
 
-- **v0.1.0 已打标**（首个版本标签）。发布前置项（远端仓库 / secrets / publish 占位替换）见 [RELEASE.md](./RELEASE.md)。
-- 代码规模约 8.2 万行，550 单测 / 双 typecheck / lint / build 全绿。
+- **v0.1.0 已打标并发布**（2026-09-24 上线 GitHub Releases；此前「已打标」为文档漂移，tag 实际打于同日）。
+- 代码规模约 10 万行 / 524 源文件，单测 **1027+**（权威读数：`node scripts/recovery/snapshot-readings.mjs`，别引这里的快照数字）/ 双 typecheck / lint / build 全绿。
 - 插件系统基建完备，21 个内置插件；第三方插件 0。
 
 ## 决策记录（2026-09-11）

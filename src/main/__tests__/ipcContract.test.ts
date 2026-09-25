@@ -640,15 +640,13 @@ describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', {
   it('门禁有判别力：已知的例外通道不在违规清单里（避免把合法用法误报）', () => {
     const flags = contractReqVoidFlags()
     const bare = bareHandleChannels()
-    // 这 8 条不在契约里，应当被跳过而不是报错
+    // 这 5 条不在契约里，应当被跳过而不是报错（platform:* 三条已随死代码删除，
+    // 2026-09-25 —— 不再豁免，若有人重新注册裸 platform 通道本门禁会直接红）
     const knownOutsideContract = [
       'screenshot:getWindowList',
       'screenshot:captureWindow',
       'screenshot:startCapture',
       'screenshot:endCapture',
-      'platform:setDockBadge',
-      'platform:setProgressBar',
-      'platform:requestUserAttention',
       'video:readFile'
     ]
     for (const ch of knownOutsideContract) {

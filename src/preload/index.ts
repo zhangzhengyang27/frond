@@ -396,17 +396,9 @@ const api: API = {
     openExternal: (url) => typedInvoke('system:openExternal', { url }),
     frontmostApp: () => typedInvoke('system:frontmostApp')
   },
-  // Dock 角标 / 进度条 / 请求注意（macOS）。这三条主进程一直有 handler，
-  // 之前只有 PomodoroIntegrationService 在主进程内部直调，渲染层驱动不了。
-  // 通道按位置参数收（早于全仓单对象迁移），且不在 ipc-contract 里，故走裸 ipcRenderer。
-  platform: {
-    setDockBadge: (text: string | number | null): Promise<void> =>
-      ipcRenderer.invoke('platform:setDockBadge', text),
-    setProgressBar: (fraction: number): Promise<void> =>
-      ipcRenderer.invoke('platform:setProgressBar', fraction),
-    requestUserAttention: (level: 'critical' | 'informational' = 'informational'): Promise<void> =>
-      ipcRenderer.invoke('platform:requestUserAttention', level)
-  },
+  // platform 命名空间已删（2026-09-25）：三条通道（setDockBadge/setProgressBar/
+  // requestUserAttention）渲染端零调用方，主进程内部由 tray / PomodoroIntegrationService
+  // 直调 utils/platform.ts，handler 文件 ipc/platform.ts 连注册调用都没有 —— 全链死代码。
   // macOS 权限面板（P-3.5）：状态 / 申请 / 跳转系统设置
   permissions: {
     probe: () => typedInvoke('permissions:probe'),

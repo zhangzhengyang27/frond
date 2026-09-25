@@ -1043,6 +1043,12 @@ lint / 单测×3（node 24）/ Build(Linux) / e2e smoke（xvfb 首跑即绿）�
 2. `shot_index` 的 OCR 把「图里没有字」记成 `failed`（`ScreenshotIndexService.ts:224`
    `text ? 'done' : 'failed'`）。e2e 那张选区图就是 `failed:1`。语义上应是 `done` + 空文本。
 3. 打包：`node-screenshots*` 进 `electron-builder.yml` 的 `asarUnpack`（上面记过，**仍未做**）。
+3.5 （2026-09-25 补记）§10 A 类注的 `platform:{setDockBadge,setProgressBar,requestUserAttention}`
+   已删（`63ae862` 后续批）：preload 桥 + `ipc/platform.ts` + d.ts 三层全链死代码
+   ——handler 文件连注册调用都没有；主进程内部 tray / PomodoroIntegrationService 直调
+   `utils/platform.ts` 不受影响。ipcContract 门禁的「契约外豁免清单」8 → 5 条
+   （platform 三条移除豁免 = 若有人重注册裸 platform 通道直接红）。
+   `recording.markers:{list,add,remove,rename}` 核实**已不在树里**（早前批次已清）。
 4. 能力差：上游工具栏没有「贴图」，也没有窗口截图模式 —— 按拍板这是**取消**，不是回归。
 
 **别做这几件事**：

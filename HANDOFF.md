@@ -806,6 +806,10 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   ④screenRecorder label 漂移（「屏幕录制」→ 按命名家族与 spec 契约改回「录屏」）；
   ⑤BYOM fixture 补 Ollama 形状 /api/tags。方法论：探针 + 主窗/胶囊 console 分开捕；
   mcp/store 引 launcher/ipc 须动态 import（否则具名导入毒化单测）。
+- **已知 flake（2026-09-25 记录）**：`capsule-actions:208`（键盘找应用行）在终验复跑
+  单独挂过一次——文件搜索回退（mdfind）把 Safari 系统文件混进结果、应用行被淹没，
+  与 mdfind 状态和 app 扫描完成时序相关（同日多次全绿，非本批修复引入）。若复发，
+  考虑给启动器搜索的文件行设配额或让该 spec 用 FROND_FILE_SEARCH_NO_FALLBACK=1。
 - **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
   「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道
   （market:setIndexUrl/refreshIndex/indexInfo 全在，唯独没有 UI）重建于

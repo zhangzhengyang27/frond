@@ -102,6 +102,9 @@ test.beforeAll(async () => {
   const env = { ...process.env }
   env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-capsule-actions')
   env.FROND_E2E = '1'
+  // 应用行的导航稳定性需要纯索引口径：rmSync 清不掉 mdfind 的机器级状态，
+  // 回退检索仍会把 System/Library 的文件行灌进列表、淹没应用行（HANDOFF §10.12 flake 记录）
+  env.FROND_FILE_SEARCH_NO_FALLBACK = '1'
   // 每次从干净 userData 起：本目录会被历史跑残留（曾有 spec 往文件索引里加过「/」作用域，
   // 于是 'Safari' 的前 20 行全被 System/Library 的文件行占满，应用行根本进不了列表，
   // 表现就是「绕 4 圈没遇到应用行」——不是排序问题，是这台实例的索引范围被污染了）
@@ -248,7 +251,11 @@ test('键盘选中应用行 → 详情面板异步出现包元数据（函数型
     const panel = capsule.locator('[data-testid=detail-panel]')
     await expect(panel).toContainText('Bundle ID', { timeout: 8000 })
     await expect(panel).toContainText('路径：')
-  }).toPass({ timeout: 60000 })
+  }).toPass({
+    // 120s：应用冷扫描在套跑负载下实测能超过 60s（toPass 的显式 timeout 不吃
+    // test.slow 的放大）——这是 2026-09-25 两次终验 flake 的根源，见 HANDOFF §10.12
+    timeout: 120_000
+  })
 })
 
 test('没有 reveal 动作的行上 ⌘⌫ 被吃掉：不触发 IPC、不清空查询词', async () => {

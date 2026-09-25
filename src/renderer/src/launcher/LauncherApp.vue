@@ -1727,8 +1727,12 @@ onMounted(() => {
   noteActivity()
   // 初始化：空查询展示建议
   resetToSuggestions()
-  // 阶段1.1：加载统一 Command Registry
-  void loadRegistryCommands().then(() => enrichAliases())
+  // 阶段1.1：加载统一 Command Registry。应用扫描是「慢批」——落地后必须重跑当前
+  // 查询，否则应用行要再敲一个字才出现（与 :1850 插件搜索条目同族问题）
+  void loadRegistryCommands().then(() => {
+    void enrichAliases()
+    rerunSearch()
+  })
   // 先注册订阅（同步），再异步加载数据——避免慢速 IO（应用扫描）阻塞监听注册
   void loadPopToRootMode()
   unsubscribers.push(
@@ -1757,8 +1761,12 @@ onMounted(() => {
         exitArgSlots()
         searchBarRef.value?.focus()
         noteActivity() // B1：Pop to Root 计时从唤起重新开始
-        // 常驻窗口：每次唤起刷新插件命令与建议（管理页装/停插件后立即生效）
-        void loadRegistryCommands().then(() => enrichAliases())
+        // 常驻窗口：每次唤起刷新插件命令与建议（管理页装/停插件后立即生效）。
+        // 应用扫描的慢批落地后同样要重跑当前查询（理由同 :1731）
+        void loadRegistryCommands().then(() => {
+          void enrichAliases()
+          rerunSearch()
+        })
         void loadPluginCommands().then(() => enrichAliases())
         // 工具清单缓存变便宜（一次 pref 读），每次唤起顺手重拉：
         // 连上服务器再回胶囊这条路本来就靠「唤起即重拉」，不靠推送也能对上

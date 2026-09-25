@@ -221,7 +221,9 @@ class ScreenshotIndexService {
         try {
           const { data } = await worker.recognize(filePath)
           const text = (data.text ?? '').trim()
-          shotIndexRepository.updateOcr(filePath, text ? 'done' : 'failed', text || null)
+          // OCR 跑通但「图里没有字」是成功、不是失败：状态记 done + 空文本。
+          // 记 failed 会让截图索引里堆起假失败（e2e 选区图就曾是 failed:1）
+          shotIndexRepository.updateOcr(filePath, 'done', text || null)
         } catch {
           shotIndexRepository.updateOcr(filePath, 'failed', null)
         }

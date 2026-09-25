@@ -291,6 +291,7 @@ import {
 import { useLauncherBusy } from './composables/useLauncherBusy'
 import { useMcpToolLaunch } from './composables/useMcpToolLaunch'
 import { usePluginArgLaunch } from './composables/usePluginArgLaunch'
+import { useQuicklinkArgLaunch } from './composables/useQuicklinkArgLaunch'
 import type { KindFilter } from './pages/clipboardLogic'
 import { useSearchHistoryNav } from './composables/useSearchHistoryNav'
 import { useIdleWatcher } from './composables/useIdleWatcher'
@@ -626,26 +627,15 @@ const fallbackCommands = computed<FallbackCommand[]>(() => {
   ).map((cmd) => renderFallbackCommand(cmd, q))
 })
 
-/** 当前待打开的参数化 Quicklink（qlarg 表单页的数据源） */
-const qlArgTarget = ref<CommandEntry | null>(null)
-/** 参数初值：用户搜索词里标题之外的部分（"github react" → react），落在第一格 */
-const qlArgInitial = ref('')
-
-/** qlarg 表单字段：与内联槽同一份 quicklinkFieldNames（{query} + 命名占位符），两边不能各数一遍 */
-const qlArgFields = computed(() => {
-  const t = qlArgTarget.value
-  if (!t || t.action.type !== 'quicklink') return [] as Array<{ key: string; label: string }>
-  return quicklinkFieldNames(t.action.url).map((n) => ({
-    key: n,
-    label: n === 'query' ? '参数' : n
-  }))
-})
-
-/** 初值落在**第一格**：字段名随 URL 变（{query} / 命名占位符），写死 key:'query' 会让命名参数的预填丢掉 */
-const qlArgInitialMap = computed<Record<string, string>>(() => {
-  const first = qlArgFields.value[0]
-  return first ? { [first.key]: qlArgInitial.value } : {}
-})
+/** 参数化 Quicklink 的发射段抽在 composables/useQuicklinkArgLaunch.ts（第三刀，2026-09-25） */
+const { qlArgTarget, qlArgFields, qlArgInitialMap, openQuicklinkArg, submitQuicklinkArg } =
+  useQuicklinkArgLaunch({
+    query,
+    searchBarRef,
+    pushPage,
+    enterArgSlots,
+    hideWindow
+  })
 
 /** 插件带参命令的发射段抽在 composables/usePluginArgLaunch.ts（第二刀，2026-09-25） */
 const { pluginArgTarget, pluginArgFields, openPluginArg, openPluginWithArgs } = usePluginArgLaunch({
@@ -760,7 +750,7 @@ function submitArgSlots(): void {
     runMcpToolEntry(target, values)
   } else {
     qlArgTarget.value = target
-    openQuicklinkArg(values)
+    submitQuicklinkArg(values)
   }
 }
 
@@ -1080,14 +1070,7 @@ async function runEntry(entry: CommandEntry): Promise<void> {
     },
     // 参数化 Quicklink（URL 含 {query}）：胶囊内弹参数表单，
     // 搜索词里标题之外的部分作为参数初值（"github react" → 预填 "react"）
-    openQuicklinkArg: (target) => {
-      if (enterArgSlots(target)) return // P-1.6b：一两格就在搜索框里填完，不跳表单页
-      qlArgTarget.value = target
-      qlArgInitial.value = argPrefill(query.value, target.title)
-      pushPage('qlarg')
-      query.value = ''
-      searchBarRef.value?.focus()
-    },
+    openQuicklinkArg,
     // MCP 工具（P-4②）：参数格与结果页都在胶囊里，两个入口都收在这一侧执行
     openMcpTool: (target) => openMcpTool(target),
     // 带参数声明的插件命令（多参数命令）：胶囊内逐参数填写后带参打开插件
@@ -1141,29 +1124,6 @@ async function createCalendarEvent(values: Record<string, string | boolean>): Pr
   }
 }
 
-/** 参数表单提交 → 占位符替换后用系统浏览器打开（表单值含 checkbox 布尔，此处按字符串取） */
-function openQuicklinkArg(values: Record<string, string | boolean>): void {
-  const target = qlArgTarget.value
-  if (!target || target.action.type !== 'quicklink') return
-  const url = target.action.url
-  // 收齐 quicklinkFieldNames（{query} 与命名占位符都算）：少收一个就把字面量留在地址里
-  const names = quicklinkFieldNames(url)
-  if (names.length === 0) {
-    // 没有占位符却进了参数页（调用方的门槛漏了）：照原样打开，不静默吞掉这次回车
-    void window.api.system.openExternal(url)
-    hideWindow()
-    return
-  }
-  const vals: Record<string, string> = {}
-  for (const n of names) {
-    const v = String(values[n] ?? '').trim()
-    if (!v) return // 空参数留在表单
-    vals[n] = v
-  }
-  void window.api.system.openExternal(buildQuicklinkUrlMulti(url, vals))
-  hideWindow()
-}
-
 /**
  * 注册表能看到的胶囊现场（P-2④）。
  * 一律 getter/action：状态还归本组件，注册表只是「看着这份现场决定渲染谁」。
@@ -1180,7 +1140,9 @@ const viewCtx: LauncherViewCtx = {
   askAIWithText,
   createCalendarEvent,
   saveQuicklinkForm,
-  openQuicklinkArg,
+  // 注意两个同名接口：viewCtx 这条是 qlarg 表单的**提交**（FormValues）；「打开表单页」
+  // 的入口（CommandEntry）在 executeCommand 依赖对象那边，两者曾经共用一个函数名
+  openQuicklinkArg: submitQuicklinkArg,
   openPluginWithArgs,
   submitMcpArg,
   qlArgFields: () => qlArgFields.value,

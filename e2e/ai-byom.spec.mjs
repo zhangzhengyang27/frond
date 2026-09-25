@@ -46,8 +46,12 @@ const getMainWindow = async () => {
 test.beforeAll(async () => {
   server = createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' })
+    // 两种形状都要答：provider=OpenAI 兼容时拉 /v1/models（{data}），
+    // provider=Ollama 时按其约定拉 ../api/tags（{models}）——test 1 设的是 Ollama
     if ((req.url ?? '') === '/v1/models') {
       res.end(JSON.stringify({ data: [{ id: 'zephyr-7b' }, { id: 'alpha-4b' }] }))
+    } else if ((req.url ?? '') === '/api/tags') {
+      res.end(JSON.stringify({ models: [{ name: 'zephyr-7b' }, { name: 'alpha-4b' }] }))
     } else {
       res.end(JSON.stringify({ data: [] }))
     }

@@ -430,10 +430,28 @@ export async function runMcpTool(
   return callToolOnServer(id, tool, coerceToolArgs(toolArgSpecs(live.inputSchema).args, args ?? {}))
 }
 
+// 连接成功 / 服务器清单变化都要广播命令表变更（source='mcp'），渲染端据此只重拉
+// MCP 那一路。此前全仓没有任何 'mcp' 推送 —— 「设置页连上服务器，回到搜索框搜不到
+// 工具」修了又犯（LauncherApp 的推送处理器注释里就写着这段历史）。
+// 动态 import：launcher/ipc 顶层有 electron 的具名导入，静态引入会把它带进
+// 不 mock electron 的单测环境（Named export not found）。
+async function notifyMcpTableChanged(): Promise<void> {
+  const m = await import('../../launcher/ipc')
+  m.notifyCommandTableChanged('mcp')
+}
+
 export function registerMcpIpc(): void {
   typedHandle('mcp:overview', () => mcpOverview())
-  typedHandle('mcp:setServers', (_e, { servers }) => saveMcpServers(servers))
-  typedHandle('mcp:connect', (_e, { id }) => connectById(String(id ?? '')))
+  typedHandle('mcp:setServers', (_e, { servers }) => {
+    const res = saveMcpServers(servers)
+    void notifyMcpTableChanged()
+    return res
+  })
+  typedHandle('mcp:connect', async (_e, { id }) => {
+    const view = await connectById(String(id ?? ''))
+    if (view.status === 'ready') void notifyMcpTableChanged()
+    return view
+  })
   typedHandle('mcp:stop', (_e, { id }) => {
     stopServer(String(id ?? ''))
     return true

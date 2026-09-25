@@ -29,6 +29,7 @@ const {
   loadRegistryCommands,
   loadDynamicCommands,
   loadPluginCommands,
+  loadMcpCommands,
   loadPluginSearchItems,
   enrichAliases
 } = useCommandSources()
@@ -42,7 +43,8 @@ async function loadCommands(): Promise<void> {
       loadRegistryCommands(),
       loadDynamicCommands(),
       loadPluginSearchItems(),
-      loadPluginCommands()
+      loadPluginCommands(),
+      loadMcpCommands()
     ])
   } else {
     // 之后每次打开只跟插件走（管理页装/停插件后立即生效）；应用扫描与系统命令不重复扫

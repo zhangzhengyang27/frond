@@ -100,10 +100,11 @@ describe('B3 命令 id 注册完整性', () => {
     { action: 'Show Screen Saver 屏幕保护', frondId: 'system.screensaver' },
     { action: 'Dismiss Notifications 清除通知', frondId: 'system.dismissNotifications' },
     { action: 'Eject All Disks 弹出所有磁盘', frondId: 'system.ejectAllDisks' },
-    { action: 'Hide All Apps 隐藏所有窗口', frondId: 'system.hideAll' }
+    // 'Hide All Apps 隐藏所有窗口'（system.hideAll）已删：与 showDesktop 文案完全相同，
+    // 是 mergeCommands.ts:34 记载的「两份文案并存」重复，2026-09-25 随 e2e 清红移除
   ]
 
-  it('覆盖表除登记项外全部已注册（22/23）', () => {
+  it('覆盖表除登记项外全部已注册（21/23，hideAll 已随去重移除）', () => {
     const ids = new Set(getSystemCommandIds())
     const unregistered = RAYCAST_SYSTEM_ACTIONS.filter(
       (row) => row.frondId !== null && !ids.has(row.frondId)

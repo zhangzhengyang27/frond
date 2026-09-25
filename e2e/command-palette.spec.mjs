@@ -96,11 +96,12 @@ test('⌘K 面板的行与胶囊同源：能搜到 Registry 独有的行，且�
     )
   expect(volumeKeys.sort()).toEqual(
     [
-      'system:volume0',
-      'system:volume25',
-      'system:volume50',
-      'system:volume75',
-      'system:volume100'
+      // 系统命令行的 key 是 `syscmd:<id>`（shared/commands.ts:420），frecency 统计也按它记
+      'syscmd:system.volume0',
+      'syscmd:system.volume25',
+      'syscmd:system.volume50',
+      'syscmd:system.volume75',
+      'syscmd:system.volume100'
     ].sort()
   )
   // 「显示桌面」/「隐藏所有窗口」是同一条命令的两份文案留下的另一对（现在只剩显示桌面那一条）
@@ -109,7 +110,7 @@ test('⌘K 面板的行与胶囊同源：能搜到 Registry 独有的行，且�
     .poll(async () => main.locator('[data-palette-key]').count(), { timeout: 20000 })
     .toBe(1)
   expect(await main.locator('[data-palette-key]').first().getAttribute('data-palette-key')).toBe(
-    'system:showDesktop'
+    'syscmd:system.showDesktop'
   )
 
   // ③ Registry 独有的行：合一之前面板拼的是旧的静态清单，这一条找不到

@@ -66,7 +66,8 @@ const MAC_COMMANDS: Record<string, string> = {
   'system.restart': `osascript -e 'tell application "System Events" to restart'`,
   'system.shutdown': `osascript -e 'tell application "System Events" to shut down'`,
   'system.emptyTrash': `osascript -e 'tell application "Finder" to empty trash'`,
-  'system.hideAll': `osascript -e 'tell application "System Events" to set visible of every process whose visible is true to false'`,
+  // system.hideAll 已删（与 showDesktop 文案完全相同，mergeCommands.ts:34 的历史重复）；
+  // 执行语义由 showDesktop 的 ⌘F3 覆盖
   'system.muteToggle': `osascript -e 'set o to output volume of (get volume settings)' -e 'if o > 0 then set volume output volume 0 else set volume output volume 50' -e 'set volume output muted (not output muted of (get volume settings))'`,
   'system.showDesktop': `osascript -e 'tell application "System Events" to key code 103 using {function down, command down}'`
 }
@@ -78,7 +79,6 @@ const WIN_COMMANDS: Record<string, string> = {
   'system.restart': `shutdown /r /t 0`,
   'system.shutdown': `shutdown /s /t 0`,
   'system.emptyTrash': `powershell -NoProfile -Command "Clear-RecycleBin -Force -ErrorAction SilentlyContinue"`,
-  'system.hideAll': `powershell -NoProfile -Command "(New-Object -ComObject Shell.Application).ToggleDesktop()"`,
   'system.muteToggle': `powershell -NoProfile -Command "(New-Object -ComObject WScript.Shell).SendKeys([char]173)"`,
   'system.showDesktop': `powershell -NoProfile -Command "(New-Object -ComObject Shell.Application).ToggleDesktop()"`
 }

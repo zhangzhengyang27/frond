@@ -338,7 +338,9 @@ export const SYSTEM_CMD_META: Record<string, { title: string; subtitle: string; 
   'system.restart': { title: '重启', subtitle: '重新启动系统', icon: 'restart-line' },
   'system.shutdown': { title: '关机', subtitle: '关闭计算机', icon: 'shut-down-line' },
   'system.emptyTrash': { title: '清空废纸篓', subtitle: '清空系统废纸篓', icon: 'delete-bin-line' },
-  'system.hideAll': { title: '显示桌面', subtitle: '最小化全部窗口', icon: 'layout-line' },
+  // system.hideAll 已删：它与 system.showDesktop 的标题/副标题/图标完全相同，
+  // 是 mergeCommands.ts:34 记载的「两份文案并存」死灰复燃（e2e command-palette 钉住
+  // 「搜显示桌面只许一行」）。语义留 showDesktop 一条。
   'system.muteToggle': { title: '静音切换', subtitle: '切换系统静音', icon: 'volume-mute-line' },
   'system.showDesktop': { title: '显示桌面', subtitle: '最小化全部窗口', icon: 'layout-line' },
   // B3：媒体 / 音量 / 批量退出 / 通知 / 弹盘

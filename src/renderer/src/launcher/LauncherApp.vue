@@ -1857,10 +1857,14 @@ onMounted(() => {
   // 收起再唤起才有」这条老毛病换到 MCP 身上又犯了一遍
   unsubscribers.push(
     window.api.launcher.onCommandTableChanged(() => {
-      void Promise.all([loadPluginCommands(), loadRegistryCommands()]).then(async () => {
-        await enrichAliases()
-        rerunSearch()
-      })
+      // MCP 那一路不能漏（注释说的「以及 MCP 工具清单变化」曾只停留在注释上）：
+      // 推送一次 pref 读，代价可忽略；漏了就是「连上服务器回到搜索框搜不到工具」
+      void Promise.all([loadPluginCommands(), loadRegistryCommands(), loadMcpCommands()]).then(
+        async () => {
+          await enrichAliases()
+          rerunSearch()
+        }
+      )
     })
   )
 

@@ -48,7 +48,7 @@ export const MODULES: ModuleMeta[] = [
     id: 'screenRecorder',
     routeName: 'screenRecorderRecord',
     path: '/screenRecorder/record',
-    label: '屏幕录制',
+    label: '录屏',
     description: '录制 / 历史 / 回放 / 剪辑',
     icon: 'record-circle',
     group: 'creation',

@@ -12,7 +12,9 @@
           <span class="mcp-call-arg-value">{{ p.value === '' ? '（空）' : p.value }}</span>
         </div>
       </div>
-      <div v-else data-testid="mcp-call-noargs" class="mcp-call-args mcp-call-arg">（无参数）</div>
+      <!-- 不能带 mcp-call-arg 类：测试与样式都把「参数行」定义为带 name/value 两格的行，
+           无参数占位混进 .mcp-call-arg 会被当成一条 name/value 都是 undefined 的参数行 -->
+      <div v-else data-testid="mcp-call-noargs" class="mcp-call-args">（无参数）</div>
 
       <div v-if="running" class="mcp-call-state" data-testid="mcp-call-running">
         <AppIcon icon="loader-4" :size="16" class="mcp-call-spin" />
@@ -42,7 +44,7 @@
  * 发起调用的动作放在页面里而不是调用方：重试要重发同一份参数，
  * 让 LauncherApp 持有这些状态只是把 props 变成两份。
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, toRaw } from 'vue'
 import CapsulePage from './CapsulePage.vue'
 import AppIcon from '@components/AppIcon.vue'
 
@@ -77,7 +79,9 @@ async function run(): Promise<void> {
     const r = await window.api.ai.mcpRunTool({
       id: props.serverId,
       tool: props.tool,
-      args: props.args ?? {}
+      // props 是深层响应式代理，读出来的 args 是 Proxy —— 过不了 ipcRenderer.invoke
+      // 的结构化克隆（实测报「An object could not be cloned」）。IPC 边界必须交裸对象。
+      args: toRaw(props.args ?? {}) as Record<string, string>
     })
     text.value = r.text
     ignored.value = r.ignoredContent

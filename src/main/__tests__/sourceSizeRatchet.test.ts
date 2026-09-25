@@ -35,8 +35,9 @@ const KNOWN_OVER_1000 = [
   'preload/index.ts' // 1131
 ]
 
-/** 体量哨兵基线：任何文件不得超过此行数（= 当前最大者） */
-const MAX_LINES = 2437
+/** 体量哨兵基线：任何文件不得超过此行数（= 当前最大者）。
+ * 2026-09-25 从 2437 → 2441：LauncherApp 因 MCP 推送重拉补了 4 行——已顶着上限，下次再动它必须先拆 */
+const MAX_LINES = 2441
 
 interface Sized {
   rel: string

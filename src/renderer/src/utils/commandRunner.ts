@@ -8,6 +8,7 @@
  * - plugin：唤起胶囊窗承载插件交互（门管进入）
  * - app：交给系统启动
  */
+import { toRaw } from 'vue'
 import type { Router } from 'vue-router'
 import type { CommandEntry, FirstPartyPage } from '@shared/commands'
 import { buildQuicklinkUrl, quicklinkFieldNames, WINDOW_MODULES } from '@shared/commands'
@@ -202,11 +203,14 @@ export async function executeCommand(entry: CommandEntry, opts: CommandRunOption
         opts.openMcpTool(entry)
         break
       }
+      // entry 来自响应式 computed（mergeCommandEntries），action 连同 argSpecs 都是
+      // 响应式 Proxy —— 过不了 ipcRenderer.send 的结构化克隆（报「An object could
+      // not be cloned」且被吞，表现为「按下去什么都没发生」）。IPC 边界交裸对象。
       window.api.launcher.runMcpTool({
         serverId: a.serverId,
         serverLabel: a.serverLabel,
         tool: a.tool,
-        argSpecs: a.args
+        argSpecs: toRaw(a.args ?? [])
       })
       close()
       break

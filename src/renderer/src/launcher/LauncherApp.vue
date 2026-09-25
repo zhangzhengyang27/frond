@@ -290,6 +290,7 @@ import {
 } from './composables/useLauncherPages'
 import { useLauncherBusy } from './composables/useLauncherBusy'
 import { useMcpToolLaunch } from './composables/useMcpToolLaunch'
+import { usePluginArgLaunch } from './composables/usePluginArgLaunch'
 import type { KindFilter } from './pages/clipboardLogic'
 import { useSearchHistoryNav } from './composables/useSearchHistoryNav'
 import { useIdleWatcher } from './composables/useIdleWatcher'
@@ -331,7 +332,7 @@ import McpCallPage from './pages/McpCallPage.vue'
 import NotesPage from './pages/NotesPage.vue'
 import ReminderPage from './pages/ReminderPage.vue'
 import CalendarPage from './pages/CalendarPage.vue'
-import type { PluginListItem, FormField, PluginFormNode } from '@shared/plugin-protocol'
+import type { PluginListItem, PluginFormNode } from '@shared/plugin-protocol'
 import type { McpToolArg } from '@shared/mcp'
 
 /** React 表单视图（#11 M2）：主进程归一后的表单（fields + submit 元数据） */
@@ -646,50 +647,13 @@ const qlArgInitialMap = computed<Record<string, string>>(() => {
   return first ? { [first.key]: qlArgInitial.value } : {}
 })
 
-/** 当前待带参打开的插件命令（pluginarg 表单页数据源；多参数命令对标 Raycast argument1-3） */
-const pluginArgTarget = ref<CommandEntry | null>(null)
-
-/**
- * 插件参数初值快照（P-1.6）：进表单前从搜索词里取出的「标题之外的部分」。
- * 存快照而不是在 fields 里直接读 query，是因为 pushPage 之后 query 会被清空——
- * 直接读 query 会让初值在下一帧就消失。
- */
-const pluginArgPrefill = ref('')
-
-/** pluginarg 表单字段：text/password 掩码输入，dropdown 以 title 展示（FormPage select） */
-const pluginArgFields = computed<FormField[]>(() => {
-  const t = pluginArgTarget.value
-  if (!t || t.action.type !== 'plugin' || !t.action.arguments) return []
-  // 只预填第一个文本参数：多参数时按空格切剩余词是在猜，宁可不填
-  const firstTextArg = t.action.arguments.find((arg) => arg.type === 'text')?.name
-  const prefill = pluginArgPrefill.value
-  return t.action.arguments.map((arg) =>
-    arg.type === 'dropdown'
-      ? {
-          key: arg.name,
-          label: arg.placeholder || arg.name,
-          type: 'select' as const,
-          options: (arg.data ?? []).map((o) => o.title)
-        }
-      : {
-          key: arg.name,
-          label: arg.placeholder || arg.name,
-          type: arg.type === 'password' ? ('password' as const) : ('text' as const),
-          placeholder: arg.placeholder,
-          initial: arg.name === firstTextArg && prefill ? prefill : undefined
-        }
-  )
-})
-
-/** dropdown 展示值（title）→ 提交值（value）映射 */
-const pluginArgValueMap = computed<Map<string, string>>(() => {
-  const map = new Map<string, string>()
-  const t = pluginArgTarget.value
-  if (!t || t.action.type !== 'plugin' || !t.action.arguments) return map
-  for (const arg of t.action.arguments) {
-    if (arg.type === 'dropdown') for (const o of arg.data ?? []) map.set(o.title, o.value)
-  }
-  return map
+/** 插件带参命令的发射段抽在 composables/usePluginArgLaunch.ts（第二刀，2026-09-25） */
+const { pluginArgTarget, pluginArgFields, openPluginArg, openPluginWithArgs } = usePluginArgLaunch({
+  query,
+  searchBarRef,
+  pushPage,
+  popPage,
+  enterArgSlots
 })
 
 /* ── MCP 工具进根搜索（P-4② 收尾）：发射段抽在 composables/useMcpToolLaunch.ts ──
@@ -840,23 +804,6 @@ function onArgSlotKeydown(e: KeyboardEvent, index: number): void {
   }
   // 槽态没有结果列表可导航：↑↓ 按下去，别打到列表逻辑
   if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault()
-}
-
-/** pluginarg 表单提交：required 校验 → title→value 还原 → 带参打开插件（表单值含 checkbox 布尔，此处按字符串取） */
-function openPluginWithArgs(values: Record<string, string | boolean>): void {
-  const target = pluginArgTarget.value
-  if (!target || target.action.type !== 'plugin') return
-  const args: Record<string, string> = {}
-  for (const arg of target.action.arguments ?? []) {
-    let v = String(values[arg.name] ?? '').trim()
-    if (arg.type === 'dropdown') v = pluginArgValueMap.value.get(v) ?? v
-    if (!v && arg.required) return // 必填参数为空：留在表单
-    if (v) args[arg.name] = v
-  }
-  pluginArgTarget.value = null
-  window.api.launcher.openPlugin(target.action.pluginId, target.action.cmd, args)
-  popPage() // 退出参数页，胶囊保持可见进入插件交互（与无参插件路径一致）
-  query.value = ''
 }
 
 /** 推送到了就按当前查询再跑一遍（空查询走建议列表）——两条插件推送共用 */
@@ -1144,14 +1091,7 @@ async function runEntry(entry: CommandEntry): Promise<void> {
     // MCP 工具（P-4②）：参数格与结果页都在胶囊里，两个入口都收在这一侧执行
     openMcpTool: (target) => openMcpTool(target),
     // 带参数声明的插件命令（多参数命令）：胶囊内逐参数填写后带参打开插件
-    openPluginArg: (target) => {
-      if (enterArgSlots(target)) return
-      pluginArgTarget.value = target
-      pluginArgPrefill.value = argPrefill(query.value, target.title)
-      pushPage('pluginarg')
-      query.value = ''
-      searchBarRef.value?.focus()
-    }
+    openPluginArg
   })
   if (entry.action.type === 'plugin') {
     if (pluginArgTarget.value) return // 已进入参数表单页，保留页栈

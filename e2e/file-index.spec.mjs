@@ -40,6 +40,8 @@ test.beforeAll(async () => {
 
   const env = { ...process.env }
 env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-file-index')
+  // 剪枝断言需要纯索引口径：关掉「零结果回退系统检索」（见 fileSearch.ts 钩子）
+  env.FROND_FILE_SEARCH_NO_FALLBACK = '1'
   delete env.ELECTRON_RUN_AS_NODE
   app = await electron.launch({ args: [MAIN_ENTRY], env })
 }, 120000)
@@ -110,9 +112,11 @@ test('索引链路：播种命中 → 内容命中 → 排除不可见 → 改�
   const byContent = await query(main, `独特正文内容 ${RUN}`, 'content')
   expect(byContent.map((i) => i.name)).toContain(`${UNIQUE}.md`)
 
-  // 4. 排除目录不可见（node_modules 剪枝）
+  // 4. 排除目录不可见（node_modules 剪枝）：播种的 x.js 不得出现在结果里。
+  //    不能断言结果整体为空 —— 索引零结果时按设计 §5 回退系统检索，
+  //    Spotlight 收录的仓库构建产物会出现在结果里，剪枝契约只对自建索引负责
   const excluded = await query(main, 'x.js')
-  expect(excluded).toEqual([])
+  expect(excluded.map((i) => i.path)).not.toContain(join(SCOPE_DIR, 'node_modules', 'x.js'))
 
   // 5. 改名 → FSEvents 增量 → 旧名消失、新名可搜（含正文跟随）
   const renamed = `e2e-renamed-${RUN}.md`

@@ -172,6 +172,10 @@ export function registerFileSearchIpc(): void {
     // 前缀匹配，中缀查询零结果时旧链路仍有产出，审查 I-3）；
     // onlyIn 限定目录在索引范围外，同样回退
     const trimmed = String(query ?? '').trim()
+    // 测试钩子：FROND_FILE_SEARCH_NO_FALLBACK=1 时索引零结果就返回空，不回退系统检索
+    // —— file-index e2e 的「node_modules 剪枝」断言需要纯索引口径（回退会把 Spotlight
+    // 收录的仓库文件翻出来，那是设计 §5 的预期行为，但会淹没对剪枝的验收）
+    const noFallback = process.env.FROND_FILE_SEARCH_NO_FALLBACK === '1'
     if ((isMac() || isWin()) && !onlyIn) {
       fileIndex.ensureStarted()
       const tokens = trimmed.split(/\s+/).filter(Boolean)
@@ -190,6 +194,9 @@ export function registerFileSearchIpc(): void {
           source: 'index' as const
         }
       }
+    }
+    if (noFallback) {
+      return { ok: true, supported: true, items: [], source: 'index' as const }
     }
     const onMac = isMac()
     const items = onMac

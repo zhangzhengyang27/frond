@@ -806,11 +806,13 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   ④screenRecorder label 漂移（「屏幕录制」→ 按命名家族与 spec 契约改回「录屏」）；
   ⑤BYOM fixture 补 Ollama 形状 /api/tags。方法论：探针 + 主窗/胶囊 console 分开捕；
   mcp/store 引 launcher/ipc 须动态 import（否则具名导入毒化单测）。
-- **剩 6 红与归因现状**：market-index 5（旧账，走真实 fetch 失败路径，慢且抖——待单独
-  一轮带 fixture 本地化重写）；**file-index 1** —— FROND_FILE_INDEX_SCOPES 是首启
-  写库后粘滞的（service.ts:135 getMeta 有值即跳过），实测查询 `x.js` 返回 out/renderer/
-  assets 102 文件：scopes 未生效或内容搜索越界，需新会话带探针钉死（先验证 file-index.db
-  的 meta 与 userData 是否真新）。
+- **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
+  「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道
+  （market:setIndexUrl/refreshIndex/indexInfo 全在，唯独没有 UI）重建于
+  views/launcher/index.vue；file-index 的「x.js 搜不到」断言与**设计 §5 的零结果回退**
+  冲突（回退会把 Spotlight 收录的仓库文件翻出来）——剪枝契约只对自建索引负责，
+  spec 改为断言播种路径不在结果中，并加测试钩子 FROND_FILE_SEARCH_NO_FALLBACK=1
+  （fileSearch.ts）供剪枝验收用纯索引口径。至此 e2e 27 → 0 红（约 97 用例）。
 
 #### 10.13 发布链路首跑五连战：v0.1.0 真实上线 + CI 首跑真相（2026-09-24）
 

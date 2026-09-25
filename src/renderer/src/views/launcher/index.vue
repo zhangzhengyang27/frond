@@ -124,11 +124,25 @@
       <div class="mb-3 flex items-center justify-between">
         <h2 class="text-xs font-medium tracking-wider text-fg-muted uppercase">插件市场</h2>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-fg-faint">索引：仓库 plugins.json</span>
+          <span class="text-xs text-fg-faint">{{ indexStatusText }}</span>
           <UButton size="sm" variant="ghost" :loading="marketLoading" @click="refreshMarket">
             刷新
           </UButton>
         </div>
+      </div>
+      <!-- 远程索引（M3.5 v1）：明文 http 会被主进程侧拒绝（setRemoteIndexUrl fail-closed），
+           界面提示只是转述 —— 拒绝的权威在主进程，e2e market-index 3 钉的就是这一条 -->
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          v-model="remoteIndexUrl"
+          class="min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-primary outline-none focus:border-brand-500/40"
+          placeholder="远程索引 https://…/plugins.json（留空 = 只用打包索引）"
+        />
+        <UButton size="sm" @click="saveRemoteIndex">保存</UButton>
+        <UButton size="sm" variant="ghost" :loading="pullingIndex" @click="pullRemoteIndex">
+          拉取
+        </UButton>
+        <span v-if="remoteIndexMsg" class="text-xs text-fg-tertiary">{{ remoteIndexMsg }}</span>
       </div>
       <div class="rounded-md border border-line-subtle bg-surface-1 shadow-sm">
         <div v-if="market.length === 0" class="p-6">
@@ -145,6 +159,7 @@
               <div class="flex items-center gap-2">
                 <span class="truncate text-sm font-medium text-fg-primary">{{ entry.name }}</span>
                 <span class="shrink-0 text-xs text-fg-faint">v{{ entry.version ?? '—' }}</span>
+                <UBadge variant="neutral">{{ entry.sha256 ? 'sha256 校验' : '未校验' }}</UBadge>
                 <UBadge v-if="entry.installed && entry.updatable" variant="warning">
                   可更新 {{ entry.installedVersion }} → {{ entry.version }}
                 </UBadge>
@@ -593,11 +608,72 @@ interface MarketEntry {
   installed: boolean
   installedVersion?: string
   updatable: boolean
+  /** 远程索引条目才可能有；打包索引是本地目录形态，如实标「未校验」 */
+  sha256?: string
 }
 
 const market = ref<MarketEntry[]>([])
 const marketLoading = ref(false)
 const installingId = ref<string | null>(null)
+
+const remoteIndexUrl = ref('')
+const remoteIndexMsg = ref('')
+const pullingIndex = ref(false)
+const indexInfo = ref<{ remoteUrl: string; remoteCount: number; remoteFetchedAt: number | null } | null>(
+  null
+)
+const indexStatusText = computed(() =>
+  indexInfo.value?.remoteUrl
+    ? `索引：远程 ${indexInfo.value.remoteUrl}`
+    : '索引：打包 plugins.json'
+)
+
+async function loadIndexInfo(): Promise<void> {
+  try {
+    indexInfo.value = await window.api.launcher.marketIndexInfo()
+    remoteIndexUrl.value = indexInfo.value.remoteUrl
+  } catch {
+    /* 读不到就保持打包索引口径 */
+  }
+}
+
+async function saveRemoteIndex(): Promise<void> {
+  remoteIndexMsg.value = ''
+  try {
+    const res = await window.api.launcher.marketSetIndexUrl(remoteIndexUrl.value.trim())
+    if (!res.ok) {
+      remoteIndexMsg.value = res.error ?? '保存失败'
+      return
+    }
+    remoteIndexMsg.value = remoteIndexUrl.value.trim() ? '已保存远程索引地址' : '已清除远程索引'
+    await loadIndexInfo()
+    await refreshMarket()
+  } catch (error) {
+    remoteIndexMsg.value = `保存失败：${(error as Error).message}`
+  }
+}
+
+async function pullRemoteIndex(): Promise<void> {
+  pullingIndex.value = true
+  remoteIndexMsg.value = ''
+  try {
+    // 拉取失败绝不清空打包索引：marketRefreshIndex 失败时仅返回错误，不动本地条目
+    const res = (await window.api.launcher.marketRefreshIndex()) as {
+      ok?: boolean
+      error?: string
+      count?: number
+    }
+    remoteIndexMsg.value = res.ok
+      ? `拉取成功：${res.count ?? 0} 条`
+      : `拉取失败：${res.error ?? '未知错误'}`
+    await loadIndexInfo()
+    await refreshMarket()
+  } catch (error) {
+    remoteIndexMsg.value = `拉取失败：${(error as Error).message}`
+  } finally {
+    pullingIndex.value = false
+  }
+}
 
 async function refreshMarket(): Promise<void> {
   marketLoading.value = true

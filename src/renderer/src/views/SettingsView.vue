@@ -473,6 +473,9 @@ function automationActionLabel(t: AutomationView): string {
 
 /** 上次触发的结果。只在 `lastFiredAt` 存在时渲染，所以 null 那档只会是「跑过但没记结果」 */
 function automationResultLabel(t: AutomationView): string {
+  // 插件任务宿主只知道「投递到了插件」，不知道执行结果 —— 文案按 runtime.ts:736 的
+  // 设计契约写「已交给插件」而不是「成功」（不假装看得见）。e2e plugin-schedule ③ 钉这句。
+  if (ownerPluginId(t.owner)) return t.lastOk ? '已交给插件' : `失败：${t.lastError ?? '未知错误'}`
   if (t.lastOk) return '成功'
   return `失败：${t.lastError ?? '未知错误'}`
 }

@@ -184,7 +184,13 @@ export function readTasks(): AutomationTask[] {
   const raw = prefRepository.get(PREF_KEY)
   if (!raw) return []
   try {
-    return sanitizeTasks(JSON.parse(raw)).tasks
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    // 盘上是引擎/经清洗后的可信状态，原样读回 —— 这里**不能**再过 sanitizeTasks：
+    // 它把 lastOk/lastFiredAt 一律置 null（防伪造闸，职责在保存入口 automation:save
+    // 与插件登记），放在读路径等于触发历史永远读不回来 —— runTaskNow / tick 写得
+    // 再对，下一次读也是 null（e2e plugin-schedule ② 恒红的根因，2026-09-25 实测钉死）。
+    return parsed as AutomationTask[]
   } catch {
     return []
   }
@@ -388,7 +394,16 @@ export async function tick(deps: TickDeps): Promise<string[]> {
     }
     updated.push(next)
   }
-  if (fired.length > 0) deps.save(updated)
+  if (fired.length > 0) {
+    // 落盘前重读合并：await run 期间 runTaskNow 的历史回写等旁路可能已经落盘，
+    // 拿循环前的旧快照整表 save 会把它们洗掉（读-改-写竞态）。实测案例：e2e
+    // plugin-schedule ② 里「一分钟后」任务与手动 runNow 同分钟，runNow 刚写入的
+    // lastOk 在下一次读表时已被 tick 的旧快照盖回 null。只覆盖本次真正触发的
+    // 那几条（lastFiredAt 必须以 tick 为准——分钟桶去重靠它），其余以盘上最新为准。
+    const fresh = deps.tasks()
+    const firedById = new Map(updated.filter((t) => fired.includes(t.id)).map((t) => [t.id, t]))
+    deps.save(fresh.map((t) => firedById.get(t.id) ?? t))
+  }
   return fired
 }
 

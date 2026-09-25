@@ -151,9 +151,11 @@ describe('CLI 集成（真实 stylelint）', () => {
     rmSync(tmp, { recursive: true, force: true })
   })
 
-  it('仓库当前改动（无样式文件）→ exit 0，输出「没有需要 lint」', () => {
+  it('仓库当前改动 → exit 0，输出要么「没有需要 lint」要么 lint 通过摘要', () => {
+    // 注意环境依赖：工作区若恰好有脏的 .css/.less/.vue，会走 lint 分支而非空列表分支，
+    // 两个出口都合法（0 error / 0 warning 时都放行），钉的是 exit 0 + 摘要行格式
     const out = execFileSync('node', [CLI], { cwd: REPO_ROOT, encoding: 'utf8' })
-    expect(out).toContain('没有需要 lint')
+    expect(out).toMatch(/没有需要 lint|0 error \/ \d+ warning/)
   })
 
   it('临时 git 仓库 + 已暂存的违规 hex 文件 + STRICT_CSS_LINT=1 → exit 1 且报出 color-no-hex', () => {

@@ -417,6 +417,11 @@ const api = {
     list: () => typedInvoke('process:list'),
     kill: (pid: number) => typedInvoke('process:kill', { pid })
   },
+  // 菜单栏项搜索（Raycast parity）
+  menuBar: {
+    list: () => typedInvoke('menubar:list'),
+    trigger: (segments: string[], title: string) => typedInvoke('menubar:trigger', { segments, title })
+  },
   // 回收站管理（阶段3.3c）
   trash: {
     list: () => typedInvoke('trash:list'),

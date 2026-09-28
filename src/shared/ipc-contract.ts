@@ -135,6 +135,7 @@ import type { BrowserTab } from '../main/services/BrowserTabsService'
 import type { DictionaryDefinition } from '../main/services/DictionaryService'
 import type { WindowInfo } from '../main/services/WindowSwitcherService'
 import type { ProcessInfo } from './process'
+import type { MenuBarItem } from './menuBar'
 
 /** 插件运行上下文（plugapi:getContext 的字段从这里派生，避免第二次定义形状） */
 type PluginCtx = NonNullable<ReturnType<typeof getContextBySender>>
@@ -1440,6 +1441,16 @@ export interface IpcContract {
   // Kill Process（Raycast parity，2026-09-28；macOS，Windows 未验证由 handler 平台守卫）
   'process:list': { req: void; res: ProcessInfo[] }
   'process:kill': { req: { pid: number }; res: { success: boolean; error?: string } }
+
+  // 菜单栏项搜索（Raycast「Search Menu Bar Items」parity；macOS，需辅助功能授权）
+  'menubar:list': {
+    req: void
+    res: { ok: boolean; app: string | null; items: MenuBarItem[]; reason?: string }
+  }
+  'menubar:trigger': {
+    req: { segments: string[]; title: string }
+    res: { ok: boolean; error?: string }
+  }
 
   'screen-recorder:getSources': {
     req: {

@@ -235,6 +235,27 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         actions: [{ type: 'firstParty', page: 'emojiPicker' }]
       })
 
+      // ── 菜单栏项搜索（Raycast「Search Menu Bar Items」parity）──
+      commands.push({
+        id: 'menubar:search',
+        title: '搜索菜单栏项',
+        subtitle: '搜索并触发前台应用菜单栏的任意菜单项（macOS，需辅助功能）',
+        icon: 'menu-line',
+        category: 'window',
+        badge: '菜单',
+        keywords: [
+          'menu',
+          'menu bar',
+          '菜单栏',
+          'caidandan',
+          '菜单',
+          'caidan',
+          'menu item',
+          '命令'
+        ],
+        actions: [{ type: 'firstParty', page: 'menuBar' }]
+      })
+
       // ── 回收站 ──
       commands.push({
         id: 'trash:open',

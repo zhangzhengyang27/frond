@@ -1020,6 +1020,23 @@ Raycast「Kill Process」parity（2026-09-28 决策的 parity 包第一件）：
 - 验证：单测 1067 全绿、typecheck 双端、lint 0 error、e2e 99 全过。
 - 【未跑】真机验证强杀动作与保护名单实际表现（e2e 不造真实进程查杀场景）。
 
+#### 10.19 parity 包第二件：菜单栏项搜索落地（2026-09-28）
+
+Raycast「Search Menu Bar Items」parity：
+- 纯逻辑 `menuBarLogic.ts`（TDD 8 条）：osascript 输出解析、**点击脚本构造（标题来自任意
+  应用的任意字符串，引号/反斜杠转义是安全面）**、路径标签。列表脚本真机验证过（前台应用
+  depth-2 遍历 138 行格式正确）——期间踩了 AppleScript 两个真坑并修掉：①`copy … to end of
+  outRef` 在 `tell System Events` 块内被路由给目标应用（-10006），改成无变异的字符串拼接
+  累积根治；②标题内 tab 会错位列，scrub 换空格。
+- `MenuBarService.ts`：遍历 12s 超时 + **15s 缓存**（深遍历大应用数秒，不能每次都走），
+  触发后缓存立即失效（菜单状态已变）；触发成功后 `launcher:hide` 收起胶囊。
+- 链路：契约 `menubar:list` / `menubar:trigger` + preload `api.menuBar` + 内联页
+  `MenuBarPage`（当前应用头 + 过滤 + ↑↓/回车触发/错误横幅）+ 命令「搜索菜单栏项」。
+- 平台：macOS，需辅助功能授权（与窗口切换同前提）；点击动作【未跑】真机验证
+  （避免在用户会话里真实点击菜单），结构为 osascript 规范形态。
+- 验证：单测 1075 全绿、typecheck 双端、lint 0 error、e2e 98 过 + a11y:80 一条时序偶发
+  （单跑 3/3 绿；当日第四条不同 spec 偶发，去敏清单见「剩下的账」）。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

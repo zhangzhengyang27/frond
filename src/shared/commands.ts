@@ -44,6 +44,7 @@ export const FIRST_PARTY_PAGE_VALUES = [
   'windowSwitcher',
   'killProcess',
   'emojiPicker',
+  'menuBar',
   'trash',
   'dictionary',
   'notes',

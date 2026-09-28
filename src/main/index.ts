@@ -121,6 +121,7 @@ import { registerBrowserTabsIpc } from './services/BrowserTabsService'
 import { registerSystemInfoIpc } from './services/SystemInfoService'
 import { registerWindowSwitcherIpc } from './services/WindowSwitcherService'
 import { registerProcessIpc } from './services/ProcessService'
+import { registerMenuBarIpc } from './services/MenuBarService'
 import { registerTrashIpc } from './services/TrashService'
 import { registerDictionaryIpc } from './services/DictionaryService'
 import { typedHandle } from './ipc/typedIpc'
@@ -455,6 +456,9 @@ app.whenReady().then(() => {
 
   // 进程查杀（Kill Process，Raycast parity）
   registerProcessIpc()
+
+  // 菜单栏项搜索（Raycast parity）
+  registerMenuBarIpc()
 
   // 回收站管理（阶段3.3c）
   registerTrashIpc()

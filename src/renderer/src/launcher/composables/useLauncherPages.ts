@@ -34,6 +34,7 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   windowSwitcher: '窗口切换',
   killProcess: '强制退出进程',
   emojiPicker: 'Emoji',
+  menuBar: '菜单栏项搜索',
   trash: '回收站',
   dictionary: '词典',
   notes: '笔记',

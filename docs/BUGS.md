@@ -261,7 +261,7 @@
 - 测试侧已适配：冒烟测试改为双环境断言——先探针本机解析，落受限段则断言 fail-closed（守卫该行为），
   否则断言放行；任何环境都有真实语义
 
-### B26 剪辑页入口断链：历史页进剪辑永远拿不到视频（2026-09-28 审计发现，未修）
+### B26 剪辑页入口断链：历史页进剪辑永远拿不到视频（2026-09-28 审计发现 → 同日已修）
 - 现象：历史 → 剪辑进入 ClipPage，ClipEditor 收到 `video-path=""`，编辑器永远空白
 - 根因：Layout.vue:70-71 在 router-view 上监听 `@play-video` / `@clip-video`，但全仓零 emit
   （grep 仅命中监听两行）；HistoryPage 的「剪辑」入口是无参 router-link
@@ -274,17 +274,31 @@
   `exportClips(... clips: clips.value)`、useVideoClip.ts:141 `previewClip(clip)`，
   按 HANDOFF.md:803-804 与 BUGS B10 同款家族病会抛 DataCloneError（表先例修法 toRaw）
 
-### B27 ExportDialog 手填输出路径与主进程白名单实锤相抵（2026-09-28 审计发现，未修）
+### B27 ExportDialog 手填输出路径与主进程白名单实锤相抵（2026-09-28 审计发现 → 同日已修）
 - 现象：用户在导出对话框手打输出路径点导出，必被 main 拒绝「导出路径未经主进程签发」
 - 根因：重建模板增补了手填 outputPath 输入框（ExportDialog.vue:213-219，原件模板不可考），
   而 `clip:exportClips` 只接受 `clip:selectSavePath` 对话框签发过的路径（ipc/clips.ts:41-44，
   安全设计）；更糟的是单测把这个手填流程钉成了组件契约（exportDialog.test.ts:71-82）
 - 修复候选：模板去手填框只留「浏览…」（保 main 白名单安全口径），同步改单测契约
 
-### B28 PreviewPanel 画中画 stale ref：摄像头流永远挂不上（2026-09-28 审计发现，未修）
+### B28 PreviewPanel 画中画 stale ref：摄像头流永远挂不上（2026-09-28 审计发现 → 同日已修）
 - 机制：画中画 video 挂 `v-if="showPipCamera"`（PreviewPanel.vue:16），而 RecordPage 对
   expose 的同步是一次性 watch（RecordPage.vue:580-590）——挂载时 showPipCamera=false 同步进
   useStreamManager 的 pipCameraRef 是 null，之后 v-if 创建的新元素无人重新同步，
   useStreamManager.ts:373-375 的 `if (pipCameraRef.value)` 恒假
 - 修复候选：RecordPage watch showPipCamera 后重新同步 expose，或 useStreamManager 收 getter；
   单测测不出（测试挂载时 showPipCamera 恒 true，previewPanel.test.ts:66）
+
+## 2026-09-28 修复注记（B26/B27/B28 同日修复）
+- B26：HistoryPage 补 defineEmits（play-video/clip-video，形状 = Layout handler 入参契约），
+  剪辑 router-link 改按钮 emit clip-video，缩略图接 play-video；修法走 router-view
+  attrs 透传（监听挂在 Layout 的 <router-view> 上，HistoryPage emit 即达）。
+- B27：模板去手填框改只读展示，路径只能经「浏览…」（selectSavePath 白名单口径不动）；
+  exportDialog.test.ts 的手填流程契约同步改为 chooseOutput 走真路径。
+- B28：PreviewPanel 画中画 v-if → v-show（ref 从挂载起就非空，一次性同步语义成立）；
+  新增 B28 回归钉（关态挂载 pipCameraRef 非空）+ 旧存在性断言改可见性断言
+  （happy-dom 的 isVisible() 对 video 不可靠，断言 v-show 内联 display）。
+- 姊妹病（Proxy 过 IPC 三处）：ClipEditor updateClip / useVideoClip previewClip /
+  exportClips 全部 toRaw（同 HANDOFF.md:803 家族病修法）。
+- 【未跑】剪辑链真机端到端（录一段→历史→剪辑→导出）——e2e 对该 UI 零覆盖，
+  下次录屏模块真机验证轮补。

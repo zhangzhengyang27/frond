@@ -48,11 +48,18 @@ function setup(props: Record<string, unknown> = {}) {
 
 const exportBtn = (w: ReturnType<typeof setup>): ReturnType<typeof w.get> =>
   w.findAll('button').find((b) => /开始导出|导出中/.test(b.text()))!
-const outputInput = (w: ReturnType<typeof setup>): ReturnType<typeof w.get> =>
-  w.get('input[placeholder="输出文件完整路径"]')
-/** 取原生元素做值断言（`wrapper.element` 的类型是 VueNode，不含 input 的 value） */
+/**
+ * B27（2026-09-28）：手填输出路径被 main 白名单拒收，路径只能经「浏览…」
+ * 对话框（selectSavePath）进入——测试统一走这条真路径。
+ */
+const chooseOutput = async (w: ReturnType<typeof setup>, path: string): Promise<void> => {
+  selectSavePath.mockResolvedValueOnce(path)
+  await w.findAll('button').find((b) => b.text() === '浏览…')!.trigger('click')
+  await w.vm.$nextTick()
+}
+/** 输出位置展示（B27 后是只读文本，不再是输入框） */
 const outputValue = (w: ReturnType<typeof setup>): string =>
-  (outputInput(w).element as HTMLInputElement).value
+  w.findAll('span').find((s) => s.text().includes('输出位置') || s.text().includes('.mp4'))!.text()
 const selects = (w: ReturnType<typeof setup>): ReturnType<typeof w.findAll> => w.findAll('select')
 
 beforeEach(() => {
@@ -68,7 +75,7 @@ beforeEach(() => {
 describe('ExportDialog · 默认导出参数（模板反推出来的值，猜错用户拿到错产物）', () => {
   it('什么都不改就导出：resolution=1080 / fps=30 / transition=cut', async () => {
     const w = setup()
-    await outputInput(w).setValue('/tmp/out.mp4')
+    await chooseOutput(w, '/tmp/out.mp4')
     await exportBtn(w).trigger('click')
 
     const events = w.emitted('export')
@@ -88,7 +95,7 @@ describe('ExportDialog · 默认导出参数（模板反推出来的值，猜错
 
   it('分辨率下拉真的接到 options 上（不是只渲染了个 select）', async () => {
     const w = setup()
-    await outputInput(w).setValue('/tmp/out.mp4')
+    await chooseOutput(w, '/tmp/out.mp4')
     await selects(w)[0].setValue('2160')
     await exportBtn(w).trigger('click')
     expect((w.emitted('export')![0][0] as Record<string, unknown>).resolution).toBe(2160)
@@ -96,7 +103,7 @@ describe('ExportDialog · 默认导出参数（模板反推出来的值，猜错
 
   it('帧率下拉同理：选 60 就发 60', async () => {
     const w = setup()
-    await outputInput(w).setValue('/tmp/out.mp4')
+    await chooseOutput(w, '/tmp/out.mp4')
     await selects(w)[1].setValue('60')
     await exportBtn(w).trigger('click')
     expect((w.emitted('export')![0][0] as Record<string, unknown>).fps).toBe(60)

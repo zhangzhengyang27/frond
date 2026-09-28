@@ -5,7 +5,7 @@
  * 2026-09-23 重建：原文件被截断，仅存脚本尾 238 行，脚本头部与整段模板为重建
  */
 // 待核：Props 三字段由 ClipPage 调用方与存留脚本反推；时间轴为重建（原件未留存）
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRaw } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import ExportDialog from '@views/screenRecorder/components/ExportDialog.vue'
 import ClipTimeline from '@views/screenRecorder/components/ClipTimeline.vue'
@@ -200,7 +200,7 @@ const handleSaveClip = async (): Promise<void> => {
 
   try {
     if (editingClip.value) {
-      await updateClip(editingClip.value.id, clipForm.value)
+      await updateClip(editingClip.value.id, toRaw(clipForm.value))
     } else {
       await addClip(clipForm.value.startTime, clipForm.value.endTime, clipForm.value.label)
     }

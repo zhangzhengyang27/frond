@@ -47,7 +47,9 @@
         class="mb-3 flex items-center gap-4 rounded-lg border border-line-subtle bg-surface-0 p-3"
       >
         <div
-          class="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-md bg-surface-1"
+          class="flex h-16 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-surface-1"
+          title="播放"
+          @click="emit('play-video', toVideo(item))"
         >
           <img
             v-if="thumbOf(item)"
@@ -82,12 +84,13 @@
           >
             显示
           </button>
-          <router-link
-            :to="{ name: 'screenRecorderClip' }"
-            class="rounded-md px-2.5 py-1.5 text-xs text-fg-brand no-underline hover:bg-surface-hover"
+          <button
+            type="button"
+            class="rounded-md px-2.5 py-1.5 text-xs text-fg-brand hover:bg-surface-hover"
+            @click="emit('clip-video', toVideo(item))"
           >
             剪辑
-          </router-link>
+          </button>
           <button
             type="button"
             class="rounded-md px-2.5 py-1.5 text-xs text-fg-danger hover:bg-surface-hover"
@@ -110,6 +113,28 @@
 import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import type { RecordingHistory } from '@preload/index.d'
+
+/**
+ * B26（2026-09-28 审计）：Layout 的 router-view 监听 @play-video / @clip-video，
+ * 重建版曾用无参 router-link 接剪辑——监听全仓零 emit，剪辑页永远拿不到视频。
+ * 事件形状 = Layout.handlePlayVideo / handleClipVideo 的入参契约（recordingId 取 item.id）。
+ */
+const emit = defineEmits<{
+  (e: 'play-video', video: { filePath: string; recordingId: string; filename: string; duration: number }): void
+  (e: 'clip-video', video: { filePath: string; recordingId: string; filename: string; duration: number }): void
+}>()
+
+const toVideo = (item: RecordingHistory): {
+  filePath: string
+  recordingId: string
+  filename: string
+  duration: number
+} => ({
+  filePath: item.filePath,
+  recordingId: item.id,
+  filename: item.filename,
+  duration: item.duration
+})
 
 const items = ref<RecordingHistory[]>([])
 const loading = ref(true)

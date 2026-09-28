@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onUnmounted, toRaw, type Ref, type ComputedRef } from 'vue'
 
 // 检查窗口/API 是否可用
 function isApiAvailable(): boolean {
@@ -138,7 +138,7 @@ export function useVideoClip(videoId: string, videoPath: string) {
   // 预览剪辑片段
   const previewClip = async (clip: Clip): Promise<string> => {
     try {
-      const previewPath = await window.api.clip.previewClip(videoPath, clip)
+      const previewPath = await window.api.clip.previewClip(videoPath, toRaw(clip) as Clip)
       return previewPath
     } catch (error) {
       console.error('预览剪辑失败:', error)
@@ -163,7 +163,7 @@ export function useVideoClip(videoId: string, videoPath: string) {
 
       const exportOptions: ExportOptions = {
         ...options,
-        clips: clips.value
+        clips: toRaw(clips.value)
       }
 
       const result = await window.api.clip.exportClips(videoPath, exportOptions)

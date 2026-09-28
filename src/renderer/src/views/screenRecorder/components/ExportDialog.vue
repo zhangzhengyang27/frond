@@ -209,14 +209,16 @@ const handleExport = (): void => {
           </label>
         </div>
 
+        <!-- B27（2026-09-28 审计）：main 的 clip:exportClips 只认 selectSavePath
+             对话框签发的路径（白名单），重建模板的手填框点导出必被拒——去掉手填，
+             路径只能来自「浏览…」 -->
         <div class="flex items-center gap-2">
-          <input
-            v-model.trim="exportOptions.outputPath"
-            type="text"
-            class="min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-primary outline-none focus:border-brand-500/40"
-            placeholder="输出文件完整路径"
-            spellcheck="false"
-          />
+          <span
+            class="min-w-0 flex-1 truncate rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-secondary"
+            :title="exportOptions.outputPath || undefined"
+          >
+            {{ exportOptions.outputPath || '未选择输出位置（点「浏览…」选择）' }}
+          </span>
           <button
             type="button"
             class="shrink-0 rounded-md border border-line-subtle px-3 py-1.5 text-xs text-fg-secondary hover:bg-surface-hover"

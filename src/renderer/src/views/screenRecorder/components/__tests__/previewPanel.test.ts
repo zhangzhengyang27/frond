@@ -90,6 +90,35 @@ describe('PreviewPanel · defineExpose 的形状（父组件靠它挂 srcObject�
     expect(exposed.previewVideoRef!.tagName).toBe('VIDEO')
     expect(exposed.pipCameraRef!.tagName).toBe('VIDEO')
   })
+
+  /**
+   * B28 回归钉（2026-09-28 审计发现）：画中画 video 若用 v-if，挂载时
+   * showPipCamera=false 则 pipCameraRef 是 null，之后用户选上摄像头，v-if 才创建
+   * 新元素——RecordPage 对 expose 的一次性同步不会再跑，摄像头流永远挂不上。
+   * 契约因此定为：**ref 必须从挂载起就存在（v-show 语义）**，显隐只管可见性。
+   */
+  it('showPipCamera=false 挂载时 pipCameraRef 也非空（v-show 语义，B28）', () => {
+    let captured: { pipCameraRef?: unknown } | null = null
+    const Parent = defineComponent({
+      setup() {
+        return () =>
+          h(PreviewPanel, {
+            ...baseProps({ showPipCamera: false }),
+            ref: (el: unknown) => {
+              captured = el as typeof captured
+            }
+          })
+      }
+    })
+    mount(Parent, { global: { stubs: { AppIcon: true } } })
+
+    const exposed = captured as unknown as { pipCameraRef: HTMLVideoElement | null }
+    expect(
+      exposed.pipCameraRef,
+      '画中画 ref 在关态下为空 → 后开摄像头时一次性同步不会再跑，流永远挂不上（B28）'
+    ).toBeTruthy()
+    expect(exposed.pipCameraRef!.tagName).toBe('VIDEO')
+  })
 })
 
 describe('PreviewPanel · 按钮集合随录制状态切换', () => {
@@ -152,9 +181,15 @@ describe('PreviewPanel · 可选区块的出现条件', () => {
     expect(setup({ hasPreview: true }).text()).not.toContain('选择录制源后可在此预览')
   })
 
-  it('showPipCamera 决定画中画 video 是否存在', () => {
-    expect(setup({ showPipCamera: true }).findAll('video')).toHaveLength(2)
-    expect(setup({ showPipCamera: false }).findAll('video')).toHaveLength(1)
+  it('showPipCamera 决定画中画 video 的可见性（元素恒存在，B28 v-show 契约）', () => {
+    const on = setup({ showPipCamera: true })
+    expect(on.findAll('video')).toHaveLength(2)
+    expect(on.findAll('video')[1].isVisible()).toBe(true)
+    const off = setup({ showPipCamera: false })
+    // 元素仍在（ref 从挂载起就非空，见 B28 用例），只是不可见——
+    // happy-dom 的 isVisible() 对 video 不可靠，直接断言 v-show 的内联 display
+    expect(off.findAll('video')).toHaveLength(2)
+    expect(off.findAll('video')[1].attributes('style')).toContain('display: none')
   })
 
   it('showRecordingModeHint 决定区域录制提示是否出现', () => {

@@ -13,7 +13,7 @@
         @error="onVideoError"
       ></video>
       <video
-        v-if="showPipCamera"
+        v-show="showPipCamera"
         ref="pipCameraRef"
         class="absolute bottom-3 right-3 w-32 rounded-lg object-cover shadow-lg"
         autoplay

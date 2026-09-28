@@ -1037,6 +1037,25 @@ Raycast「Search Menu Bar Items」parity：
 - 验证：单测 1075 全绿、typecheck 双端、lint 0 error、e2e 98 过 + a11y:80 一条时序偶发
   （单跑 3/3 绿；当日第四条不同 spec 偶发，去敏清单见「剩下的账」）。
 
+#### 10.20 剪辑链三实锤修复：B26/B27/B28 + Proxy×IPC 三处（2026-09-28，接 §10.17 审计）
+
+- **B26 入口断链**：HistoryPage 补 defineEmits（play-video / clip-video，形状 = Layout
+  handler 入参契约，recordingId 取 item.id），剪辑 router-link 改按钮 emit，缩略图接
+  play-video。修法走 router-view attrs 透传——监听本就挂在 Layout 的 `<router-view>`，
+  HistoryPage emit 即达，Layout 侧死代码（handleClipVideo 赋值段）原地复活。
+- **B27 手填路径撞白名单**：ExportDialog 去手填框改只读展示，路径只能经「浏览…」
+  （main 的 selectSavePath 白名单安全口径不动）；exportDialog.test.ts 手填流程契约
+  同步改为 chooseOutput 走真路径（组件级测试从此与 main 行为一致）。
+- **B28 画中画 stale ref**：v-if → v-show（ref 从挂载起就非空，RecordPage 一次性同步
+  语义成立）；新增关态挂载 pipCameraRef 非空的回归钉 + 旧「存在性」断言改「可见性」
+  断言（happy-dom 的 isVisible() 对 video 不可靠，改断言 v-show 内联 display）。
+- **Proxy×IPC 三处**（B26 姊妹病，非重建引入）：ClipEditor updateClip、useVideoClip
+  previewClip / exportClips 全部 toRaw（HANDOFF.md:803 家族病修法）。
+- 验证：previewPanel 14/14（先红后绿）、exportDialog 13/13、单测 1076 全绿、typecheck
+  双端、lint 0 error、e2e 97 过 + plugin-arg-slots:256 时序偶发（单跑 3/3 绿；该文件
+  当日三度偶发，列去敏清单首位）。
+- 【未跑】剪辑链真机端到端（录→历史→剪辑→导出）。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

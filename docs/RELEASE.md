@@ -29,7 +29,10 @@ pnpm run release:preflight -- --target-only  # 只印生效的发布目标
 | warning | 已签名但未公证 | 差 `APPLE_ID` / `APPLE_TEAM_ID` / `APPLE_APP_SPECIFIC_PASSWORD` |
 
 未签名产物在用户侧的真实表现：首次打开报「已损坏 / 无法验证开发者」，要右键 → 打开；
-Gatekeeper 更严的版本连右键都不给。**未签名期间不要把自动更新当主推荐路径。**
+Gatekeeper 更严的版本连右键都不给。**未签名期间应用内自动更新走手动兜底（2026-09-28 落地）**：
+mac 打包产物 codesign 探测失败即切 manual 模式——检查 = GitHub releases/latest 比版本，
+「打开下载页」引导手动安装（`AutoUpdateService` + `autoUpdateManual.ts`，照 MelodyAir 方案）；
+electron-updater 正道在真签名后自动恢复，无需改码。
 
 ## 一次性配置（首次发布前）
 

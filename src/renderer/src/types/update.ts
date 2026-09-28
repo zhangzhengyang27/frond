@@ -7,7 +7,9 @@
  * 引进渲染层会让所有引用它的渲染文件都拖上主进程依赖。
  */
 
-/** 更新的六个档位 + idle（没检查过）。与 electron-log 的 autoUpdater 事件一一对应 */
+/** 更新的七个档位 + idle（没检查过）。与 electron-log 的 autoUpdater 事件一一对应；
+ *  manual-available = mac 未签名兜底档（D2）：electron-updater 静默安装信任链不完整，
+ *  检查走 GitHub releases/latest 比版本，「下载」语义变为打开下载页引导手动安装 */
 export type UpdateStatus =
   | 'idle'
   | 'checking'
@@ -16,6 +18,7 @@ export type UpdateStatus =
   | 'downloading'
   | 'downloaded'
   | 'error'
+  | 'manual-available'
 
 /** 下载进度（对应 electron-updater 的 ProgressInfo） */
 export interface UpdateProgress {
@@ -26,8 +29,9 @@ export interface UpdateProgress {
 }
 
 /**
- * 一次状态推送。各字段只在对应档位出现：`version` 在 available / downloaded，
- * `progress` 在 downloading，`error` 在 error —— 界面按 `status` 取，不去猜组合。
+ * 一次状态推送。各字段只在对应档位出现：`version` 在 available / downloaded / manual-available，
+ * `progress` 在 downloading，`error` 在 error，`downloadUrl`/`releasesUrl` 在 manual-available
+ * —— 界面按 `status` 取，不去猜组合。
  */
 export interface UpdateEvent {
   status: UpdateStatus
@@ -35,4 +39,6 @@ export interface UpdateEvent {
   releaseNotes?: string | null
   progress?: UpdateProgress
   error?: string
+  downloadUrl?: string
+  releasesUrl?: string
 }

@@ -669,6 +669,8 @@ const statusText = (s: UpdateStatus): string => {
       return '检查中…'
     case 'available':
       return `有可用更新 v${updateVersion.value}`
+    case 'manual-available':
+      return `新版本 v${updateVersion.value}（未签名版不支持应用内自动更新，打开下载页手动安装）`
     case 'not-available':
       return '已是最新版本'
     case 'downloading':
@@ -686,7 +688,8 @@ const canCheck = (): boolean =>
   updateStatus.value === 'idle' ||
   updateStatus.value === 'not-available' ||
   updateStatus.value === 'error'
-const canDownload = (): boolean => updateStatus.value === 'available'
+const canDownload = (): boolean =>
+  updateStatus.value === 'available' || updateStatus.value === 'manual-available'
 const canInstall = (): boolean => updateStatus.value === 'downloaded'
 </script>
 
@@ -1394,7 +1397,11 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center gap-2">
                     <span class="text-[14px] font-medium text-fg-primary">自动更新</span>
-                    <UBadge v-if="updateStatus === 'available'" variant="brand">可更新</UBadge>
+                    <UBadge
+                      v-if="updateStatus === 'available' || updateStatus === 'manual-available'"
+                      variant="brand"
+                      >可更新</UBadge
+                    >
                     <UBadge v-else-if="updateStatus === 'error'" variant="danger">错误</UBadge>
                   </div>
                   <div class="mt-0.5 text-[12px] text-fg-tertiary">
@@ -1416,9 +1423,9 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   >
                     {{ updateStatus === 'checking' ? '检查中…' : '检查更新' }}
                   </UButton>
-                  <UButton v-if="canDownload()" size="sm" variant="primary" @click="onDownload"
-                    >下载</UButton
-                  >
+                  <UButton v-if="canDownload()" size="sm" variant="primary" @click="onDownload">
+                    {{ updateStatus === 'manual-available' ? '打开下载页' : '下载' }}
+                  </UButton>
                   <UButton v-if="canInstall()" size="sm" variant="primary" @click="onInstall"
                     >重启安装</UButton
                   >

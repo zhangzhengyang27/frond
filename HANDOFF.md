@@ -960,6 +960,27 @@ Apple M4 / 16GB / darwin 25.5.0，三轮实跑：
 spawn 的；spawn 之后一律 throw 不准 process.exit——exit 会跳过 finally 收割，首跑因此残留
 过 6 条进程（含一个用真实 userData 的主进程，已手动清掉）。
 
+#### 10.16 mac 未签名手动更新兜底落地（2026-09-28，D2 的最后一格）
+
+照 MelodyAir（同作者已跑通 5 次发布）的方案移植：mac 打包产物 **codesign 探测失败 →
+manual 模式**——检查 = GitHub `releases/latest` 比版本（10s 超时，失败显式 error 档），
+`downloadUpdate` = `shell.openExternal` 打开下载页引导手动安装。与 MelodyAir 的差异：
+①签名判定运行时探测（`codesign --verify --deep`，进程内缓存）而非按平台硬编码——
+**将来真签名后自动回到 electron-updater 正道，零改码**；②仓库常量与 electron-builder.yml
+publish 由 `autoUpdateManual.test.ts` 互相钉住（防漂移绊网，同 releasePreflight 的
+PLACEHOLDER_PUBLISH 哲学）；③纯逻辑（版本比较/资产挑选/载荷解析）抽
+`autoUpdateManual.ts` 可单测，Electron 接线留在 `AutoUpdateService`。
+
+- 状态机扩一档 `manual-available`（renderer/src/types/update.ts，契约/preload 自动跟随）；
+  manual 模式「下载」按钮文案变「打开下载页」，`quitAndInstall` 有防御兜底（manual 档到不了
+  downloaded，永不应触发）。
+- ESM×CJS 教训未再踩：`electron-updater` 的既有导入姿势没动。
+- 验证：新单测 12 条（TDD 先红后绿）、全量 1060 绿、typecheck 双端过、lint 0 error、e2e 全量
+  98 过 + capsule-compact:121 一条红（单跑 2 红后转绿；被测 bundle 与全绿轮完全一致，
+  偶发时段=内存测量实例+并行验证压满机器，定性负载型时序偶发）。
+- 【未跑】打包态真机验证 manual 检查链（需要带产物跑，dev 态 manual 模式恒 false 不触发）——
+  下次发版时顺手验：设置 → 更新 → 检查更新，应出现「打开下载页」而非 electron-updater 行为。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

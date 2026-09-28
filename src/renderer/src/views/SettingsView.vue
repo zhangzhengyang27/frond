@@ -192,6 +192,7 @@ const shieldSupported = ref(true)
 const shieldWebsiteSupported = ref(true)
 const shieldAppsDraft = ref('')
 const shieldWebsitesDraft = ref('')
+const shieldMode = ref<'remind' | 'hide' | 'quit'>('remind')
 
 // ── AI 配置 ──
 const aiEnabled = ref(false)
@@ -509,9 +510,15 @@ async function loadShieldConfig(): Promise<void> {
     shieldWebsiteSupported.value = cfg.websiteBlockSupported ?? true
     shieldAppsDraft.value = cfg.apps.join(', ')
     shieldWebsitesDraft.value = (cfg.websites ?? []).join(', ')
+    shieldMode.value = cfg.mode ?? 'remind'
   } catch {
     shieldSupported.value = false
   }
+}
+
+async function setShieldMode(mode: 'remind' | 'hide' | 'quit'): Promise<void> {
+  const cfg = await window.api.focusShield.setConfig({ mode })
+  shieldMode.value = cfg.mode ?? mode
 }
 
 async function toggleShieldEnabled(): Promise<void> {
@@ -1316,6 +1323,35 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     :class="shieldEnabled ? 'left-[20px]' : 'left-[2px]'"
                   />
                 </button>
+              </div>
+
+              <!-- 拦截档位（2026-09-28 真拦截升级：应用命中才执行 hide/quit；网站命中恒为遮罩） -->
+              <div class="border-b border-line-subtle px-4 py-4">
+                <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary"
+                  >拦截方式（应用命中时；网站命中始终为遮罩提醒）</label
+                >
+                <div class="flex gap-2">
+                  <button
+                    v-for="opt in [
+                      { value: 'remind', label: '遮罩提醒', hint: '仅弹出全屏提醒' },
+                      { value: 'hide', label: '隐藏应用', hint: '会话结束自动恢复' },
+                      { value: 'quit', label: '退出应用', hint: '优雅退出，保存提示照常' }
+                    ]"
+                    :key="opt.value"
+                    type="button"
+                    :disabled="!shieldSupported || !shieldEnabled"
+                    class="flex-1 rounded-lg px-3 py-2 text-left ring-1 transition-all disabled:opacity-40"
+                    :class="
+                      shieldMode === opt.value
+                        ? 'bg-brand-500/10 ring-brand-500/50'
+                        : 'ring-line-subtle hover:bg-surface-hover'
+                    "
+                    @click="setShieldMode(opt.value as 'remind' | 'hide' | 'quit')"
+                  >
+                    <div class="text-[13px] font-medium text-fg-primary">{{ opt.label }}</div>
+                    <div class="mt-0.5 text-[11px] text-fg-tertiary">{{ opt.hint }}</div>
+                  </button>
+                </div>
               </div>
 
               <!-- 屏蔽清单 -->

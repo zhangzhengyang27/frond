@@ -1073,6 +1073,25 @@ Raycast「Search Menu Bar Items」parity：
 - 仍缺的一步【人】**找 1 个真实第三方作者走通全流程**——脚本与文档已就位，outreach
   是人的工作。
 
+#### 10.22 专注护盾真拦截落地（2026-09-28，用户拍板的四项决策之一）
+
+`config.mode` 三档（存量配置缺 mode 归一化到 remind，旧行为不变）：
+- **remind**：仅遮罩（旧行为）；**hide**：应用命中 → 遮罩 + `System Events visible=false`
+  隐藏应用（隐藏应用不进 ⌘Tab——真拦截的原语）；**quit**：优雅退出（应用自身保存提示照常）。
+- 边界（写进产品口径与 UI 文案）：执行动作**只对应用命中生效**，网站命中恒为遮罩提醒
+  （不替用户关网页）。Windows 无执行面（平台守卫）。
+- 恢复链路：hide 名单在「会话结束 / 关开关 / 放行 60s / Frond will-quit」四个路径恢复可见
+  ——**退出前恢复是硬要求**，否则应用永远回不来。放行语义 = 恢复当前命中应用可见性 + 60s
+  不再弹。enforce 有防抖（同名应用不每 2s 重发 osascript）。
+- 决策面纯逻辑 `focusShieldLogic.ts`（normalizeShieldMode / enforcementFor）TDD 5 条；
+  `visible` 隐藏/恢复用 Finder 真机实证过（hide → restore → visible=true）。
+- SettingsView 专注区加三档选择卡（带提示文案，禁用态随 supported/enabled）。
+- 验证：单测 1086 全绿、typecheck 双端、lint 0 error、e2e 98 过 + capsule-animation:93
+  时序偶发（单跑 3/3 绿）。
+- 【未跑】hide/quit 模式带番茄钟工作计时的真机端到端（需要真实前台切换场景）——
+  验证步骤：专注设置开护盾 + hide 档 + 清单填前台应用名 → 开番茄钟 → 切到该应用 →
+  遮罩弹出且应用被隐藏（⌘Tab 里消失）→ 结束计时 → 应用恢复可见。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

@@ -1056,6 +1056,23 @@ Raycast「Search Menu Bar Items」parity：
   当日三度偶发，列去敏清单首位）。
 - 【未跑】剪辑链真机端到端（录→历史→剪辑→导出）。
 
+#### 10.21 插件作者 0→1：发布打包器 + 作者 runbook（2026-09-28）
+
+「1 个真实第三方插件作者」是 v1.0 里程碑；作者侧此前缺的是最后一公里——市场机制文档
+（§5）齐全但没有可操作的发布路径。本批补：
+- `scripts/make-plugin-release.mjs`（`pnpm release:plugin`）：读 plugin.json → 打 zip
+  （根 = 清单层）→ 算包体 sha256 → 生成索引条目。**校验规则与 market.ts 静默剔除规则
+  同源**（isValidPluginId 正则、sha256 64hex、https-only），但作者侧给原因——
+  静默剔除面向恶意索引，作者自查看不到原因只会困惑。纯逻辑 `buildIndexEntry`
+  TDD 5 条（scripts/__tests__/makePluginRelease.test.ts）。
+- `docs/PLUGIN_RELEASE_CHECKLIST.md`：作者视角 runbook（本地验证→一条命令打包→
+  两个 https 地址→用户安装说明→升级流程→四个真坑）。PLUGIN_DEVELOPMENT.md §5
+  头部接链接。
+- example-plugin 真跑通过（zip 根定位正确、sha256、条目合法）；`*-release/` 入 gitignore。
+- 验证：单测 1081 全绿、typecheck 双端、lint 0 error。
+- 仍缺的一步【人】**找 1 个真实第三方作者走通全流程**——脚本与文档已就位，outreach
+  是人的工作。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

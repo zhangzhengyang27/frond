@@ -32,6 +32,7 @@
     "build:mac": "pnpm run build && electron-builder --mac",
     "build:linux": "pnpm run build && electron-builder --linux",
     "release:preflight": "node scripts/release-preflight.mjs",
+    "release:plugin": "node scripts/make-plugin-release.mjs",
     "typecheck:prodcheck": "tsc -p tsconfig.prodcheck.json"
   },
   "dependencies": {

@@ -249,6 +249,10 @@ onDevPluginsChanged: (cb: (p: { kind: 'added'|'removed'|'reloaded'|'error'; plug
 
 ## 5. 市场发布流程
 
+> **只想发插件？** 直接看 [PLUGIN_RELEASE_CHECKLIST.md](./PLUGIN_RELEASE_CHECKLIST.md)
+> （作者视角 runbook：一条命令打包 + sha256 + 索引条目，两个 https 地址搞定发布）。
+> 本章是市场机制的完整说明。
+
 索引 = 仓库根 `plugins.json`（打包后经 electron-builder extraResources 落在 resources/）。
 静态、本地优先：不联网也能浏览安装。
 

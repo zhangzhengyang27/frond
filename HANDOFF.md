@@ -1092,6 +1092,15 @@ Raycast「Search Menu Bar Items」parity：
   验证步骤：专注设置开护盾 + hide 档 + 清单填前台应用名 → 开番茄钟 → 切到该应用 →
   遮罩弹出且应用被隐藏（⌘Tab 里消失）→ 结束计时 → 应用恢复可见。
 
+#### 10.23 亮度调节：macOS 26 阻塞挂账（2026-09-28，BUGS B29）
+
+parity 清单项「亮度调节」实证两条死路后挂账：CoreDisplay 私有框架在 darwin 25 已被移除
+（换 BrightnessControl，JXA/dlsym 五候选全 nil）、IOKit 的 IODisplayConnect 服务对内建屏
+不再存在（符号在、服务没了）。System Events 功能键注入效果不可验证不采信。出路 = 私有
+框架逆向（随系统更新再碎）/ 外接屏 DDC（m1ddc，符号稳定）/ 等上游。证据链全文见
+BUGS.md B29。parity 包就此收官：Kill Process ✅ 剪贴板 90 天 ✅ Emoji Picker ✅
+菜单栏项搜索 ✅ 亮度 ⛔（挂账）。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

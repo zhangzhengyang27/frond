@@ -302,3 +302,19 @@
   exportClips 全部 toRaw（同 HANDOFF.md:803 家族病修法）。
 - 【未跑】剪辑链真机端到端（录一段→历史→剪辑→导出）——e2e 对该 UI 零覆盖，
   下次录屏模块真机验证轮补。
+
+## 2026-09-28 发现（挂账）· 二
+
+### B29 亮度调节在 macOS 26 被系统 API 断路（实证死路两条，未实现）
+- 目标：Raycast parity 的亮度调节（系统命令五档/增减）——2026-09-28 parity 包清单项
+- 实证一：文档化路线 `osascript -l JavaScript` + CoreDisplaySetBrightness（SO 78620179，
+  Sonoma 14 可用）在本机 darwin 25.5（macOS 26）失效——**CoreDisplay.framework 已从
+  /System/Library/PrivateFrameworks 移除**（替换为 BrightnessControl.framework），
+  JXA 桥不暴露任何候选符号；dlsym 探测 BrightnessControl 五个候选名全 nil
+- 实证二：IOKit 公共路线（IOMainPort/IOServiceMatching("IODisplayConnect")/
+  IODisplayGet|SetFloatParameter，lux 的路线）符号全在，但本机 IOServiceGetMatchingService
+  返回 0——**macOS 26 的内建屏不再走 IODisplayConnect 服务**
+- System Events key code 113/107 注入无报错但效果不可验证（无读取 API），不采信
+- 结论：亮度需要 ①对 BrightnessControl 私有框架做符号逆向（成本高、随系统更新再碎），
+  或 ②外接显示器走 DDC/CI（m1ddc 路线，只覆盖外接屏），或 ③等上游生态给出 macOS 26 方案
+- 建议：暂不做；若做，外接屏 DDC 路线优先（符号稳定）

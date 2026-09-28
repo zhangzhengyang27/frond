@@ -9,7 +9,7 @@
  * - 容量：最多 200 条，图片文件最多 50 张；置顶条目不受容量/保留期淘汰
  *
  * 持久化：条目索引原子写入同目录 index.json，启动时恢复（图片文件缺失的
- * 条目剔除），保留期 30 天，到期条目启动时清理。
+ * 条目剔除），保留期 90 天（2026-09-28 对齐 Raycast 免费档上限 3 个月），到期条目启动时清理。
  *
  * 隐私：历史仅驻本机（内存 + userData/clipboard-history），不参与任何同步；
  * 清空按钮会立即删除索引与全部图片文件。
@@ -62,8 +62,8 @@ export interface ClipboardHistoryItem {
 const MAX_ITEMS = 200
 const MAX_IMAGE_FILES = 50
 const POLL_MS = 1000
-/** 历史保留期：30 天（置顶条目不受限） */
-const RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+/** 历史保留期：90 天（Raycast Free 上限 3 个月，2026-09-28 对齐；置顶条目不受限） */
+const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 
 const URL_RE = /^https?:\/\/\S+$/i
 

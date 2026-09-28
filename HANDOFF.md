@@ -939,6 +939,27 @@ lint / 单测×3（node 24）/ Build(Linux) / e2e smoke（xvfb 首跑即绿）�
   「Worker exited unexpectedly」不带 stderr，定位套路 = 缺席文件差集 + 临时诊断步裸 require；
   ③升级依赖时旗标语义会变（-w→--only），报错文件不是被重编的那个时先查旗标。
 
+#### 10.15 常驻内存权威读数落地（2026-09-28）
+
+对标 Raycast（官方深潜自述 v2 常驻 350-450MB）一直缺 Frond 侧的可复算数字——
+`scripts/measure-memory.mjs` 补上。口径写死在脚本头注释：`pnpm build:unpack` 产物 +
+`FROND_USER_DATA_DIR` 临时目录首启态（主进程 index.ts:10 显式 setPath 钉径，Chromium 的
+`--user-data-dir` 开关不吃；该 env 是 e2e 同款官方隔离机制）+ 预热 15s 后每秒采样 30 次取中位数。
+双口径：**RSS 跨进程求和**（共享页重复计，偏悲观）与 **vmmap phys_footprint 求和**（Activity
+Monitor「内存」列同口径）。
+
+Apple M4 / 16GB / darwin 25.5.0，三轮实跑：
+- RSS 求和中位数：766.4 / 673.2 / 801.8 MB（波动大，区间 673-802）
+- phys_footprint 合计：561.3 / 498.7 MB（main ~195-204 / gpu ~178-244 / renderer ~110-116 / network ~7）
+- **结论口径：首启空数据 phys_footprint ≈ 500-560 MB**。Raycast 的 350-450MB 是带用户扩展的
+  常驻态、口径未公布——对比有不对称，但即便如此 Frond 也不是「Electron 必然爆炸」的数量级，
+  是「多 30-60%」的平台账。优化候选（未做）：主窗按需创建、renderer 分包。
+- 已知不对称写进脚本 `state` 字段：首启（空库/默认配置/主窗打开/胶囊未唤起）。
+
+脚本两个防护（都真实咬过）：preflight 见到任何 Frond.app 进程即拒绝跑，绝不 kill 不是自己
+spawn 的；spawn 之后一律 throw 不准 process.exit——exit 会跳过 finally 收割，首跑因此残留
+过 6 条进程（含一个用真实 userData 的主进程，已手动清掉）。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

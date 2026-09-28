@@ -134,6 +134,7 @@ import type { FileSearchOptions } from '../main/modules/fileSearch'
 import type { BrowserTab } from '../main/services/BrowserTabsService'
 import type { DictionaryDefinition } from '../main/services/DictionaryService'
 import type { WindowInfo } from '../main/services/WindowSwitcherService'
+import type { ProcessInfo } from './process'
 
 /** 插件运行上下文（plugapi:getContext 的字段从这里派生，避免第二次定义形状） */
 type PluginCtx = NonNullable<ReturnType<typeof getContextBySender>>
@@ -1435,6 +1436,10 @@ export interface IpcContract {
 
   'windows:list': { req: void; res: WindowInfo[] }
   'windows:activate': { req: { pid: number; title: string }; res: boolean }
+
+  // Kill Process（Raycast parity，2026-09-28；macOS，Windows 未验证由 handler 平台守卫）
+  'process:list': { req: void; res: ProcessInfo[] }
+  'process:kill': { req: { pid: number }; res: { success: boolean; error?: string } }
 
   'screen-recorder:getSources': {
     req: {

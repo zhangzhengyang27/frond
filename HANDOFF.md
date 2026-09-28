@@ -1004,6 +1004,22 @@ ExportDialog / PreviewPanel / MigrationCenterView（五件原件永久丢失，�
 - 审计方法沉淀：调用点对账能抓「测试全绿但链路断」的重建伤（ClipEditor 组件级零测试、
   e2e 只测数据层——门禁再严也测不到没人 emit 的事件）。
 
+#### 10.18 parity 小件包开工：Kill Process 落地（2026-09-28）
+
+Raycast「Kill Process」parity（2026-09-28 决策的 parity 包第一件）：
+- 主进程：`processKillLogic.ts`（纯逻辑 TDD 7 条：ps 定宽输出解析/含空格路径、
+  .app bundle 名推导、kill 保护名单）+ `ProcessService.ts`（`ps -axo` 列进程 + SIGKILL，
+  **点击时复核目标身份防 pid 易主 TOCTOU**，保护名单 fail-closed：pid≤1/自身进程树/
+  kernel_task/WindowServer/Dock/Finder 等）。平台守卫：非 darwin 返回空/拒绝
+  （Windows 未验证，与 fileSearch 回退同哲学）。
+- 链路：契约 `process:list` / `process:kill` + preload `api.process` + 胶囊内联页
+  `KillProcessPage`（照 WindowSwitcherPage 形状：搜索过滤/↑↓/回车强杀/错误横幅）+
+  FirstParty 命令「强制退出进程」（拼音/关键词齐备）。
+- 棘轮又咬一次（咬得对）：契约直接 import main 的 ProcessInfo 会让 shared→main
+  51→52，按 PluginStateSnapshot 同款解法把类型提进 `shared/process.ts` 三方共用。
+- 验证：单测 1067 全绿、typecheck 双端、lint 0 error、e2e 99 全过。
+- 【未跑】真机验证强杀动作与保护名单实际表现（e2e 不造真实进程查杀场景）。
+
 ### 剩下的账（2026-09-23 收工口径）
 
 - **文档层的洞（2026-09-23 已按拍板全部重生成）**：6 份被链接指向、基线 `8446ff2` 起就没有、

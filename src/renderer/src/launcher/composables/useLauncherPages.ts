@@ -32,6 +32,7 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   browserTabs: '浏览器标签',
   systemInfo: '系统信息',
   windowSwitcher: '窗口切换',
+  killProcess: '强制退出进程',
   trash: '回收站',
   dictionary: '词典',
   notes: '笔记',

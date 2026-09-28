@@ -42,6 +42,7 @@ export const FIRST_PARTY_PAGE_VALUES = [
   'browserTabs',
   'systemInfo',
   'windowSwitcher',
+  'killProcess',
   'trash',
   'dictionary',
   'notes',

@@ -190,6 +190,29 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         actions: [{ type: 'firstParty', page: 'windowSwitcher' }]
       })
 
+      // ── 强制退出进程（Kill Process，Raycast parity）──
+      commands.push({
+        id: 'system:killProcess',
+        title: '强制退出进程',
+        subtitle: '按 CPU 排序查看运行中的进程，回车强制结束（macOS）',
+        icon: 'file-reduce-line',
+        category: 'window',
+        badge: '进程',
+        keywords: [
+          'kill',
+          'process',
+          '进程',
+          'jincheng',
+          '强制退出',
+          'qiangzhituichu',
+          '任务管理器',
+          'renwuguanliqi',
+          'cpu',
+          '卡死'
+        ],
+        actions: [{ type: 'firstParty', page: 'killProcess' }]
+      })
+
       // ── 回收站 ──
       commands.push({
         id: 'trash:open',

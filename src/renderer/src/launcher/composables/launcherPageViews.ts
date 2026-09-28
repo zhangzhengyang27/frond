@@ -34,6 +34,7 @@ import SnippetsPage from '../pages/SnippetsPage.vue'
 import SystemInfoPage from '../pages/SystemInfoPage.vue'
 import TrashPage from '../pages/TrashPage.vue'
 import WindowSwitcherPage from '../pages/WindowSwitcherPage.vue'
+import KillProcessPage from '../pages/KillProcessPage.vue'
 
 /** 表单类页面的提交值（FormPage 的 checkbox 是 boolean，其余是 string） */
 export type FormValues = Record<string, string | boolean>
@@ -198,6 +199,7 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
   browserTabs: { component: BrowserTabsPage, name: 'browserTabs' },
   systemInfo: { component: SystemInfoPage, name: 'systemInfo' },
   windowSwitcher: { component: WindowSwitcherPage, name: 'windowSwitcher', props: queryProps },
+  killProcess: { component: KillProcessPage, name: 'killProcess', props: queryProps },
   trash: { component: TrashPage, name: 'trash' },
   dictionary: { component: DictionaryPage, name: 'dictionary', props: queryProps },
   notes: { component: NotesPage, name: 'notes' },

@@ -412,6 +412,11 @@ const api = {
     list: () => typedInvoke('windows:list'),
     activate: (pid: number, title: string) => typedInvoke('windows:activate', { pid, title })
   },
+  // 进程查杀（Kill Process，Raycast parity）
+  process: {
+    list: () => typedInvoke('process:list'),
+    kill: (pid: number) => typedInvoke('process:kill', { pid })
+  },
   // 回收站管理（阶段3.3c）
   trash: {
     list: () => typedInvoke('trash:list'),

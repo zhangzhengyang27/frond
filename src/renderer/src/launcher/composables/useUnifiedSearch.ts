@@ -188,8 +188,13 @@ export function useUnifiedSearch(options: {
       })
     }
     // Emoji 搜索（输入关键词匹配 Emoji，回车复制）
+    // `:name` 触发（Raycast 2.1 内联 emoji）：查询以单个冒号开头时剥掉冒号再搜，
+    // 让 `:smile` / `:开心` 与裸关键词走同一条复制路径；`http://x` 这类 tail 带
+    // 冒号的查询不剥，避免 URL 误触发（与 parseEmojiTrigger 同一规则口径）
     if (trimmed.length >= 2) {
-      const emojis = searchEmoji(trimmed, 3)
+      const emojiQuery =
+        trimmed.startsWith(':') && !trimmed.slice(1).includes(':') ? trimmed.slice(1) : trimmed
+      const emojis = searchEmoji(emojiQuery, emojiQuery === trimmed ? 3 : 6)
       for (const emoji of emojis) {
         cmdRows.push({
           entry: {

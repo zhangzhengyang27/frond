@@ -213,6 +213,28 @@ export function createFirstPartyCommandProvider(): CommandProvider {
         actions: [{ type: 'firstParty', page: 'killProcess' }]
       })
 
+      // ── Emoji 选择（搜索/浏览，回车复制）──
+      commands.push({
+        id: 'emoji:picker',
+        title: 'Emoji',
+        subtitle: '按分类浏览或搜索 Emoji，回车复制',
+        icon: 'emotion-line',
+        category: 'window',
+        badge: 'Emoji',
+        keywords: [
+          'emoji',
+          '表情',
+          'biaoqing',
+          '颜文字',
+          'yandiaozi',
+          '符号',
+          'fuhao',
+          '笑脸',
+          'xiaolian'
+        ],
+        actions: [{ type: 'firstParty', page: 'emojiPicker' }]
+      })
+
       // ── 回收站 ──
       commands.push({
         id: 'trash:open',

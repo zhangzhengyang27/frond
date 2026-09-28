@@ -33,6 +33,7 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   systemInfo: '系统信息',
   windowSwitcher: '窗口切换',
   killProcess: '强制退出进程',
+  emojiPicker: 'Emoji',
   trash: '回收站',
   dictionary: '词典',
   notes: '笔记',

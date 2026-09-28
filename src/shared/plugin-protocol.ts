@@ -431,6 +431,27 @@ const FORM_FIELD_TYPES: ReadonlySet<string> = new Set([
   'password'
 ])
 
+/**
+ * 插件状态快照（拉取 launcher:getPluginState 与推送 launcher:plugin-changed 同一形状）。
+ * 2026-09-25 提取：此前拉取/推送各写一份字面量、契约再抄第三份，viewDepth/canGoBack
+ * 曾只随推送下发（拉取兜底后返回键静默失效）。放 shared 是因为 main/contract/preload
+ * 三方都要引用，而 shared → main 的分层棘轮禁止契约反向引 runtime。
+ */
+export interface PluginStateSnapshot {
+  open: boolean
+  pluginId: string | null
+  pluginName: string | null
+  subInputPlaceholder: string | null
+  declaredList: PluginListItem[] | null
+  declaredForm: ParsedPluginForm | null
+  declaredLoading: boolean
+  declaredEmptyMessage: string | null
+  viewDepth: number
+  canGoBack: boolean
+  headless: boolean
+  attached: boolean
+}
+
 export interface ParsedPluginForm {
   title?: string
   submitLabel?: string

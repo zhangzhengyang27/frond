@@ -833,12 +833,29 @@ Less 把它当关键字传参，编译出来 `content` 是空串 → 11 个工�
   `composables/useAiLaunch.ts`（三个「交文字给 AI 页」入口共用 queueOnAiPage 管线；
   aiReady/refreshAiReady 出状态，watch(actionPanelEntry) 留在宿主——依赖 actionPanelEntry
   且它出自 useActionPanel，有先后约束）。四刀累计 2441 → 2236（-205）。
-  第五刀已落（**与第四刀同批未提交**）：内联槽引擎 →
+  第五刀已落（**随 50397da 提交**）：内联槽引擎 →
   `composables/useArgSlots.ts`（110 行状态+按键整段；提交去向经 deps.dispatch 回调交还
   宿主——引擎必须先于三个发射段创建，dispatch 用提升的函数声明接线，规避 TDZ 且
   typecheck 钉死签名）。五刀累计 2441 → 2146（**-295**）。
   下一刀候选：收藏/别名字段、剪贴板过滤段（两段都偏小，或直接转 preload d.ts 代码生成）。
   拆分纪律：每刀独立提交、抽前后 e2e 实跑对照、lint/typecheck 全过。
+- **preload d.ts「代码生成」落地（2026-09-25 深夜落地，2026-09-28 提交）——比计划更简**：无需生成脚本。
+  tsconfig.web 本就包含 src/preload/index.ts，于是直接**实现为源**：preload/index.ts 尾部
+  `export type FrondPreloadApi = typeof api`（type-only，构建期擦除），index.d.ts 的
+  Window.api 改为 `import('./index').FrondPreloadApi`，手写 1500 行 API 接口删除
+  （1691 → 588 行）。命名类型 re-export 与 EditorSettings/Preferences/Folder/
+  RecordingHistory/RecordingSettings 等独立接口保留（实现仍在引用）。
+  **推导立刻照出两处被手写类型掩盖的真问题**：①getPluginState 拉取/推送双实现分叉——
+  viewDepth/canGoBack 只随推送下发，拉取兜底后返回键静默失效（main handler 已补齐，
+  契约 res 登记）；②契约 res 与推送载荷各自手抄 → 提取 PluginStateSnapshot 进
+  shared/plugin-protocol.ts 三方共用（放 shared 是因为 sharedLayering 棘轮 51 条基线
+  禁止契约引 runtime——棘轮当场咬了一次，咬得对）。parity 测试（扫 preload 结构 vs
+  渲染端调用）不受影响照常工作。preload bundle 哈希有变（as 字面量擦除后的格式差，
+  逻辑等价）；main bundle 变化属预期（handler 补字段）。
+  2026-09-28 提交时全量验证：typecheck 双端过、单测 1048 全绿、lint 0 error、e2e 三轮全量
+  （第一轮 plugin-arg-slots:163、第二轮 capsule-animation:147 各偶发一条，单独重跑均绿，
+  时序型；末轮 99 全过）。另：单测曾红 aiEndpointGuard 冒烟——Clash fake-ip 环境所致，
+  测试已改双环境断言，产品级影响登记 BUGS.md B25（见该文）。
 - **✅ e2e 全绿（2026-09-25，清红战果 III）**：最后 6 红清零。market-index 的 UI 区块
   「远程索引输入框 + 保存/拉取 + 未校验徽章」是恢复损失，按 spec 契约与后端既有通道
   （market:setIndexUrl/refreshIndex/indexInfo 全在，唯独没有 UI）重建于

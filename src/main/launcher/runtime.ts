@@ -35,10 +35,10 @@ import {
   parsePluginForm,
   isActionCommand,
   PLUGIN_MAX_VIEW_ITEMS,
-  type ParsedPluginForm
+  type ParsedPluginForm,
+  type PluginListItem,
+  PluginStateSnapshot
 } from '../../shared/plugin-protocol'
-import type { PluginListItem } from '../../shared/plugin-protocol'
-
 /** 胶囊窗搜索行高度（与渲染端 .launcher-search 一致） */
 export const SEARCH_ROW_HEIGHT = 64
 const WINDOW_WIDTH = 750
@@ -522,7 +522,7 @@ function promoteToVisible(ctx: PluginViewContext, win: BrowserWindow | null): vo
  * 这是插件视图的唯一推送通道：列表/表单互斥，整份下发才不会互相覆盖 */
 function notifyRenderer(win: BrowserWindow | null): void {
   if (!win || win.isDestroyed()) return
-  const state = {
+  const state: PluginStateSnapshot = {
     open: !!active,
     pluginId: active?.plugin.id ?? null,
     pluginName: active?.plugin.name ?? null,

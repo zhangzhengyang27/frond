@@ -16,6 +16,7 @@
  *   `resources/icon.png?asset` 找不到（已在 src/renderer/src/env.d.ts 补声明兜住）
  */
 import type { Marker } from '../main/services/MarkerService'
+import type { PluginStateSnapshot } from './plugin-protocol'
 import type { EditorSettings, Preferences } from '../main/stores/PreferencesDataStore'
 import type { PopToRootMode } from './popToRoot'
 import type { Density } from './density'
@@ -69,7 +70,6 @@ import type { HyperKeyConfig } from '../main/modules/hyperKey'
 import type { HotkeyConfig, HotkeyConflicts, CommandHotkeySpec } from '../main/launcher/hotkeys'
 import type { ExpansionConfig } from '../main/modules/textExpansion'
 import type { probeGlobalKeys } from '../main/modules/globalKeys'
-import type { PluginListItem, ParsedPluginForm } from './plugin-protocol'
 import type { PluginSearchItemStored } from '../main/launcher/pluginSearchIndex'
 import type { dispatchMainAction, MainAction } from '../main/launcher/actionHandlers'
 import type {
@@ -715,20 +715,8 @@ export interface IpcContract {
   'launcher:removePlugin': { req: { pluginId: string }; res: { success: boolean; error?: string } }
   'launcher:getPluginState': {
     req: void
-    res: {
-      open: boolean
-      pluginId: string | null
-      pluginName: string | null
-      subInputPlaceholder: string | null
-      declaredList: PluginListItem[] | null
-      declaredForm: ParsedPluginForm | null
-      /** P-2.6：列表加载态 / 空态文案（Raycast isLoading / emptyView 语义） */
-      declaredLoading: boolean
-      declaredEmptyMessage: string | null
-      /** P-2.2：该命令是否声明为无界面 Action；attached = 视图是否已挂到胶囊窗 */
-      headless: boolean
-      attached: boolean
-    }
+    // 形状单一来源 = runtime 的 PluginStateSnapshot（推送 launcher:plugin-changed 同一形状）
+    res: PluginStateSnapshot
   }
   'launcher:setPluginEnabled': {
     req: { pluginId: string; enabled: boolean }

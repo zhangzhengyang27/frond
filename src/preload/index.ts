@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  API,
   PomodoroTraySnapshot,
   TelemetryMode,
   ShotOkRes,
@@ -17,6 +16,7 @@ import type { CapsuleGlass } from '../shared/capsuleGlass'
 import { typedInvoke } from './typedIpc'
 import type { CommandHotkeySpec } from '../main/launcher/hotkeys'
 import type { ExpansionConfig } from '../main/modules/textExpansion'
+import type { PluginStateSnapshot } from '../shared/plugin-protocol'
 
 // Re-export types for renderer process
 export type {
@@ -33,8 +33,8 @@ export type {
   TelemetryMode
 } from './index.d'
 
-// Custom APIs for renderer（类型契约见 ./index.d.ts 的 API 接口）
-const api: API = {
+// Custom APIs for renderer（类型契约 = 本对象自身的推导类型，index.d.ts 的 Window.api 引用它）
+const api = {
   // 应用搜索相关 API
   getApplications: () => typedInvoke('get-applications'),
   refreshApplications: () => typedInvoke('refresh-applications'),
@@ -617,29 +617,9 @@ const api: API = {
     getPluginState: () => typedInvoke('launcher:getPluginState'),
     /** 插件状态变化（打开/关闭/副输入框 placeholder/声明式列表） */
     onPluginChanged: (
-      cb: (state: {
-        open: boolean
-        pluginId: string | null
-        pluginName: string | null
-        subInputPlaceholder: string | null
-        declaredList?: unknown
-        declaredForm?: unknown
-        /** Action 命令 = headless；attached = 视图是否真挂上了胶囊窗 */
-        headless?: boolean
-        attached?: boolean
-      }) => void
+      cb: (state: PluginStateSnapshot) => void
     ): (() => void) => {
-      const l = (_e: unknown, state: unknown): void =>
-        cb(
-          state as {
-            open: boolean
-            pluginId: string | null
-            pluginName: string | null
-            subInputPlaceholder: string | null
-            declaredList?: unknown
-            declaredForm?: unknown
-          }
-        )
+      const l = (_e: unknown, state: unknown): void => cb(state as PluginStateSnapshot)
       ipcRenderer.on('launcher:plugin-changed', l as never)
       return () => ipcRenderer.removeListener('launcher:plugin-changed', l as never)
     },
@@ -1121,3 +1101,6 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.api = api
 }
+
+/** 渲染端 Window.api 的类型来源：由 api 对象推导，index.d.ts 以 import() 引用（type-only，构建期擦除） */
+export type FrondPreloadApi = typeof api

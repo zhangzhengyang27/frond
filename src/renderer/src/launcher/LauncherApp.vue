@@ -376,15 +376,21 @@ const clipFilter = ref<KindFilter>('all')
 const { busyCount } = useLauncherBusy()
 
 /** 当前打开的插件状态（打开时搜索框转为插件副输入框）。
- *  形状**取自 preload 的 getPluginState**：这里曾另抄一份四行字面量，于是主进程与
- *  preload 都补了 viewDepth / canGoBack 之后，本文件读 canGoBack 仍是 unknown，
- *  「胶囊返回键先退插件那一层」在界面上静默失效。抄一份就会漂一次，所以推出去。 */
+ *  形状**取自 getPluginState 的契约推导类型**：这里曾另抄一份四行字面量，主进程补
+ *  viewDepth / canGoBack 后本文件仍读 unknown——「返回键先退插件层」静默失效。
+ *  抄一份就会漂一次，所以推出去；实现为源后契约缺字段会在这里直接报错。 */
 type PluginSnapshot = NonNullable<Awaited<ReturnType<typeof window.api.launcher.getPluginState>>>
 const pluginState = ref<PluginSnapshot>({
   open: false,
   pluginId: null,
   pluginName: null,
   subInputPlaceholder: null,
+  declaredList: null,
+  declaredForm: null,
+  declaredLoading: false,
+  declaredEmptyMessage: null,
+  viewDepth: 0,
+  canGoBack: false,
   headless: false,
   attached: false
 })

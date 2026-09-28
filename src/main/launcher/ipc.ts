@@ -6,6 +6,7 @@
  */
 import { BrowserWindow, clipboard, dialog, Notification, shell, ipcMain } from 'electron'
 import { typedHandle } from '../ipc/typedIpc'
+import { pluginCanGoBack } from '../../shared/pluginViewStack'
 import {
   listPlugins,
   importFromFolder,
@@ -280,6 +281,10 @@ export function registerLauncherIpc(): void {
       declaredForm: ctx?.declaredForm ?? null,
       declaredLoading: ctx?.declaredLoading ?? false,
       declaredEmptyMessage: ctx?.declaredEmptyMessage ?? null,
+      // 视图栈（P-2④）：与状态推送同一形状（此前拉取比推送少 viewDepth/canGoBack，
+      // 挂载早期拉取兜底后「返回键先退插件层」静默失效——推导类型把这个分叉照了出来）
+      viewDepth: ctx?.viewStack.length ?? 0,
+      canGoBack: ctx ? pluginCanGoBack(ctx.viewStack) : false,
       // Action 命令状态（P-2.2）：headless = 声明为无界面，attached = 视图是否真挂上了窗
       // 给 e2e 用的判据：「没挂视图」这件事在 DOM 上看不出来（不通知时胶囊也没变化）
       headless: ctx?.headless ?? false,

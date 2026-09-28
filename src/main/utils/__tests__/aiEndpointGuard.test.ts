@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
+import { lookup as dnsLookup } from 'dns/promises'
 import { assertAiEndpointAllowed, type LookupFn } from '../aiEndpointGuard'
+import { classifyIpRisk } from '../../launcher/netGuard'
 
 /**
  * AI 端点守卫：baseUrl 由用户/渲染端可写，主进程发请求时会带上
@@ -94,9 +96,16 @@ describe('assertAiEndpointAllowed', () => {
     expect((await assertAiEndpointAllowed('not a url', noopLookup)).ok).toBe(false)
   })
 
-  it('域名端点默认使用真实 DNS（冒烟，公开域名应放行）', async () => {
-    // 不注入 lookup，走默认 dns.lookup；example.com 是 IANA 保留的稳定公网域名
+  it('域名端点默认使用真实 DNS（冒烟；fake-ip 代理环境断言 fail-closed）', async () => {
+    // 不注入 lookup，走默认 dns.lookup；example.com 是 IANA 保留的稳定公网域名。
+    // 环境注意：Clash 等 fake-ip/TUN 代理会把公网域名解析进 198.18.0.0/15 保留段
+    // （BUGS.md B25），此时守卫按设计 fail-closed 拒绝——两种结果都断言，任何环境有真实语义
+    const probe = await dnsLookup('example.com', { all: true })
     const result = await assertAiEndpointAllowed('https://example.com')
-    expect(result).toEqual({ ok: true })
+    if (probe.some(({ address }) => classifyIpRisk(address) === 'blocked')) {
+      expect(result.ok).toBe(false)
+    } else {
+      expect(result).toEqual({ ok: true })
+    }
   })
 })

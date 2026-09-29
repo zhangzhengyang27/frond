@@ -5,6 +5,7 @@
  * 只挂载搜索胶囊 UI——窗口常驻隐藏、全局快捷键唤起，
  * 独立入口保证唤起时立即可用（不拖主应用全局状态）。
  */
+import './styles/tailwind.css'
 import './assets/main.css'
 import 'remixicon/fonts/remixicon.css'
 

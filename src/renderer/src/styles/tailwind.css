@@ -1,0 +1,83 @@
+/* Frond · Tailwind 4 生成管线入口（2026-09-29 批 1 落地，替代 B34 静态转储根因）
+ *
+ * 过渡期契约（迁移期三条铁律，全部迁移完成后本文件头随 preflight 启用一起改写）：
+ * 1. 只引 theme + utilities 层，不引 preflight —— 转储 main.css 先行加载，
+ *    防止全局重置一次性扰动 38 个存量界面。
+ * 2. @theme inline：工具类直接引用运行时变量（var(--surface-1) 形态），
+ *    tokens（main.css 内联 v4 定义）保持唯一视觉事实源，亮暗切换零成本。
+ * 3. 工具类进 @layer utilities，未分层的转储规则在同特异性下始终获胜；
+ *    迁移一个模块 = 该模块模板类改由本管线生成 + 从转储删除对应段。
+ * 4. 幽灵类门禁（ghostClasses.test.ts）过渡期继续以静态文件为事实源；
+ *    迁移子批以「产物 diff = 0」验收，全部完成后门禁退役。
+ */
+
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/*
+ * 源声明：electron-vite 把 renderer 的 Vite root 设为 src/renderer，
+ * TW4 自动源检测在该布局下扫不到模板（实测只生成了基础类）。
+ * 显式声明扫描面：全部 .vue/.ts 模板与三个窗口 HTML。
+ */
+@source '../';
+@source '../../index.html';
+@source '../../launcher.html';
+@source '../../shield.html';
+
+/* 主题切换口径与 tokens 一致：html 根元素挂 .dark 类（useTheme.ts / themeSchema.test.ts） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * 语义色桥：把 tokens 的语义变量映射为 TW 工具类命名空间。
+ * 命名约定：surface-* 表面阶；fg-* 文本语义；line-* 描边；brand/accent 品牌。
+ * inline 模式不发射中间变量，工具类产物形如 .bg-surface-1 { background-color: var(--surface-1) }。
+ */
+@theme inline {
+  /* 表面阶 */
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-surface-inverse: var(--surface-inverse);
+
+  /* 文本语义 */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-tertiary: var(--text-tertiary);
+  --color-fg-muted: var(--text-muted);
+  --color-fg-inverse: var(--text-inverse);
+  --color-fg-brand: var(--text-brand);
+  --color-fg-danger: var(--text-danger);
+  --color-fg-success: var(--text-success);
+
+  /* 描边 */
+  --color-line: var(--border-default);
+  --color-line-subtle: var(--border-subtle);
+  --color-line-strong: var(--border-strong);
+
+  /* 品牌与强调（D5：全站唯一 accent = brand 蓝；accent-500 为其别名过渡位） */
+  --color-brand: var(--brand-500);
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-900: var(--brand-900);
+  --color-accent: var(--accent-500);
+
+  /* 状态色（tokens 侧变量名即 --color-*，inline 模式不发射、无自引用循环） */
+  --color-danger: var(--color-danger);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-info: var(--color-info);
+
+  /* 圆角标度：rounded-sm/md/lg 对齐 token 档位 */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}

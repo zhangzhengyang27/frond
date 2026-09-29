@@ -426,23 +426,29 @@
 
 ## 2026-09-29 发现（挂账，未修）
 
-### B36 菜单栏项搜索的「前台应用」永远是 Frond 自己（1d53913 新落地功能实锤坏死）
+### B36 菜单栏项搜索的「前台应用」永远是 Frond 自己（1d53913 新落地功能实锤坏死 → 同日已修）
 - 机制：MenuBarPage 挂载即 refresh，此刻胶囊窗持有焦点；menuBarLogic 的 list/click 脚本
   都取 `first application process whose frontmost is true`——查到的永远是 Frond。
   项目自己的 frontmostCache.ts:5-7 早就记载过这个语义坑；commit 自述点击动作真机未跑
 - 影响：用户搜到并触发的只是 Frond 自己的菜单栏项，永远触达不到目标应用；极端情况下
   会对 Frond 自身菜单执行 click（如「隐藏/退出」）
-- 修法方向：打开页面前快照「唤起胶囊前的前台应用 pid」，list/click 按 pid 定位
-  （`first application process whose unix id is …`）；配套：MenuBarService 并发 list 无
-  in-flight 去重、15s 缓存跨前台应用切换不失效（换应用后 15s 内触发可能误点别的应用）——
-  同批修
+- 修复：list/click 脚本支持按 `unix id` 寻址；pid 快照复用 frontmostCache 的「隐藏期
+  轮询」机制并扩展缓存 {name, pid}，胶囊真 hide 后 600ms 补拍一拍（压掉轮询最长 5s
+  的陈旧窗口）；trigger 用「列表所属应用的 pid」而非执行时刻 frontmost——列表与点击
+  之间切走应用也不再误点（顺带修掉缓存跨应用切换隐患）；in-flight list 去重（关页再开
+  页不再并发第二个深遍历）。无快照（首启/缓存未热）回退旧 frontmost 行为
+- 【未跑】真机验证（需辅助功能授权 + 真实多应用切换场景），与 1d53913 一直欠着的
+  真机轮一起补
 
-### B37 ClipService 导出分辨率语义写反：720p/4K 必败，其余档位尺寸与标签不符
+### B37 ClipService 导出分辨率语义写反：720p/4K 必败，其余档位尺寸与标签不符（→ 同日已修）
 - 位置：ClipService.ts:474 把枚举值当**宽度**：`-s ${resolution}x${resolution*9/16}`，
   UI 选项「1280×720 / 1920×1080 / 2560×1440 / 3840×2160」（value 720/1080/1440/2160）。
   720→720x405（奇数高，libx264 yuv420p 拒绝）、2160→2160x1215 同败；1080/1440 能出片
   但尺寸与标签不符且非 16:9 源被硬拉变形
-- 修法方向：对齐同仓 RecordingExportService.ts:320 的 `scale=-2:${h}`（保源宽高比 + 偶数化）
+- 修复：参数构建提为模块级纯函数 buildClipFinalExportArgs（同 RecordingExportService
+  可单测先例），`-s WxH` 改 `-vf scale=-2:H`（保源宽高比 + 宽度偶数化）；有 BGM 时
+  -vf 与 -filter_complex 互斥，缩放并入 filter_complex 首段并映射 [0v]。
+  回归钉 clipExportArgs.test.ts 三条（无 BGM / 4K 档 / BGM 互斥）
 
 ### B38 dataSync/cloudBackup 域遗留三件
 - 墓碑不过网（sync_state 刻意不同步）：删除传播靠「远端缺席」推断，B33 只堵了误删口，

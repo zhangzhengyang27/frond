@@ -31,6 +31,12 @@ import {
 import { encryptText, decryptText } from '../utils/crypto'
 import { assertAiEndpointAllowed } from '../utils/aiEndpointGuard'
 import { typedHandle } from '../ipc/typedIpc'
+// AI 通道带 Bearer 凭据，必须走 DNS 钉住（B40）：全局 undici fetch 会静默忽略
+// agent 选项（守卫 check-then-fetch 之间的重绑定第二次解析不受拦），node-fetch
+// v2 的 agent selector 才真正落到连接层 lookup 复判——与插件代理/市场同款
+import fetch from 'node-fetch'
+import { Readable } from 'node:stream'
+import { pinningAgentSelector } from '../launcher/dnsPinning'
 
 const STORE_KEY = 'ai.config'
 const SESSIONS_KEY = 'ai.sessions'
@@ -130,7 +136,8 @@ async function chatNonStream(cfg: AIConfig, messages: AIChatMessage[]): Promise<
       max_tokens: cfg.maxTokens,
       stream: false
     }),
-    signal: AbortSignal.timeout(60000)
+    signal: AbortSignal.timeout(60000),
+    agent: pinningAgentSelector()
   })
   if (!resp.ok) {
     const text = await resp.text().catch(() => '')
@@ -214,7 +221,8 @@ async function chatStream(
           max_tokens: cfg.maxTokens,
           stream: true
         }),
-        signal: controller.signal
+        signal: controller.signal,
+        agent: pinningAgentSelector()
       })
       if (!resp.ok) {
         const text = await resp.text().catch(() => '')
@@ -222,7 +230,8 @@ async function chatStream(
       }
       if (!resp.body) throw new Error('AI API 返回空响应体')
 
-      const reader = resp.body.getReader()
+      // node-fetch 的 body 是 Node Readable：转 Web 流保住下方 getReader() 消费形态
+      const reader = Readable.toWeb(resp.body as unknown as import('node:stream').Readable).getReader()
       const decoder = new TextDecoder()
       let buffer = ''
       let fullText = ''
@@ -334,7 +343,8 @@ export async function listModels(): Promise<{
   try {
     const resp = await fetch(url, {
       headers: cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {},
-      signal: AbortSignal.timeout(8000)
+      signal: AbortSignal.timeout(8000),
+      agent: pinningAgentSelector()
     })
     if (!resp.ok) return { ok: false, models: [], error: `端点回了 ${resp.status}`, url }
     let payload: unknown

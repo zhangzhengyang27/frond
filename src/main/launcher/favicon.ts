@@ -12,6 +12,10 @@ import { createHash } from 'crypto'
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { isLocalTarget } from './runtime'
+// SSRF 面（存在性 oracle）也要 DNS 钉住：全局 undici fetch 忽略 agent，
+// 连接层二次解析可被重绑定绕过逐跳内网复检（B40，与插件代理/AI 同款）
+import fetch from 'node-fetch'
+import { pinningAgentSelector } from './dnsPinning'
 
 const MAX_BYTES = 512 * 1024
 const FETCH_TIMEOUT_MS = 10_000
@@ -49,11 +53,17 @@ export async function getFaviconPath(quicklinkUrl: string): Promise<string | nul
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
     try {
       // 手动跟随重定向（最多 1 跳）：每一跳都重新过内网校验，
-      // 避免 redirect:'follow' 下外网 302 → 内网绕过校验
+      // 避免 redirect:'follow' 下外网 302 → 内网绕过校验。
+      // 必须是 manual 而非 error：error 模式遇 3xx 直接 reject，
+      // 下面的 3xx 分支是永远到不了的死代码（undici/node-fetch 同语义）
       let target = new URL('/favicon.ico', parsed.origin)
       for (let hop = 0; hop < 2; hop++) {
         if (await isLocalTarget(target)) return null
-        const res = await fetch(target, { signal: controller.signal, redirect: 'error' })
+        const res = await fetch(target, {
+          signal: controller.signal,
+          redirect: 'manual',
+          agent: pinningAgentSelector()
+        })
         if (res.status >= 300 && res.status < 400) {
           const location = res.headers.get('location')
           if (!location) return null

@@ -318,3 +318,176 @@
 - 结论：亮度需要 ①对 BrightnessControl 私有框架做符号逆向（成本高、随系统更新再碎），
   或 ②外接显示器走 DDC/CI（m1ddc 路线，只覆盖外接屏），或 ③等上游生态给出 macOS 26 方案
 - 建议：暂不做；若做，外接屏 DDC 路线优先（符号稳定）
+
+## 2026-09-29 发现（全库审计，B30 起）
+
+> 审计方式：6 个子系统（安全/IPC、launcher、插件链、录制剪辑截图、数据层服务层、渲染层）
+> 并行深审 + 关键发现逐条人工复核 + 门禁实证（当时 132 文件 1086 用例全绿——绿门禁
+> 之下仍有下述实锤，测试盲区清单见各条）。以下只登记动过或需要决策的；同批审计
+> 还产出约 25 条 P2/P3（性能/边界/纵深），完整清单在审计会话记录，随修随登记。
+
+### B30 savePath 单例 × 签发撤销叠加：同会话第二段录制必丢（2026-09-29 审计发现 → 同日已修）
+- 现象：默认操作流（开始→停止→再开始→再停止）下第二段录制只弹「保存失败: refused:
+  path was not issued by the main process」，录像内容全部丢弃
+- 根因：两个安全收敛的叠加——①渲染端 `savePath` 是模块级单例，只在为 null 时申请
+  （useScreenRecorder.ts:204-209），onstop 收尾重置了一切唯独不重置它；②主进程在
+  endWrite/saveFile 成功即 `revokeRecordingSavePath`（screenRecorderSave.ts:89）。
+  于是第二段 beginWrite 必被「未签发」拒绝，渲染端仅 console.warn 后静默降级内存
+  攒满模式，保存同样被拒 → MediaRecorder 已停，数据全丢
+- 修复：onstop 收尾与 startRecording 失败 catch 两处复位 `savePath=null`（每次录制
+  重新签发；getDefaultSavePath 自带时间戳+防撞序号，语义成立）；回归钉
+  useScreenRecorder.savePath.test.ts（两轮 start/stop 断言第二次必须重新签发）
+- 教训：B27 的「签发即撤销」与旧有的「路径单例」各自都对，叠加成新病——安全机制
+  落地时要扫一遍既有消费方的生命周期假设
+
+### B31 冷启动后全局热键全灭（只剩 ⌘⇧M）（2026-09-29 审计发现 → 同日已修）
+- 现象：每次冷启动 Alt+Space 等全部可配置热键失效，直到去设置页重设一次；e2e 测不到
+  （launch-smoke 走 `launcher:toggle` IPC，不走真热键）
+- 根因（逐环复核过）：whenReady 回调是同步块（index.ts:279-555）——356 行
+  registerLauncher → launcher/index.ts:28 **同步** registerAllHotkeys 注册主热键/截图/
+  命令/chord；而 hotkeys 的 restorer 走动态 import 异步挂入（hotkeys.ts:337-341）；
+  同块 522 行 registerAppGlobalShortcuts → globalShortcuts.ts:31 `unregisterAll()` 清光
+  全部注册后遍历 shortcutRestorers 重挂——此刻集合里只有番茄钟（静态 import，同步挂入），
+  hotkeys 的 restorer 因微任务语义不可能已入集。注册成功时主热键重试路径不武装，无人救场
+- 修复：hotkeys.ts 改静态 import addShortcutRestorer（已核实无循环依赖：
+  globalShortcuts → launcher/window，不回指 hotkeys）；startupWiring.test.ts 补接线断言
+  （restorer 必须同步挂入 + 动态 import 旧写法回潮即红）。该接线自 9-22 基线即存在
+- 测试盲区注记：startupWiring 只有静态 grep 断言，恰好没有「注册先后 + restorer 挂载
+  时机」这条；hotkeys.ts 零行为测试
+
+### B32 「路径白名单必须主进程签发」纪律六处缺口（2026-09-29 审计发现 → 同日收口）
+- 同族病盘点（B27 是首例）：全仓写盘/读文件通道逐一对照，六处绕过签发/白名单口径——
+  1. `recording.export.start`：outputPath 原样递 ffmpeg `-y`，可覆盖任意 .mp4/.webm/.gif
+     （recording.ts，渲染端当前零调用，补闸零破坏）
+  2. `video:readFile`：白名单数据源（录制历史）本身可被 addHistory 污染——addHistory 对
+     路径只做 existsSync，两次 IPC 读走任意文件；且文件头承诺的 128MB 上限未实现
+  3. `recording.recovery.discard/recover`：只校验 .partial.mp4 后缀+存在性，不校验目录围栏，
+     任意目录同名文件可被删/改名
+  4. `recording-history:generateThumbnail`：任意路径喂 ffmpeg `-i`（解析探针）+ `-y` 写同名 .jpg
+  5. `recording-history:showInFolder`：同文件 openFile 有 safeOpenablePath、它没有（漏改）
+  6. `shotidx:pastePath`：任意路径图片进剪贴板并向前台注入 ⌘V
+- 修复（一次收口）：export.start 套 resolveGrantedRecordingPath（clips.ts 同口径）；
+  addHistory 只认主进程当前签发过的路径（历史行作为白名单数据源不再可污染，主进程内部
+  直调 Service 不受影响）；readFile 补 128MB 上限；recovery 变异入口补 realpath 落
+  candidateDirs 子树校验；generateThumbnail/showInFolder 只认历史行；pastePath 只认
+  截图扫描目录子树。守卫回归钉 recordingHistoryGuards.test.ts 七条 + openPathGuard
+  补 `~/` 展开用例
+- 同批顺带：safeOpenablePath 统一展开 `~/` 前缀（插件 sandbox 页无 process 拿不到 HOME，
+  宿主是唯一知道 HOME 的一方——quickfolders 的 `~/Desktop` 目录此前根本打不开）
+
+### B33 dataSync push 整包覆盖远端：新设备先 push 可致他机未改动数据真删（审计发现 → 同日已修）
+- 事故链：pushDataSync 直接全量覆盖远端 bundle + sync_state 刻意不同步（墓碑不过网）→
+  新装机设备配置 WebDAV 后先点「推送」→ 远端 bundle 只剩新设备数据 → 老设备下次拉平把
+  「远端缺席」当删除，未改动的片段/笔记/提醒/番茄任务被真删（syncMerge copy 表全中招）
+- 缓解面（当时）：pull 前有本地快照（5 份）；渲染端尚无 UI 调用 syncdata:push/pull
+  （仅 preload 暴露）——接线前修最便宜
+- 修复：push 改「合并后发布」——远端 bundle 存在且 latest.exportedAt 比本地 lastApplied 新
+  时先 mergeBundle 再构建上传（latest 读不到时保守走合并）；真链路回归
+  dataSync.chain.test.ts 新用例（新设备先 push，老设备数据必须在）
+- 遗留（挂账见 B38）：墓碑不过网的半失败态（bundle 上传成功但 latest.json 失败 → exportedAt
+  不前移）与远端版本保留（对齐 cloudBackup KEEP_REMOTE）未做
+
+### B34 幽灵类系统性风险：无 Tailwind 生成管线，B17 持续繁殖（部分修复 + 门禁落地）
+- 根因确认：main.css 是 2026-09-22 的编译产物静态转储（4577 行），无 tailwind.config、
+  无构建步——之后新增的任何工具类静默失效。B17 修的 2 例只是当时 grep 到的；本轮
+  全量扫描（ghostClasses.test.ts 门禁）实测 **154 个**「模板在用、事实源没有」的类
+- 比审计更重的发现：`/NN` 透明度颜色变体（bg-brand-500/10 等约 17 个、90 处使用）
+  **全应用裸奔**——dump 只编译过实色族；另有番茄钟统计面板/任务抽屉（stats-/export-/
+  summary-/timeline-/drawer- 前缀族）、FocusShield（shield- 族）、Markdown 呈现
+  （markdown-/presentation-/controls- 族）等**整族样式在重建事故中丢失**（组件按当前
+  DOM 裸奔，与 B23 截图页 demo 化同源的重建损伤）
+- 本轮已修：
+  - UModal `max-h-[70vh]` 幽灵 → 内联样式（长内容弹窗 footer 被顶出屏幕且不可滚，
+    全应用二次确认都走它，功能性坏死）
+  - `text-fg-faint`（token 族里没有 faint）11 处 → 既有的 `text-fg-tertiary`
+  - recovered-css-gap.css B34 批量补口约 73 类：间距/尺寸集（pb-2、max-h-56、min-w-44、
+    space-y-1.5、ring-2 等）、brand 透明度全族（color-mix 随主题）、语义色/中性色透明度、
+    任意值类（逐字符反斜杠转义，与门禁转义器同口径）——取值全部按 Tailwind 标度与
+    dump 既有同族规则推导，注释注明依据
+  - 门禁落地：ghostClasses.test.ts——静态扫描全部 .vue 的 class/:class 字面量，逐 token
+    `.` 锚定查证于 main.css + gap 文件 + 全部 SFC style + remixicon；基线 80 条受控
+    存量（重建丢失的组件样式族，待清台账）；新幽灵即红；哨兵断言防扫描器自身退化
+- 遗留：基线 80 条 = 需要按设计重建的整族样式（约 6 个组件群），见 B39 排期
+
+### B35 插件作者 0→1 面三连坑（2026-09-29 审计发现 → 同日已修）
+- quickfolders（内置 21 插件里唯一重度用 db 的，恰是作者示范位）：
+  ① db.get 包络误判——`Array.isArray(stored)` 判的是 {id,data} 包络恒 false，每次打开
+  都用默认目录覆盖写回，用户添加的目录全丢；② `process.env.HOME` 在 sandbox 插件页
+  主世界无 process，可能整页白屏。修复：读 `stored.data`；去 process 依赖（`~/` 由宿主
+  safeOpenablePath 统一展开，见 B32）；manifest 补 defaultFolders 偏好声明（此前读的是
+  未声明偏好必回失败），版本 1.0.1→1.0.2 并同步 plugins.json（pluginManifestAudit 钉住）
+- 官方示例教错 alert：example-plugin 传 `actions:['好','算了']`（字符串数组），宿主清洗要求
+  `{id,title,style?}` 字符串全被剔除 → 按示例写永远收不到动作 id。修复：示例改对象形状；
+  launcher-api.d.ts 同步（alert actions、schedule.list 返回数组、schedule.add 返回 {ok,id?}、
+  db.get 包络 {id,data} 无 updatedAt——四处与实现对齐）
+- 「调试」按钮不存在：PLUGIN_DEV.md:362-366 承诺的调试入口渲染端零调用（主进程
+  pluginDevtools 链路 2026-09-23 就绪，只差 UI）。修复：插件管理页补「调试」按钮——
+  视图已开直接挂 DevTools，未开先跑首个命令再退避重试挂载（兑现文档承诺行为）
+
+## 2026-09-29 发现（挂账，未修）
+
+### B36 菜单栏项搜索的「前台应用」永远是 Frond 自己（1d53913 新落地功能实锤坏死）
+- 机制：MenuBarPage 挂载即 refresh，此刻胶囊窗持有焦点；menuBarLogic 的 list/click 脚本
+  都取 `first application process whose frontmost is true`——查到的永远是 Frond。
+  项目自己的 frontmostCache.ts:5-7 早就记载过这个语义坑；commit 自述点击动作真机未跑
+- 影响：用户搜到并触发的只是 Frond 自己的菜单栏项，永远触达不到目标应用；极端情况下
+  会对 Frond 自身菜单执行 click（如「隐藏/退出」）
+- 修法方向：打开页面前快照「唤起胶囊前的前台应用 pid」，list/click 按 pid 定位
+  （`first application process whose unix id is …`）；配套：MenuBarService 并发 list 无
+  in-flight 去重、15s 缓存跨前台应用切换不失效（换应用后 15s 内触发可能误点别的应用）——
+  同批修
+
+### B37 ClipService 导出分辨率语义写反：720p/4K 必败，其余档位尺寸与标签不符
+- 位置：ClipService.ts:474 把枚举值当**宽度**：`-s ${resolution}x${resolution*9/16}`，
+  UI 选项「1280×720 / 1920×1080 / 2560×1440 / 3840×2160」（value 720/1080/1440/2160）。
+  720→720x405（奇数高，libx264 yuv420p 拒绝）、2160→2160x1215 同败；1080/1440 能出片
+  但尺寸与标签不符且非 16:9 源被硬拉变形
+- 修法方向：对齐同仓 RecordingExportService.ts:320 的 `scale=-2:${h}`（保源宽高比 + 偶数化）
+
+### B38 dataSync/cloudBackup 域遗留三件
+- 墓碑不过网（sync_state 刻意不同步）：删除传播靠「远端缺席」推断，B33 只堵了误删口，
+  正向的删除语义在双端并发删改时仍靠 conflict 副本兜底；修法 = bundle 携带墓碑段
+- 半失败态：pushDataSync bundle 上传成功但 latest.json 失败 → exportedAt 不前移，
+  其他设备永不拉；修法 = 上传顺序补偿或远端保留 N 版
+- dataSync 的 WebDAV 调用全部没包超时（dataSync.ts，对照 sync.ts 的 withTimeout 注释
+  「所有 WebDAV 请求包一层」）——网络挂起时同步 IPC 永不 resolve，按钮永久转圈
+
+### B39 重建丢失的组件样式族（B34 基线 80 条，需按设计重建）
+- 六个组件群：FocusShield（shield- 8 类）、Markdown 呈现双件（markdown-/presentation-/
+  controls-/preview-/code-block 等 15 类）、番茄钟统计面板（stats-/export-/range-/dual-grid
+  等 12 类）、任务抽屉（summary-/timeline-/drawer-/action-/hint- 等 25 类）、胶囊内联页
+  （dict-content/system-info-content/kp-list/mb-list/ws-list/sched-group 等 8 类）、
+  Onboarding/杂项（frond-onboarding/z-modal/snippets-main/app-scroll 等）
+- 性质：2026-09-22 重建事故的隐性损伤（与 B23 同源），组件 DOM 在、样式没恢复，
+  用户看到的是无样式的裸结构
+- 修法：按 DESIGN_TOKENS + 同期截图逐群重建；每清一群从 ghostClasses BASELINE 删除
+
+### B40 安全域挂账（本轮未修，均为被攻陷渲染进程假设下的纵深项）
+- mcp:setServers 接受渲染端 command/args 并 spawn：store.ts:6「command 不进渲染端」的
+  书面不变量被 setServers 打穿（sanitize 只挡空格/换行，`/bin/sh`+`-c` 形态可过）；
+  修法 = 差分确认（复用 pluginConfirm 系统模态）或 command 写入权收回主进程
+- AI 端点守卫 check-then-fetch 无 DNS 钉住：守卫过即裸 fetch，连接层重新解析可被
+  rebinding 打内网/云元数据（带 Bearer）；修法 = AI 三处 fetch 换 pinningAgentSelector()
+  （插件代理已有现成件）。与 B25（fake-ip fail-closed）同域，可一次改
+- TrashService.emptyTrash/listTrash 主进程同步 rmSync/statSync：回收站上 GB 时冻结全部
+  IPC 数十秒到分钟级；修法 = fs.promises + 进度可取消
+- BrowserTabsService.activateTab 渲染端数字裸拼 AppleScript（需 Number.isInteger 校验）；
+  removePlugin 未过 isValidPluginId（`../..` 可递归删任意目录）；卸载不清 prefs.* 命名空间
+  （旧 API key 重装复活）；recording-history:generateThumbnail 之外的三个修复注记见 B32
+- 迁移失败后半开句柄复用（database.ts:60-67，this.db 先赋值后迁移，失败不回滚）：
+  应用带伤运行无日志；electron-store 损坏 JSON = 启动炸裂（conf 10 clearInvalidConfig=false）
+  且 recordingSettings.ts:33-38 的「降级实例」super() 打开同一坏文件必二次抛错
+
+### B41 性能挂账（量级触发点见审计记录）
+- ClipboardHistoryService.persist 每条新条目全量重加密+重序列化+同步写盘（贴过 5MB 文本
+  后每次 ⌘C 卡顿）；大图驻留时每秒全尺寸 readImage 做指纹
+- 片段搜索全表解密（SnippetRepository.search，千条级每键数十 ms）
+- LogService 每写一条跑一次 5000 行裁剪 DELETE（日志风暴时放大）
+- useStreamManager：cleanup 与建流竞态（卸载后 rAF 循环复活/屏幕流无人释放）、
+  micExtraStreams 只进不出（关麦克风后系统指示灯常亮）、document.hidden 时合成录制出静帧
+- video:readFile 兜底通道仍是整文件进内存（B32 已加 128MB 闸）；PlaybackPanel 应改走
+  video:// 流式（ClipEditor 已是）
+- 其他：热键互斥检测缺失、⌘⇧M 游离热键体系外、enrichAliases 重复 append、
+  WindowSwitcher/KillProcess 空列表 NaN（MenuBarPage 修了没同步两页）、窗口 id 非唯一、
+  AutoUpdate 预发布版本 NaN、AI Key/WebDAV 口令解密后明文回传渲染端、CSV 不转义、
+  ReminderService uncomplete 不清 notified_at（重启后永不再通知）

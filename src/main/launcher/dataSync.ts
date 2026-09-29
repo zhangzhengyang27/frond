@@ -25,7 +25,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { app } from 'electron'
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
-import { getSyncConfig, type SyncConfig } from './sync'
+import { getSyncConfig, withTimeout, type SyncConfig } from './sync'
 import {
   mergeTable,
   pkValues,
@@ -523,29 +523,45 @@ export async function pushDataSync(deps: SyncDeps = {}): Promise<{
     const remotePath = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
     // B33：整包覆盖前必须先吸收远端。新装机设备先 push 会让远端 bundle 只剩
     // 新设备的数据，老设备拉平时把「远端缺席」当删除——未改动的行被真删。
-    if (await client.exists(`${remotePath}/bundle.json.enc`)) {
+    // B38：全部 WebDAV 调用包超时（sync.ts 的既有口径）——网络挂起时同步 IPC
+    // 永不 resolve，渲染端按钮永久转圈
+    if (
+      await withTimeout(client.exists(`${remotePath}/bundle.json.enc`), '同步：探测远端 bundle')
+    ) {
       let remoteExportedAt = 0
       try {
         const latest = JSON.parse(
-          String(await client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }))
+          String(
+            await withTimeout(
+              client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }),
+              '同步：读取远端版本'
+            )
+          )
         ) as { exportedAt?: number }
         remoteExportedAt = Number(latest.exportedAt ?? 0)
       } catch {
         // latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏
       }
       if (remoteExportedAt > readApplied()) {
-        const remoteBuf = (await client.getFileContents(`${remotePath}/bundle.json.enc`, {
-          format: 'binary'
-        })) as Buffer
+        const remoteBuf = (await withTimeout(
+          client.getFileContents(`${remotePath}/bundle.json.enc`, { format: 'binary' }),
+          '同步：拉取远端数据'
+        )) as Buffer
         service.mergeBundle(decryptBundle(remoteBuf, password))
       }
     }
     const bundle = service.buildBundle()
     const buf = encryptBundle(bundle, password)
-    await client.putFileContents(`${remotePath}/bundle.json.enc`, buf, { overwrite: true })
-    await client.putFileContents(
-      `${remotePath}/latest.json`,
-      JSON.stringify({ exportedAt: bundle.exportedAt, device: bundle.device })
+    await withTimeout(
+      client.putFileContents(`${remotePath}/bundle.json.enc`, buf, { overwrite: true }),
+      '同步：上传数据'
+    )
+    await withTimeout(
+      client.putFileContents(
+        `${remotePath}/latest.json`,
+        JSON.stringify({ exportedAt: bundle.exportedAt, device: bundle.device })
+      ),
+      '同步：上传版本'
     )
     service.markPublished(bundle)
     markApplied(bundle.exportedAt)
@@ -570,19 +586,28 @@ export async function pullDataSync(deps: SyncDeps = {}): Promise<{
     const { config, readApplied, markApplied, snapshot: takeSnapshot } = resolveDeps(deps, service)
     const { client, password } = await syncClient(config)
     const remotePath = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
-    const hasBundle = await client.exists(`${remotePath}/bundle.json.enc`)
+    const hasBundle = await withTimeout(
+      client.exists(`${remotePath}/bundle.json.enc`),
+      '同步：探测远端 bundle'
+    )
     if (!hasBundle) {
       const r = await pushDataSync({ ...deps, config, markApplied })
       return { ok: r.ok, decision: 'push', error: r.error }
     }
     const latest = JSON.parse(
-      String(await client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }))
+      String(
+        await withTimeout(
+          client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }),
+          '同步：读取远端版本'
+        )
+      )
     ) as { exportedAt: number }
     const decision = decideSync(latest.exportedAt, readApplied(), true)
     if (decision !== 'pull') return { ok: true, decision }
-    const buf = (await client.getFileContents(`${remotePath}/bundle.json.enc`, {
-      format: 'binary'
-    })) as Buffer
+    const buf = (await withTimeout(
+      client.getFileContents(`${remotePath}/bundle.json.enc`, { format: 'binary' }),
+      '同步：拉取远端数据'
+    )) as Buffer
     const bundle = decryptBundle(buf, password)
     const snapshot = takeSnapshot()
     const r = service.mergeBundle(bundle)

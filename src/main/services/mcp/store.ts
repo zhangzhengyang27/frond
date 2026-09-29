@@ -3,12 +3,15 @@
  *
  * 配置存在 pref_preferences('mcp.servers')。这份配置是**在本机执行命令的清单**，
  * 所以清洗从严、且渲染端只能按 id 操作已存配置：
- * 所有 IPC 入口都不接受 command 字符串，避免「渲染端被攻陷 = 任意执行」这条路存在。
+ * IPC 的 setServers 虽接受完整配置（设置页表单链路如此），但 spawn 前有差分
+ * 确认闸兜底——配置自上次用户确认（mcp.confirmedServers）后有变动时，连接弹
+ * 系统级模态列出差分，拒绝即不启动任何进程（B40，纯逻辑见 mcpConfirm.ts）。
  */
 import { prefRepository } from '../../db/repos'
 import { typedHandle } from '../../ipc/typedIpc'
 import { callToolOnServer, connectServer, serverViews, stopServer, stopAllServers } from './client'
 import { coerceToolArgs, toolArgSpecs, type McpTool } from './protocol'
+import { confirmMcpConfigChange, diffServers, serversHash } from './mcpConfirm'
 import type { McpCallResult, McpServerView, McpStatus } from './client'
 import type { McpToolArg, McpToolCommand } from '../../../shared/mcp'
 
@@ -138,6 +141,23 @@ export function writeMcpServers(list: McpServerConfig[]): void {
   prefRepository.set(MCP_PREF_KEY, JSON.stringify(list))
 }
 
+/** 上次用户在系统模态里确认过的配置快照（B40 差分确认的对照基准） */
+const CONFIRMED_PREF_KEY = 'mcp.confirmedServers'
+
+export function readConfirmedMcpServers(): McpServerConfig[] {
+  const raw = prefRepository.get(CONFIRMED_PREF_KEY)
+  if (!raw) return []
+  try {
+    return sanitizeMcpServers(JSON.parse(raw)).servers
+  } catch {
+    return []
+  }
+}
+
+export function writeConfirmedMcpServers(list: McpServerConfig[]): void {
+  prefRepository.set(CONFIRMED_PREF_KEY, JSON.stringify(list))
+}
+
 export function toPublic(cfg: McpServerConfig): McpServerPublic {
   const { env, ...rest } = cfg
   return { ...rest, envKeys: Object.keys(env) }
@@ -245,10 +265,26 @@ export function saveMcpServers(raw: unknown): {
 
 /** 只按已存配置的 id 连接：渲染端递不进 command */
 export async function connectById(id: string): Promise<McpServerView> {
-  const cfg = readMcpServers().find((s) => s.id === id)
+  const all = readMcpServers()
+  const cfg = all.find((s) => s.id === id)
   if (!cfg) return { ...emptyView(id), status: 'error', error: '配置里没有这个服务器' }
   if (!cfg.enabled)
     return { ...emptyView(cfg.id), label: cfg.label, status: 'error', error: '该服务器已停用' }
+  // B40 差分确认：配置自上次用户确认后有变动（或从未确认过）时，spawn 前弹
+  // 系统模态列出差分；拒绝则不启动任何进程。E2E 旁路与 pluginConfirm 同口径
+  const confirmed = readConfirmedMcpServers()
+  if (process.env.FROND_E2E !== '1' && serversHash(all) !== serversHash(confirmed)) {
+    const allowed = await confirmMcpConfigChange(diffServers(all, confirmed))
+    if (!allowed) {
+      return {
+        ...emptyView(cfg.id),
+        label: cfg.label,
+        status: 'error',
+        error: 'MCP 配置变更未确认，已拒绝连接（重新连接可在弹窗中允许）'
+      }
+    }
+    writeConfirmedMcpServers(all)
+  }
   const view = await connectServer({
     id: cfg.id,
     command: cfg.command,

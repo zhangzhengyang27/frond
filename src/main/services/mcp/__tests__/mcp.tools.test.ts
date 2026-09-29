@@ -23,7 +23,14 @@ import { migrations } from '../../../db/migrations'
 import { database } from '../../../db/database'
 import { coerceToolArgs, toolArgSpecs } from '../protocol'
 import { stopAllServers } from '../client'
-import { mcpToolCommands, runMcpTool, saveMcpServers, writeMcpServers } from '../store'
+import {
+  mcpToolCommands,
+  readMcpServers,
+  runMcpTool,
+  saveMcpServers,
+  writeConfirmedMcpServers,
+  writeMcpServers
+} from '../store'
 import { prefRepository } from '../../../db/repos'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -44,6 +51,11 @@ function freshDb(): Database.Database {
 beforeEach(() => {
   ;(database as unknown as { db: Database.Database | null }).db = freshDb()
 })
+
+/** 本文件测连接/工具链，不测确认闸：保存后把当前配置标记为「已确认」走快路径 */
+function markConfirmed(): void {
+  writeConfirmedMcpServers(readMcpServers())
+}
 
 afterAll(() => stopAllServers())
 
@@ -130,6 +142,7 @@ describe('coerceToolArgs：界面交的字符串 → 服务器要的 JSON', () =
 describe('工具清单缓存 → 命令表', () => {
   it('真连一次就把工具落进缓存，命令表读缓存不需要活会话', async () => {
     saveMcpServers([{ id: 'fx', label: '夹具', command: process.execPath, args: [FIXTURE] }])
+    markConfirmed()
     const view = await import('../store').then((m) => m.connectById('fx'))
     expect(view.status).toBe('ready')
     const rows = mcpToolCommands()
@@ -169,6 +182,7 @@ describe('工具清单缓存 → 命令表', () => {
     store.cacheTools({ id: 'fx', label: '夹具' }, [{ name: 'keep', description: '', inputSchema: {} }])
     expect(mcpToolCommands().map((r) => r.tool)).toEqual(['keep'])
     saveMcpServers([{ id: 'other', command: 'node' }])
+    markConfirmed()
     expect(mcpToolCommands()).toEqual([])
     expect(JSON.parse(prefRepository.get('mcp.toolCache') ?? '{}').fx).toBeUndefined()
   })
@@ -189,6 +203,7 @@ describe('runMcpTool：回车那一刻的门槛', () => {
 
   it('真连接后按名执行，参数按 schema 定型（未连接时那一次回车会先把它连上）', async () => {
     saveMcpServers([{ id: 'fx', label: '夹具', command: process.execPath, args: [FIXTURE] }])
+    markConfirmed()
     const r = await runMcpTool('fx', 'echo', { msg: '你好' })
     expect(r).toMatchObject({ ok: true })
     expect(r.text).toBe('echo:你好')
@@ -198,6 +213,7 @@ describe('runMcpTool：回车那一刻的门槛', () => {
 
   it('活会话里没有这个工具名 → 拒（缓存过期不能变成让服务器随便收名字）', async () => {
     saveMcpServers([{ id: 'fx', label: '夹具', command: process.execPath, args: [FIXTURE] }])
+    markConfirmed()
     const r = await runMcpTool('fx', 'dropped_tool', {})
     expect(r.ok).toBe(false)
     expect(r.error).toMatch(/服务器上没有工具「dropped_tool」/)
@@ -205,6 +221,7 @@ describe('runMcpTool：回车那一刻的门槛', () => {
 
   it('多余的参数键发不出去（界面只该给 schema 里那些格）', async () => {
     saveMcpServers([{ id: 'fx', label: '夹具', command: process.execPath, args: [FIXTURE] }])
+    markConfirmed()
     const r = await runMcpTool('fx', 'echo', { msg: 'ok', msg2: 'x' } as Record<string, string>)
     expect(r.ok).toBe(true)
     expect(r.text).toBe('echo:ok')

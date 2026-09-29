@@ -337,6 +337,9 @@ const startRecording = async (
       accumulatedMs = 0
       segmentStartTs = 0
       currentRecordingId.value = null
+      // 保存路径是一次性签发（endWrite 成功 / abortWrite 后主进程即撤销授权），
+      // 复位让下一段录制重新签发——复用旧路径会被 beginWrite/saveFile 以「未签发」拒绝
+      savePath.value = null
       if (recordingTimer) {
         clearInterval(recordingTimer)
         recordingTimer = null
@@ -375,6 +378,8 @@ const startRecording = async (
       chunkedWritePath = null
       void chunkApi.abortWrite?.(p)?.catch(() => {})
     }
+    // abortWrite 会撤销本次签发，路径不复用
+    savePath.value = null
     await window.api.notification.recording('error', `开始录制失败: ${(error as Error).message}`)
     throw error
   }

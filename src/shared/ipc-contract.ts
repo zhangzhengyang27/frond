@@ -746,7 +746,7 @@ export interface IpcContract {
   }
   'launcher:hotkeys:setCommand': {
     req: { accelerator: string; spec: CommandHotkeySpec | null }
-    res: { ok: true; config: HotkeyConfig; registered: string[] }
+    res: { ok: true; config: HotkeyConfig; registered: string[] } | { ok: false; error: string }
   }
   'launcher:hotkeys:setChord': {
     req: { letter: string; spec: CommandHotkeySpec | null }

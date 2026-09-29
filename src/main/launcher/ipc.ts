@@ -97,6 +97,8 @@ import {
   getHotkeyConflicts,
   getRegisteredAccelerators
 } from './hotkeys'
+import { findHotkeyConflict } from './hotkeyConflicts'
+import { getShortcutConfig } from '../modules/globalShortcuts'
 import { dispatchMainAction } from './actionHandlers'
 import { setPluginSearchItems, listPluginSearchItems } from './pluginSearchIndex'
 import { fileIndex } from '../modules/fileIndex/service'
@@ -154,9 +156,15 @@ export function notifyCommandTableChanged(source: 'plugins' | 'mcp' = 'plugins')
 // 此前手写 8 项与类型 18 项漂移，⌘K/首页打开 ai/notes 等页面被静默丢弃
 const FIRST_PARTY_PAGES = new Set<string>(FIRST_PARTY_PAGE_VALUES)
 
-import { backup, getSyncConfig, restore, setSyncConfig, testConnection } from './sync'
+import { backup, getSyncConfigMasked, restore, setSyncConfig, testConnection } from './sync'
 
 export function registerLauncherIpc(): void {
+  /** 热键互斥检查的输入：当前三组占用（主/截图/⌘⇧M，B40 保存时拒绝） */
+  const hotkeyGroupsForCheck = () => {
+    const c = readHotkeyConfig()
+    return { main: c.main, screenshot: c.screenshot, showHide: getShortcutConfig().showHide }
+  }
+
   typedHandle('launcher:listPlugins', () => listPlugins())
 
   // 性能基线（M0）：胶囊唤起耗时
@@ -435,6 +443,9 @@ export function registerLauncherIpc(): void {
   typedHandle('launcher:hotkeys:setMain', (_e, { accelerator }) => {
     const accel = String(accelerator ?? '').trim()
     if (!accel) return { ok: false, error: 'accelerator required' }
+    // B40：撞其他组的加速器直接拒绝——Electron 同加速器二次注册结果看运气
+    const conflict = findHotkeyConflict(accel, hotkeyGroupsForCheck(), 'main')
+    if (conflict) return { ok: false, error: `与${conflict}冲突，请换一个加速器` }
     const next = writeHotkeyConfig({ main: accel })
     registerAllHotkeys()
     return { ok: true, config: next }
@@ -442,12 +453,20 @@ export function registerLauncherIpc(): void {
   typedHandle('launcher:hotkeys:setScreenshot', (_e, { accelerator }) => {
     // '' 是合法值：表示关掉截图热键（默认值由 hotkeys.ts 兜）
     const accel = String(accelerator ?? '').trim()
+    if (accel) {
+      const conflict = findHotkeyConflict(accel, hotkeyGroupsForCheck(), 'screenshot')
+      if (conflict) return { ok: false, error: `与${conflict}冲突，请换一个加速器` }
+    }
     const next = writeHotkeyConfig({ screenshot: accel })
     registerAllHotkeys()
     return { ok: true, config: next, conflicts: getHotkeyConflicts() }
   })
   typedHandle('launcher:hotkeys:setCommand', (_e, { accelerator, spec }) => {
     const accel = String(accelerator ?? '').trim()
+    if (spec !== null && accel) {
+      const conflict = findHotkeyConflict(accel, hotkeyGroupsForCheck(), 'command')
+      if (conflict) return { ok: false as const, error: `与${conflict}冲突，请换一个加速器` }
+    }
     const config = readHotkeyConfig()
     const commands = { ...config.commands }
     if (spec === null) {
@@ -767,7 +786,8 @@ export function registerLauncherIpc(): void {
   })
 
   // ─────────── WebDAV 同步（管理页）───────────
-  typedHandle('launcher:syncGetConfig', () => getSyncConfig())
+  // 回传走脱敏版（口令不进渲染进程，B40）；写入端「留空保持原值」语义在 setSyncConfig
+  typedHandle('launcher:syncGetConfig', () => getSyncConfigMasked())
   typedHandle('launcher:syncSetConfig', (_e, { config }) => {
     setSyncConfig(config)
     return { success: true as const }

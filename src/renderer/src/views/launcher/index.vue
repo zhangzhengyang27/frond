@@ -407,7 +407,7 @@
               v-model="syncForm.password"
               type="password"
               class="w-full rounded-md border border-line-subtle bg-surface-0 px-3 py-2 text-xs text-fg-primary outline-none focus:border-brand-500/40"
-              placeholder="密码"
+              :placeholder="syncForm.hasPassword ? '已保存（留空保持不变）' : '密码'"
             />
           </div>
           <input
@@ -1124,8 +1124,10 @@ async function onRecordingKeydown(e: KeyboardEvent): Promise<void> {
     } else {
       const entry = hotkeyCommands.value.find((r) => r.entry.key === recording.value?.key)
       if (entry?.spec) {
-        await window.api.launcher.hotkeysSetCommand(accel, entry.spec)
-        toast.success(`${entry.entry.title} 已绑定 ${accel}`)
+        // B40：撞主热键/截图热键/⌘⇧M 时主进程直接拒绝（此前二次注册看运气）
+        const res = await window.api.launcher.hotkeysSetCommand(accel, entry.spec)
+        if (res.ok) toast.success(`${entry.entry.title} 已绑定 ${accel}`)
+        else toast.error(res.error)
       }
     }
     await refreshHotkeys()
@@ -1237,7 +1239,14 @@ async function onDebug(p: LauncherPlugin): Promise<void> {
 }
 
 // ───── WebDAV 同步 ─────
-const syncForm = ref({ url: '', username: '', password: '', remoteDir: '/frond-launcher' })
+// 脱敏回传（B40）：hasPassword 由主进程标注（口令恒为空串），占位提示用；留空保存 = 保持原值
+const syncForm = ref<{
+  url: string
+  username: string
+  password: string
+  remoteDir: string
+  hasPassword?: boolean
+}>({ url: '', username: '', password: '', remoteDir: '/frond-launcher', hasPassword: false })
 const syncTesting = ref(false)
 const syncBacking = ref(false)
 const syncRestoring = ref(false)

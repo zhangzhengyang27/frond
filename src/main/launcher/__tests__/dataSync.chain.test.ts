@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3'
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
 import { migrations } from '../../db/migrations'
 import { pullDataSync, pushDataSync, type SyncDeps } from '../dataSync'
 import { startDav, type DavHandle } from './helpers/minimalDav'
@@ -87,6 +87,11 @@ beforeAll(async () => {
 })
 afterAll(async () => {
   await dav.close()
+})
+beforeEach(() => {
+  // 每个用例独立远端：push 现在是「合并后发布」（B33），上一用例留在 dav 里的
+  // bundle 会被下一用例的 push 合并进来——盲覆盖时代这被顺手擦掉了，是隐式假设
+  dav.files.clear()
 })
 
 describe('两台设备经 WebDAV 互拉（真 push/pull 全链）', () => {
@@ -206,5 +211,23 @@ describe('两台设备经 WebDAV 互拉（真 push/pull 全链）', () => {
     expect(titles(b), `失败的一趟不许留下半套数据，实际：${JSON.stringify(titles(b))}`).toEqual([
       '本机自己的'
     ])
+  })
+
+  it('新设备先 push 不许吃掉老设备的数据（B33：push 前先合并远端）', async () => {
+    // 事故链：新装机设备配置完 WebDAV 先点「推送」→ 整包覆盖远端（bundle 里
+    // 不再有老设备的行）→ 老设备拉平时把「远端缺席」当删除 → 未改动数据被真删。
+    // push 的正确语义是「合并后发布」：远端有且比我上次拉过的新，先 merge 进本地。
+    const a = makeDevice('A')
+    const fresh = makeDevice('fresh')
+    addNote(a, 'n1', '老设备才有的一行', 10)
+    await pushDataSync(depsOf(a, dav.url))
+    await tick()
+    expect((await pushDataSync(depsOf(fresh, dav.url))).ok).toBe(true)
+    await tick()
+    const r = await pullDataSync(depsOf(a, dav.url))
+    expect(r.ok).toBe(true)
+    expect(titles(a), '老设备未改动的行不许被新设备的 push 抹掉').toContain('老设备才有的一行')
+    // 合并过远端的 fresh 也该有这一行（union 语义，不是覆盖语义）
+    expect(titles(fresh)).toContain('老设备才有的一行')
   })
 })

@@ -510,7 +510,7 @@ function resolveDeps(
   }
 }
 
-/** 推送本地（后写覆盖：覆盖远端 bundle），并记录 lastAppliedAt */
+/** 推送本地（合并后发布：远端有新数据先吸收，再整包覆盖），并记录 lastAppliedAt */
 export async function pushDataSync(deps: SyncDeps = {}): Promise<{
   ok: boolean
   decision?: SyncDecision
@@ -518,11 +518,30 @@ export async function pushDataSync(deps: SyncDeps = {}): Promise<{
 }> {
   try {
     const service = new DataSyncService(deps.db)
-    const { config, markApplied } = resolveDeps(deps, service)
+    const { config, readApplied, markApplied } = resolveDeps(deps, service)
     const { client, password } = await syncClient(config)
+    const remotePath = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
+    // B33：整包覆盖前必须先吸收远端。新装机设备先 push 会让远端 bundle 只剩
+    // 新设备的数据，老设备拉平时把「远端缺席」当删除——未改动的行被真删。
+    if (await client.exists(`${remotePath}/bundle.json.enc`)) {
+      let remoteExportedAt = 0
+      try {
+        const latest = JSON.parse(
+          String(await client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }))
+        ) as { exportedAt?: number }
+        remoteExportedAt = Number(latest.exportedAt ?? 0)
+      } catch {
+        // latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏
+      }
+      if (remoteExportedAt > readApplied()) {
+        const remoteBuf = (await client.getFileContents(`${remotePath}/bundle.json.enc`, {
+          format: 'binary'
+        })) as Buffer
+        service.mergeBundle(decryptBundle(remoteBuf, password))
+      }
+    }
     const bundle = service.buildBundle()
     const buf = encryptBundle(bundle, password)
-    const remotePath = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
     await client.putFileContents(`${remotePath}/bundle.json.enc`, buf, { overwrite: true })
     await client.putFileContents(
       `${remotePath}/latest.json`,

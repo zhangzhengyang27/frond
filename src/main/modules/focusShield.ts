@@ -82,22 +82,7 @@ function writeConfig(patch: Partial<FocusShieldConfig>): FocusShieldConfig {
 
 /** mac 前台应用进程名（如 "Google Chrome"）；失败返回 null */
 export async function frontmostAppName(): Promise<string | null> {
-  if (isMac()) {
-    try {
-      const { stdout } = await execFileAsync(
-        'osascript',
-        [
-          '-e',
-          'tell application "System Events" to get name of first application process whose frontmost is true'
-        ],
-        { timeout: 3000 }
-      )
-      const name = String(stdout).trim()
-      return name || null
-    } catch {
-      return null
-    }
-  }
+  if (isMac()) return (await frontmostAppIdentity()).name
   if (isWin()) {
     try {
       // Windows：通过 PowerShell 获取前台窗口的进程名
@@ -117,6 +102,41 @@ export async function frontmostAppName(): Promise<string | null> {
     }
   }
   return null
+}
+
+/**
+ * mac 前台应用名 + unix pid（tab 分隔单次查询，名字含逗号也不裂）。
+ * pid 供菜单栏搜索按 unix id 寻址（B36：胶囊聚焦时执行时刻的 frontmost
+ * 只能查到 Frond 自己，必须在隐藏期间快照）。非 mac / 失败返回 {null,null}。
+ */
+export async function frontmostAppIdentity(): Promise<{
+  name: string | null
+  pid: number | null
+}> {
+  if (!isMac()) return { name: null, pid: null }
+  try {
+    const { stdout } = await execFileAsync(
+      'osascript',
+      [
+        '-e',
+        [
+          'tell application "System Events"',
+          '  set f to first application process whose frontmost is true',
+          '  return (name of f) & tab & ((unix id of f) as text)',
+          'end tell'
+        ].join('\n')
+      ],
+      { timeout: 3000 }
+    )
+    const [name, pid] = String(stdout).trim().split('\t')
+    const pidNum = Number(pid)
+    return {
+      name: name || null,
+      pid: Number.isInteger(pidNum) ? pidNum : null
+    }
+  } catch {
+    return { name: null, pid: null }
+  }
 }
 
 /**

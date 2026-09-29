@@ -41,17 +41,22 @@ export function escapeAppleScriptString(value: string): string {
  * 构造点击脚本。segments 为完整路径段 + title 为条目名：
  *   click menu item "T" of menu 1 of menu bar item "M"
  *   click menu item "T" of menu 1 of menu item "P" of menu 1 of menu bar item "M"
- * 用 `first application process whose frontmost is true` 定位——列表与点击之间
- * 用户可能切走，以点击时刻的前台应用为准（Raycast 同语义）。
+ * 定位：给 targetPid（唤起胶囊前快照的前台应用，frontmostCache 缓存）按 unix id
+ * 寻址——胶囊聚焦时执行时刻的 frontmost 只能查到 Frond 自己（B36 实锤）；
+ * 不给 pid 回退 frontmost（兼容无快照场景）。
  */
-export function buildClickScript(segments: string[], title: string): string {
+export function buildClickScript(segments: string[], title: string, targetPid?: number): string {
   let target = `menu bar item "${escapeAppleScriptString(segments[0])}"`
   for (let i = 1; i < segments.length; i++) {
     target = `menu item "${escapeAppleScriptString(segments[i])}" of menu 1 of ${target}`
   }
+  const locate =
+    typeof targetPid === 'number' && Number.isInteger(targetPid)
+      ? `first application process whose unix id is ${targetPid}`
+      : 'first application process whose frontmost is true'
   return [
     'tell application "System Events"',
-    '  tell (first application process whose frontmost is true)',
+    `  tell (${locate})`,
     `    click menu item "${escapeAppleScriptString(title)}" of menu 1 of ${target}`,
     '  end tell',
     'end tell'
@@ -59,11 +64,16 @@ export function buildClickScript(segments: string[], title: string): string {
 }
 
 /**
- * 构造列表脚本：System Events 深遍历前台应用菜单栏到 maxDepth 层，扁平输出
+ * 构造列表脚本：System Events 深遍历目标应用菜单栏到 maxDepth 层，扁平输出
  * 每行 `app\tseg…\titemTitle`（tab 分隔；标题内 tab 由 scrub 换成空格防列错位）。
+ * 定位同 buildClickScript：targetPid 优先（B36），否则 frontmost。
  * 深遍历慢（大应用数秒），depth 与缓存由 Service 侧控制。
  */
-export function buildListScript(maxDepth: number): string {
+export function buildListScript(maxDepth: number, targetPid?: number): string {
+  const locateStatement =
+    typeof targetPid === 'number' && Number.isInteger(targetPid)
+      ? `set fps to first application process whose unix id is ${targetPid}`
+      : 'set fps to first application process whose frontmost is true'
   return `
 on joinList(lst, delim)
   set d to text item delimiters
@@ -115,7 +125,7 @@ end walk
 on listMenuBar(maxDepth)
   set big to ""
   tell application "System Events"
-    set fps to first application process whose frontmost is true
+    ${locateStatement}
     set appName to name of fps
     repeat with mbi in menu bar items of menu bar 1 of fps
       set big to big & my walk(mbi, {}, 0, maxDepth, appName) & linefeed

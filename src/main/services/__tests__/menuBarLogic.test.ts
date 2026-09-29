@@ -56,12 +56,30 @@ describe('menuBarLogic · 菜单栏项搜索（Raycast parity）', () => {
       const script = buildClickScript(['Format'], 'Quote "Smart" \\ Test')
       expect(script).toContain('Quote \\"Smart\\" \\\\ Test')
     })
+
+    it('带 targetPid 时按 unix id 定位（B36：胶囊聚焦时 frontmost 只能查到 Frond 自己）', () => {
+      const script = buildClickScript(['文件'], '新建窗口', 4210)
+      expect(script).toContain('first application process whose unix id is 4210')
+      expect(script).not.toContain('frontmost')
+    })
+
+    it('targetPid 非整数时回退 frontmost（pid 只来自主进程校验后的缓存）', () => {
+      const script = buildClickScript(['文件'], '新建窗口', Number.NaN)
+      expect(script).toContain('whose frontmost is true')
+    })
   })
 
   describe('buildListScript / pathLabel', () => {
     it('list 脚本含 frontmost 定位与 tab 输出', () => {
       const script = buildListScript(3)
       expect(script).toContain('whose frontmost is true')
+      expect(script).toContain('menu bar items')
+    })
+
+    it('带 targetPid 时按 unix id 遍历目标应用（B36）', () => {
+      const script = buildListScript(3, 4210)
+      expect(script).toContain('first application process whose unix id is 4210')
+      expect(script).not.toContain('frontmost')
       expect(script).toContain('menu bar items')
     })
 

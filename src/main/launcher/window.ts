@@ -9,6 +9,7 @@ import { BrowserWindow, screen, systemPreferences } from 'electron'
 import { join } from 'path'
 import { prefRepository } from '../db/repos/PrefRepository'
 import { notifyWindowVisibility } from './runtime'
+import { noteLauncherHidden } from './frontmostCache'
 import { shouldHideOnBlur } from './pinLogic'
 import {
   animationFrames,
@@ -400,6 +401,8 @@ export function getLauncherWindow(): BrowserWindow | null {
 function finishHide(win: BrowserWindow): void {
   win.setOpacity(1)
   win.hide()
+  // hide 后焦点回落到用户应用，补拍前台快照（菜单栏搜索按 pid 寻址的依据，B36）
+  noteLauncherHidden()
   notifyWindowVisibility(false)
 }
 

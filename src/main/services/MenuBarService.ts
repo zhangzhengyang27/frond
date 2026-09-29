@@ -8,6 +8,7 @@
  */
 import { execFile } from 'node:child_process'
 import { typedHandle } from '../ipc/typedIpc'
+import { getCachedFrontmostPid } from '../launcher/frontmostCache'
 import {
   buildClickScript,
   buildListScript,
@@ -37,10 +38,32 @@ function runOsa(script: string, timeoutMs: number): Promise<string> {
 interface MenuBarCache {
   at: number
   app: string | null
+  /** 本次列表所属目标应用的 pid（trigger 按它寻址，见下） */
+  pid: number | null
   items: MenuBarItem[]
 }
 
 let cache: MenuBarCache | null = null
+/** in-flight 去重：深遍历数秒，关页再开页（每次 mount 都 refresh）会并发第二个 */
+let listing: Promise<{ ok: boolean; app: string | null; items: MenuBarItem[]; reason?: string }> | null =
+  null
+
+async function listMenuBarOnce(): Promise<{
+  ok: boolean
+  app: string | null
+  items: MenuBarItem[]
+  reason?: string
+}> {
+  // B36：按「唤起胶囊前的前台应用」pid 寻址——胶囊聚焦时执行时刻的 frontmost
+  // 只能查到 Frond 自己（frontmostCache.ts:5 记载的语义坑）。无快照回退
+  // frontmost（首启/缓存未热时的降级，行为同旧版）。
+  const pid = getCachedFrontmostPid()
+  const out = await runOsa(buildListScript(MAX_DEPTH, pid ?? undefined), LIST_TIMEOUT_MS)
+  const items = parseMenuBarListing(out)
+  const app = out.split('\n').find((l) => l.trim())?.split('\t')[0] ?? null
+  cache = { at: Date.now(), app, pid, items }
+  return { ok: true, app, items }
+}
 
 export function registerMenuBarIpc(): void {
   typedHandle('menubar:list', async () => {
@@ -50,12 +73,13 @@ export function registerMenuBarIpc(): void {
     if (cache && Date.now() - cache.at < CACHE_TTL_MS) {
       return { ok: true, app: cache.app, items: cache.items }
     }
+    if (!listing) {
+      listing = listMenuBarOnce().finally(() => {
+        listing = null
+      })
+    }
     try {
-      const out = await runOsa(buildListScript(MAX_DEPTH), LIST_TIMEOUT_MS)
-      const items = parseMenuBarListing(out)
-      const app = out.split('\n').find((l) => l.trim())?.split('\t')[0] ?? null
-      cache = { at: Date.now(), app, items }
-      return { ok: true, app, items }
+      return await listing
     } catch (e) {
       return { ok: false, app: null, items: [], reason: (e as Error).message }
     }
@@ -64,9 +88,12 @@ export function registerMenuBarIpc(): void {
   typedHandle('menubar:trigger', async (_event, { segments, title }) => {
     if (process.platform !== 'darwin') return { ok: false, error: '仅 macOS 支持' }
     if (!segments.length) return { ok: false, error: '路径为空' }
+    // 点击目标 = 列表所属应用（缓存的 pid），不是执行时刻的 frontmost：
+    // 列表与点击之间用户切走时，按旧 frontmost 会点在别的应用上
+    const pid = cache?.pid ?? getCachedFrontmostPid() ?? undefined
     cache = null
     try {
-      await runOsa(buildClickScript(segments, title), CLICK_TIMEOUT_MS)
+      await runOsa(buildClickScript(segments, title, pid), CLICK_TIMEOUT_MS)
       return { ok: true }
     } catch (e) {
       return { ok: false, error: (e as Error).message }

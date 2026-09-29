@@ -526,3 +526,20 @@
   + 单条文本 512K 字符上限；大图驻留每秒全尺寸 readImage 指纹一项仍挂账
 - ReminderService.uncomplete 补 resetNotified；MarkerService CSV 标准 "" 转义；
   WindowSwitcher/KillProcess 两页补空列表 NaN 守卫
+
+## 2026-09-29 修复注记 · 四（B39 清账完成：基线 80→0）
+四批按 v4 事实源重建全部丢失样式族（每批带门禁划账）：
+- 第一批（19 条）：FocusShield 内层（自持深色板 + --brand 兜底）、胶囊内联页六页
+  内容容器（dict-content/system-info-content/mb-list/ws-list/kp-list/sched-group）、
+  日历 has-reminder、FocusAssets 最长纪录档、Onboarding 层级（z-modal 死类摘除）；
+  app-scroll/snippets-main 认定 JS 标记类进 ALLOWLIST
+- 第二批（16 条）：Markdown 排版进 gap 全局段（v-html 内容 scoped 管不到——
+  h1-6/列表/引用/行内码/代码块/表格/链接全族 + external ↗ + CodeMirror 容器）；
+  MarkdownPresentation 全新演示壳（fixed/控制条/页码/缩放）；Preview 工具条补齐
+- 第三批（13 条）：番茄钟统计面板壳层（分段式区间切换/导出工具条/spinner/
+  dual-grid 双列图卡），token 对齐 TrendChart 兄弟口径
+- 第四批（30 条）：任务抽屉内容层（优先级色条/摘要网格含超预估红调/操作行/
+  时间线按 record.type 映射 --pomo-work/short/long/引导虚线卡/自由番茄区）
+- 门禁基线注释改记机制（空集待用）；划账提示逻辑修正为「样式已补上或不再使用」
+- 【未跑】重建样式的真机目检（九个组件群的观感核对）——静态门禁只能证明
+  「类有定义」，视觉是否到位需要一轮过一遍；e2e 不覆盖视觉

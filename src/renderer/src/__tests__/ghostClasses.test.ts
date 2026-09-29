@@ -74,52 +74,17 @@ const ALLOWLIST = new Map<string, string>([
 ])
 
 /**
- * 幽灵基线（2026-09-29 门禁落地时点存量，80 条）。
+ * 幽灵基线（落地时点存量 80 条 → 2026-09-29 当日全部清账，现为空集）。
  *
- * 全部是「重建件 main.css 转储时刻不存在、gap 文件也未曾补过」的组件样式族：
- * FocusShield（shield- 前缀族）、Markdown 呈现（markdown- / presentation- /
- * controls- 前缀族）、番茄钟统计与任务抽屉（stats- / export- / summary- /
- * timeline- / drawer- 前缀族）、胶囊内联页（dict-content、system-info-content、
- * 各 *-list）等 —— 这些类的样式在 2026-09-22 的仓库事故重建中丢失，组件按当前
- * DOM 结构裸奔（B17 家族的存量债）。
+ * 历史存档：这 80 条是「重建件 main.css 转储时刻不存在、gap 文件也未曾补过」
+ * 的组件样式族（FocusShield / Markdown 呈现 / 番茄钟统计 / 任务抽屉 / 胶囊
+ * 内联页等），样式在 0922 事故中丢失、组件按裸 DOM 渲染。B39 四批重建后
+ * 全部按 v4 token 补回各自组件的 scoped style（排版类进 gap 全局段）。
  *
- * 基线是待清台账不是豁免：每重建一个组件样式族，就把对应条目从基线删掉；
- * 新增代码引入基线外的新幽灵类 = 本测试红。逐条重建见 BUGS B17 存量条目。
+ * 基线保留为空集工作机制：未来再有还不了样式债的存量，往这里加条目
+ * （写明出处），新增代码引入基线外的新幽灵类 = 本测试红。
  */
-const BASELINE = new Set([
-  'app-scroll',
-  'action-btn',
-  'action-feedback',
-  'action-row',
-  'assets-hint',
-  'drawer-body',
-  'drawer-description',
-  'empty',
-  'free-records',
-  'hint-actions',
-  'hint-text',
-  'icon-btn',
-  'priority-bar',
-  'section-header',
-  'section-meta',
-  'snippets-main',
-  'summary-card',
-  'summary-card-wide',
-  'summary-grid',
-  'summary-label',
-  'summary-unit',
-  'timeline',
-  'timeline-card',
-  'timeline-card-body',
-  'timeline-card-head',
-  'timeline-dot',
-  'timeline-duration',
-  'timeline-item',
-  'timeline-meta',
-  'timeline-mode',
-  'timeline-section',
-  'timeline-time'
-])
+const BASELINE = new Set<string>([])
 
 describe('幽灵类门禁（每个 class 都必须能在 CSS 事实源里查到）', () => {
   it('扫描全部 .vue 的 class/:class，逐 token 查证', () => {

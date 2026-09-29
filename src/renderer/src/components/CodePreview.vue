@@ -52,7 +52,7 @@ const empty = computed(() => blocks.value.length === 0)
     <div class="flex items-center gap-2 border-b border-line-subtle bg-surface-0 px-4 py-2">
       <AppIcon icon="code-s-slash-line" :size="14" class="shrink-0 text-fg-muted" />
       <span class="text-xs font-medium text-fg-primary">代码预览</span>
-      <span class="truncate text-[11px] text-fg-faint">
+      <span class="truncate text-[11px] text-fg-tertiary">
         {{ blocks.map((b) => b.label || b.language).join(' · ') }}
       </span>
       <button
@@ -64,7 +64,7 @@ const empty = computed(() => blocks.value.length === 0)
       </button>
     </div>
 
-    <div v-if="empty" class="flex flex-1 items-center justify-center text-xs text-fg-faint">
+    <div v-if="empty" class="flex flex-1 items-center justify-center text-xs text-fg-tertiary">
       这条片段没有可预览的 HTML / CSS / JS 代码块
     </div>
     <iframe

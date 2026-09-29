@@ -75,11 +75,11 @@ function colorOf(tag: Tag): string {
     </span>
 
     <div class="flex min-w-[120px] flex-1 items-center gap-1.5">
-      <AppIcon icon="price-tag-3-line" :size="13" class="shrink-0 text-fg-faint" />
+      <AppIcon icon="price-tag-3-line" :size="13" class="shrink-0 text-fg-tertiary" />
       <input
         v-model="query"
         type="text"
-        class="w-full min-w-0 bg-transparent text-xs text-fg-primary outline-none placeholder:text-fg-faint"
+        class="w-full min-w-0 bg-transparent text-xs text-fg-primary outline-none placeholder:text-fg-tertiary"
         :placeholder="selected.length === 0 ? '添加标签…' : ''"
         spellcheck="false"
         @focus="focused = true"

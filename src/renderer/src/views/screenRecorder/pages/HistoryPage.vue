@@ -30,7 +30,7 @@
       v-else-if="items.length === 0"
       class="flex flex-1 flex-col items-center justify-center gap-3"
     >
-      <AppIcon icon="ri-history-line" :size="30" class="text-fg-faint" />
+      <AppIcon icon="ri-history-line" :size="30" class="text-fg-tertiary" />
       <p class="text-sm text-fg-muted">还没有录制记录</p>
       <router-link
         :to="{ name: 'screenRecorderRecord' }"
@@ -58,7 +58,7 @@
             class="h-full w-full object-cover"
             loading="lazy"
           />
-          <AppIcon v-else icon="ri-film-line" :size="20" class="text-fg-faint" />
+          <AppIcon v-else icon="ri-film-line" :size="20" class="text-fg-tertiary" />
         </div>
         <div class="min-w-0 flex-1">
           <p class="truncate text-sm font-medium text-fg-primary">{{ item.filename }}</p>

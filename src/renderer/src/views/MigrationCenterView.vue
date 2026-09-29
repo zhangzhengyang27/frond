@@ -268,7 +268,7 @@ function onDeleteArchive(a: ArchiveInfo): void {
         <h2 class="text-xs font-medium tracking-wider text-fg-muted uppercase">
           旧版 JSON 归档（{{ archives.length }}）
         </h2>
-        <span v-if="archives.length" class="text-xs text-fg-faint">
+        <span v-if="archives.length" class="text-xs text-fg-tertiary">
           共 {{ fmtSize(totalArchiveBytes) }}
         </span>
         <button

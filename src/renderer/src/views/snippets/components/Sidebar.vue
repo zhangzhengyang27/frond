@@ -113,7 +113,7 @@ onMounted(() => {
     </nav>
 
     <div class="flex items-center justify-between px-4 pb-1 pt-2">
-      <span class="text-[11px] font-medium uppercase tracking-wide text-fg-faint">
+      <span class="text-[11px] font-medium uppercase tracking-wide text-fg-tertiary">
         文件夹 · {{ folderCount }}
       </span>
       <button
@@ -127,7 +127,7 @@ onMounted(() => {
     </div>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
-      <p v-if="folderCount === 0" class="px-2.5 py-2 text-xs text-fg-faint">还没有文件夹</p>
+      <p v-if="folderCount === 0" class="px-2.5 py-2 text-xs text-fg-tertiary">还没有文件夹</p>
       <div
         v-for="folder in props.folders"
         :key="folder.id"
@@ -149,7 +149,7 @@ onMounted(() => {
         </button>
         <button
           type="button"
-          class="rounded p-1 text-fg-faint opacity-0 hover:text-fg-primary group-hover:opacity-100"
+          class="rounded p-1 text-fg-tertiary opacity-0 hover:text-fg-primary group-hover:opacity-100"
           title="重命名"
           @click="renameFolder(folder)"
         >
@@ -157,7 +157,7 @@ onMounted(() => {
         </button>
         <button
           type="button"
-          class="rounded p-1 text-fg-faint opacity-0 hover:text-fg-danger group-hover:opacity-100"
+          class="rounded p-1 text-fg-tertiary opacity-0 hover:text-fg-danger group-hover:opacity-100"
           title="删除文件夹"
           @click="removeFolder(folder)"
         >

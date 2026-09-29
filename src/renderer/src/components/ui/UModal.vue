@@ -101,7 +101,9 @@ const sizeCls: Record<string, string> = {
               </svg>
             </button>
           </header>
-          <div class="max-h-[70vh] overflow-y-auto px-5 py-4">
+          <!-- max-height 用内联样式：无 Tailwind 生成管线，任意值类会静默失效
+            （B17 家族），此处失效 = 长内容把 footer 顶出屏幕且不可滚 -->
+          <div class="overflow-y-auto px-5 py-4" style="max-height: 70vh">
             <slot />
           </div>
           <footer

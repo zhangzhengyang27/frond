@@ -174,10 +174,10 @@ const handleExport = (): void => {
           </button>
         </div>
 
-        <p v-if="exportOptions.intro" class="truncate text-[11px] text-fg-faint">
+        <p v-if="exportOptions.intro" class="truncate text-[11px] text-fg-tertiary">
           片头：{{ exportOptions.intro }}
         </p>
-        <p v-if="exportOptions.outro" class="truncate text-[11px] text-fg-faint">
+        <p v-if="exportOptions.outro" class="truncate text-[11px] text-fg-tertiary">
           片尾：{{ exportOptions.outro }}
         </p>
 

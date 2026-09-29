@@ -249,7 +249,7 @@ onBeforeUnmount(() => {
     <div class="shrink-0 px-3 pb-2 pt-3">
       <div class="mb-2 flex items-center gap-2">
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium text-fg-primary">{{ listTitle }}</h2>
-        <span class="shrink-0 text-xs text-fg-faint">{{ filteredSnippets.length }}</span>
+        <span class="shrink-0 text-xs text-fg-tertiary">{{ filteredSnippets.length }}</span>
         <button
           v-if="libraryFilter === 'trash' && snippets.length > 0"
           type="button"
@@ -317,7 +317,7 @@ onBeforeUnmount(() => {
               :size="12"
               class="shrink-0 text-warning"
             />
-            <span class="shrink-0 text-[10px] text-fg-faint">
+            <span class="shrink-0 text-[10px] text-fg-tertiary">
               {{ formatSmartDate(snippet.updatedAt) }}
             </span>
           </div>

@@ -1096,7 +1096,7 @@ onMounted(() => {
             spellcheck="false"
             @change="(e) => updateTrigger((e.target as HTMLInputElement).value.trim())"
           />
-          <span class="min-w-0 flex-1 truncate text-[11px] text-fg-faint">
+          <span class="min-w-0 flex-1 truncate text-[11px] text-fg-tertiary">
             <!-- 待核：以下 416 行模板与样式由 2026-09-23 按同文件较早副本（_recovery-partials/zcode-older）回填，本 revision 若在此区间另有改动需人工比对 -->
             在任意应用键入该关键词再按空格/回车即展开第一块内容；支持占位符
             <code class="font-mono">{date}</code>

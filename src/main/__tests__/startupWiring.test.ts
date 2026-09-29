@@ -92,3 +92,23 @@ describe('截图热键（launcher/hotkeys.ts）', () => {
     expect(countOf(shot, 'screenshotConflict = true'), '注册失败与抛异常两条都要记冲突').toBe(2)
   })
 })
+
+describe('全局快捷键恢复接线（launcher/hotkeys.ts）', () => {
+  const hotkeys = readFileSync(join(repoRoot, 'src/main/launcher/hotkeys.ts'), 'utf-8')
+
+  it('热键 restorer 必须同步挂入 shortcutRestorers（动态 import 会迟到一步）', () => {
+    // 冷启动时序：whenReady 同步块先 registerLauncher → registerAllHotkeys，
+    // 后 registerAppGlobalShortcuts → globalShortcut.unregisterAll() + 遍历
+    // shortcutRestorers 重挂。restorer 若走动态 import（微任务），执行到
+    // unregisterAll 时还不在集合里——主热键/截图/命令热键被清光后无人恢复，
+    // 只剩硬编码 ⌘⇧M 活着，且 e2e 走 launcher:toggle IPC 测不到（B31 实锤）。
+    expect(
+      countOf(hotkeys, 'addShortcutRestorer(registerAllHotkeys)'),
+      'restorer 没同步挂上 = 冷启动后除 ⌘⇧M 外全部热键失效'
+    ).toBe(1)
+    expect(
+      countOf(hotkeys, "import('../modules/globalShortcuts')"),
+      '动态 import 挂 restorer 的旧写法回潮了（微任务迟到 → 清光后无人恢复）'
+    ).toBe(0)
+  })
+})

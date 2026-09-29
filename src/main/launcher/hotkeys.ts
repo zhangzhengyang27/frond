@@ -16,6 +16,7 @@ import { FIRST_PARTY_PAGE_VALUES } from '../../shared/commands'
 import { getLauncherDocStore } from './docStore'
 import { toggleLauncherWindow, showLauncherWindow, getLauncherWindow } from './window'
 import { createWindow } from '../modules/windows'
+import { addShortcutRestorer } from '../modules/globalShortcuts'
 import { globalKeyHook } from '../modules/globalKeys'
 import { acceleratorModifiers, keycodeToLetter, keycodeToModifier } from '../modules/keycodes'
 import { dispatchMainAction } from './actionHandlers'
@@ -334,10 +335,12 @@ export function registerAllHotkeys(): void {
 
   if (!restorerHooked) {
     restorerHooked = true
-    // 延迟 import 避免与 globalShortcuts 模块初始化环
-    void import('../modules/globalShortcuts').then(({ addShortcutRestorer }) => {
-      addShortcutRestorer(registerAllHotkeys)
-    })
+    // 必须同步挂上（不能用动态 import）：冷启动时序是 whenReady 同步块里先
+    // registerLauncher → registerAllHotkeys（本函数），后 registerAppGlobalShortcuts
+    // 的 unregisterAll + restorer 重挂。动态 import 的 restorer 走微任务，
+    // 在 unregisterAll 时还不集合里——主热键/命令热键被清光后无人恢复（B31）。
+    // 无循环依赖：globalShortcuts → launcher/window，不回指 hotkeys。
+    addShortcutRestorer(registerAllHotkeys)
   }
 }
 

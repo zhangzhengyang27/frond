@@ -52,7 +52,7 @@
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
                   <span class="truncate text-sm font-medium text-fg-primary">{{ p.name }}</span>
-                  <span class="shrink-0 text-xs text-fg-faint">v{{ p.version ?? '—' }}</span>
+                  <span class="shrink-0 text-xs text-fg-tertiary">v{{ p.version ?? '—' }}</span>
                   <UBadge v-if="!p.enabled" variant="neutral">已停用</UBadge>
                 </div>
                 <div class="mt-0.5 truncate text-xs text-fg-tertiary">
@@ -72,6 +72,7 @@
                   {{ p.enabled ? '停用' : '启用' }}
                 </UButton>
                 <UButton size="sm" variant="ghost" @click="onTryRun(p)">运行</UButton>
+                <UButton size="sm" variant="ghost" @click="onDebug(p)">调试</UButton>
                 <UButton size="sm" variant="danger" @click="onRemove(p)">卸载</UButton>
               </div>
             </div>
@@ -124,7 +125,7 @@
       <div class="mb-3 flex items-center justify-between">
         <h2 class="text-xs font-medium tracking-wider text-fg-muted uppercase">插件市场</h2>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-fg-faint">{{ indexStatusText }}</span>
+          <span class="text-xs text-fg-tertiary">{{ indexStatusText }}</span>
           <UButton size="sm" variant="ghost" :loading="marketLoading" @click="refreshMarket">
             刷新
           </UButton>
@@ -158,7 +159,7 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="truncate text-sm font-medium text-fg-primary">{{ entry.name }}</span>
-                <span class="shrink-0 text-xs text-fg-faint">v{{ entry.version ?? '—' }}</span>
+                <span class="shrink-0 text-xs text-fg-tertiary">v{{ entry.version ?? '—' }}</span>
                 <UBadge variant="neutral">{{ entry.sha256 ? 'sha256 校验' : '未校验' }}</UBadge>
                 <UBadge v-if="entry.installed && entry.updatable" variant="warning">
                   可更新 {{ entry.installedVersion }} → {{ entry.version }}
@@ -244,7 +245,7 @@
             触发词在片段编辑器顶部设置；macOS 需要「辅助功能」授权（监听与注入）。
           </p>
           <div class="flex items-center justify-between pt-1">
-            <span class="text-xs text-fg-faint">
+            <span class="text-xs text-fg-tertiary">
               当前 {{ expansionTriggerCount }} 个触发词 · 全局监听{{
                 expansionHookOk ? '正常' : '未就绪'
               }}
@@ -266,7 +267,7 @@
     <section class="mb-9">
       <div class="mb-3 flex items-center justify-between">
         <h2 class="text-xs font-medium tracking-wider text-fg-muted uppercase">快捷键</h2>
-        <span class="text-xs text-fg-faint">录制组合键需含修饰键；字母框 = 两段式直达</span>
+        <span class="text-xs text-fg-tertiary">录制组合键需含修饰键；字母框 = 两段式直达</span>
       </div>
       <div class="rounded-md border border-line-subtle bg-surface-1 shadow-sm">
         <!-- 主热键 -->
@@ -340,7 +341,7 @@
             <AppIcon :icon="entry.entry.icon" :size="15" class="shrink-0 text-fg-tertiary" />
             <div class="min-w-0 flex-1">
               <span class="text-xs font-medium text-fg-primary">{{ entry.entry.title }}</span>
-              <span class="ml-2 text-[10px] text-fg-faint">{{ entry.entry.subtitle }}</span>
+              <span class="ml-2 text-[10px] text-fg-tertiary">{{ entry.entry.subtitle }}</span>
             </div>
             <template v-if="entry.bound">
               <button
@@ -415,7 +416,7 @@
             placeholder="远端目录（默认 /frond-launcher）"
           />
           <div class="flex items-center justify-between pt-1">
-            <span class="text-xs text-fg-faint">
+            <span class="text-xs text-fg-tertiary">
               备份内容为插件数据快照；插件本体需在各设备重新导入
             </span>
             <div class="flex items-center gap-1">
@@ -464,7 +465,7 @@
                       <span class="truncate text-xs font-medium text-fg-primary">
                         {{ d.name || d.pluginId }}
                       </span>
-                      <span v-if="d.version" class="shrink-0 text-[10px] text-fg-faint">
+                      <span v-if="d.version" class="shrink-0 text-[10px] text-fg-tertiary">
                         v{{ d.version }}
                       </span>
                       <UBadge v-if="!d.sourceExists" variant="danger">目录缺失</UBadge>
@@ -503,7 +504,7 @@
                 </div>
               </div>
             </div>
-            <div v-else class="border-t border-line-subtle px-4 py-3 text-xs text-fg-faint">
+            <div v-else class="border-t border-line-subtle px-4 py-3 text-xs text-fg-tertiary">
               还没有注册开发目录。选择仓库 example-plugin/ 试试：修改 index.html 保存后会自动重载。
             </div>
           </div>
@@ -1221,6 +1222,18 @@ async function onRemove(p: LauncherPlugin): Promise<void> {
 function onTryRun(p: LauncherPlugin): void {
   const cmd = p.commands?.[0]?.code
   window.api.launcher.openPlugin(p.id, cmd)
+}
+
+/** 调试：视图已开直接挂 DevTools；未开先跑首个命令，等视图就绪再挂（PLUGIN_DEV.md 承诺的行为） */
+async function onDebug(p: LauncherPlugin): Promise<void> {
+  if (await window.api.launcher.pluginDevtools(p.id)) return
+  window.api.launcher.openPlugin(p.id, p.commands?.[0]?.code)
+  // openPlugin 到主进程登记视图是异步链，退避重试几次再挂
+  for (const delay of [400, 800, 1600]) {
+    await new Promise((r) => setTimeout(r, delay))
+    if (await window.api.launcher.pluginDevtools(p.id)) return
+  }
+  toast.error('调试器挂载失败', { description: '插件视图未就绪，请打开插件后重试' })
 }
 
 // ───── WebDAV 同步 ─────

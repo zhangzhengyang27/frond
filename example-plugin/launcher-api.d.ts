@@ -92,14 +92,25 @@ export interface LauncherPluginApi {
   readText(): Promise<string>
   openPath(path: string): Promise<boolean>
   openUrl(url: string): Promise<boolean>
-  alert(input: { title?: string; message: string; actions?: string[] }): Promise<string | null>
+  /**
+   * 宿主原生模态对话框（不是 window.confirm）。actions 每项必须是
+   * { id, title, style? } 对象——传字符串数组会被宿主整条剔除；
+   * resolve 值是所点动作的 id，用户关窗/按 Esc 为 null。
+   * style 只认 'default' | 'cancel' | 'destructive'，拼错降级为 default。
+   */
+  alert(input: {
+    title?: string
+    message: string
+    actions?: Array<{ id: string; title: string; style?: 'default' | 'cancel' | 'destructive' }>
+  }): Promise<string | null>
   detach(): Promise<boolean>
   close(): Promise<boolean>
 
   /** ─── 本插件文档库（无需权限）─── */
   db: {
     put(id: string, data: unknown): Promise<{ id: string }>
-    get(id: string): Promise<PluginDoc | null>
+    /** get 返回包络 { id, data }（无 updatedAt）；数据在 .data 里，无此文档为 null */
+    get(id: string): Promise<{ id: string; data: unknown } | null>
     remove(id: string): Promise<{ ok: boolean }>
     list(): Promise<PluginDoc[]>
   }
@@ -113,13 +124,13 @@ export interface LauncherPluginApi {
 
   /** ─── 定时任务（P-2③，需 schedule 权限；每插件最多 3 条）─── */
   schedule: {
-    list(): Promise<{ tasks: PluginScheduledTask[]; error?: string }>
+    list(): Promise<PluginScheduledTask[]>
     add(task: {
       label?: string
       cron: string
       cmd: string
       arguments?: Record<string, string>
-    }): Promise<{ ok: boolean; task?: PluginScheduledTask; error?: string }>
+    }): Promise<{ ok: boolean; id?: string; error?: string }>
     remove(id: string): Promise<{ ok: boolean; error?: string }>
   }
 

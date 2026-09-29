@@ -249,14 +249,21 @@
           return
         }
         if (payload === 'alert') {
+          // actions 必须是 { id, title } 对象数组：传字符串会被宿主清洗整条剔除，
+          // resolve 值是所点动作的 id（关窗/按 Esc 为 null）
           api
             .alert({
               title: '示例插件',
               message: '这是宿主原生对话框，不是 window.confirm',
-              actions: ['好', '算了']
+              actions: [
+                { id: 'ok', title: '好' },
+                { id: 'cancel', title: '算了', style: 'cancel' }
+              ]
             })
             .then(function (choice) {
-              api.notify(choice ? '你点了「' + choice + '」' : '已取消')
+              if (choice === 'ok') api.notify('你点了「好」')
+              else if (choice === 'cancel') api.notify('你点了「算了」')
+              else api.notify('已取消')
             })
         }
       })

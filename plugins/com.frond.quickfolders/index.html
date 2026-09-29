@@ -9,17 +9,14 @@
       var api = window.launcherApi
       var DB_KEY = 'quickfolders:list'
 
-      function expandHome(p) {
-        if (p.startsWith('~')) {
-          return (process.env.HOME || '~') + p.slice(1)
-        }
-        return p
-      }
-
+      // 目录统一存 `~/Documents` 紧凑形态：本页面跑在 sandbox 主世界，
+      // 没有 process（拿不到 HOME）；`~` 由宿主在 openPath 侧统一展开。
       function getFolders() {
         return api.db.get(DB_KEY).then(function (stored) {
-          if (stored && Array.isArray(stored) && stored.length > 0) return stored
-          // 首次使用：从偏好读取默认目录
+          // db.get 返回包络 { id, data }（无此文档时 null），数据在 .data 里
+          var saved = stored && stored.data
+          if (Array.isArray(saved) && saved.length > 0) return saved
+          // 首次使用：从清单声明过的偏好读默认目录（manifest.preferences 里有 default 兜底）
           return api.preferences.get('defaultFolders').then(function (r) {
             var raw = r && r.ok && r.value ? String(r.value) : '~/Desktop,~/Documents,~/Downloads'
             var list = raw
@@ -46,16 +43,15 @@
             })
             .map(function (f) {
               var name = f.split('/').pop() || f
-              var fullPath = expandHome(f)
               return {
                 title: name,
-                subtitle: fullPath,
+                subtitle: f,
                 icon: 'folder-line',
-                accessories: [fullPath.startsWith('~') ? '用户目录' : ''],
-                detail: '路径：' + fullPath + '\n\n回车在 Finder 中打开\n⌘1 复制路径\n⌘2 移除',
+                accessories: [f.startsWith('~') ? '用户目录' : ''],
+                detail: '路径：' + f + '\n\n回车在 Finder 中打开\n⌘1 复制路径\n⌘2 移除',
                 actions: [
-                  { label: '打开', type: 'open', payload: fullPath, hint: '↵' },
-                  { label: '复制路径', type: 'copy', payload: fullPath, hint: '⌘1' },
+                  { label: '打开', type: 'open', payload: f, hint: '↵' },
+                  { label: '复制路径', type: 'copy', payload: f, hint: '⌘1' },
                   { label: '移除', type: 'callback', payload: 'remove:' + f, hint: '⌘2' }
                 ]
               }

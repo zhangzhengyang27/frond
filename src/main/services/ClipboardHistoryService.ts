@@ -62,6 +62,8 @@ export interface ClipboardHistoryItem {
 const MAX_ITEMS = 200
 const MAX_IMAGE_FILES = 50
 const POLL_MS = 1000
+/** 单条文本上限（字符）：超限不入历史——大文本入账后每次 persist 都全量重加密 */
+const MAX_TEXT_CHARS = 512 * 1024
 /** 历史保留期：90 天（Raycast Free 上限 3 个月，2026-09-28 对齐；置顶条目不受限） */
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 
@@ -85,6 +87,8 @@ class ClipboardHistoryService {
   private pollBusy = false
   /** 屏蔽应用列表缓存（避免每秒读盘；setBlockedApps 时失效） */
   private blockedAppsCache: string[] | null = null
+  /** persist 合并写定时器（每次复制全量重加密+写盘是主进程周期性停顿源，B41） */
+  private persistTimer: ReturnType<typeof setTimeout> | null = null
 
   start(): void {
     this.dir = join(app.getPath('userData'), 'clipboard-history')
@@ -104,6 +108,12 @@ class ClipboardHistoryService {
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = null
+    }
+    // 退出前把挂着的合并写落盘（防抖窗口 ≤300ms 内的历史不丢）
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer)
+      this.persistTimer = null
+      this.persist()
     }
   }
 
@@ -406,6 +416,19 @@ class ClipboardHistoryService {
     }
   }
 
+  /**
+   * 高频路径（每次复制）用合并写：persist 是「全条目重加密 + 重序列化 + 同步写盘」，
+   * 历史里进过大文本后每次 ⌘C 都是主进程一次几十到几百 ms 的停顿。300ms 尾随防抖
+   * 把复制风暴合并成一次写；CRUD 等低频操作仍走立即 persist。
+   */
+  private schedulePersist(): void {
+    if (this.persistTimer) return
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null
+      this.persist()
+    }, 300)
+  }
+
   private async poll(): Promise<void> {
     if (this.pollBusy) return
     this.pollBusy = true
@@ -480,6 +503,11 @@ class ClipboardHistoryService {
 
   /** 接受完整条目（图片 OCR 标记等场景） */
   private pushItem(item: ClipboardHistoryItem): void {
+    // 单条文本上限：贴 base64/日志的几 MB 文本一旦入历史，此后每次复制的
+    // persist 都要对它全量重加密。超限不入历史（系统剪贴板本身仍持有原文）
+    if ((item.kind === 'text' || item.kind === 'link') && (item.text?.length ?? 0) > MAX_TEXT_CHARS) {
+      return
+    }
     // 同内容已存在则移除旧条目（提到最前，Raycast 行为）；图片已由指纹层去重
     const existing =
       item.kind === 'text' || item.kind === 'link'
@@ -499,7 +527,7 @@ class ClipboardHistoryService {
     }
     this.items.unshift(item)
     this.trim()
-    this.persist()
+    this.schedulePersist()
   }
 
   // ───── P1-6：OCR 文字识别 ─────
@@ -535,14 +563,14 @@ class ClipboardHistoryService {
       if (item) {
         item.ocrText = text || undefined
         item.ocrStatus = text ? 'done' : 'failed'
-        this.persist()
+        this.schedulePersist()
       }
     } catch (err) {
       console.warn('[Clipboard] OCR 失败:', (err as Error).message)
       const item = this.items.find((i) => i.id === itemId)
       if (item) {
         item.ocrStatus = 'failed'
-        this.persist()
+        this.schedulePersist()
       }
     } finally {
       if (worker) {

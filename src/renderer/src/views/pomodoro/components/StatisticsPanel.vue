@@ -158,3 +158,146 @@ function rangeBounds(): { from: number; to: number } | null {
   return { from: start.getTime(), to: end }
 }
 </script>
+
+<style scoped>
+/* ── B39 样式重建：统计面板壳层（原样式族丢失；token 对齐 TrendChart 等兄弟）── */
+.statistics-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.stats-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stats-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-title-row h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--pomo-text-strong);
+}
+
+.stats-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.range-switcher {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--pomo-surface-container-low);
+  border-radius: 8px;
+}
+
+.range-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pomo-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.range-btn:hover {
+  color: var(--pomo-text-strong);
+}
+
+.range-btn.active {
+  background: var(--pomo-surface-container);
+  color: var(--pomo-text-strong);
+  font-weight: 500;
+}
+
+.export-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-label {
+  font-size: 12px;
+  color: var(--pomo-text-faint);
+}
+
+.export-btn {
+  padding: 4px 10px;
+  border: 1px solid var(--pomo-glass-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pomo-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--pomo-surface-container-low);
+  color: var(--pomo-text-strong);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.export-feedback {
+  font-size: 12px;
+  color: var(--pomo-text-faint);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 0;
+  color: var(--pomo-text-muted);
+  font-size: 13px;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--pomo-surface-container);
+  border-top-color: var(--pomo-accent);
+  animation: stats-spin 0.8s linear infinite;
+}
+
+@keyframes stats-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .dual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

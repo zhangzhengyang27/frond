@@ -221,6 +221,14 @@ export class SnippetRepository {
       wheres.push(`is_favorite = ?`)
       params.push(filters.isFavorites ? 1 : 0)
     }
+    // B42：搜索下沉 SQL——search_text 是 name/description/contents 的明文投影
+    // （写入路径同步维护，迁移 032 回填存量）。LIKE 默认 ASCII 大小写不敏感
+    // （CJK 无大小写，语义等价旧 JS toLowerCase 比较）；通配符按字面义转义，
+    // 与旧 includes 行为一致
+    if (filters?.search) {
+      wheres.push(`search_text LIKE ? ESCAPE '\\'`)
+      params.push(`%${filters.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`)
+    }
 
     // tagId 需要 JOIN
     let sql = `SELECT * FROM snip_snippets`
@@ -241,22 +249,7 @@ export class SnippetRepository {
 
     const rows = this.db.prepare(sql).all(...params) as SnippetRow[]
 
-    let snippets = this.attachRelations(rows)
-
-    // 搜索只能在 JS 层做：contents.value 加密存储（encryptText），SQL/FTS 无法
-    // 匹配密文；且 FTS5 按 token 匹配给不了「子串包含」语义。代价是候选片段
-    // 全量解密——数据量大时的根治方案是改存储格式（明文内容列或自研 tokenizer）
-    if (filters?.search) {
-      const lower = filters.search.toLowerCase()
-      snippets = snippets.filter((s) => {
-        const nameMatch = s.name.toLowerCase().includes(lower)
-        const descMatch = s.description?.toLowerCase().includes(lower)
-        const contentMatch = s.contents.some(
-          (c) => c.label.toLowerCase().includes(lower) || c.value.toLowerCase().includes(lower)
-        )
-        return nameMatch || descMatch || contentMatch
-      })
-    }
+    const snippets = this.attachRelations(rows)
 
     return snippets
   }
@@ -276,8 +269,8 @@ export class SnippetRepository {
     const tx = this.db.transaction(() => {
       this.db
         .prepare(
-          `INSERT INTO snip_snippets (id, folder_id, title, content, language, description, trigger, is_favorite, usage_count, created_at, updated_at, deleted_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`
+          `INSERT INTO snip_snippets (id, folder_id, title, content, language, description, trigger, is_favorite, usage_count, created_at, updated_at, deleted_at, search_text)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`
         )
         .run(
           id,
@@ -290,7 +283,8 @@ export class SnippetRepository {
           snippet.isFavorites ? 1 : 0,
           ts,
           ts,
-          deletedAt
+          deletedAt,
+          buildSnippetSearchText(snippet.name, snippet.description, snippet.contents)
         )
       const contentInsert = this.db.prepare(
         `INSERT INTO snip_snippet_contents (id, snippet_id, label, value, language, position, content_type)
@@ -334,7 +328,7 @@ export class SnippetRepository {
       this.db
         .prepare(
           `UPDATE snip_snippets
-           SET folder_id = ?, title = ?, description = ?, trigger = ?, is_favorite = ?, updated_at = ?
+           SET folder_id = ?, title = ?, description = ?, trigger = ?, is_favorite = ?, updated_at = ?, search_text = ?
            WHERE id = ?`
         )
         .run(
@@ -344,6 +338,7 @@ export class SnippetRepository {
           next.trigger?.trim() || null,
           next.isFavorites ? 1 : 0,
           ts,
+          buildSnippetSearchText(next.name, next.description, next.contents),
           id
         )
 
@@ -446,8 +441,8 @@ export class SnippetRepository {
    */
   importMany(snippets: Snippet[]): number {
     const insertSnippet = this.db.prepare(
-      `INSERT INTO snip_snippets (id, folder_id, title, content, language, description, trigger, is_favorite, usage_count, created_at, updated_at, deleted_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+      `INSERT INTO snip_snippets (id, folder_id, title, content, language, description, trigger, is_favorite, usage_count, created_at, updated_at, deleted_at, search_text)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET
          folder_id = excluded.folder_id,
          title = excluded.title,
@@ -458,7 +453,8 @@ export class SnippetRepository {
          is_favorite = excluded.is_favorite,
          created_at = excluded.created_at,
          updated_at = excluded.updated_at,
-         deleted_at = excluded.deleted_at`
+         deleted_at = excluded.deleted_at,
+         search_text = excluded.search_text`
     )
     const deleteContents = this.db.prepare(`DELETE FROM snip_snippet_contents WHERE snippet_id = ?`)
     const insertContent = this.db.prepare(
@@ -485,7 +481,8 @@ export class SnippetRepository {
           s.isFavorites ? 1 : 0,
           s.createdAt,
           s.updatedAt,
-          s.isDeleted ? s.updatedAt : null
+          s.isDeleted ? s.updatedAt : null,
+          buildSnippetSearchText(s.name, s.description, s.contents)
         )
         deleteContents.run(s.id)
         s.contents.forEach((c, idx) => {
@@ -511,3 +508,20 @@ export class SnippetRepository {
 
 export const snippetRepository = new SnippetRepository()
 
+
+/**
+ * 明文搜索投影（B42）：name / description / contents 标签与明文值，\n 拼接。
+ * 落在 snip_snippets.search_text（迁移 032），所有写入路径必须同步维护；
+ * 搜索下沉 SQL LIKE 后，候选片段不再需要全量解密。
+ */
+export function buildSnippetSearchText(
+  name: string,
+  description: string | null | undefined,
+  contents: Array<{ label?: string; value?: string }>
+): string {
+  const parts: string[] = [name ?? '', description ?? '']
+  for (const c of contents) {
+    parts.push(c.label ?? '', c.value ?? '')
+  }
+  return parts.join('\n')
+}

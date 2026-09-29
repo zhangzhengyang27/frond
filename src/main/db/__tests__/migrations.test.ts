@@ -51,15 +51,19 @@ describe('migrations', () => {
   })
 
   it('031 改名：leaf_meta 的幂等标志位搬进 frond_meta 且不丢行', () => {
-    // 造一个「改名前的老库」：跑到 030，再手工建 leaf_meta 与带旧插件 id 的文档行
-    runMigrations(db, migrations.slice(0, -1))
+    // 造一个「改名前的老库」：跑到 030（按 version 取，不假设它是最后一版），
+    // 再手工建 leaf_meta 与带旧插件 id 的文档行
+    const v31 = migrations.find((m) => m.version === 31)
+    const before31 = migrations.filter((m) => m.version < 31)
+    runMigrations(db, before31)
     db.exec(`CREATE TABLE leaf_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER)`)
     db.prepare(`INSERT INTO leaf_meta VALUES ('data_migration_v2', '1', 1)`).run()
     db.prepare(
       `INSERT INTO launcher_docs (doc_id, plugin_id, data, updated_at) VALUES ('com.leaf.jwt:help', 'com.leaf.jwt', '{}', 1)`
     ).run()
 
-    runMigrations(db, migrations.slice(-1))
+    expect(v31).toBeDefined()
+    runMigrations(db, [v31!])
 
     expect(tableNames(db)).not.toContain('leaf_meta')
     // 标志位还在：丢了它 dataMigrations 会把 electron-store 老数据再导入一遍
@@ -70,7 +74,7 @@ describe('migrations', () => {
       db.prepare(`SELECT doc_id, plugin_id FROM launcher_docs WHERE plugin_id = 'com.frond.jwt'`).get()
     ).toEqual({ doc_id: 'com.frond.jwt:help', plugin_id: 'com.frond.jwt' })
     // 再跑一次没有可改的行（幂等）
-    expect(() => runMigrations(db, migrations.slice(-1))).not.toThrow()
+    expect(() => runMigrations(db, [v31!])).not.toThrow()
   })
 
   it.todo('018 下线图片管理/壁纸模块：photo_* / wall_* / lib_files 表已删除')

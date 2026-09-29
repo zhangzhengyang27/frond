@@ -430,7 +430,7 @@ export class ClipService {
       })
 
       // 步骤 4: 应用转场效果、添加背景音乐、调整分辨率和帧率
-      const finalArgs = this.buildFinalArgs(mergedPath, options.outputPath, options)
+      const finalArgs = buildClipFinalExportArgs(mergedPath, options.outputPath, options)
       await execFileAsync(ffmpeg, finalArgs, { timeout: 600000 }) // 10 分钟超时
 
       progressCallback?.({
@@ -452,46 +452,6 @@ export class ClipService {
       if (mergedPath) stageFiles.push(mergedPath)
       this.cleanupTempFiles(stageFiles)
     }
-  }
-
-  /**
-   * 构建最终导出参数（execFile 参数数组，无需处理引号转义）
-   */
-  private buildFinalArgs(inputPath: string, outputPath: string, options: ExportOptions): string[] {
-    const args: string[] = ['-i', inputPath]
-
-    const hasBgm = !!(options.backgroundMusic && existsSync(options.backgroundMusic.path))
-
-    // 添加背景音乐（如果有）
-    if (hasBgm) {
-      args.push('-i', options.backgroundMusic!.path)
-    }
-
-    // 视频编码设置
-    args.push('-c:v', 'libx264')
-    args.push('-preset', 'medium')
-    args.push('-crf', '23')
-    args.push('-s', `${options.resolution}x${Math.round((options.resolution * 9) / 16)}`) // 16:9 比例（宽 x 高）
-    args.push('-r', String(options.fps))
-
-    // 音频设置
-    if (hasBgm) {
-      // 混合音频：降低原视频音量，添加背景音乐
-      const videoVolume = Math.max(0, 1 - options.backgroundMusic!.volume)
-      args.push(
-        '-filter_complex',
-        `[0:a]volume=${videoVolume}[v0a];[1:a]volume=${options.backgroundMusic!.volume}[v1a];[v0a][v1a]amix=inputs=2:duration=first:dropout_transition=2[outa]`
-      )
-      args.push('-map', '0:v')
-      args.push('-map', '[outa]')
-    } else {
-      args.push('-c:a', 'copy')
-    }
-
-    // 输出文件
-    args.push('-y', outputPath)
-
-    return args
   }
 
   /**
@@ -572,4 +532,57 @@ export class ClipService {
 
     return { duration, width, height, fps }
   }
+}
+
+/**
+ * 最终导出参数（模块级纯函数，可单测）。
+ *
+ * B37：options.resolution 是目标**高度**（ExportDialog「1280×720」选的 value 是 720），
+ * 旧实现把它当宽度拼 `-s 720x405`——奇数高被 libx264 yuv420p 拒绝（720p/4K 档
+ * 100% 失败），其余档位尺寸与标签不符。与 RecordingExportService.buildSimpleExportArgs
+ * 同口径：`scale=-2:H` 保持源宽高比并把宽度偶数化。
+ * -vf 与 -filter_complex 互斥：有 BGM 时缩放并入 filter_complex 首段并映射 [0v]。
+ */
+export function buildClipFinalExportArgs(
+  inputPath: string,
+  outputPath: string,
+  options: ExportOptions
+): string[] {
+  const args: string[] = ['-i', inputPath]
+
+  const hasBgm = !!(options.backgroundMusic && existsSync(options.backgroundMusic.path))
+
+  // 添加背景音乐（如果有）
+  if (hasBgm) {
+    args.push('-i', options.backgroundMusic!.path)
+  }
+
+  // 视频编码设置
+  args.push('-c:v', 'libx264')
+  args.push('-preset', 'medium')
+  args.push('-crf', '23')
+
+  const scaleFilter = `scale=-2:${options.resolution}`
+
+  // 音频设置
+  if (hasBgm) {
+    // 混合音频：缩放视频 + 降低原视频音量 + 混入背景音乐
+    const videoVolume = Math.max(0, 1 - options.backgroundMusic!.volume)
+    args.push(
+      '-filter_complex',
+      `[0:v]${scaleFilter}[0v];[0:a]volume=${videoVolume}[v0a];[1:a]volume=${options.backgroundMusic!.volume}[v1a];[v0a][v1a]amix=inputs=2:duration=first:dropout_transition=2[outa]`
+    )
+    args.push('-map', '[0v]')
+    args.push('-map', '[outa]')
+  } else {
+    args.push('-vf', scaleFilter)
+    args.push('-c:a', 'copy')
+  }
+
+  args.push('-r', String(options.fps))
+
+  // 输出文件
+  args.push('-y', outputPath)
+
+  return args
 }

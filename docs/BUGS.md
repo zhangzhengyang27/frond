@@ -559,3 +559,22 @@
   记账后走快路径；E2E 旁路与 pluginConfirm 同口径；纯逻辑 mcpConfirm.ts 可单测
 - 【未跑】MCP 确认弹窗与脱敏表单的真机走查（设置页改配置 → 连接 → 弹窗 → 允许
   → 再连不弹；改口令留空保存 → 连接仍通）
+
+## 2026-09-29 发现（用户实感 · 三）
+
+### B43 Frond 启动后整台电脑键鼠发卡（用户报告 → 当日已修，实测归因）
+- 现象：dev 启动 Frond 后全机卡顿；启动日志 10 秒内 10 条 `hook_event_proc: CGEventTap timeout!`
+- 归因链（代码侧取证 + 重启采样实证）：
+  ① `textExpansion.start()` 只要开关 enabled 就订阅 globalKeyHook——uiohook 的
+  CGEventTap 覆盖键盘+鼠标移动**全套**系统事件（uiohook-napi 默认全事件 mask，
+  每次鼠标移动都跨 N-API 进主进程 emit）；② 本机用户库实况：扩展开关开着
+  （sys.expansion:config = {"enabled":true}）但带触发词的片段 0 条——常驻 tap
+  纯付房租零收益；③ 主进程被拖慢（dev 模式 + 无障碍树常开等）→ tap 回调超时
+  → macOS 对超时的活动 tap 限流**全系统**输入 → 全机键鼠发卡
+- 修复：applyConfig 改「enabled 且确有触发词」才订阅（前置 loadTriggers）；
+  invalidateTriggers 在片段增删改时重评估（跨 0↔N 边界自动订阅/退订）；
+  ExpansionBuffer 补 hasTriggers()。重启实证：CGEventTap 超时 0 次、uiohook
+  未加载、主进程 CPU idle；订阅状态机回归钉四条
+- 附带发现：globalKeys.ts 的 maybeStop/ensureStarted 交错有「新监听器全聋」窗口
+  （2026-09-29 审计 P2 项），与本文无因果但同属全局钩子域，仍挂账
+- 【未跑】用户侧确认：装新版本后正常使用一段时间验证卡顿消失（机器级体感只能用户判）

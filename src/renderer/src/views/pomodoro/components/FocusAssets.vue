@@ -58,6 +58,12 @@ const streak = computed(() => store.streak)
   white-space: nowrap;
 }
 
+/* 最长纪录给一档弱化（当前连击是主信息，B39 重建） */
+.asset-best {
+  color: var(--pomo-text-faint);
+  font-weight: 500;
+}
+
 .focus-assets.is-active .asset-text {
   color: var(--pomo-text-strong);
 }

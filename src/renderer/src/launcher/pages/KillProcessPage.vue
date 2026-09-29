@@ -124,6 +124,11 @@ defineExpose({
   min-height: 0;
 }
 
+.kp-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .kp-error {
   padding: 6px 16px;
   font-size: 12px;

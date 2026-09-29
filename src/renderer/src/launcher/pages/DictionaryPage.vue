@@ -105,6 +105,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.dict-content {
+  display: flex;
+  flex-direction: column;
+}
+
 .dict-page {
   display: flex;
   flex-direction: column;

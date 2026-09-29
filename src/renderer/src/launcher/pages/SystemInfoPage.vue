@@ -105,6 +105,12 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.system-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .system-info-page {
   display: flex;
   flex-direction: column;

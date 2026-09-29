@@ -66,7 +66,11 @@ const UTILITY_SHAPE = /^[a-z][a-z0-9:.[\]()/:%#!_,-]*$/
 /** 确认不是 CSS 类的字符串（测试钩子/组件内部约定），带理由放行 */
 const ALLOWLIST = new Map<string, string>([
   // LauncherApp 里 :class 中的动作名比较值（'fallback:ai' 是 AI 通道名，不是类）
-  ['fallback:ai', '路由/动作名值字符串，不是 CSS 类']
+  ['fallback:ai', '路由/动作名值字符串，不是 CSS 类'],
+  // B3：scrollBehavior 靠它找滚动容器，是 JS 钩子不是样式类
+  ['app-scroll', '滚动容器标记类（scrollBehavior 查找用），无样式语义'],
+  // snippets 三栏布局全由工具类承担，类名只作语义标记
+  ['snippets-main', '布局标记类，样式全部由同行工具类承担']
 ])
 
 /**
@@ -87,14 +91,12 @@ const BASELINE = new Set([
   'action-btn',
   'action-feedback',
   'action-row',
-  'asset-best',
   'assets-hint',
   'close-btn',
   'code-block',
   'control-btn',
   'controls-left',
   'controls-right',
-  'dict-content',
   'drawer-body',
   'drawer-description',
   'dual-grid',
@@ -105,40 +107,26 @@ const BASELINE = new Set([
   'export-label',
   'external',
   'free-records',
-  'frond-onboarding',
-  'has-reminder',
   'hint-actions',
   'hint-text',
   'icon-btn',
-  'kp-list',
   'loading',
   'loading-spinner',
   'markdown-content',
   'markdown-presentation-container',
   'markdown-wrapper',
-  'mb-list',
   'page-indicator',
   'preview-btn',
   'preview-btn-close',
   'preview-content',
   'presentation-content',
   'presentation-controls',
-  'primary',
   'priority-bar',
   'range-btn',
   'range-switcher',
   'scale-display',
-  'sched-group',
   'section-header',
   'section-meta',
-  'shield-actions',
-  'shield-app',
-  'shield-btn',
-  'shield-hint',
-  'shield-icon',
-  'shield-sub',
-  'shield-text',
-  'shield-title',
   'snippets-main',
   'statistics-panel',
   'stats-icon',
@@ -149,7 +137,6 @@ const BASELINE = new Set([
   'summary-grid',
   'summary-label',
   'summary-unit',
-  'system-info-content',
   'timeline',
   'timeline-card',
   'timeline-card-body',
@@ -160,9 +147,7 @@ const BASELINE = new Set([
   'timeline-meta',
   'timeline-mode',
   'timeline-section',
-  'timeline-time',
-  'ws-list',
-  'z-modal'
+  'timeline-time'
 ])
 
 describe('幽灵类门禁（每个 class 都必须能在 CSS 事实源里查到）', () => {
@@ -211,16 +196,18 @@ describe('幽灵类门禁（每个 class 都必须能在 CSS 事实源里查到�
         `确实不是 CSS 类的加进本文件 ALLOWLIST 并写明理由：\n${detail}`
     ).toBe(0)
 
-    // 基线瘦身边：被清掉的条目提醒从 BASELINE 删除（不红，只提示）
-    const stillFlagged = new Set([...ghosts.keys()])
+    // 基线瘦身边：条目「样式已补上（isDefined）」或「模板里已不再使用」时
+    // 提示从 BASELINE 删除（不红，只提示；重建 B39 的工作流就是补样式→划账）
+    const usedInTemplates = new Set<string>()
     for (const file of collectVueFiles(join(repoRoot, 'src/renderer/src'))) {
       const src = readFileSync(file, 'utf-8')
       for (const token of BASELINE) {
-        if (!src.includes(token)) continue
-        stillFlagged.add(token)
+        if (src.includes(token)) usedInTemplates.add(token)
       }
     }
-    const cleared = [...BASELINE].filter((t) => !stillFlagged.has(t))
+    const cleared = [...BASELINE].filter(
+      (t) => !usedInTemplates.has(t) || isDefined(t, facts + '\n' + styleText)
+    )
     if (cleared.length > 0) {
       console.warn(
         `[ghost-baseline] 以下基线条目在模板中已不再出现，请从 BASELINE 删除：${cleared.join(', ')}`

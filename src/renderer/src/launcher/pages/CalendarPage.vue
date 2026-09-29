@@ -353,6 +353,13 @@ onMounted(() => {
     opacity: 0.3;
   }
 
+  // 有提醒的日子：日期数字加重（圆点已在下方，数字层面再给一档辨识度）
+  &.has-reminder {
+    .cal-day-num {
+      font-weight: 600;
+    }
+  }
+
   &.today {
     background: var(--launcher-accent-bg);
     .cal-day-num {

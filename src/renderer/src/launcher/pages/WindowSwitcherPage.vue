@@ -137,6 +137,11 @@ defineExpose({
   }
 }
 
+.ws-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .ws-item {
   display: flex;
   align-items: center;

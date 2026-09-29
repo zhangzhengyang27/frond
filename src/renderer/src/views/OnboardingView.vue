@@ -156,7 +156,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
 
 <template>
   <div
-    class="frond-onboarding fixed inset-0 z-modal flex items-center justify-center bg-overlay backdrop-blur-md"
+    class="frond-onboarding fixed inset-0 flex items-center justify-center bg-overlay backdrop-blur-md"
   >
     <!-- 跳过按钮（右上角） -->
     <button
@@ -445,6 +445,11 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
 </template>
 
 <style scoped>
+/* B39 重建：引导层要压在一切常规层之上（含 z-30 下拉）；两个类名都留作标记 */
+.frond-onboarding {
+  z-index: 1000;
+}
+
 .slide-forward-enter-active,
 .slide-forward-leave-active,
 .slide-back-enter-active,

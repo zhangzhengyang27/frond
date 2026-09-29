@@ -68,4 +68,81 @@ onUnmounted(() => {
   text-align: center;
   padding: 48px 64px;
 }
+
+/* ── B39 样式重建：护盾内层（原样式在 0922 事故中随组件样式族丢失）──
+   本组件是恒定深色遮罩（B24 同口径豁免，不随主题），沿用 .shield 的
+   自持色板；品牌色用 v4 token 加同值兜底 */
+
+.shield-icon {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+
+.shield-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0 0 12px;
+}
+
+.shield-text {
+  font-size: 15px;
+  color: #c7d2dc;
+  margin: 0 0 8px;
+}
+
+.shield-app {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.shield-sub {
+  font-size: 13px;
+  color: #8a97a5;
+  margin: 0 0 28px;
+}
+
+.shield-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.shield-btn {
+  padding: 8px 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8edf2;
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.shield-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.shield-btn:active {
+  transform: scale(0.97);
+}
+
+.shield-btn.primary {
+  background: var(--brand-500, #007aff);
+  border-color: transparent;
+  color: #ffffff;
+}
+
+.shield-btn.primary:hover {
+  background: var(--brand-600, #0064d2);
+}
+
+.shield-hint {
+  font-size: 12px;
+  color: #6b7684;
+}
 </style>

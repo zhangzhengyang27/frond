@@ -193,6 +193,11 @@ onMounted(() => {
   flex: 1;
 }
 
+.sched-group {
+  display: flex;
+  flex-direction: column;
+}
+
 .sched-list {
   flex: 1;
   min-width: 0;

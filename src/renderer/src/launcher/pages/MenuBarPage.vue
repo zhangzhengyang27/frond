@@ -149,6 +149,11 @@ defineExpose({
   background: rgba(255, 69, 58, 0.1);
 }
 
+.mb-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .mb-scroll {
   flex: 1;
   min-height: 0;

@@ -31,11 +31,14 @@ interface LogEntry {
 const RING_SIZE = 1000
 /** SQLite 侧最多留多少行，超出按时间从旧到新裁（防长期运行无限涨表） */
 const DB_KEEP_ROWS = 5000
+/** 裁剪节流：每 N 条写入跑一次（单次是 5000 行级 DELETE，日志风暴时按条放大） */
+const TRIM_EVERY_N_WRITES = 100
 const TELEMETRY_KEY = 'telemetry_mode'
 
 class LogService {
   private ring: LogEntry[] = []
   private mode: TelemetryMode = 'local'
+  private writesSinceTrim = 0
 
   info(scope: string, msg: string): void {
     this.write('info', scope, msg)
@@ -119,7 +122,12 @@ class LogService {
       db.prepare(
         `INSERT INTO log_entries (ts, level, scope, msg, stack, meta_json) VALUES (?, ?, ?, ?, ?, ?)`
       ).run(entry.ts, level, scope, msg, stack ?? null, meta ?? null)
-      this.trim(db)
+      // 每 100 条裁一次：每条日志都跑一次 5000 行 DELETE 会在日志风暴时放大风暴（B41）
+      this.writesSinceTrim += 1
+      if (this.writesSinceTrim >= TRIM_EVERY_N_WRITES) {
+        this.writesSinceTrim = 0
+        this.trim(db)
+      }
     } catch {
       /* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条 */
     }

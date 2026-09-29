@@ -44,19 +44,23 @@ function isInsideTrash(itemPath: unknown): boolean {
   }
 }
 
-/** 列出回收站内容 */
+/** 列出回收站内容（异步 fs：万条目级 statSync 循环同样卡主进程，B40） */
 export async function listTrash(): Promise<TrashItem[]> {
   const trashPath = getTrashPath()
   try {
-    if (!fs.existsSync(trashPath)) return []
-    const files = fs.readdirSync(trashPath)
+    let files: string[] = []
+    try {
+      files = await fs.promises.readdir(trashPath)
+    } catch {
+      return []
+    }
     const items: TrashItem[] = []
     for (const name of files) {
       // 跳过 .DS_Store 等隐藏文件
       if (name.startsWith('.')) continue
       const fullPath = path.join(trashPath, name)
       try {
-        const stat = fs.statSync(fullPath)
+        const stat = await fs.promises.stat(fullPath)
         items.push({
           name,
           path: fullPath,
@@ -76,16 +80,16 @@ export async function listTrash(): Promise<TrashItem[]> {
   }
 }
 
-/** 清空回收站 */
+/** 清空回收站（异步 fs：递归删除上 GB 时不再冻结主进程全部 IPC，B40） */
 export async function emptyTrash(): Promise<boolean> {
   try {
     const trashPath = getTrashPath()
-    const files = fs.readdirSync(trashPath)
+    const files = await fs.promises.readdir(trashPath)
     for (const name of files) {
       if (name.startsWith('.')) continue
       const fullPath = path.join(trashPath, name)
       try {
-        fs.rmSync(fullPath, { recursive: true, force: true })
+        await fs.promises.rm(fullPath, { recursive: true, force: true })
       } catch (err) {
         console.warn(`[TrashService] failed to delete ${name}:`, err)
       }

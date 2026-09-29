@@ -12,6 +12,14 @@ const pipCameraRef = ref<HTMLVideoElement | null>(null)
 
 let canvasRef: HTMLCanvasElement | null = null
 let animationFrameId: number | null = null
+// 后台绘制定时器：hidden 时 rAF 不节拍，改 setTimeout 驱动（captureStream 按
+// 采样率自动取帧，不依赖 rAF 节拍）；可见时回 rAF。切换由 visibilitychange 驱动
+let backgroundDrawTimer: number | null = null
+// 绘制循环的代际号：cleanup 递增使在途的 combineStreams 作废——否则 ready-wait
+//（最长 10s）期间 cleanup 跑完，等待结束后 draw() 照常自续 rAF，再无人取消（B41）
+let combineEpoch = 0
+// 绘制循环的拆除器（由最近一次 combineStreams 注册；cleanup 调用）
+let stopDrawLoop: (() => void) | null = null
 let hiddenScreenVideo: HTMLVideoElement | null = null
 let hiddenCameraVideo: HTMLVideoElement | null = null
 // 录制区域（屏幕 DIP 坐标系）。若非 null，合成 canvas 会裁剪到该区域
@@ -72,6 +80,9 @@ function releaseCachedAudio(): void {
     cachedAudioStream.getTracks().forEach((t) => t.stop())
     cachedAudioStream = null
   }
+  // 混音缓存里存的是 WebAudio 目的流，原始麦克风流挂在 micExtraStreams：
+  // 不一并停的话用户关掉麦克风后设备仍被占用（系统指示灯常亮，B41）
+  micExtraStreams.splice(0).forEach((s) => s.getTracks().forEach((t) => t.stop()))
   // 缓存流已释放：混音 ctx 失去消费侧，必须关闭（否则配置变更后再录制
   // 每次泄漏一个 AudioContext，Chromium 有数量上限，超限后混音静默退化）
   closeMixedAudioCtx()
@@ -153,8 +164,8 @@ const getAudioStream = async (): Promise<MediaStream | null> => {
 }
 
 function releaseAllAudio(): void {
+  // releaseCachedAudio 已带原始流清理，这里只兜混音 ctx
   releaseCachedAudio()
-  micExtraStreams.splice(0).forEach((s) => s.getTracks().forEach((t) => t.stop()))
   if (mixedAudioCtx) {
     void mixedAudioCtx.close().catch(() => {})
     mixedAudioCtx = null
@@ -383,6 +394,9 @@ const combineStreams = async (): Promise<MediaStream> => {
   if (!stream.value || !cameraStream.value) {
     throw new Error('屏幕流或摄像头流不存在')
   }
+  // 代际号：cleanup 递增后，本轮在途的后续步骤全部作废（见 combineEpoch 注）
+  const epoch = ++combineEpoch
+  const stale = (): boolean => epoch !== combineEpoch
 
   // 停止之前的合成流
   if (canvasStream.value) {
@@ -395,11 +409,9 @@ const combineStreams = async (): Promise<MediaStream> => {
     await addAudioToStream(stream.value)
   }
 
-  // 停止之前的动画帧
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId)
-    animationFrameId = null
-  }
+  // 停止之前的绘制循环（含 visibilitychange 监听与后台定时器）
+  stopDrawLoop?.()
+  stopDrawLoop = null
 
   // 清理之前的隐藏视频元素
   if (hiddenScreenVideo && hiddenScreenVideo.parentNode) {
@@ -496,6 +508,13 @@ const combineStreams = async (): Promise<MediaStream> => {
   // 创建合成流
   const newCanvasStream = canvas.captureStream(captureFps)
 
+  // ready-wait（最长 10s）期间 cleanup 已跑：本轮作废——轨道立即收掉防驻留，
+  // 绝不进入下方的自续绘制循环（否则 rAF 复活且再无人取消）
+  if (stale()) {
+    newCanvasStream.getTracks().forEach((t) => t.stop())
+    return newCanvasStream
+  }
+
   // 将屏幕流的音频轨道添加到合成流
   stream.value.getAudioTracks().forEach((audioTrack) => {
     newCanvasStream.addTrack(audioTrack)
@@ -503,16 +522,13 @@ const combineStreams = async (): Promise<MediaStream> => {
 
   canvasStream.value = newCanvasStream
 
-  // 绘制函数
-  const draw = (): void => {
+  // 绘制函数：B41——窗口隐藏时 rAF 不节拍，原实现「跳过绘制但续 rAF」实际
+  // 整个循环停摆，captureStream 拿不到新帧 → 录出的是定格最后一帧（用户录制时
+  // 切到别的应用是主流姿势）。改为：可见时 rAF 驱动，隐藏时 setTimeout 驱动
+  // （captureStream 按采样率自动取帧，不依赖 rAF 节拍），切换挂 visibilitychange
+  function draw(): void {
+    if (stale()) return
     if (!ctx || !screenVideo) {
-      return
-    }
-
-    // 窗口不可见时跳过绘制，节省 CPU/GPU（仍保持 rAF 循环以便恢复）。
-    // 注意：最小化期间录制画面会停留在最后一帧。
-    if (document.hidden) {
-      animationFrameId = requestAnimationFrame(draw)
       return
     }
 
@@ -594,7 +610,45 @@ const combineStreams = async (): Promise<MediaStream> => {
       ctx.drawImage(cameraVideo, pipX, pipY, pipSize, pipSize)
     }
 
-    animationFrameId = requestAnimationFrame(draw)
+    scheduleDraw()
+  }
+
+  function scheduleDraw(): void {
+    if (stale()) return
+    if (document.hidden) {
+      // 后台节拍降到 2fps：合成录制在后台只需保住「画面在动」，省 CPU
+      backgroundDrawTimer = window.setTimeout(draw, 500)
+    } else {
+      animationFrameId = requestAnimationFrame(draw)
+    }
+  }
+
+  const onVisibilityChange = (): void => {
+    if (stale()) return
+    // 切换调度通道：挂着的 rAF/timeout 作废重排（rAF 在后台永不触发，
+    // 不重排的话切后台瞬间循环就死了）
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId)
+      animationFrameId = null
+    }
+    if (backgroundDrawTimer) {
+      clearTimeout(backgroundDrawTimer)
+      backgroundDrawTimer = null
+    }
+    scheduleDraw()
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  // 绘制循环的统一拆除口：换源重建 / cleanup 时摘监听 + 停两个调度通道
+  stopDrawLoop = (): void => {
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId)
+      animationFrameId = null
+    }
+    if (backgroundDrawTimer) {
+      clearTimeout(backgroundDrawTimer)
+      backgroundDrawTimer = null
+    }
   }
 
   // 开始绘制
@@ -660,10 +714,10 @@ const closeCamera = (): void => {
 
 // 清理资源
 const cleanup = (): void => {
-  if (animationFrameId) {
-    cancelAnimationFrame(animationFrameId)
-    animationFrameId = null
-  }
+  // 拆绘制循环 + 作废在途的 combineStreams（代际号失效，ready-wait 结束后不再复活）
+  stopDrawLoop?.()
+  stopDrawLoop = null
+  combineEpoch += 1
   if (hiddenScreenVideo && hiddenScreenVideo.parentNode) {
     hiddenScreenVideo.srcObject = null
     hiddenScreenVideo.parentNode.removeChild(hiddenScreenVideo)

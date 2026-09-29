@@ -497,3 +497,21 @@
   WindowSwitcher/KillProcess 空列表 NaN（MenuBarPage 修了没同步两页）、窗口 id 非唯一、
   AutoUpdate 预发布版本 NaN、AI Key/WebDAV 口令解密后明文回传渲染端、CSV 不转义、
   ReminderService uncomplete 不清 notified_at（重启后永不再通知）
+
+## 2026-09-29 修复注记 · 二（B38/B40/B41 部分清账）
+- B40 已修五件半：removePlugin 过 isValidPluginId（`../..` 递归删任意目录的口封死，
+  pluginStore 层守、IPC try/catch 兜）；activateTab 的 windowId/tabIndex 卡正整数
+  （裸拼 AppleScript 的注入面）；数据库迁移失败关句柄+置空重开（半迁移库不再被幂等
+  短路复用——应用从「带伤运行无日志」变回「显式失败」）；TrashService list/empty 全部
+  改 fs.promises（上 GB 回收站/万条目不再冻结主进程全部 IPC）；AI 三处 fetch 与
+  favicon 换 node-fetch v2 + pinningAgentSelector——**全局 undici fetch 会静默忽略
+  agent 选项**，此前 AI 通道的 DNS 钉住根本没有生效面；favicon 顺带修掉 redirect:'error'
+  死代码（3xx 直接 reject，逐跳复检永远走不到），改 'manual' 让手工跳转真正生效
+  。AI 流式 reader 经 Readable.toWeb 适配（消费形态不变）；【未跑】AI 真机冒烟
+  （域冻结中，下次 AI 解冻轮补）
+- B38 部分已修：dataSync 全部 WebDAV 调用包 withTimeout（挂起不再永久转圈）；
+  墓碑段与半失败态仍挂账
+- B41 已修一件：LogService 裁剪按每 100 条节流（原每条一次 5000 行 DELETE，
+  日志风暴时放大风暴）；其余（剪贴板全量重加密、片段全表解密、useStreamManager
+  三竞态等）仍挂账
+- B40 仍挂账：mcp:setServers 确认闸（差分确认复用 pluginConfirm）——动 UX，待拍板

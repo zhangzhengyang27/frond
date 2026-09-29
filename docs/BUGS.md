@@ -515,3 +515,14 @@
   日志风暴时放大风暴）；其余（剪贴板全量重加密、片段全表解密、useStreamManager
   三竞态等）仍挂账
 - B40 仍挂账：mcp:setServers 确认闸（差分确认复用 pluginConfirm）——动 UX，待拍板
+
+## 2026-09-29 修复注记 · 三（B41 再清一批）
+- useStreamManager 三竞态：①micExtraStreams 只进不出（关麦克风后系统指示灯
+  常亮）折回 releaseCachedAudio 统一释放；②cleanup × ready-wait 竞态致 rAF
+  循环复活——combineStreams 加代际号，stale 即作废；③后台 rAF 停摆致合成录制
+  出静帧——visibilitychange 驱动双通道调度（可见 rAF / 隐藏 setTimeout 500ms），
+  拆除统一走 stopDrawLoop
+- ClipboardHistory：高频路径 persist 改 300ms 尾随防抖（will-quit flush 兜底）
+  + 单条文本 512K 字符上限；大图驻留每秒全尺寸 readImage 指纹一项仍挂账
+- ReminderService.uncomplete 补 resetNotified；MarkerService CSV 标准 "" 转义；
+  WindowSwitcher/KillProcess 两页补空列表 NaN 守卫

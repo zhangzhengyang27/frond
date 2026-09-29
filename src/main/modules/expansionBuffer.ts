@@ -44,6 +44,10 @@ export class ExpansionBuffer {
     this.triggers = triggers
   }
 
+  hasTriggers(): boolean {
+    return this.triggers.length > 0
+  }
+
   getText(): string {
     return this.chars.join('')
   }

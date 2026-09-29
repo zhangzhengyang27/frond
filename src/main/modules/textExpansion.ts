@@ -71,7 +71,9 @@ class TextExpansionService {
 
   /** 从 DB 重建触发词缓存（snippet 增删改后由 IPC 侧 invalidate） */
   invalidateTriggers(): void {
+    // 触发词集合可能跨过 0↔N 边界：订阅状态要重评估（B43 卡顿根因）
     this.triggersStale = true
+    this.applyConfig(readConfig())
   }
 
   private loadTriggers(): void {
@@ -106,14 +108,26 @@ class TextExpansionService {
     this.stopListening = null
   }
 
-  /** 开关变更（IPC）：启用即订阅全局按键，停用即退订 */
+  /**
+   * 开关变更 / 触发词集合变更（IPC）：重评估订阅。
+   *
+   * B43（启动后全机卡顿）根因的一半：此前只要 enabled 就订阅全局键钩子——
+   * uiohook 的 CGEventTap 覆盖键盘+鼠标移动全套事件，系统里每一次鼠标移动
+   * 都会跨 N-API 进主进程分发。零触发词的用户（多数人）等于常驻一个纯开销的
+   * 全局 tap；主进程被 dev/无障碍树拖慢后 tap 超时（CGEventTap timeout），
+   * macOS 对超时的活动 tap 限流全系统输入——表现就是整台电脑键鼠发卡。
+   * 现口径：enabled 且「确有触发词」才订阅；0 触发词退订，片段增删改时重评估。
+   */
   applyConfig(config: ExpansionConfig): void {
-    if (config.enabled && !this.stopListening) {
+    this.loadTriggers()
+    const hasTriggers = this.buffer.hasTriggers()
+    const shouldListen = config.enabled && hasTriggers
+    if (shouldListen && !this.stopListening) {
       this.stopListening = globalKeyHook.onKeydown((e) => {
         this.onKeydown(e)
       })
       this.triggersStale = true
-    } else if (!config.enabled && this.stopListening) {
+    } else if (!shouldListen && this.stopListening) {
       this.stopListening()
       this.stopListening = null
     }
@@ -133,6 +147,11 @@ class TextExpansionService {
   getTriggerCount(): number {
     this.loadTriggers()
     return this.bufferTextCount()
+  }
+
+  /** 订阅状态（诊断/测试用）：全局键钩子上是否挂着本服务的监听 */
+  hasActiveListener(): boolean {
+    return this.stopListening !== null
   }
 
   private bufferTextCount(): number {

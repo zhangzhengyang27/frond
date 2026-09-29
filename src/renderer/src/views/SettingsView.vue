@@ -197,6 +197,8 @@ const shieldMode = ref<'remind' | 'hide' | 'quit'>('remind')
 // ── AI 配置 ──
 const aiEnabled = ref(false)
 const aiApiKey = ref('')
+// 脱敏回传（B40）：本机是否已存 Key（口令框占位提示用；留空保存 = 保持原值）
+const aiHasStoredKey = ref(false)
 const aiBaseUrl = ref('https://api.openai.com/v1')
 const aiModel = ref('gpt-4o-mini')
 const aiSystemPrompt = ref('你是一个简洁高效的助手，回答尽量简短直接。')
@@ -243,6 +245,7 @@ async function loadAIConfig(): Promise<void> {
     const cfg = (await window.api.ai.getConfig()) as {
       enabled: boolean
       apiKey: string
+      hasApiKey?: boolean
       baseUrl: string
       model: string
       systemPrompt: string
@@ -252,6 +255,7 @@ async function loadAIConfig(): Promise<void> {
     aiProvider.value = cfg.provider ?? ''
     aiEnabled.value = cfg.enabled
     aiApiKey.value = cfg.apiKey
+    aiHasStoredKey.value = !!cfg.hasApiKey
     aiBaseUrl.value = cfg.baseUrl
     aiModel.value = cfg.model
     aiSystemPrompt.value = cfg.systemPrompt
@@ -1058,7 +1062,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   <input
                     v-model="aiApiKey"
                     type="password"
-                    placeholder="sk-..."
+                    :placeholder="aiHasStoredKey ? '已保存（留空保持不变）' : 'sk-...'"
                     class="w-full rounded-lg bg-surface-2 px-3 py-2 text-[13px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
                   />
                 </div>

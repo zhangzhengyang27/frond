@@ -8,8 +8,10 @@
 export interface AIConfig {
   /** 总开关 */
   enabled: boolean
-  /** API Key（加密存储在 electron-store） */
+  /** API Key（加密存储在 electron-store；渲染端回传为 ''，见 hasApiKey） */
   apiKey: string
+  /** 仅回传方向：本机是否存有 Key（脱敏回传，B40） */
+  hasApiKey?: boolean
   /** Base URL，默认 https://api.openai.com/v1 */
   baseUrl: string
   /** 模型名，默认 gpt-4o-mini */
@@ -32,6 +34,8 @@ export interface AIModelPreset {
   baseUrl: string
   model: string
   apiKey: string
+  /** 仅回传方向：该预设是否存有 Key（脱敏回传，B40） */
+  hasApiKey?: boolean
   /** 预设来源标记：custom / openai / deepseek / qwen / ollama / openrouter */
   provider?: string
 }

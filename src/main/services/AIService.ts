@@ -88,7 +88,18 @@ export async function setAIConfig(patch: Partial<AIConfig>): Promise<AIConfig> {
     if (!guard.ok) throw new Error(guard.reason)
   }
   const current = getAIConfig()
-  const next = { ...current, ...patch }
+  // B40 脱敏回写语义：空 apiKey = 保持已存（掩码表单留空的默认行为）。
+  // 清除凭据走 enabled 开关（AI 关闭时 key 无害）；预设按 id 回填已存 Key。
+  const effective: Partial<AIConfig> = { ...patch }
+  if (effective.apiKey === '') delete effective.apiKey
+  if (effective.modelPresets) {
+    const storedPresets = new Map(current.modelPresets.map((p) => [p.id, p]))
+    effective.modelPresets = effective.modelPresets.map((p) => {
+      if (p.apiKey !== '') return p
+      return { ...p, apiKey: storedPresets.get(p.id)?.apiKey ?? '' }
+    })
+  }
+  const next = { ...current, ...effective }
   // 加密 API Key（避免重复加密）
   if (next.apiKey && !next.apiKey.startsWith('enc:')) {
     next.apiKey = encryptText(next.apiKey)
@@ -462,9 +473,23 @@ export async function applyModelPreset(id: string): Promise<AIConfig | null> {
   })
 }
 
+/**
+ * 渲染端回传用的脱敏配置（B40）：apiKey 恒为 ''，只带 hasApiKey 标记
+ * （预设同理）。真值只在主进程内部消费（chat/listModels/applyModelPreset）。
+ */
+export function getAIConfigMasked(): AIConfig {
+  const cfg = getAIConfig()
+  return {
+    ...cfg,
+    apiKey: '',
+    hasApiKey: !!cfg.apiKey,
+    modelPresets: (cfg.modelPresets ?? []).map((p) => ({ ...p, apiKey: '', hasApiKey: !!p.apiKey }))
+  }
+}
+
 /** 注册 AI IPC 处理器 */
 export function registerAIIpc(): void {
-  typedHandle('ai:getConfig', () => getAIConfig())
+  typedHandle('ai:getConfig', () => getAIConfigMasked())
 
   typedHandle('ai:setConfig', (_e, req) => setAIConfig(req.patch))
 

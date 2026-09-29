@@ -19,6 +19,10 @@ export interface SyncConfig {
   password: string
   /** 远端目录（不含文件名），默认 /frond-launcher */
   remoteDir: string
+  /** 仅回传方向：本机是否存有口令（此时 password 恒为 ''，脱敏回传） */
+  hasPassword?: boolean
+  /** 仅写入方向：true = 显式清除已存口令（与「留空保持原值」区分开） */
+  clearPassword?: boolean
 }
 
 const REMOTE_FILE = 'launcher-backup.json'
@@ -72,6 +76,11 @@ function sanitizeDocs(docs: unknown): ExportedDoc[] {
   return out
 }
 
+/**
+ * 主进程内部用的完整配置（password 是解密后的真值）：dataSync/cloudBackup/
+ * testConnection 等网络路径用。渲染端回传一律走 getSyncConfigMasked（B40：
+ * 明文口令不进渲染进程——渲染层一旦被注入即可拖走网盘凭证）。
+ */
 export function getSyncConfig(): SyncConfig {
   const raw = prefRepository.get(SYNC_PREF_KEY)
   if (!raw) return { url: '', username: '', password: '', remoteDir: '/frond-launcher' }
@@ -89,9 +98,23 @@ export function getSyncConfig(): SyncConfig {
   }
 }
 
+/**
+ * 回传渲染端的脱敏版：password 恒为 ''，只带 hasPassword 标记；
+ * 设置页口令框显示「已保存，留空保持不变」。
+ */
+export function getSyncConfigMasked(): SyncConfig {
+  const config = getSyncConfig()
+  return { ...config, password: '', hasPassword: !!config.password }
+}
+
+/**
+ * 写入配置：password 为空且未显式 clearPassword = 口令保持原值（设置页口令框
+ * 留空的默认语义）；clearPassword: true 才真清。url/username/remoteDir 照传。
+ */
 export function setSyncConfig(config: SyncConfig): void {
-  // 密码加密存储（向后兼容：明文旧数据 decryptText 原样返回）
-  const toSave = { ...config, password: config.password ? encryptText(config.password) : '' }
+  const keepExisting = !config.password && !config.clearPassword
+  const password = keepExisting ? getSyncConfig().password : config.password
+  const toSave = { ...config, password: password ? encryptText(password) : '' }
   prefRepository.set(SYNC_PREF_KEY, JSON.stringify(toSave))
 }
 
@@ -117,7 +140,15 @@ export async function ensureRemoteDir(
 export async function testConnection(
   configOverride?: SyncConfig
 ): Promise<{ ok: boolean; error?: string }> {
-  const config = configOverride ?? getSyncConfig()
+  let config = configOverride ?? getSyncConfig()
+  if (configOverride) {
+    // 脱敏表单：口令留空 = 按已存口令连接（显式 clearPassword 的空串才当真清）
+    const stored = getSyncConfig()
+    config = {
+      ...configOverride,
+      password: configOverride.password || (configOverride.clearPassword ? '' : stored.password)
+    }
+  }
   if (!config.url) return { ok: false, error: '未配置 WebDAV 地址' }
   try {
     const client = await createClient(config)

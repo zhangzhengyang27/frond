@@ -80,13 +80,15 @@ onMounted(async () => {
 
 defineExpose({
   handleKey(e: KeyboardEvent): boolean {
+    // Math.max(1, …)：空列表取模 0 得 NaN（MenuBarPage 同款守卫，B41）
     if (e.key === 'ArrowDown') {
-      selectedIndex.value = (selectedIndex.value + 1) % filteredWindows.value.length
+      selectedIndex.value = (selectedIndex.value + 1) % Math.max(1, filteredWindows.value.length)
       return true
     }
     if (e.key === 'ArrowUp') {
       selectedIndex.value =
-        (selectedIndex.value - 1 + filteredWindows.value.length) % filteredWindows.value.length
+        (selectedIndex.value - 1 + Math.max(1, filteredWindows.value.length)) %
+        Math.max(1, filteredWindows.value.length)
       return true
     }
     if (e.key === 'Enter') {

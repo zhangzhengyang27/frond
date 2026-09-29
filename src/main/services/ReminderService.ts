@@ -145,8 +145,11 @@ class ReminderService {
   }
 
   uncomplete(id: string): Reminder | null {
+    this.notified.delete(id)
+    // DB 的 notified_at 必须一并重置：rebuildNotifiedCache 按它重建内存集合，
+    // 留着的话重启后这条提醒被当成「已通知」，永不再通知（B41）
     const r = reminderRepository.uncomplete(id)
-    if (r) this.notified.delete(id)
+    if (r) reminderRepository.resetNotified(id)
     return r
   }
 

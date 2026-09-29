@@ -103,10 +103,11 @@ export class MarkerService {
     }
 
     const header = '时间,标签\n'
+    // 标准 CSV 引号转义：label 含 `"` 或换行时直接拼接会产出坏 CSV（B41）
     const rows = markers
       .map((m) => {
         const time = this.formatTime(m.timestamp)
-        return `${time},"${m.label}"`
+        return `${time},"${m.label.replace(/"/g, '""')}"`
       })
       .join('\n')
 

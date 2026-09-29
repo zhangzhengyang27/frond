@@ -319,6 +319,9 @@ export function importFromFolder(srcDir: string): InstalledPlugin {
 }
 
 export function removePlugin(pluginId: string): void {
+  // rmSync recursive 的删除根由 pluginId 拼出：不过 isValidPluginId 的话，
+  // 被攻陷渲染端传 '../../..' 就是递归删任意目录（B40）
+  if (!isValidPluginId(pluginId)) throw new Error(`非法插件 id，已拒绝卸载: ${pluginId}`)
   const index = readIndex().filter((p) => p.id !== pluginId)
   writeIndex(index)
   rmSync(pluginDir(pluginId), { recursive: true, force: true })

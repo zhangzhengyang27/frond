@@ -103,6 +103,16 @@ function parseTabOutput(output: string, browser: 'chrome' | 'safari'): BrowserTa
 
 /** 激活指定标签（切换到对应窗口并选中标签） */
 async function activateTab(tab: BrowserTab): Promise<boolean> {
+  // windowId/tabIndex 直接拼进 AppleScript 源码：编译期类型挡不住渲染端传来的
+  // 运行时值（"1\ntell application …" 即注入），先卡死正整数（B40）
+  if (
+    !Number.isInteger(tab.windowId) ||
+    !Number.isInteger(tab.tabIndex) ||
+    (tab.windowId as number) < 1 ||
+    (tab.tabIndex as number) < 1
+  ) {
+    return false
+  }
   const script =
     tab.browser === 'chrome'
       ? `

@@ -64,7 +64,20 @@ class FrondDatabase {
     db.pragma('temp_store = MEMORY')
 
     this.db = db
-    this.runMigrations()
+    try {
+      this.runMigrations()
+    } catch (error) {
+      // 迁移失败不许留半开句柄：this.db 已非空时 ensureOpen 幂等短路，后续所有
+      // database.handle 都会复用这台未迁移完成的库——应用带伤运行且无日志线索。
+      // 关掉并置空，让下次访问重走完整打开（重新迁移或再次显式失败）
+      try {
+        db.close()
+      } catch {
+        /* 尽力而为 */
+      }
+      this.db = null
+      throw error
+    }
   }
 
   private maybeBackup(dbPath: string): void {

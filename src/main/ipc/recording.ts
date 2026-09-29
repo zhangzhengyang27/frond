@@ -32,6 +32,7 @@ import {
 } from '../services/recording/GlobalShortcutService'
 import { CountdownService } from '../services/recording/CountdownService'
 import { getRecoveryManager } from '../services/recording/RecoveryManager'
+import { resolveGrantedRecordingPath } from './recordingSavePathGrants'
 import type { BrowserWindow } from 'electron'
 import type { RecordingSummary } from '../../shared/ipc-contract'
 import { typedHandle } from './typedIpc'
@@ -351,6 +352,11 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         // PR-7c:
         gifPreset?: 'compact' | 'standard' | 'high'
       }) => {
+        // 输出路径必须由主进程签发（selectSavePath / getDefaultSavePath），否则
+        // ffmpeg -y 可被用来覆盖任意文件——与 clip:exportClips 同一口径
+        if (!resolveGrantedRecordingPath(req.outputPath, ['.mp4', '.webm', '.gif'])) {
+          throw new Error('导出路径未经主进程签发，已拒绝')
+        }
         const jobId = randomUUID()
         const svc = exportService
         const ac = new AbortController()

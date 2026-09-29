@@ -11,8 +11,8 @@
  * 注入点：probeDuration / now / generateId 均可替换，单测不必真跑 ffprobe。
  */
 
-import { existsSync, readdirSync, renameSync, statSync, unlinkSync } from 'fs'
-import { basename, dirname, join } from 'path'
+import { existsSync, readdirSync, realpathSync, renameSync, statSync, unlinkSync } from 'fs'
+import { basename, dirname, join, sep } from 'path'
 import { randomUUID } from 'crypto'
 import { database } from '../../db/database'
 import { now } from '../../db/repo'
@@ -90,6 +90,8 @@ export class RecoveryManager {
     if (!existsSync(filePath)) {
       throw new Error(`[RecoveryManager] file not found: ${filePath}`)
     }
+    // rename 与 discard 同受目录围栏约束
+    this.assertInCandidateDirs(filePath)
 
     const probe = this.deps.probeDuration ?? probeDurationSec
     const dur = await probe(filePath)
@@ -188,12 +190,37 @@ export class RecoveryManager {
 
   /** 处置只允许落在真实存在的 partial 文件上：显示名指向成品时改指其 .partial 兄弟 */
   private resolvePartialPathForMutation(rawFilePath: string): string {
-    if (existsSync(rawFilePath) && rawFilePath.endsWith(PARTIAL_SUFFIX)) return rawFilePath
+    if (existsSync(rawFilePath) && rawFilePath.endsWith(PARTIAL_SUFFIX)) {
+      this.assertInCandidateDirs(rawFilePath)
+      return rawFilePath
+    }
     const partial = rawFilePath.endsWith(PARTIAL_SUFFIX)
       ? rawFilePath
       : rawFilePath.replace(/\.mp4$/, PARTIAL_SUFFIX)
-    if (existsSync(partial)) return partial
+    if (existsSync(partial)) {
+      this.assertInCandidateDirs(partial)
+      return partial
+    }
     throw new Error(`[RecoveryManager] not a recoverable partial file: ${rawFilePath}`)
+  }
+
+  /**
+   * 变异（unlink/rename）只许落在扫描范围（candidateDirs 子树）内：
+   * 后缀+存在性挡不住「任意目录里的 *.partial.mp4 被渲染端点名删除/改名」。
+   */
+  private assertInCandidateDirs(filePath: string): void {
+    const real = realpathSync(filePath)
+    const inside = this.candidateDirs().some((dir) => {
+      try {
+        const realDir = realpathSync(dir)
+        return real === realDir || real.startsWith(realDir + sep)
+      } catch {
+        return false
+      }
+    })
+    if (!inside) {
+      throw new Error(`[RecoveryManager] path outside candidate dirs: ${filePath}`)
+    }
   }
 
   private nowFn(): number {

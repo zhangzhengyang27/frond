@@ -1,7 +1,8 @@
 import { ipcMain, shell } from 'electron'
-import { readFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { RecordingHistoryService, type RecordingHistory } from '../services/RecordingHistoryService'
 import { safeOpenablePath } from '../utils/openPathGuard'
+import { resolveGrantedRecordingPath } from './recordingSavePathGrants'
 import { typedHandle } from './typedIpc'
 
 /**
@@ -10,9 +11,16 @@ import { typedHandle } from './typedIpc'
  * 曾允许把大录制整块读进主进程内存再经 IPC 克隆（峰值 2-3 倍文件大小），
  * 收窄到 128MB（约 8 分钟 2.5Mbps 录制）。
  */
+const MAX_INLINE_READ_BYTES = 128 * 1024 * 1024
 
 export function registerRecordingHistoryIpcHandlers(): void {
   const recordingHistoryService = RecordingHistoryService.getInstance()
+
+  // 白名单数据源守卫：video:readFile / showInFolder / generateThumbnail 都只认
+  // 「录制历史里记过的路径」，所以历史本身不得被渲染端注入任意路径。
+  const isKnownRecordingPath = (filePath: unknown): boolean =>
+    typeof filePath === 'string' &&
+    recordingHistoryService.getHistory().some((r) => r.filePath === filePath)
 
   // 获取录制历史
   typedHandle('recording-history:getHistory', () => {
@@ -28,6 +36,12 @@ export function registerRecordingHistoryIpcHandlers(): void {
   typedHandle(
     'recording-history:addHistory',
     (_event, recording: Omit<RecordingHistory, 'id' | 'createdAt'>) => {
+      // 历史行是上面三条通道的白名单数据源：渲染端只能登记主进程当前签发过的
+      // 录制路径（saveFile/endWrite 落库时签发尚未撤销）。主进程内部直接调
+      // RecordingHistoryService，不经这条 IPC，不受此限。
+      if (!resolveGrantedRecordingPath(recording?.filePath, ['.webm'])) {
+        throw new Error('录制路径未经主进程签发，已拒绝登记')
+      }
       return recordingHistoryService.addHistory(recording)
     }
   )
@@ -44,6 +58,10 @@ export function registerRecordingHistoryIpcHandlers(): void {
 
   // 生成缩略图
   typedHandle('recording-history:generateThumbnail', async (_event, req) => {
+    // 输入必须命中历史行（ffmpeg -i 任意文件 = 解析探针），输出钉在输入同名 .jpg
+    if (!isKnownRecordingPath(req?.videoPath)) {
+      throw new Error('只能为录制历史中的录像生成缩略图')
+    }
     return await recordingHistoryService.generateThumbnail(req.videoPath)
   })
 
@@ -78,8 +96,12 @@ export function registerRecordingHistoryIpcHandlers(): void {
    * （见 src/preload/index.ts 的 video.readFile），两边形状一致。收进契约是另一件事。
    */
   ipcMain.handle('video:readFile', async (_event, filePath: string): Promise<ArrayBuffer> => {
-    const known = recordingHistoryService.getHistory().some((r) => r.filePath === filePath)
-    if (!known) throw new Error('只能读取录制历史中记录的录像文件')
+    if (!isKnownRecordingPath(filePath)) throw new Error('只能读取录制历史中记录的录像文件')
+    // 文件头注释承诺的大小上限（此前缺失）：超限走 video:// 流式，不整段进内存
+    const st = await stat(filePath)
+    if (st.size > MAX_INLINE_READ_BYTES) {
+      throw new Error('录制文件过大（>128MB），请改用流式回放')
+    }
     const buf = await readFile(filePath)
     return new Uint8Array(buf).buffer as ArrayBuffer
   })
@@ -87,6 +109,11 @@ export function registerRecordingHistoryIpcHandlers(): void {
   // 在文件夹中显示文件
   typedHandle('recording-history:showInFolder', async (_event, req) => {
     try {
+      // 同文件 openFile 有 safeOpenablePath、这里也得有界：只认历史行，
+      // 否则是任意路径存在性探测 + 无限弹 Finder
+      if (!isKnownRecordingPath(req?.filePath)) {
+        return { success: false, error: '只能显示录制历史中的文件' }
+      }
       shell.showItemInFolder(req.filePath)
       return { success: true }
     } catch (error) {

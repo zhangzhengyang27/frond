@@ -12,10 +12,10 @@
  * - 会话内首次触达自动扫描一次（openScreenshotsPage / pasteLatest 前置）
  */
 import { app, clipboard, nativeImage } from 'electron'
-import { existsSync, readdirSync, statSync } from 'fs'
+import { existsSync, readdirSync, realpathSync, statSync } from 'fs'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import { join } from 'path'
+import { join, sep } from 'path'
 import { shotIndexRepository, type ShotRow, type ShotSearchFilter } from '../db/repos'
 import { getLauncherWindow } from '../launcher/window'
 import { pasteToActiveApp } from '../utils/pasteKeystroke'
@@ -272,6 +272,8 @@ class ScreenshotIndexService {
   }
 
   async pastePath(filePath: string): Promise<{ ok: boolean; error?: string }> {
+    // 只认截图扫描目录内的图：否则被攻陷渲染端可把任意图片塞进剪贴板再注入前台 ⌘V
+    if (!(await this.isWithinScanDirs(filePath))) return { ok: false, error: '不是已索引的截图' }
     if (!this.copyToClipboard(filePath)) return { ok: false, error: '图片读取失败' }
     getLauncherWindow()?.hide()
     try {
@@ -281,6 +283,25 @@ class ScreenshotIndexService {
     } catch (error) {
       return { ok: false, error: (error as Error).message }
     }
+  }
+
+  /** realpath 包含校验：filePath 必须落在某个截图扫描目录子树内 */
+  private async isWithinScanDirs(filePath: string): Promise<boolean> {
+    let real: string
+    try {
+      real = realpathSync(filePath)
+    } catch {
+      return false
+    }
+    const dirs = await screenshotDirs()
+    return dirs.some((dir) => {
+      try {
+        const realDir = realpathSync(dir)
+        return real === realDir || real.startsWith(realDir + sep)
+      } catch {
+        return false
+      }
+    })
   }
 }
 

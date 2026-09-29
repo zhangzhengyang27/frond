@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { tmpdir, homedir } from 'node:os'
+import { join, basename } from 'node:path'
 import { safeOpenablePath } from '../openPathGuard'
 
 /**
@@ -45,5 +45,16 @@ describe('safeOpenablePath', () => {
   it('相对路径 / 不存在路径返回 null', () => {
     expect(safeOpenablePath('relative.md')).toBeNull()
     expect(safeOpenablePath(join(dir, 'ghost.md'))).toBeNull()
+  })
+
+  it('`~/…` 形态展开到真实 HOME 后放行（插件 sandbox 页面无 process，B32）', () => {
+    // 插件存的是 `~/Documents` 这类紧凑形态；宿主是唯一知道 HOME 的一方。
+    // 在真实 HOME 下建探针目录验证展开（用完即删）
+    const probe = mkdtempSync(join(homedir(), 'frond-tilde-probe-'))
+    try {
+      expect(safeOpenablePath(`~/${basename(probe)}`)).toBe(probe)
+    } finally {
+      rmSync(probe, { recursive: true, force: true })
+    }
   })
 })

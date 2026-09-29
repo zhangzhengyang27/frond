@@ -195,3 +195,111 @@
 /* placeholder 变体（text-fg-tertiary 已统一改用既有的 tertiary） */
 .placeholder\:text-fg-tertiary::placeholder { color: var(--text-tertiary); }
 .placeholder\:text-fg-tertiary::-moz-placeholder { color: var(--text-tertiary); }
+
+/* ════════════════════════════════════════════════════════════════════
+ * ── B39 第二批：Markdown 渲染排版（2026-09-29 重建）──────────────────
+ * markdown-content 的内容由 v-html 注入，scoped 选择器管不到，排版规则
+ * 必须放全局；token 全部取自 dump 既有语义层。code-block 是 CodeMirror
+ * 挂载容器（renderCodeBlockEditors 按 id 注入编辑器）。
+ * ════════════════════════════════════════════════════════════════════ */
+.markdown-content {
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 1em 0 0.45em;
+}
+.markdown-content h1:first-child,
+.markdown-content h2:first-child,
+.markdown-content h3:first-child {
+  margin-top: 0;
+}
+.markdown-content h1 { font-size: 1.6em; }
+.markdown-content h2 { font-size: 1.35em; }
+.markdown-content h3 { font-size: 1.15em; }
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 { font-size: 1em; }
+.markdown-content p { margin: 0.6em 0; }
+.markdown-content ul,
+.markdown-content ol { margin: 0.6em 0; padding-left: 1.6em; }
+.markdown-content li { margin: 0.25em 0; }
+.markdown-content blockquote {
+  margin: 0.8em 0;
+  padding: 0.4em 1em;
+  border-left: 3px solid var(--border-strong);
+  background: var(--surface-1);
+  border-radius: 0 6px 6px 0;
+  color: var(--text-secondary);
+}
+.markdown-content code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--surface-2);
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+}
+.markdown-content pre {
+  margin: 0.8em 0;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+.markdown-content pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+.markdown-content table {
+  border-collapse: collapse;
+  margin: 0.8em 0;
+}
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border-default);
+  padding: 6px 10px;
+  text-align: left;
+}
+.markdown-content th {
+  background: var(--surface-1);
+  font-weight: 600;
+}
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border-default);
+  margin: 1.2em 0;
+}
+.markdown-content img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.markdown-content a {
+  color: var(--text-brand);
+  text-decoration: none;
+}
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+/* 渲染器给外链打的标记（MarkdownPresentation/Preview 共用） */
+.markdown-content a.external::after {
+  content: ' ↗';
+  font-size: 0.85em;
+  color: var(--text-tertiary);
+}
+/* CodeMirror 挂载容器 */
+.code-block {
+  margin: 0.8em 0;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-1);
+  overflow: hidden;
+}

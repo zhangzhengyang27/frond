@@ -198,4 +198,48 @@ watch(isDark, (value) => {
   align-items: center;
   gap: 8px;
 }
+
+/* ── B39 样式重建：预览工具条与内容区（排版规则在 gap 文件全局段）── */
+.preview-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.preview-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.preview-btn-close:hover {
+  background: color-mix(in srgb, var(--text-danger) 12%, transparent);
+  color: var(--text-danger);
+}
+
+.scale-display {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 32px 48px;
+}
 </style>

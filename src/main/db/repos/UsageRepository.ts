@@ -26,6 +26,7 @@
 import type Database from 'better-sqlite3'
 import { database } from '../database'
 import { now } from '../repo'
+import { log } from '../../services/LogService'
 
 export class UsageRepository {
   constructor(private readonly _db?: Database.Database) {}
@@ -127,9 +128,10 @@ export class UsageRepository {
     for (const fn of this.usageListeners) {
       try {
         fn()
-      } catch {
-        /* 监听者异常不影响写入方 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 监听者异常不影响写入方）
+      log.debug('usage-repository', '* 监听者异常不影响写入方', e)
+    }
     }
   }
 }

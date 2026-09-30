@@ -9,6 +9,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { app, shell } from 'electron'
 import { typedHandle } from '../ipc/typedIpc'
+import { log } from './LogService'
 
 export interface TrashItem {
   /** 文件名 */
@@ -68,9 +69,10 @@ export async function listTrash(): Promise<TrashItem[]> {
           deletedAt: stat.birthtimeMs,
           type: stat.isDirectory() ? 'folder' : 'file'
         })
-      } catch {
-        /* 跳过无法访问的文件 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 跳过无法访问的文件）
+      log.debug('trash-service', '* 跳过无法访问的文件', e)
+    }
     }
     // 按删除时间倒序
     return items.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))

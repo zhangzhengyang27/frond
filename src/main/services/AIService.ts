@@ -37,6 +37,7 @@ import { typedHandle } from '../ipc/typedIpc'
 import fetch from 'node-fetch'
 import { Readable } from 'node:stream'
 import { pinningAgentSelector } from '../launcher/dnsPinning'
+import { log } from './LogService'
 
 const STORE_KEY = 'ai.config'
 const SESSIONS_KEY = 'ai.sessions'
@@ -278,9 +279,10 @@ async function chatStream(
               fullText += delta
               push({ delta, done: false })
             }
-          } catch {
-            /* 忽略非 JSON 行 */
-          }
+          } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 忽略非 JSON 行）
+      log.debug('aiservice', '* 忽略非 JSON 行', e)
+    }
         }
       }
       push({ delta: '', done: true })

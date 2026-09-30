@@ -53,6 +53,14 @@ export default defineConfig(
       ]
     }
   },
+  // 批 7b：main 域空 catch 已全量清账（85 处 → log.debug），此后 no-empty 守门——
+  // 尽力而为的失败必须有观测点。renderer 域存量 214 处另行专项，暂不适用。
+  {
+    files: ['src/main/**/*.ts'],
+    rules: {
+      'no-empty': ['error', { allowEmptyCatch: false }]
+    }
+  },
   // .js/.mjs（e2e 探针 / playwright spec / 配置件）写不了 TS 返回类型注解——直接关闭。
   {
     files: ['**/*.{js,mjs,cjs}'],

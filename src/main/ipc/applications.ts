@@ -6,6 +6,7 @@ import { spawn, execFile, execFileSync } from 'child_process'
 import plist from 'plist'
 import { md5 } from 'js-md5'
 import { typedHandle } from '../ipc/typedIpc'
+import { log } from '../services/LogService'
 
 export interface AppEntry {
   name: string
@@ -156,9 +157,10 @@ function getAppDisplayName(appPath: string): string {
         if (match?.[1]?.trim()) return match[1].trim()
       }
     }
-  } catch {
-    // 读取失败则回退到文件夹名
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：读取失败则回退到文件夹名）
+      log.debug('applications', '读取失败则回退到文件夹名', e)
+    }
   return (
     appPath
       .split('/')
@@ -572,8 +574,9 @@ async function listLinuxApps(): Promise<AppEntry[]> {
     try {
       const img = nativeImage.createFromPath(hint)
       if (!img.isEmpty()) entry.icon = img.resize({ width: 48, height: 48 }).toDataURL()
-    } catch {
-      // 忽略图标读取失败
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：忽略图标读取失败）
+      log.debug('applications', '忽略图标读取失败', e)
     }
   }
   return entries

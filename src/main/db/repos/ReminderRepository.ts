@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type Database from 'better-sqlite3'
 import { database } from '../database'
 import { now } from '../repo'
+import { log } from '../../services/LogService'
 
 export interface Reminder {
   id: string
@@ -128,8 +129,9 @@ export class ReminderRepository {
         )
         .all({ ...params, search: `"${search}"*` }) as ReminderRow[]
       if (rows.length > 0) return rows.map((r) => this.fromRow(r))
-    } catch {
-      /* FTS 不可用（表缺失 / 语法不支持）时静默回退到 LIKE */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* FTS 不可用（表缺失 / 语法不支持）时静默回退到 LIKE）
+      log.debug('reminder-repository', '* FTS 不可用（表缺失 / 语法不支持）时静默回退到 LIKE', e)
     }
 
     const likeCond = `(title LIKE @like OR notes LIKE @like)`

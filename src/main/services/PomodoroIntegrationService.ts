@@ -27,6 +27,7 @@ import type {
   PomodoroShortcuts,
   PomodoroTraySnapshot
 } from '../../shared/pomodoroIntegration'
+import { log } from './LogService'
 
 export type {
   PomodoroNotificationMode,
@@ -166,9 +167,10 @@ export class PomodoroIntegrationService {
     for (const l of this.snapshotListeners) {
       try {
         l(snap)
-      } catch {
-        /* noop */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('pomodoro-integration-service', '* noop', e)
+    }
     }
   }
 
@@ -186,9 +188,10 @@ export class PomodoroIntegrationService {
     this.badgeListeners.forEach((l) => {
       try {
         l(count)
-      } catch {
-        /* noop */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('pomodoro-integration-service', '* noop', e)
+    }
     })
   }
 
@@ -196,9 +199,10 @@ export class PomodoroIntegrationService {
     this.titleListeners.forEach((l) => {
       try {
         l(title)
-      } catch {
-        /* noop */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('pomodoro-integration-service', '* noop', e)
+    }
     })
   }
 
@@ -222,8 +226,9 @@ export class PomodoroIntegrationService {
           app.setBadgeCount(0)
         }
       }
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('pomodoro-integration-service', '* noop', e)
     }
   }
 
@@ -327,9 +332,10 @@ export class PomodoroIntegrationService {
         setTimeout(() => {
           try {
             ttl.close()
-          } catch {
-            /* noop */
-          }
+          } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('pomodoro-integration-service', '* noop', e)
+    }
         }, 10_000)
       }
       return

@@ -14,6 +14,7 @@ import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { is } from '@electron-toolkit/utils'
 import { typedHandle } from '../ipc/typedIpc'
+import { log } from '../services/LogService'
 
 let floatingWindow: BrowserWindow | null = null
 
@@ -70,9 +71,10 @@ function saveWindowState(state: WindowState): void {
     const dir = app.getPath('userData')
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     writeFileSync(getStatePath(), JSON.stringify(state, null, 2), 'utf-8')
-  } catch {
-    // 保存失败静默处理，不影响使用
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：保存失败静默处理，不影响使用）
+      log.debug('floating-note', '保存失败静默处理，不影响使用', e)
+    }
 }
 
 // 保存状态的 debounce 定时器

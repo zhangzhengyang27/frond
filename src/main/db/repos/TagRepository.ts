@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type Database from 'better-sqlite3'
 import { database } from '../database'
 import { now } from '../repo'
+import { log } from '../../services/LogService'
 
 export interface TagRow {
   id: string
@@ -210,9 +211,10 @@ export class TagRepository {
       try {
         stmt.run(r.id, r.name, r.createdAt, r.createdAt)
         n += 1
-      } catch {
-        /* 冲突条目跳过 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 冲突条目跳过）
+      log.debug('tag-repository', '* 冲突条目跳过', e)
+    }
     }
     return n
   }

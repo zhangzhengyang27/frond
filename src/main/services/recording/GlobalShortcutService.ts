@@ -15,6 +15,7 @@
 
 import { globalShortcut } from 'electron'
 import { recordingSettingsRepository } from '../../db/repos/RecordingSettingsRepository'
+import { log } from '../LogService'
 
 export const DEFAULT_START_SHORTCUT = 'CommandOrControl+Alt+Shift+R'
 export const DEFAULT_TOGGLE_PAUSE_SHORTCUT = 'CommandOrControl+Alt+Shift+P'
@@ -124,9 +125,10 @@ export class GlobalShortcutService {
     for (const accel of this.registered) {
       try {
         this.adapter.unregister(accel)
-      } catch {
-        // 已失效的 accel 忽略
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：已失效的 accel 忽略）
+      log.debug('global-shortcut-service', '已失效的 accel 忽略', e)
+    }
     }
     this.registered.clear()
   }
@@ -191,8 +193,9 @@ export class SettingsRepoShortcutsStore implements ShortcutsStore {
           togglePause: s.shortcuts.togglePause
         }
       }
-    } catch {
-      // DB 未就绪时走默认
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：DB 未就绪时走默认）
+      log.debug('global-shortcut-service', 'DB 未就绪时走默认', e)
     }
     return { ...DEFAULT_SHORTCUTS }
   }

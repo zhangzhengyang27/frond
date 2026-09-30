@@ -16,6 +16,7 @@ import { extractMeetingLink, type MeetingLink } from '../utils/meetingUrl'
 import { autoJoinDue, autoJoinKey } from '../utils/autoJoin'
 import { prefRepository } from '../db/repos'
 import { isMac } from '../utils/platform'
+import { log } from './LogService'
 
 const execFileAsync = promisify(execFile)
 
@@ -154,8 +155,9 @@ class CalendarService {
       }
       const { shell } = await import('electron')
       await shell.openExternal(next.meeting.url)
-    } catch {
-      /* tick 失败静默：下一跳重试 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* tick 失败静默：下一跳重试）
+      log.debug('calendar-service', '* tick 失败静默：下一跳重试', e)
     }
   }
 

@@ -10,6 +10,7 @@
 
 import { prefRepository } from './PrefRepository'
 import type { PomodoroSettings } from './PomodoroRepository'
+import { log } from '../../services/LogService'
 
 const KEY_PREFIX = 'pomodoro_project_settings_'
 
@@ -117,9 +118,10 @@ export class ProjectSettingsRepository {
           else if (isNumber(v)) overrides[f] = v
         }
         if (Object.keys(overrides).length > 0) out[projectId] = overrides
-      } catch {
-        // 跳过异常行
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：跳过异常行）
+      log.debug('project-settings-repository', '跳过异常行', e)
+    }
     }
     return out
   }

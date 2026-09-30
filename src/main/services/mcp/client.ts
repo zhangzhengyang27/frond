@@ -24,6 +24,7 @@ import {
   toolsListRequest,
   type McpTool
 } from './protocol'
+import { log } from '../LogService'
 
 const HANDSHAKE_TIMEOUT_MS = 10_000
 const LIST_TIMEOUT_MS = 10_000
@@ -76,9 +77,10 @@ function killSession(id: string): void {
   s.pending.clear()
   try {
     s.child.kill()
-  } catch {
-    /* 已经死了 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 已经死了）
+      log.debug('client', '* 已经死了', e)
+    }
   sessions.delete(id)
 }
 

@@ -44,6 +44,22 @@ class LogService {
     this.write('info', scope, msg)
   }
 
+  /**
+   * debug（批 7b）：只进内存环与 console，不落盘——「尽力而为失败的观测点」
+   * （空 catch 清账的落点）不该把日志文件撑爆；导出诊断包时随环带走。
+   */
+  debug(scope: string, msg: string, error?: unknown): void {
+    const entry: LogEntry = {
+      ts: Date.now(),
+      level: 'info',
+      scope,
+      msg: `[debug] ${msg}${error instanceof Error ? ` :: ${error.message}` : ''}`
+    }
+    this.ring.push(entry)
+    if (this.ring.length > RING_SIZE) this.ring.splice(0, this.ring.length - RING_SIZE)
+    if (this.mode !== 'off') console.debug(`[${scope}]`, msg, error ?? '')
+  }
+
   warn(scope: string, msg: string): void {
     this.write('warn', scope, msg)
   }
@@ -66,8 +82,9 @@ class LogService {
     this.mode = mode
     try {
       prefRepository.set(TELEMETRY_KEY, mode)
-    } catch {
-      /* 库还没起来：本次只在内存生效 */
+    } catch (e) {
+      // 批 7b 空 catch 清账：原注释「* 库还没起来：本次只在内存生效」
+      console.debug('[log-service]', '* 库还没起来：本次只在内存生效', e)
     }
   }
 
@@ -122,8 +139,9 @@ class LogService {
         this.writesSinceTrim = 0
         this.trim(db)
       }
-    } catch {
-      /* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条 */
+    } catch (e) {
+      // 批 7b 空 catch 清账：原注释「* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条」
+      console.debug('[log-service]', '* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条', e)
     }
   }
 

@@ -17,6 +17,7 @@ import { usageStore } from '../stores'
 import { isMac, toAccelerator } from '../utils/platform'
 import { usageRepository } from '../db/repos/UsageRepository'
 import { pomodoroIntegrationService } from '../services/PomodoroIntegrationService'
+import { log } from '../services/LogService'
 
 // ─── 事件驱动菜单自动刷新（tray / dock 共用）───
 
@@ -36,9 +37,10 @@ export function registerMenuAutoRefresh(build: () => void): void {
       timer = null
       try {
         build()
-      } catch {
-        /* 菜单构建失败不致命，等下次触发 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 菜单构建失败不致命，等下次触发）
+      log.debug('app-menu', '* 菜单构建失败不致命，等下次触发', e)
+    }
     }, 1000)
   }
   menuRefreshUnsubscribers.push(usageRepository.onUsageChanged(rebuild))

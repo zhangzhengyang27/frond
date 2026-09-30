@@ -10,6 +10,7 @@
  * 订阅者：textExpansion（片段扩展）、hotkeys（两段式热键 chord）。
  */
 import type { BrowserWindow } from 'electron'
+import { log } from '../services/LogService'
 
 export interface GlobalKeyEvent {
   /** uiohook 原生 keycode */
@@ -104,8 +105,9 @@ class GlobalKeyHookService {
     if (!this.started || !this.mod) return
     try {
       await this.mod.uIOhook.stop()
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('global-keys', '* noop', e)
     }
     this.started = false
   }

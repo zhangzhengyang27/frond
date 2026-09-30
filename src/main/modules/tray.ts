@@ -18,6 +18,7 @@ import { buildAndSetAppMenu, registerMenuAutoRefresh, destroyMenuAutoRefresh } f
 import { isMac, trayClickShouldToggleWindow } from '../utils/platform'
 import { pomodoroIntegrationService } from '../services/PomodoroIntegrationService'
 import { toggleLauncherWindow } from '../launcher/window'
+import { log } from '../services/LogService'
 
 /** 清理托盘定时器与菜单自动刷新订阅（在 app will-quit 时调用） */
 export function destroyTrayTimer(): void {
@@ -156,8 +157,9 @@ export function createTray(
     if (!isMac()) return
     try {
       tray.setTitle(title)
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('tray', '* noop', e)
     }
   })
 

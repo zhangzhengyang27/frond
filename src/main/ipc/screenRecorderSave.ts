@@ -14,6 +14,7 @@ import { recordingSegmentRepository } from '../db/repos/RecordingSegmentReposito
 import { recordingRepository } from '../db/repos/RecordingRepository'
 import { resolveGrantedRecordingPath, revokeRecordingSavePath } from './recordingSavePathGrants'
 import { typedHandle } from './typedIpc'
+import { log } from '../services/LogService'
 
 interface WriteSession {
   ws: WriteStream
@@ -193,8 +194,9 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
     await endStream(session.ws).catch(() => undefined)
     try {
       if (existsSync(target)) unlinkSync(target)
-    } catch {
-      // 删除失败保留现场
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：删除失败保留现场）
+      log.debug('screen-recorder-save', '删除失败保留现场', e)
     }
     revokeRecordingSavePath(target)
     return { ok: true }

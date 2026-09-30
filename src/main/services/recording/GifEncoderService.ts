@@ -29,6 +29,7 @@ import {
   createStderrTail,
   killFfmpegProcess
 } from '../../utils/ffmpeg'
+import { log } from '../LogService'
 
 export type GifPreset = 'compact' | 'standard' | 'high'
 
@@ -137,9 +138,10 @@ export class GifEncoderService {
     if (!stage1Result.ok) {
       try {
         unlinkSync(palettePath)
-      } catch {
-        /* 已不存在则忽略 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 已不存在则忽略）
+      log.debug('gif-encoder-service', '* 已不存在则忽略', e)
+    }
       return stage1Result
     }
 
@@ -156,8 +158,9 @@ export class GifEncoderService {
     // 清理 palette
     try {
       unlinkSync(palettePath)
-    } catch {
-      /* 已不存在则忽略 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 已不存在则忽略）
+      log.debug('gif-encoder-service', '* 已不存在则忽略', e)
     }
 
     if (!stage2Result.ok) return stage2Result

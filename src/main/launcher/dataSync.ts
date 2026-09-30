@@ -38,6 +38,7 @@ import {
 , rowKeyOf } from './syncMerge'
 import { database } from '../db/database'
 import { prefRepository } from '../db/repos'
+import { log } from '../services/LogService'
 
 export const SYNC_MARKER_PREF = 'launcher.syncData.lastAppliedAt'
 /**
@@ -274,9 +275,10 @@ export class DataSyncService {
       try {
         const v = JSON.parse(row.value) as unknown
         if (typeof v === 'string' && v) return v.slice(0, 40)
-      } catch {
-        /* 存量脏值：下面重新生成一个 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 存量脏值：下面重新生成一个）
+      log.debug('data-sync', '* 存量脏值：下面重新生成一个', e)
+    }
     }
     const id = `${safeAppName()}-${randomBytes(4).toString('hex')}`
     this.db
@@ -492,9 +494,10 @@ async function syncClient(config: SyncConfig): Promise<{ client: WebDAVClient; p
   const dir = `${config.remoteDir}/${SYNC_REMOTE_DIR}`
   try {
     await client.createDirectory(dir, { recursive: true })
-  } catch {
-    /* 目录可能已存在 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 目录可能已存在）
+      log.debug('data-sync', '* 目录可能已存在', e)
+    }
   return { client, password: config.password }
 }
 
@@ -518,9 +521,10 @@ function prefGet(key: string): string | null {
 function prefSet(key: string, value: string): void {
   try {
     prefRepository.set(key, value)
-  } catch {
-    /* 写失败静默：下次同步重新决策 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 写失败静默：下次同步重新决策）
+      log.debug('data-sync', '* 写失败静默：下次同步重新决策', e)
+    }
 }
 
 export type SyncDecision = 'pull' | 'push' | 'noop'
@@ -584,9 +588,10 @@ export async function pushDataSync(deps: SyncDeps = {}): Promise<{
           )
         ) as { exportedAt?: number }
         remoteExportedAt = Number(latest.exportedAt ?? 0)
-      } catch {
-        // latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏）
+      log.debug('data-sync', 'latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏', e)
+    }
       if (remoteExportedAt > readApplied()) {
         const remoteBuf = (await withTimeout(
           client.getFileContents(`${remotePath}/bundle.json.enc`, { format: 'binary' }),

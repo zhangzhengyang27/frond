@@ -26,6 +26,7 @@ const ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/
 
 export type { McpServerConfig } from './types'
 import type { McpServerConfig } from './types'
+import { log } from '../LogService'
 
 /** 返回给渲染端的配置形态 */
 export type McpServerPublic = Omit<McpServerConfig, 'env'> & { envKeys: string[] }
@@ -44,9 +45,10 @@ export function setMcpTableChangedListener(fn: () => void): void {
 function notifyTableChanged(): void {
   try {
     onTableChanged?.()
-  } catch {
-    // 推送失败不该让保存/连接本身变成失败：界面下一次唤起照样会重拉
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：推送失败不该让保存/连接本身变成失败：界面下一次唤起照样会重拉）
+      log.debug('store', '推送失败不该让保存/连接本身变成失败：界面下一次唤起照样会重拉', e)
+    }
 }
 
 function str(v: unknown, max: number): string {

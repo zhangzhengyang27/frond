@@ -108,9 +108,10 @@ export function archiveLegacyJsonInDir(
       'legacyArchive',
       `done: ${result.archivedCount} archived, ${result.skippedCount} skipped, ${files.length} files in ${archiveDir}`
     )
-  } catch {
-    /* ignore */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* ignore）
+      log.debug('legacy-archive', '* ignore', e)
+    }
 
   return result
 }
@@ -153,8 +154,9 @@ export function listArchives(userDataDir: string): ArchiveInfo[] {
         }
       }
       out.push({ path: full, ts: sub, files: fileInfos, totalSize: total })
-    } catch {
-      /* skip broken entry */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* skip broken entry）
+      log.debug('legacy-archive', '* skip broken entry', e)
     }
   }
   return out

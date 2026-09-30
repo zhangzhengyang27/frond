@@ -240,9 +240,10 @@ function logMemorySnapshot(): void {
       byType[type].workingSetKB += m.memory?.workingSetSize ?? 0
     }
     log.info('perf', `memory snapshot: ${JSON.stringify(byType)}`)
-  } catch {
-    /* noop */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('index', '* noop', e)
+    }
 }
 
 // 全局异常兜底，防止未捕获异常导致主进程崩溃。
@@ -316,9 +317,10 @@ app.whenReady().then(() => {
   // 从 pref_preferences 读 telemetry_mode（在 installDatabase() 之后）
   try {
     log.loadTelemetryMode()
-  } catch {
-    /* ignore */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* ignore）
+      log.debug('index', '* ignore', e)
+    }
 
   // Set app user model id for windows（须与 electron-builder.yml 的 appId 一致，
   // 否则 Windows 通知/任务栏身份与安装包脱节）
@@ -561,9 +563,10 @@ app.whenReady().then(() => {
 app.on('will-quit', () => {
   try {
     if (hyperKeyService.isActive()) clearCapsRemapSync()
-  } catch {
-    /* 非 mac / hidutil 不可用 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 非 mac / hidutil 不可用）
+      log.debug('index', '* 非 mac / hidutil 不可用', e)
+    }
 })
 
 app.on('window-all-closed', () => {

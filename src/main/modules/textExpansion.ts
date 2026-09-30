@@ -28,6 +28,7 @@ import { clipboardHistory } from '../services/ClipboardHistoryService'
 import { ExpansionBuffer, type ExpansionHit, type ExpansionTrigger } from './expansionBuffer'
 import { snippetRepository } from '../db/repos/SnippetRepository'
 import { getLauncherDocStore } from '../launcher/docStore'
+import { log } from '../services/LogService'
 
 const execFileAsync = promisify(execFile)
 
@@ -318,8 +319,9 @@ class TextExpansionService {
       if (hadImage) clipboard.writeImage(image)
       // 还原同样是程序化写入：同步指纹，避免把用户原剪贴板内容再次收进历史
       clipboardHistory.noteExternalTextWrite(text)
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('text-expansion', '* noop', e)
     }
   }
 }
@@ -436,9 +438,10 @@ function playExpansionSound(): void {
         { timeout: 3000 }
       ).catch(() => {})
     }
-  } catch {
-    /* 音效失败静默 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 音效失败静默）
+      log.debug('text-expansion', '* 音效失败静默', e)
+    }
 }
 
 /** 打开 macOS 辅助功能授权面板（管理页引导用） */

@@ -6,6 +6,7 @@
  */
 import { calendarService } from '../services/CalendarService'
 import { typedHandle } from './typedIpc'
+import { log } from '../services/LogService'
 
 export function registerCalendarIpc(): void {
   typedHandle('calendar:status', async () => {
@@ -32,9 +33,10 @@ export function registerCalendarIpc(): void {
       try {
         const { Notification } = await import('electron')
         new Notification({ title: '创建日程失败', body: result.error }).show()
-      } catch {
-        /* 通知失败静默 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 通知失败静默）
+      log.debug('calendar', '* 通知失败静默', e)
+    }
     }
     return result
   })

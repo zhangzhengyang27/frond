@@ -2,6 +2,7 @@ import { prefRepository } from '../db/repos/PrefRepository'
 import { normalizePopToRootMode, type PopToRootMode } from '../../shared/popToRoot'
 import { DEFAULT_DENSITY, normalizeDensity, type Density } from '../../shared/density'
 import { normalizeGlass, type CapsuleGlass } from '../../shared/capsuleGlass'
+import { log } from '../services/LogService'
 
 export interface EditorSettings {
   fontSize: number
@@ -64,9 +65,10 @@ export class PreferencesDataStore {
     if (raw) {
       try {
         return { ...EDITOR_DEFAULTS, ...JSON.parse(raw) }
-      } catch {
-        // fall through
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：fall through）
+      log.debug('preferences-data-store', 'fall through', e)
+    }
     }
     return EDITOR_DEFAULTS
   }
@@ -88,9 +90,10 @@ export class PreferencesDataStore {
       try {
         const parsed = JSON.parse(raw)
         if (THEME_VALUES.includes(parsed)) return parsed
-      } catch {
-        // fall through
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：fall through）
+      log.debug('preferences-data-store', 'fall through', e)
+    }
     }
     // 默认跟随系统（v4 产品决策）：首次启动读取系统外观，设置页可手动覆盖并持久化。
     // 渲染进程 useTheme 的初值与此保持一致。
@@ -139,8 +142,9 @@ export class PreferencesDataStore {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
-    } catch {
-      /* fall through */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* fall through）
+      log.debug('preferences-data-store', '* fall through', e)
     }
     return []
   }
@@ -157,8 +161,9 @@ export class PreferencesDataStore {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
-    } catch {
-      /* fall through */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* fall through）
+      log.debug('preferences-data-store', '* fall through', e)
     }
     return []
   }
@@ -175,8 +180,9 @@ export class PreferencesDataStore {
     try {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
-    } catch {
-      /* fall through */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* fall through）
+      log.debug('preferences-data-store', '* fall through', e)
     }
     return []
   }

@@ -20,6 +20,7 @@ import { shotIndexRepository, type ShotRow, type ShotSearchFilter } from '../db/
 import { getLauncherWindow } from '../launcher/window'
 import { pasteToActiveApp } from '../utils/pasteKeystroke'
 import { isMac } from '../utils/platform'
+import { log } from './LogService'
 
 const execFileAsync = promisify(execFile)
 
@@ -79,8 +80,9 @@ export async function screenshotDirs(): Promise<string[]> {
     let parsed: unknown = envDirs
     try {
       parsed = JSON.parse(envDirs)
-    } catch {
-      /* 单路径写法 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 单路径写法）
+      log.debug('screenshot-index-service', '* 单路径写法', e)
     }
     const dirs = Array.isArray(parsed)
       ? parsed.filter((s): s is string => typeof s === 'string')
@@ -98,8 +100,9 @@ export async function screenshotDirs(): Promise<string[]> {
       ])
       const dir = String(stdout ?? '').trim()
       if (dir && existsSync(dir)) dirs.add(dir)
-    } catch {
-      /* 未自定义截图位置：桌面目录已覆盖 macOS 默认 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 未自定义截图位置：桌面目录已覆盖 macOS 默认）
+      log.debug('screenshot-index-service', '* 未自定义截图位置：桌面目录已覆盖 macOS 默认', e)
     }
   }
   return [...dirs].filter((d) => existsSync(d))
@@ -124,15 +127,17 @@ class ScreenshotIndexService {
     for (const fn of this.listeners) {
       try {
         fn()
-      } catch {
-        /* 监听者异常不影响扫描 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 监听者异常不影响扫描）
+      log.debug('screenshot-index-service', '* 监听者异常不影响扫描', e)
+    }
     }
     // 胶囊页刷新列表（OCR 进度是渐进的，靠推送而非轮询）
     try {
       getLauncherWindow()?.webContents.send('shotidx:changed')
-    } catch {
-      /* 窗口已销毁 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 窗口已销毁）
+      log.debug('screenshot-index-service', '* 窗口已销毁', e)
     }
   }
 
@@ -239,9 +244,10 @@ class ScreenshotIndexService {
       if (worker) {
         try {
           await worker.terminate()
-        } catch {
-          /* noop */
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('screenshot-index-service', '* noop', e)
+    }
       }
     }
   }

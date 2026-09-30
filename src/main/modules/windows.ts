@@ -3,6 +3,7 @@ import { join } from 'path'
 import icon from '../../../resources/icon.png?asset'
 import { is } from '@electron-toolkit/utils'
 import { preferencesStore } from '../stores'
+import { log } from '../services/LogService'
 
 /**
  * 窗口启动底色：跟随**应用主题偏好**而非系统外观。
@@ -13,9 +14,10 @@ function resolveWindowBackground(): string {
   let theme: 'light' | 'dark' | 'auto' = 'auto'
   try {
     theme = preferencesStore.getTheme()
-  } catch {
-    // 偏好未就绪时跟随系统
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：偏好未就绪时跟随系统）
+      log.debug('windows', '偏好未就绪时跟随系统', e)
+    }
   const dark = theme === 'dark' || (theme === 'auto' && nativeTheme.shouldUseDarkColors)
   // 与 tokens.css v4 的 --surface-0（亮/暗画布）保持一致，避免首帧跳色
   return dark ? '#191a1e' : '#f5f5f7'

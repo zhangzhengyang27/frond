@@ -41,6 +41,7 @@ import {
   cpSync,
   realpathSync
 } from 'fs'
+import { log } from '../services/LogService'
 
 export interface PluginCommand {
   code: string
@@ -112,8 +113,9 @@ function readIndex(): InstalledPlugin[] {
     console.error('[Launcher] installed.json 损坏，尝试重建:', (error as Error).message)
     try {
       rmSync(indexPath())
-    } catch {
-      /* ignore */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* ignore）
+      log.debug('plugin-store', '* ignore', e)
     }
     return rebuildIndexFromDisk()
   }
@@ -132,9 +134,10 @@ function rebuildIndexFromDisk(): InstalledPlugin[] {
         console.warn('[Launcher] 重建索引跳过', entry.name, (e as Error).message)
       }
     }
-  } catch {
-    /* ignore */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* ignore）
+      log.debug('plugin-store', '* ignore', e)
+    }
   if (rebuilt.length > 0) writeIndex(rebuilt)
   return rebuilt
 }
@@ -328,10 +331,10 @@ export function removePlugin(pluginId: string): void {
   // 卸载即清理插件命名空间 KV（launcher_docs），避免卸载重装后读到旧数据
   try {
     getLauncherDocStore().deleteByPlugin(pluginId)
-  } catch {
-    /* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空，
-       此处失败仅残留数据，不影响功能 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空， 此处失败仅残留数据，不影响功能）
+      log.debug('plugin-store', '* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空， 此处失败仅残留数据，不影响功能', e)
+    }
 }
 
 export function setPluginEnabled(pluginId: string, enabled: boolean): InstalledPlugin | undefined {

@@ -22,6 +22,7 @@
  */
 
 import { BrowserWindow, screen, app, type Display } from 'electron'
+import { log } from '../LogService'
 
 export interface RegionSelection {
   x: number
@@ -174,9 +175,10 @@ function closePending(): void {
   pending = null
   try {
     if (!win.isDestroyed()) win.close()
-  } catch {
-    /* 窗口已在销毁流程里 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 窗口已在销毁流程里）
+      log.debug('region-overlay', '* 窗口已在销毁流程里', e)
+    }
   resolve({ ok: false, reason: 'canceled' })
 }
 
@@ -232,9 +234,10 @@ function openOverlay(target: {
       pending = null
       try {
         if (!win.isDestroyed()) win.close()
-      } catch {
-        /* 已在销毁流程里 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 已在销毁流程里）
+      log.debug('region-overlay', '* 已在销毁流程里', e)
+    }
       resolve(r)
     }
 

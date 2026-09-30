@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3'
 import type { Migration } from './index'
 import { decryptText } from '../../utils/crypto'
+import { log } from '../../services/LogService'
 
 /**
  * Frond · Migration 032 — 片段明文搜索列（B42）
@@ -43,9 +44,10 @@ export const m032_snippet_search_text: Migration = {
           parts.push(c.label ?? '')
           try {
             parts.push(decryptText(c.value))
-          } catch {
-            /* 密文不可解：value 不进投影，label 仍可搜 */
-          }
+          } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 密文不可解：value 不进投影，label 仍可搜）
+      log.debug('032_snippet_search_text', '* 密文不可解：value 不进投影，label 仍可搜', e)
+    }
         }
         updateStmt.run(parts.join('\n'), row.id)
       }

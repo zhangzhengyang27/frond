@@ -16,6 +16,7 @@ import Database from 'better-sqlite3'
 import { join } from 'node:path'
 import { copyFileSync, existsSync, statSync, readdirSync, unlinkSync } from 'node:fs'
 import { migrations, type Migration } from './migrations'
+import { log } from '../services/LogService'
 
 const DB_FILE = 'frond.db'
 const BACKUP_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
@@ -72,9 +73,10 @@ class FrondDatabase {
       // 关掉并置空，让下次访问重走完整打开（重新迁移或再次显式失败）
       try {
         db.close()
-      } catch {
-        /* 尽力而为 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 尽力而为）
+      log.debug('database', '* 尽力而为', e)
+    }
       this.db = null
       throw error
     }
@@ -103,9 +105,10 @@ class FrondDatabase {
       if (!this.verifySqliteFile(bak)) {
         try {
           unlinkSync(bak)
-        } catch {
-          // ignore
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：ignore）
+      log.debug('database', 'ignore', e)
+    }
         console.warn('[database] backup discarded: integrity check failed')
         return
       }
@@ -141,12 +144,14 @@ class FrondDatabase {
       for (const f of stale) {
         try {
           unlinkSync(join(dir, f))
-        } catch {
-          // ignore
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：ignore）
+      log.debug('database', 'ignore', e)
+    }
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：ignore）
+      log.debug('database', 'ignore', e)
     }
   }
 

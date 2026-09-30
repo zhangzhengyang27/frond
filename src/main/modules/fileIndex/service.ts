@@ -21,6 +21,7 @@ import type { ExcludePolicy } from './excludes'
 import { normPath, isInScope, dirsForEvents, partitionReadable } from './paths'
 import { activeBackend } from './watcher'
 import type { FileIndexHit, FileSearchMode } from './db'
+import { log } from '../../services/LogService'
 
 export type FileIndexStatus = 'disabled' | 'scanning' | 'ready' | 'capped' | 'error'
 
@@ -350,9 +351,10 @@ class FileIndexService {
       if (generation !== this.scanGeneration) return // 审查 I-7：重建开始后停止写入
       try {
         await rescanDir(this.db, dir, policy, inScope)
-      } catch {
-        /* 单目录失败不中断本轮 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 单目录失败不中断本轮）
+      log.debug('service', '* 单目录失败不中断本轮', e)
+    }
     }
     this.filesValue = this.db.count()
   }
@@ -372,8 +374,9 @@ class FileIndexService {
     try {
       await compensateStaleDirs(db, this.policy(), this.inScopePath, this.signalFor(generation))
       this.filesValue = db.count()
-    } catch {
-      /* 补偿失败不影响既有索引可用（下次事件或重建会覆盖） */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 补偿失败不影响既有索引可用（下次事件或重建会覆盖））
+      log.debug('service', '* 补偿失败不影响既有索引可用（下次事件或重建会覆盖）', e)
     }
   }
 

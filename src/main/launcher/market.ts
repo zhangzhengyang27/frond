@@ -42,6 +42,7 @@ import { confirmPluginImport } from './pluginConfirm'
 import fetch from 'node-fetch'
 import { pinningAgentSelector } from './dnsPinning'
 import { isLocalTarget } from './runtime'
+import { log } from '../services/LogService'
 
 const execFileAsync = promisify(execFile)
 
@@ -528,9 +529,10 @@ export function findManifestDir(root: string): string | null {
       const dir = join(root, entry.name)
       if (existsSync(join(dir, 'plugin.json')) && contained(dir)) return dir
     }
-  } catch {
-    /* ignore */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* ignore）
+      log.debug('market', '* ignore', e)
+    }
   return null
 }
 

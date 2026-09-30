@@ -17,6 +17,7 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypt
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'fs'
+import { log } from '../services/LogService'
 
 const ALGO = 'aes-256-gcm'
 const IV_LEN = 12
@@ -40,8 +41,9 @@ function getKey(): Buffer {
       const raw = readFileSync(keyPath, 'utf8').trim()
       cachedKey = Buffer.from(raw, 'hex')
       if (cachedKey.length === KEY_LEN) return cachedKey
-    } catch {
-      /* 密钥文件损坏，重新生成 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 密钥文件损坏，重新生成）
+      log.debug('crypto', '* 密钥文件损坏，重新生成', e)
     }
   }
 
@@ -52,9 +54,10 @@ function getKey(): Buffer {
   writeFileSync(keyPath, newKey.toString('hex'), { mode: 0o600 })
   try {
     chmodSync(keyPath, 0o600)
-  } catch {
-    /* 权限设置失败不影响功能 */
-  }
+  } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 权限设置失败不影响功能）
+      log.debug('crypto', '* 权限设置失败不影响功能', e)
+    }
   cachedKey = newKey
   return newKey
 }

@@ -20,6 +20,7 @@ import { addShortcutRestorer } from '../modules/globalShortcuts'
 import { globalKeyHook } from '../modules/globalKeys'
 import { acceleratorModifiers, keycodeToLetter, keycodeToModifier } from '../modules/keycodes'
 import { dispatchMainAction } from './actionHandlers'
+import { log } from '../services/LogService'
 
 const HOTKEY_NS = 'sys.hotkeys'
 const DEFAULT_MAIN = 'Alt+Space'
@@ -139,8 +140,9 @@ function unregisterAll(): void {
   for (const accel of registeredAccelerators) {
     try {
       globalShortcut.unregister(accel)
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('hotkeys', '* noop', e)
     }
   }
   registeredAccelerators = []

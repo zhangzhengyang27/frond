@@ -27,6 +27,7 @@ import { isMac, isWin } from '../utils/platform'
 import { typedHandle } from '../ipc/typedIpc'
 import { normalizeShieldMode, enforcementFor, type ShieldMode } from './focusShieldLogic'
 import { escapeAppleScriptString } from '../services/menuBarLogic'
+import { log } from '../services/LogService'
 
 const execFileAsync = promisify(execFile)
 
@@ -235,8 +236,9 @@ class FocusShieldService {
           timeout: 3000
         })
       }
-    } catch {
-      // 退出/隐藏失败（应用名与 bundle 名不一致等）静默：遮罩层仍在提醒
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：退出/隐藏失败（应用名与 bundle 名不一致等）静默：遮罩层仍在提醒）
+      log.debug('focus-shield', '退出/隐藏失败（应用名与 bundle 名不一致等）静默：遮罩层仍在提醒', e)
     }
   }
 
@@ -253,9 +255,10 @@ class FocusShieldService {
           ],
           { timeout: 3000 }
         )
-      } catch {
-        // 应用可能已被用户自己退出：忽略
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：应用可能已被用户自己退出：忽略）
+      log.debug('focus-shield', '应用可能已被用户自己退出：忽略', e)
+    }
     }
     this.hiddenApps.clear()
   }

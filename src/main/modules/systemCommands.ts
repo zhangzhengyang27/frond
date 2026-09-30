@@ -25,6 +25,7 @@ import { getLauncherWindow } from '../launcher/window'
 import { computeWindowRect, roundRect, type Rect } from './windowGeometry'
 import { prefRepository } from '../db/repos'
 import { typedHandle } from '../ipc/typedIpc'
+import { log } from '../services/LogService'
 
 /** 窗口 gap（px，窗口与屏幕边缘留白；pref launcher:windowGap，默认 0）。
  *  每次执行时实时读，设置页改动即时生效（V4 P1-7 批次3） */
@@ -401,7 +402,10 @@ Get-Process | Where-Object {
   $_.ProcessName -ne $selfName -and
   $_.ProcessName -ne $keepName -and
   $_.ProcessName -notin @('explorer')
-} | ForEach-Object { try { [void]$_.CloseMainWindow() } catch {} }`
+} | ForEach-Object { try { [void]$_.CloseMainWindow() } catch (e) {
+      // 批 7b 空 catch 清账（原注释：尽力而为步骤失败（不影响主流程））
+      log.debug('system-commands', '尽力而为步骤失败（不影响主流程）', e)
+    } }`
 }
 
 async function runQuitAllApps(keepFrontmost: boolean): Promise<CommandResult> {
@@ -863,9 +867,10 @@ export function registerSystemCommandIpc(): void {
       try {
         const label = id.startsWith('window.') ? '窗口操作' : '系统命令'
         new Notification({ title: `${label}失败`, body: result.error }).show()
-      } catch {
-        /* 通知失败静默 */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 通知失败静默）
+      log.debug('system-commands', '* 通知失败静默', e)
+    }
     }
     return result
   })

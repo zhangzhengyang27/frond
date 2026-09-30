@@ -30,6 +30,7 @@ import {
 } from 'fs'
 import plist from 'plist'
 import { encryptText, decryptText } from '../utils/crypto'
+import { log } from './LogService'
 
 /** P1-6：敏感应用屏蔽默认列表（密码管理器等） */
 const DEFAULT_BLOCKED_APPS = ['钥匙串访问', '密码', '1Password', 'Bitwarden', 'KeePass']
@@ -121,8 +122,9 @@ class ClipboardHistoryService {
     this.enabled = on
     try {
       writeFileSync(this.enabledPath(), JSON.stringify({ enabled: on }))
-    } catch {
-      /* 持久化失败不影响本次会话 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 持久化失败不影响本次会话）
+      log.debug('clipboard-history-service', '* 持久化失败不影响本次会话', e)
     }
     if (on) {
       this.start()
@@ -163,8 +165,9 @@ class ClipboardHistoryService {
   setBlockedApps(apps: string[]): void {
     try {
       writeFileSync(this.blockedAppsPath(), JSON.stringify({ apps }))
-    } catch {
-      /* 持久化失败不影响本次会话 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 持久化失败不影响本次会话）
+      log.debug('clipboard-history-service', '* 持久化失败不影响本次会话', e)
     }
     this.blockedAppsCache = [...apps]
   }
@@ -275,9 +278,10 @@ class ClipboardHistoryService {
     if (item.kind === 'image' && item.filePath && existsSync(item.filePath)) {
       try {
         unlinkSync(item.filePath)
-      } catch {
-        /* noop */
-      }
+      } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
+    }
     }
     this.persist()
     return true
@@ -288,9 +292,10 @@ class ClipboardHistoryService {
       if (item.kind === 'image' && item.filePath && existsSync(item.filePath)) {
         try {
           unlinkSync(item.filePath)
-        } catch {
-          /* noop */
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
+    }
       }
     }
     this.items = []
@@ -333,8 +338,9 @@ class ClipboardHistoryService {
         const path = raw.replace(/\0/g, '').trim()
         return path ? [path] : null
       }
-    } catch {
-      /* 读取失败按无文件处理 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 读取失败按无文件处理）
+      log.debug('clipboard-history-service', '* 读取失败按无文件处理', e)
     }
     return null
   }
@@ -387,13 +393,15 @@ class ClipboardHistoryService {
         if (!referenced.has(filePath)) {
           try {
             unlinkSync(filePath)
-          } catch {
-            /* noop */
-          }
+          } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
+    }
         }
       }
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
     }
   }
 
@@ -409,8 +417,9 @@ class ClipboardHistoryService {
       writeFileSync(tmpFile, JSON.stringify(encrypted))
       rmSync(this.indexPath(), { force: true })
       renameSync(tmpFile, this.indexPath())
-    } catch {
-      /* 持久化失败不阻塞内存中的历史 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 持久化失败不阻塞内存中的历史）
+      log.debug('clipboard-history-service', '* 持久化失败不阻塞内存中的历史', e)
     }
   }
 
@@ -484,8 +493,9 @@ class ClipboardHistoryService {
         // P1-6：异步 OCR（不阻塞轮询）
         void this.runOCR(item.id, filePath)
       }
-    } catch {
-      /* 剪贴板读取失败（权限等）下一轮重试 */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* 剪贴板读取失败（权限等）下一轮重试）
+      log.debug('clipboard-history-service', '* 剪贴板读取失败（权限等）下一轮重试', e)
     } finally {
       this.pollBusy = false
     }
@@ -577,9 +587,10 @@ class ClipboardHistoryService {
       if (worker) {
         try {
           await worker.terminate()
-        } catch {
-          /* noop */
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
+    }
       }
     }
   }
@@ -625,9 +636,10 @@ class ClipboardHistoryService {
       if (oldest.kind === 'image' && oldest.filePath && existsSync(oldest.filePath)) {
         try {
           unlinkSync(oldest.filePath)
-        } catch {
-          /* noop */
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
+    }
       }
     }
     // 图片文件单独限额（置顶优先保留）；超限条目直接移除——
@@ -638,9 +650,10 @@ class ClipboardHistoryService {
       if (item.filePath && existsSync(item.filePath)) {
         try {
           unlinkSync(item.filePath)
-        } catch {
-          /* noop */
-        }
+        } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
+    }
       }
       const idx = this.items.indexOf(item)
       if (idx >= 0) this.items.splice(idx, 1)
@@ -663,8 +676,9 @@ class ClipboardHistoryService {
     let thumb = ''
     try {
       thumb = img.resize({ width: 8 }).toDataURL()
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 批 7b 空 catch 清账（原注释：* noop）
+      log.debug('clipboard-history-service', '* noop', e)
     }
     return createHash('sha256').update(`${size.width}x${size.height}:${thumb}`).digest('hex')
   }

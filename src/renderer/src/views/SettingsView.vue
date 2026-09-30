@@ -705,7 +705,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
 </script>
 
 <template>
-  <div class="RaycastSettings flex h-screen overflow-hidden bg-surface-2 text-fg-primary">
+  <div class="FrondSettings flex h-screen overflow-hidden bg-surface-2 text-fg-primary">
     <!-- ═══ 左侧边栏（Raycast 风格）═══ -->
     <aside class="flex w-[200px] shrink-0 flex-col border-r border-line-subtle bg-surface-2">
       <!-- 搜索框 -->

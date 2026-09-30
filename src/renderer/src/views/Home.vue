@@ -74,7 +74,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="FrondRaycastHome min-h-screen flex flex-col items-center justify-center px-6 py-12">
+  <div class="FrondHome min-h-screen flex flex-col items-center justify-center px-6 py-12">
     <!-- ═══ Logo + 标题 ═══ -->
     <div class="mb-8 text-center">
       <div

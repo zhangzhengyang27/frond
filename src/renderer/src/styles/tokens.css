@@ -1,7 +1,9 @@
 /**
- * Frond · Design Tokens（唯一视觉事实源）· v4 macOS Native Design Language
+ * Frond · Design Tokens（唯一视觉事实源）· v5 macOS Native Design Language
  *
- * v4 设计原则（替代 v2 Raycast/Linear 方向，2026-08 重设计决策）：
+ * v5 变更（2026-09-30 重塑批 3a，决策记录见 docs/REDESIGN_ROADMAP_2026-09-29.md D3/D5）：
+ *   单一 accent 收敛为 brand 蓝（Raycast 红 #ff6363 退役）；暗色档整体压深一档；
+ *   玻璃材质三级阶梯；新增封闭字阶。v4 设计原则（2026-08 重设计决策）沿用：
  * 1. 原生质感 —— 对齐 Apple HIG：SF 系统字体栈、hairline 描边、大而柔的阴影、
  *    毛玻璃材质（blur + saturate）、系统级控件观感；亮暗两套都是「第一主题」
  * 2. 科技蓝主色 —— Brand 以 macOS System Blue 为基准（浅 #007AFF / 深 #0A84FF），
@@ -88,6 +90,29 @@
   --glass-blur: 20px;
   --glass-saturate: 1.8; /* v4 新增：材质「鲜艳度」，vibrancy 观感的来源 */
   --glass-filter: blur(20px) saturate(1.8); /* v4 新增：整体 backdrop-filter */
+
+  /* v5 封闭字阶（7 档，px 基准 + 配对行高）：全局唯一字号来源 */
+  --font-size-2xs: 11px;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 22px;
+  --font-lh-2xs: 16px;
+  --font-lh-xs: 17px;
+  --font-lh-sm: 18px;
+  --font-lh-md: 20px;
+  --font-lh-lg: 24px;
+  --font-lh-xl: 28px;
+  --font-lh-2xl: 30px;
+  /* v5 玻璃阶梯：1=常规（HUD/胶囊） 2=强（模态/抽屉） 3=浮层（弹窗置顶层）。三参数 = bg alpha × blur × 1px 高光 */
+  --glass-bg-overlay: rgba(255, 255, 255, 0.92);
+  --glass-blur-strong: 28px;
+  --glass-filter-strong: blur(28px) saturate(1.8);
+  --glass-blur-overlay: 36px;
+  --glass-filter-overlay: blur(36px) saturate(1.8);
+  --glass-highlight-strong: rgba(255, 255, 255, 0.75);
 
   /* ─── Semantic · 遮罩 ──────────────────────────────── */
   --overlay-bg: rgba(0, 0, 0, 0.28);
@@ -201,8 +226,6 @@
   --pomo-glass-border: rgba(255, 255, 255, 0.4);
   --pomo-glass-border-elevated: rgba(255, 255, 255, 0.6);
   --pomo-text-strong: #1c1e26;
-  --pomo-text-soft: #474e5a;
-  --pomo-text-muted: #7c8595;
   --pomo-outline: #7c8595;
   --pomo-outline-variant: #c6cbd8;
   --pomo-surface-container: #eef0f8;
@@ -296,12 +319,12 @@
   --launcher-text-dim: rgba(0, 0, 0, 0.55);
   --launcher-text-muted: rgba(0, 0, 0, 0.4);
   --launcher-text-faint: rgba(0, 0, 0, 0.3);
-  /* Raycast 品牌红（UI 对标 V8 拍板 2026-09-18）：强调色弃 systemBlue */
-  --launcher-accent: #ff6363;
-  --launcher-accent-soft: rgba(255, 99, 99, 0.09);
-  --launcher-accent-strong: rgba(255, 99, 99, 0.15);
+  /* D5 单 accent（2026-09-30）：launcher 强调色收敛为 brand 派生，Raycast 红 #ff6363 退役 */
+  --launcher-accent: #007aff;
+  --launcher-accent-soft: rgba(0, 122, 255, 0.09);
+  --launcher-accent-strong: rgba(0, 122, 255, 0.15);
   --launcher-selected-bg: #e8e8ed;
-  --launcher-selected-indicator: #ff6363;
+  --launcher-selected-indicator: #007aff;
   --launcher-shadow: 0 24px 70px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
   --launcher-blur: blur(0);
   --launcher-radius: 14px;
@@ -311,8 +334,8 @@
   /* v5 补齐：此前被页面引用却从未定义，导致 hover/input/badge 背景静默失效 */
   --launcher-result-hover: rgba(0, 0, 0, 0.045);
   --launcher-input-bg: rgba(0, 0, 0, 0.04);
-  --launcher-badge-bg: rgba(255, 99, 99, 0.12);
-  --launcher-accent-bg: rgba(255, 99, 99, 0.1);
+  --launcher-badge-bg: rgba(0, 122, 255, 0.12);
+  --launcher-accent-bg: rgba(0, 122, 255, 0.1);
   --launcher-danger: #ff3b30;
   /* 弹出层表面（下拉/浮层面板，需比胶囊底色更实） */
   --launcher-popover-bg: #ffffff;
@@ -332,11 +355,11 @@ html.dark {
   --launcher-text-dim: rgba(255, 255, 255, 0.66);
   --launcher-text-muted: rgba(255, 255, 255, 0.5);
   --launcher-text-faint: rgba(255, 255, 255, 0.34);
-  --launcher-accent: #ff6363;
-  --launcher-accent-soft: rgba(255, 99, 99, 0.16);
-  --launcher-accent-strong: rgba(255, 99, 99, 0.24);
+  --launcher-accent: #0a84ff;
+  --launcher-accent-soft: rgba(10, 132, 255, 0.16);
+  --launcher-accent-strong: rgba(10, 132, 255, 0.24);
   --launcher-selected-bg: rgba(255, 255, 255, 0.14);
-  --launcher-selected-indicator: #ff6363;
+  --launcher-selected-indicator: #0a84ff;
   --launcher-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), 0 0 0 0.5px rgba(255, 255, 255, 0.08);
   --launcher-blur: blur(0);
   --launcher-radius: 14px;
@@ -345,8 +368,8 @@ html.dark {
   --launcher-detail-width: 465px;
   --launcher-result-hover: rgba(255, 255, 255, 0.07);
   --launcher-input-bg: rgba(255, 255, 255, 0.08);
-  --launcher-badge-bg: rgba(255, 99, 99, 0.22);
-  --launcher-accent-bg: rgba(255, 99, 99, 0.16);
+  --launcher-badge-bg: rgba(10, 132, 255, 0.22);
+  --launcher-accent-bg: rgba(10, 132, 255, 0.16);
   --launcher-danger: #ff453a;
   --launcher-popover-bg: rgba(46, 46, 52, 0.96);
 }
@@ -383,10 +406,10 @@ html.dark {
   --brand-glow: rgba(10, 132, 255, 0.4);
 
   /* Semantic · 表面分层 —— 亮度逐级抬升（macOS 深色窗口材质） */
-  --surface-0: #191a1e;
-  --surface-1: #222329;
-  --surface-2: #292b32;
-  --surface-3: #30333b;
+  --surface-0: #14151a;
+  --surface-1: #1d1f25;
+  --surface-2: #252830;
+  --surface-3: #2c2f38;
   --surface-hover: rgba(255, 255, 255, 0.06);
   --surface-active: rgba(255, 255, 255, 0.1);
   --surface-inverse: #f5f5f7;
@@ -400,7 +423,7 @@ html.dark {
   --text-primary: #f5f5f7;
   --text-secondary: #a6abb5;
   --text-tertiary: #8a909c;
-  --text-muted: #666c78;
+  --text-muted: #8a92a0; /* v5：暗色面板上 ≥4.5:1（AA），原 #666c78 仅 2.97:1 */
   --text-inverse: #1d1d1f;
   --text-brand: #6fb2ff; /* 深底 8:1，AA ✓ */
   --text-danger: #ff6961; /* Apple dark accessible red */
@@ -414,6 +437,13 @@ html.dark {
   --glass-blur: 24px;
   --glass-saturate: 1.8;
   --glass-filter: blur(24px) saturate(1.8);
+  /* v5 玻璃阶梯（暗色对） */
+  --glass-bg-overlay: rgba(22, 23, 28, 0.92);
+  --glass-blur-strong: 30px;
+  --glass-filter-strong: blur(30px) saturate(1.8);
+  --glass-blur-overlay: 38px;
+  --glass-filter-overlay: blur(38px) saturate(1.8);
+  --glass-highlight-strong: rgba(255, 255, 255, 0.14);
 
   --overlay-bg: rgba(0, 0, 0, 0.52);
 
@@ -475,8 +505,6 @@ html.dark {
   --pomo-glass-border: rgba(255, 255, 255, 0.05);
   --pomo-glass-border-elevated: rgba(255, 255, 255, 0.1);
   --pomo-text-strong: #e8ebf0;
-  --pomo-text-soft: #c6cbd6;
-  --pomo-text-muted: #7c8595;
   --pomo-outline: #7c8595;
   --pomo-outline-variant: #4a4e5a;
   --pomo-surface-container: #2c2e35;

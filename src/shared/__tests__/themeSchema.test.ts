@@ -76,12 +76,15 @@ describe('themeSchema 结构不变量', () => {
     expectVarPair('glass-bg', 'rgba(255, 255, 255, 0.68)', 'rgba(26, 27, 31, 0.72)')
   })
 
-  it('core.accent 与品牌默认一致（launch 胶囊强调色为独立拍板，不在本 schema）', () => {
+  it('core.accent 与品牌默认一致（launch 胶囊强调色已随 D5 收敛为同一 brand 蓝）', () => {
     // 浅色端 accent = brand-500；深色端 = systemBlue dark
     expect(FROND_LIGHT_THEME.core.accent).toBe('#007aff')
     expect(FROND_DARK_THEME.core.accent).toBe('#0a84ff')
-    // 胶囊强调色（Raycast 红，Decision-010）独立于本 schema——确保未被误并
-    expect(tokensCss).toContain('--launcher-accent: #ff6363')
-    expect(FROND_LIGHT_THEME.core.accent).not.toBe('#ff6363')
+    // D5 单 accent（2026-09-30，取代 Decision-010 的双色相）：胶囊强调色 = brand 派生蓝，
+    // Raycast 红 #ff6363 退役——钉住「全站不再出现第二品牌色相」（注释中的退役记录除外）
+    expect(tokensCss).not.toContain('--launcher-accent: #ff6363')
+    expect(tokensCss).not.toContain('--launcher-selected-indicator: #ff6363')
+    expect(tokensCss).toContain('--launcher-accent: #007aff')
+    expect(tokensCss).toContain('--launcher-accent: #0a84ff')
   })
 })

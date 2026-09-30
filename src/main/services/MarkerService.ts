@@ -16,8 +16,8 @@ export interface Marker {
   id: string
   timestamp: number // 秒
   label: string
-  color?: string
-  recordingId?: string // 关联的录制 ID（如果有）
+  color?: string | undefined
+  recordingId?: string | undefined // 关联的录制 ID（如果有）
 }
 
 export class MarkerService {

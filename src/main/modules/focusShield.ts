@@ -205,7 +205,7 @@ class FocusShieldService {
     appName: string
     pattern: string
     kind: 'app' | 'website'
-    url?: string
+    url?: string | undefined
   } | null = null
   private tempAllowUntil = 0
   /** 轮询中防重入（osascript 3s 超时 > 轮询间隔时的串行化） */
@@ -438,7 +438,7 @@ class FocusShieldService {
     appName: string
     pattern: string
     kind: 'app' | 'website'
-    url?: string
+    url?: string | undefined
   } | null {
     return this.current
   }

@@ -38,12 +38,12 @@ export interface McpServerView {
   id: string
   label: string
   status: McpStatus
-  serverName?: string
-  protocolVersion?: string
+  serverName?: string | undefined
+  protocolVersion?: string | undefined
   tools: McpTool[]
   /** 被剔除的非法工具数（界面要如实说「N 个已忽略」） */
   skipped: number
-  error?: string
+  error?: string | undefined
 }
 
 interface Pending {
@@ -62,7 +62,7 @@ interface Session {
   protocolVersion: string
   stderrTail: string
   state: McpStatus
-  error?: string
+  error?: string | undefined
 }
 
 const sessions = new Map<string, Session>()
@@ -279,7 +279,7 @@ export type McpCallResult = {
   ok: boolean
   text: string
   ignoredContent: number
-  error?: string
+  error?: string | undefined
 }
 
 export async function callToolOnServer(

@@ -15,7 +15,7 @@ export interface ExpansionTrigger {
   /** 扩展后要粘贴的文本；contentType='rich' 时为 HTML 源 */
   text: string
   /** 内容类型：'text'（缺省）纯文本；'rich' 走剪贴板 text/html 双格式粘贴 */
-  contentType?: 'text' | 'rich'
+  contentType?: 'text' | 'rich' | undefined
 }
 
 export interface ExpansionHit extends ExpansionTrigger {

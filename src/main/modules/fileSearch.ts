@@ -26,15 +26,15 @@ interface FileHit {
   name: string
   dir: string
   /** 文件大小（字节），Windows 搜索时填充 */
-  size?: number
+  size?: number | undefined
   /** 修改时间（毫秒时间戳），Windows 搜索时填充 */
-  modifiedAt?: number
+  modifiedAt?: number | undefined
 }
 
 /** 查询选项：mode 默认 name（保持兼容）；onlyIn 仅接受绝对路径目录 */
 export interface FileSearchOptions {
   mode?: 'name' | 'content'
-  onlyIn?: string
+  onlyIn?: string | undefined
 }
 
 const MAX_LIMIT = 50

@@ -42,12 +42,12 @@ export interface RecordingExportOptions {
   resolution: ExportResolution
   fps: ExportFps
   /** 视频码率（kbps）。未指定走预设 */
-  videoBitrateKbps?: number
+  videoBitrateKbps?: number | undefined
   /** 音频码率（kbps）。默认 128 */
-  audioBitrateKbps?: number
+  audioBitrateKbps?: number | undefined
   // PR-6: 片头片尾
-  introPath?: string
-  outroPath?: string
+  introPath?: string | undefined
+  outroPath?: string | undefined
   /**
    * PR-6: 转场。**仅在同时存在 intro/outro 时生效**：
    *   - 'fade':  前后片段与片头/片尾之间用 fade 黑场（afade+xfade）
@@ -55,20 +55,20 @@ export interface RecordingExportOptions {
    *   - 'slide': 横向滑动过渡（仅横向拼接）
    * 单条录制无 intro/outro 时忽略。
    */
-  transition?: ExportTransition
+  transition?: ExportTransition | undefined
   // PR-6: 背景音乐（与主音频 amix 叠加）
   backgroundMusic?: {
     path: string
     /** 音量 0..1（线性）。默认 0.5 */
     volume?: number
-  }
+  } | undefined
   /**
    * PR-6: 音频淡入淡出时长（秒）。应用到主音频 + BGM（若 BGM 长于视频则会循环/截断到视频末端）。
    * 默认 0（不淡）。建议 0.5 ~ 2 秒。
    */
-  fadeDurationSec?: number
+  fadeDurationSec?: number | undefined
   // PR-7c: GIF 档位（仅当 format='gif' 时生效）
-  gifPreset?: GifPreset
+  gifPreset?: GifPreset | undefined
 }
 
 export interface ExportProgress {
@@ -347,19 +347,19 @@ export function buildSimpleExportArgs(opts: RecordingExportOptions): string[] {
 interface ComplexArgs {
   source: string
   hasIntro: boolean
-  intro?: string
+  intro?: string | undefined
   hasOutro: boolean
-  outro?: string
+  outro?: string | undefined
   hasBgm: boolean
-  bgm?: string
-  bgmVolume?: number
+  bgm?: string | undefined
+  bgmVolume?: number | undefined
   transition: ExportTransition
   applyTransition: boolean
   format: ExportFormat
   resolution: ExportResolution
   fps: ExportFps
-  videoBitrateKbps?: number
-  audioBitrateKbps?: number
+  videoBitrateKbps?: number | undefined
+  audioBitrateKbps?: number | undefined
   fadeSec: number
   outputPath: string
   /** 各输入时长（秒）。xfade offset / 静音替代 trim / BGM 循环长度依赖 */

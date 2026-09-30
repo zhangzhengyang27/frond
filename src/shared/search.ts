@@ -114,9 +114,11 @@ export interface SearchEntryBase {
   /** 副标题（路径 / 描述） */
   subtitle: string
   /** 别名（拼音首字母等，M1.1）；命中得分略低于标题直击 */
-  aliases?: string[]
+  aliases?: string[] | undefined
   /** 参数化命令（P-1.6b）：只有声明了它的条目才吃「命令 + 尾部参数」的前缀命中 */
-  acceptsArgs?: boolean
+  acceptsArgs?: boolean | undefined
+  /** 右侧类型徽标文案（可选：命令管道的公共展示字段，搜索层不消费） */
+  badge?: string | undefined
 }
 
 /** 统一的搜索条目：模块 / 系统页 / 动作 / 插件命令 / 本机应用共用 */

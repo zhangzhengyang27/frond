@@ -564,8 +564,8 @@ import type { CommandHotkeySpec } from '@preload/index.d'
 interface LauncherPlugin {
   id: string
   name: string
-  version?: string
-  description?: string
+  version?: string | undefined
+  description?: string | undefined
   enabled: boolean
   commands?: Array<{ code: string; title: string; description?: string }>
   preferences?: Array<{
@@ -616,19 +616,19 @@ async function onImport(): Promise<void> {
 interface MarketEntry {
   id: string
   name: string
-  version?: string
-  description?: string
-  author?: string
+  version?: string | undefined
+  description?: string | undefined
+  author?: string | undefined
   download: string
   installed: boolean
-  installedVersion?: string
+  installedVersion?: string | undefined
   updatable: boolean
   /** 远程索引条目才可能有；打包索引是本地目录形态，如实标「未校验」 */
-  sha256?: string
+  sha256?: string | undefined
   /** 条目来源（批 6）：bundled=内置 / curated=官方精选 / remote=用户自配远程 */
   source: 'bundled' | 'curated' | 'remote'
   /** 索引声明的分类标签（可选） */
-  category?: string
+  category?: string | undefined
 }
 
 const market = ref<MarketEntry[]>([])
@@ -962,7 +962,7 @@ const hotkeyConfig = ref<{
   screenshot: 'Alt+Shift+S',
   commands: {}
 })
-const recording = ref<{ type: 'main' | 'command' | 'screenshot'; key?: string } | null>(null)
+const recording = ref<{ type: 'main' | 'command' | 'screenshot'; key?: string | undefined } | null>(null)
 
 /** 可绑热键的命令（静态命令注册表 → 热键 spec） */
 function specOfCommand(entry: CommandEntryLike): HotkeySpec | null {

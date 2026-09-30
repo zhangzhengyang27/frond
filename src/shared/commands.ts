@@ -65,7 +65,7 @@ export const WINDOW_MODULES: ReadonlySet<string> = new Set(['snippets', 'screenR
 export type CommandAction =
   | { type: 'module'; moduleId: string; path: string }
   | { type: 'page'; pageId: string; path: string }
-  | { type: 'plugin'; pluginId: string; cmd: string; arguments?: PluginArgument[] }
+  | { type: 'plugin'; pluginId: string; cmd: string; arguments?: PluginArgument[] | undefined }
   /** #5 插件双通道：searchable 插件持久化条目，动作复用声明式 List 的 PluginItemAction */
   | { type: 'pluginSearch'; pluginId: string; action: PluginItemAction }
   | { type: 'app'; path: string }
@@ -184,9 +184,9 @@ export interface CommandEntry {
   /** 结果行右侧的类型徽标文案（应用 / 功能 / 插件 / 页面 / 动作） */
   badge: string
   /** 别名（拼音首字母等，M1.1，惰性生成） */
-  aliases?: string[]
+  aliases?: string[] | undefined
   /** 这条命令接参数（「命令 + 尾部参数」的查询写法因此可命中）；参数格由查询词预填 */
-  acceptsArgs?: boolean
+  acceptsArgs?: boolean | undefined
   action: CommandAction
 }
 

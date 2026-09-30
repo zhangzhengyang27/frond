@@ -33,7 +33,7 @@ const isDark = useDark()
 const isLaserPointerActive = ref(false)
 const renderedContent = ref('')
 const codeEditors = ref<CodeMirror.Editor[]>([])
-const codeBlocksData = ref<{ id: string; value: string; language?: string }[]>([])
+const codeBlocksData = ref<{ id: string; value: string; language?: string | undefined }[]>([])
 const markdownRef = ref<HTMLDivElement | null>(null)
 
 // 获取所有 Markdown 代码片段
@@ -62,7 +62,7 @@ const currentSnippetContent = computed(() => {
 
 // marked 的自定义 renderer 是全局的，parse 期间持续向「当前渲染」的收集器 push。
 // 用局部收集器 + 渲染序号隔离并发：快速切换片段时旧渲染不会污染新渲染的块数据
-let activeBlockSink: { id: string; value: string; language?: string }[] | null = null
+let activeBlockSink: { id: string; value: string; language?: string | undefined }[] | null = null
 let renderSeq = 0
 
 marked.use({
@@ -81,7 +81,7 @@ marked.use({
 async function renderMarkdown(): Promise<void> {
   const seq = ++renderSeq
   codeBlocksData.value = []
-  const blocks: { id: string; value: string; language?: string }[] = []
+  const blocks: { id: string; value: string; language?: string | undefined }[] = []
   activeBlockSink = blocks
   codeEditors.value.forEach((editor) => {
     const wrapper = editor.getWrapperElement()

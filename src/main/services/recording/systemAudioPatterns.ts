@@ -30,7 +30,7 @@ export interface AudioDevice {
 export interface SystemAudioProbeResult {
   available: boolean
   matches: string[]
-  recommendedDeviceId?: string
+  recommendedDeviceId?: string | undefined
 }
 
 /**

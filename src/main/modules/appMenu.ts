@@ -60,7 +60,7 @@ export function destroyMenuAutoRefresh(): void {
 
 export interface AppMenuContext {
   getMainWindow: () => BrowserWindow | null
-  recreateWindow?: () => BrowserWindow
+  recreateWindow?: (() => BrowserWindow) | undefined
   /** 当前番茄钟状态（tray 显示「模式 + 任务 + 倒计时」用） */
   pomodoroStatus?: { primary: string; secondary: string }
   /** P1-2：可切换焦点的项目列表（id, name, isActive） */
@@ -106,7 +106,7 @@ function moduleItem(
 ): Electron.MenuItemConstructorOptions {
   return {
     label: extraLabel ?? meta.label,
-    accelerator: meta.shortcut ? toAccelerator(meta.shortcut) : undefined,
+    ...(meta.shortcut && { accelerator: toAccelerator(meta.shortcut) }),
     click: () => openModuleItem(ctx, meta)
   }
 }
@@ -150,7 +150,7 @@ function pomodoroItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions
   if (status) {
     items.push({
       label: status.primary,
-      sublabel: status.secondary || undefined,
+      ...(status.secondary && { sublabel: status.secondary }),
       enabled: false
     })
   }

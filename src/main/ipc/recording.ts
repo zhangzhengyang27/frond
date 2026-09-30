@@ -341,16 +341,16 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         format: 'mp4' | 'webm' | 'gif'
         resolution: 720 | 1080 | 1440 | 2160
         fps: 30 | 60
-        videoBitrateKbps?: number
-        audioBitrateKbps?: number
+        videoBitrateKbps?: number | undefined
+        audioBitrateKbps?: number | undefined
         // PR-6:
-        introPath?: string
-        outroPath?: string
-        backgroundMusic?: { path: string; volume?: number }
-        transition?: 'fade' | 'cut' | 'slide'
-        fadeDurationSec?: number
+        introPath?: string | undefined
+        outroPath?: string | undefined
+        backgroundMusic?: { path: string; volume?: number } | undefined
+        transition?: 'fade' | 'cut' | 'slide' | undefined
+        fadeDurationSec?: number | undefined
         // PR-7c:
-        gifPreset?: 'compact' | 'standard' | 'high'
+        gifPreset?: 'compact' | 'standard' | 'high' | undefined
       }) => {
         // 输出路径必须由主进程签发（selectSavePath / getDefaultSavePath），否则
         // ffmpeg -y 可被用来覆盖任意文件——与 clip:exportClips 同一口径

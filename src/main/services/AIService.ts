@@ -11,6 +11,9 @@
  * - baseUrl 可自定义（DeepSeek / 通义 / Ollama 等 OpenAI 兼容端点）
  * - 请求超时 60s，避免挂起
  */
+// node-fetch@2 的 RequestInit.signal 用自带 AbortSignal 形状，与 DOM 全局同名类型结构性失配
+// （@types/node-fetch 未跟随 DOM 演进）；运行时即同一对象，cast 仅收口类型层。
+
 import { type WebContents } from 'electron'
 import { prefRepository } from '../db/repos'
 import type {
@@ -148,7 +151,7 @@ async function chatNonStream(cfg: AIConfig, messages: AIChatMessage[]): Promise<
       max_tokens: cfg.maxTokens,
       stream: false
     }),
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(60000) as never,
     agent: pinningAgentSelector()
   })
   if (!resp.ok) {
@@ -233,7 +236,7 @@ async function chatStream(
           max_tokens: cfg.maxTokens,
           stream: true
         }),
-        signal: controller.signal,
+        signal: controller.signal as never,
         agent: pinningAgentSelector()
       })
       if (!resp.ok) {
@@ -358,7 +361,7 @@ export async function listModels(): Promise<{
   try {
     const resp = await fetch(url, {
       headers: cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {},
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(8000) as never,
       agent: pinningAgentSelector()
     })
     if (!resp.ok) return { ok: false, models: [], error: `端点回了 ${resp.status}`, url }

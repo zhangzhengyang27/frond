@@ -39,8 +39,8 @@ export interface DevPluginEntry {
 
 /** 列表返回条目：附带安装态与源目录健康度，供管理页直接渲染 */
 export interface DevPluginInfo extends DevPluginEntry {
-  name?: string
-  version?: string
+  name?: string | undefined
+  version?: string | undefined
   installed: boolean
   sourceExists: boolean
   manifestValid: boolean
@@ -51,7 +51,7 @@ export type DevPluginChangeKind = 'added' | 'removed' | 'reloaded' | 'error'
 export interface DevPluginChangePayload {
   kind: DevPluginChangeKind
   pluginId: string
-  name?: string
+  name?: string | undefined
   error?: string
 }
 

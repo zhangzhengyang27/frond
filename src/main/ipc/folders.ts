@@ -14,11 +14,11 @@ export function registerFoldersIpcHandlers(
     const options = req ?? {}
     const result = await showSaveDialogFor(getMainWindow?.() ?? null, {
       title: '选择保存位置',
-      defaultPath: typeof options.defaultName === 'string' ? options.defaultName : undefined,
-      filters:
-        Array.isArray(options.filters) && options.filters.length > 0
-          ? (options.filters as { name: string; extensions: string[] }[])
-          : undefined
+      ...(typeof options.defaultName === 'string' && { defaultPath: options.defaultName }),
+      ...(Array.isArray(options.filters) &&
+        options.filters.length > 0 && {
+          filters: options.filters as { name: string; extensions: string[] }[]
+        })
     })
     if (result.canceled || !result.filePath) return null
     grantRecordingSavePath(result.filePath)

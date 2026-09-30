@@ -34,11 +34,11 @@ export interface SnippetContent {
 export interface Snippet {
   id: string
   name: string
-  description?: string
+  description?: string | undefined
   contents: SnippetContent[]
   /** 文本扩展触发词（M5.1，如 ";brb"）；空 = 不参与全局扩展 */
   trigger?: string
-  folderId?: string | null
+  folderId?: string | null | undefined
   tagIds: string[]
   isDeleted: boolean
   isFavorites: boolean
@@ -47,7 +47,7 @@ export interface Snippet {
 }
 
 export interface SnippetFilter {
-  folderId?: string | null
+  folderId?: string | null | undefined
   tagId?: string
   isFavorites?: boolean
   isDeleted?: boolean

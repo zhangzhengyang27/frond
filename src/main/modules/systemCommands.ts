@@ -43,7 +43,7 @@ export function windowGap(): number {
 function run(
   cmd: string,
   timeoutMs = 5000
-): Promise<{ ok: boolean; stdout?: string; stderr?: string }> {
+): Promise<{ ok: boolean; stdout?: string | undefined; stderr?: string | undefined }> {
   return new Promise((resolve) => {
     const child = exec(cmd, { timeout: timeoutMs }, (error, stdout, stderr) => {
       if (error)
@@ -89,7 +89,7 @@ export function getSystemCommandIds(): string[] {
   return [...new Set([...legacy, ...B3_COMMAND_IDS])]
 }
 
-export async function runSystemCommand(id: string): Promise<{ ok: boolean; error?: string }> {
+export async function runSystemCommand(id: string): Promise<{ ok: boolean; error?: string | undefined }> {
   // B3 新命令优先命中；未命中回落到 M2.1 静态命令表
   const b3 = await runB3SystemCommand(id)
   if (b3) return b3
@@ -111,14 +111,14 @@ export async function runSystemCommand(id: string): Promise<{ ok: boolean; error
 const execFileAsync = promisify(execFile)
 
 /** 平台命令结果（stderr 仅 B3 执行层内部流转，出错后转成中文 error 提示） */
-type CommandResult = { ok: boolean; error?: string; stderr?: string }
+type CommandResult = { ok: boolean; error?: string | undefined; stderr?: string | undefined }
 
 /** execFile promise 化（带超时兜底）；参数数组直达进程，无 shell 解析层 */
 async function runExecFile(
   file: string,
   args: string[],
   timeoutMs: number
-): Promise<{ ok: boolean; stdout?: string; stderr?: string }> {
+): Promise<{ ok: boolean; stdout?: string | undefined; stderr?: string | undefined }> {
   try {
     const { stdout } = await execFileAsync(file, args, {
       timeout: timeoutMs,
@@ -135,7 +135,7 @@ async function runExecFile(
 async function runOsascript(
   args: string[],
   timeoutMs = 5000
-): Promise<{ ok: boolean; stdout?: string; stderr?: string }> {
+): Promise<{ ok: boolean; stdout?: string | undefined; stderr?: string | undefined }> {
   const r = await runExecFile('osascript', args, timeoutMs)
   return { ok: r.ok, stdout: r.stdout, stderr: r.stderr }
 }
@@ -650,7 +650,7 @@ const MAC_RESTORE_CMD = `osascript -e 'tell application "System Events" to set _
 /** mac 几何动作统一执行：探测前台窗口 → JS 计算目标矩形（含 gap）→ AppleScript 写回 */
 async function macApplyGeometry(
   action: Exclude<WinAction, 'restore' | 'nextDisplay'>
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string | undefined }> {
   const workArea = screen.getPrimaryDisplay().workArea
   const probe = await macProbeFrontWindow()
   if (!probe.ok || !probe.rect) return { ok: false, error: '无法读取前台窗口位置' }
@@ -673,7 +673,7 @@ function clamp(v: number, lo: number, hi: number): number {
 /** macOS：nextDisplay——用 Electron screen 模块取全部显示器 workArea 做循环
  *  （AppleScript 侧拿不到可靠的显示器列表），窗口位置仍经 osascript 读写；
  *  尺寸与相对 workArea 位置保持不变。 */
-async function macMoveToNextDisplay(): Promise<{ ok: boolean; error?: string }> {
+async function macMoveToNextDisplay(): Promise<{ ok: boolean; error?: string | undefined }> {
   const displays = screen.getAllDisplays()
   if (displays.length <= 1) return { ok: true } // 单显示器无处可去，按成功幂等
   const probe = await run(
@@ -826,8 +826,8 @@ export function getWindowActionIds(): string[] {
   return WINDOW_ACTIONS.map((a) => `window.${a}`)
 }
 
-export async function runWindowAction(action: WinAction): Promise<{ ok: boolean; error?: string }> {
-  let result: { ok: boolean; error?: string }
+export async function runWindowAction(action: WinAction): Promise<{ ok: boolean; error?: string | undefined }> {
+  let result: { ok: boolean; error?: string | undefined }
   if (!isMac()) {
     const r = await run(winWindowCommand(action), 8000)
     result = { ok: r.ok, error: r.stderr }
@@ -851,7 +851,7 @@ export async function runWindowAction(action: WinAction): Promise<{ ok: boolean;
 export function registerSystemCommandIpc(): void {
   typedHandle('systemcmd:run', async (_e, req) => {
     const id = req.id
-    let result: { ok: boolean; error?: string }
+    let result: { ok: boolean; error?: string | undefined }
     if (id.startsWith('system.')) {
       result = await runSystemCommand(id)
     } else if (id.startsWith('window.')) {

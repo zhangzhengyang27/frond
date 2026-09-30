@@ -39,7 +39,7 @@ let captureFps = 30
 // 「系统音频 + 关麦克风」组合下连 loopback 设备都不打开、录出来完全无声。
 interface AudioConfig {
   micEnabled: boolean
-  systemDeviceId: string | null
+  systemDeviceId: string | null | undefined
 }
 let audioConfig: AudioConfig = { micEnabled: true, systemDeviceId: null }
 // 已打开的音频流缓存（重复 combineStreams / 换源时避免反复开关麦克风）

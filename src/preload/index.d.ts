@@ -81,17 +81,17 @@ export interface SnippetContent {
   value: string
   language: string
   /** 'rich' 时 value 为 HTML 源，全局扩展走剪贴板 text/html 粘贴保留排版 */
-  contentType?: 'text' | 'rich'
+  contentType?: 'text' | 'rich' | undefined
 }
 
 export interface Snippet {
   id: string
   name: string
-  description?: string
+  description?: string | undefined
   contents: SnippetContent[]
   /** 文本扩展触发词（M5.1，如 ";brb"）；空 = 不参与全局扩展 */
-  trigger?: string
-  folderId?: string | null
+  trigger?: string | undefined
+  folderId?: string | null | undefined
   tagIds: string[]
   isDeleted: boolean
   isFavorites: boolean
@@ -242,13 +242,13 @@ export interface RecordingHistory {
   duration: number
   fileSize: number
   createdAt: number
-  thumbnail?: string
+  thumbnail?: string | undefined
 }
 
 export interface RecordingSettings {
   encoder: 'vp9' | 'vp8' | 'h264'
   quality: 'low' | 'medium' | 'high' | 'custom'
-  bitrate?: number
+  bitrate?: number | undefined
   fps: 30 | 60
   resolution: {
     width: number
@@ -256,14 +256,14 @@ export interface RecordingSettings {
   }
   format: 'webm' | 'mp4'
   audioEnabled: boolean
-  audioCodec?: 'aac' | 'opus'
-  audioBitrate?: number
+  audioCodec?: 'aac' | 'opus' | undefined
+  audioBitrate?: number | undefined
   /** 系统音频 loopback（设置对话框写入，录制启动时读取） */
   systemAudio?: {
     enabled: boolean
     deviceId?: string
     keepMicrophone?: boolean
-  }
+  } | undefined
   /** 录制全局快捷键开关（落 rec_settings.shortcuts） */
   shortcuts?: {
     enabled: boolean
@@ -279,8 +279,8 @@ export interface Marker {
   id: string
   timestamp: number // 秒
   label: string
-  color?: string
-  recordingId?: string
+  color?: string | undefined
+  recordingId?: string | undefined
 }
 
 export interface Clip {

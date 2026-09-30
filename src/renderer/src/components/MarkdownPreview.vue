@@ -24,7 +24,7 @@ const emit = defineEmits<Emits>()
 const isDark = useDark()
 const renderedContent = ref('')
 const codeEditors = ref<CodeMirror.Editor[]>([])
-const codeBlocksData = ref<{ id: string; value: string; language?: string }[]>([])
+const codeBlocksData = ref<{ id: string; value: string; language?: string | undefined }[]>([])
 const markdownRef = ref<HTMLDivElement | null>(null)
 const scale = ref(1)
 

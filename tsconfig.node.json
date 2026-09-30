@@ -4,6 +4,7 @@
     "src/shared/**/*"
   ],
   "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
     "composite": true,
     "baseUrl": ".",

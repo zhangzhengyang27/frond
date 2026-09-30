@@ -20,17 +20,17 @@ export interface ToastItem {
   id: number
   kind: 'success' | 'error' | 'info' | 'warning' | 'loading'
   title: string
-  description?: string
+  description?: string | undefined
   /** 存活时长 ms；0 = 手动关闭 */
   duration: number
   /** 可选动作按钮（如「撤销」） */
-  action?: ToastAction
+  action?: ToastAction | undefined
 }
 
 interface ToastOptions {
-  description?: string
+  description?: string | undefined
   duration?: number
-  action?: ToastAction
+  action?: ToastAction | undefined
 }
 
 const state = reactive<{ items: ToastItem[] }>({ items: [] })

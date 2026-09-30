@@ -23,8 +23,8 @@ interface LogEntry {
   level: LogLevel
   scope: string
   msg: string
-  stack?: string
-  meta?: string
+  stack?: string | undefined
+  meta?: string | undefined
 }
 
 /** 内存里留多少条供导出（导出前先不落盘，避免为看日志而拖慢主流程） */
@@ -53,7 +53,8 @@ class LogService {
       ts: Date.now(),
       level: 'info',
       scope,
-      msg: `[debug] ${msg}${error instanceof Error ? ` :: ${error.message}` : ''}`
+      msg: `[debug] ${msg}${error instanceof Error ? ` :: ${error.message}` : ''}`,
+      stack: error instanceof Error ? error.stack : undefined
     }
     this.ring.push(entry)
     if (this.ring.length > RING_SIZE) this.ring.splice(0, this.ring.length - RING_SIZE)
@@ -118,7 +119,8 @@ class LogService {
   }
 
   private write(level: LogLevel, scope: string, msg: string, stack?: string, meta?: string): void {
-    const entry: LogEntry = { ts: Date.now(), level, scope, msg, stack, meta }
+    // LogEntry 不含 meta（诊断环只留 stack；meta 随 DB 行落库）
+    const entry: LogEntry = { ts: Date.now(), level, scope, msg, stack }
     this.ring.push(entry)
     if (this.ring.length > RING_SIZE) this.ring.splice(0, this.ring.length - RING_SIZE)
 

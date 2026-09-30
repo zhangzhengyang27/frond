@@ -36,7 +36,7 @@ export interface PermissionStatus {
   /** 能不能就地申请（屏幕录制不能，见文件头） */
   canRequest: boolean
   /** 状态读不出来 / 授权后要重启这类实话 */
-  note?: string
+  note?: string | undefined
 }
 
 /** 采集到的原始信号（与平台 API 解耦，纯函数据此合成状态表） */
@@ -183,7 +183,7 @@ export async function probePermissions(): Promise<PermissionStatus[]> {
 /** 就地申请：能弹系统框的弹，不能弹的直接返回跳转指引 */
 export async function requestPermission(
   id: PermissionId
-): Promise<{ fired: boolean; state: PermissionState; note?: string }> {
+): Promise<{ fired: boolean; state: PermissionState; note?: string | undefined }> {
   if (process.platform !== 'darwin') {
     return { fired: false, state: 'unsupported', note: '当前系统不需要这类授权' }
   }

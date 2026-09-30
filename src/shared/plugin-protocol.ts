@@ -15,17 +15,17 @@
 /** 插件列表条目 */
 export interface PluginListItem {
   title: string
-  subtitle?: string
+  subtitle?: string | undefined
   /** remixicon 名称（不含 ri- 前缀），缺省 plug-2 */
-  icon?: string
+  icon?: string | undefined
   /** 关键词（搜索副输入框过滤由插件自管；这里用于宿主高亮兜底） */
   keywords?: string[]
   /** 右侧配件文本（如大小 / 日期） */
-  accessories?: string[]
+  accessories?: string[] | undefined
   /** Detail 面板内容（选中即显示；渲染格式由 detailFormat 决定） */
-  detail?: string
+  detail?: string | undefined
   /** Detail 渲染格式：'text' 纯文本（缺省，向后兼容）；'markdown' 走 marked + sanitize 渲染 */
-  detailFormat?: 'text' | 'markdown'
+  detailFormat?: 'text' | 'markdown' | undefined
   /** 可用动作；首个为回车默认动作 */
   actions: PluginItemAction[]
 }
@@ -34,11 +34,11 @@ export interface PluginItemAction {
   label: string
   /** copy=复制 payload 到剪贴板；open=系统打开 payload（URL/路径）；callback=回插件处理 */
   type: 'copy' | 'open' | 'callback'
-  payload?: string
+  payload?: string | undefined
   /** 快捷键提示（展示用，如 ⌘C） */
   hint?: string
   /** #11 React 视图协议：SDK 生成的回调 id；宿主交互时经 Callback 钩子原样回传 */
-  callbackId?: string
+  callbackId?: string | undefined
 }
 
 /** 插件提交的整份列表 */
@@ -57,9 +57,9 @@ export interface FormField {
   type?: FormFieldType
   /** select 候选项（仅 type='select' 时生效） */
   options?: string[]
-  placeholder?: string
+  placeholder?: string | undefined
   /** 初始值（checkbox 为 boolean，其余为 string） */
-  initial?: string | boolean
+  initial?: string | boolean | undefined
 }
 
 /** 协议版本（plugin.json 可声明 declarative: true 走此协议） */
@@ -190,9 +190,9 @@ export const PLUGIN_MAX_SEARCH_KEYWORDS = 8
  */
 export interface PluginSearchItem {
   title: string
-  subtitle?: string
+  subtitle?: string | undefined
   /** remixicon 名称（不含 ri- 前缀） */
-  icon?: string
+  icon?: string | undefined
   /** 搜索命中关键词（根搜索按 title/subtitle/keywords 子串匹配） */
   keywords?: string[]
   badge?: string
@@ -258,17 +258,17 @@ export type PluginApiMode = 'data' | 'react'
 
 /** 条目动作（react 模式下 callback 动作携带 SDK 生成的回调 id） */
 export interface PluginViewAction extends PluginItemAction {
-  callbackId?: string
+  callbackId?: string | undefined
 }
 
 export interface PluginViewListItem {
   title: string
-  subtitle?: string
-  icon?: string
-  accessories?: string[]
+  subtitle?: string | undefined
+  icon?: string | undefined
+  accessories?: string[] | undefined
   keywords?: string[]
-  detail?: string
-  detailFormat?: 'text' | 'markdown'
+  detail?: string | undefined
+  detailFormat?: 'text' | 'markdown' | undefined
   actions: PluginViewAction[]
 }
 

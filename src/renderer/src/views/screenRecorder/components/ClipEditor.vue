@@ -15,13 +15,12 @@ import type { Clip, ExportOptions, VideoInfo } from '@composables/useVideoClip'
 
 interface Props {
   videoPath: string
-  videoId?: string
+  videoId?: string | undefined
   onGoBack?: () => void
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  videoId: () => `video-${Date.now()}`,
-  onGoBack: undefined
+  videoId: () => `video-${Date.now()}`
 })
 
 const emit = defineEmits<{

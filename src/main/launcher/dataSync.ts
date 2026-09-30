@@ -642,12 +642,12 @@ export async function pushDataSync(deps: SyncDeps = {}): Promise<{
 /** 拉平（决策：远端更新才覆盖本地；覆盖前本地快照；远端不存在时转为推送） */
 export async function pullDataSync(deps: SyncDeps = {}): Promise<{
   ok: boolean
-  decision?: SyncDecision
-  applied?: number
-  snapshot?: string
+  decision?: SyncDecision | undefined
+  applied?: number | undefined
+  snapshot?: string | undefined
   /** 本次合并里被判为「两边都改过 / 删除撞上编辑」的行数（>0 才带上） */
-  conflicts?: number
-  error?: string
+  conflicts?: number | undefined
+  error?: string | undefined
 }> {
   try {
     const service = new DataSyncService(deps.db)

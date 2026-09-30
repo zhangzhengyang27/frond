@@ -164,8 +164,8 @@ export interface McpOverview {
       status: McpStatus
       tools: McpToolSummary[]
       skipped: number
-      error?: string
-      serverName?: string
+      error?: string | undefined
+      serverName?: string | undefined
     }
   >
   rejected: Array<{ index: number; reason: string }>

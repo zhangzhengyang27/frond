@@ -283,7 +283,8 @@ async function attachIcons(entries: AppEntry[]): Promise<void> {
   const workers = Array.from({ length: Math.min(ICON_CONCURRENCY, entries.length) }, async () => {
     while (next < entries.length) {
       const entry = entries[next++]! // while 守卫 next < entries.length 保证在界内
-      entry.icon = await getAppIcon(entry.path)
+      const icon = await getAppIcon(entry.path)
+      if (icon) entry.icon = icon
     }
   })
   await Promise.all(workers)
@@ -514,11 +515,11 @@ async function listWindowsApps(): Promise<AppEntry[]> {
 // ─────────────────────────────────────────────────────────────
 
 function parseDesktopFile(content: string): {
-  name?: string
-  type?: string
+  name?: string | undefined
+  type?: string | undefined
   hidden?: boolean
   noDisplay?: boolean
-  iconPath?: string
+  iconPath?: string | undefined
 } {
   const get = (key: string): string | undefined => {
     const m = content.match(new RegExp(`^${key}=(.*)$`, 'm'))

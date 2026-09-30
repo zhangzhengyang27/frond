@@ -86,8 +86,8 @@ interface FileHit {
   path: string
   name: string
   dir: string
-  size?: number
-  modifiedAt?: number
+  size?: number | undefined
+  modifiedAt?: number | undefined
 }
 
 const props = defineProps<{ query: string }>()

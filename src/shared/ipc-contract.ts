@@ -376,7 +376,7 @@ export interface IpcContract {
     res: {
       available: boolean
       matches: string[]
-      recommendedDeviceId?: string
+      recommendedDeviceId?: string | undefined
     }
   }
   // cursor 位置通过 webContents.send 单向推送：
@@ -406,7 +406,7 @@ export interface IpcContract {
       outroPath?: string
       backgroundMusic?: { path: string; volume?: number }
       transition?: 'fade' | 'cut' | 'slide'
-      fadeDurationSec?: number
+      fadeDurationSec?: number | undefined
       // PR-7c
       gifPreset?: 'compact' | 'standard' | 'high'
     }
@@ -420,7 +420,7 @@ export interface IpcContract {
     req: { filePath: string }
     res: {
       ok: boolean
-      durationSec?: number
+      durationSec?: number | undefined
       width?: number
       height?: number
       error?: string
@@ -726,7 +726,7 @@ export interface IpcContract {
   }
   'launcher:selectPluginFolder': {
     req: void
-    res: { success: boolean; canceled?: boolean; dirPath?: string }
+    res: { success: boolean; canceled?: boolean; dirPath?: string | undefined }
   }
   'launcher:hotkeys:getConfig': { req: void; res: HotkeyConfig }
   'launcher:hotkeys:getConflicts': { req: void; res: HotkeyConflicts }
@@ -1291,7 +1291,7 @@ export interface IpcContract {
   'mcp:stop': { req: { id: string }; res: boolean }
   'mcp:callTool': {
     req: { id: string; tool: string; args: Record<string, unknown> }
-    res: { ok: boolean; text: string; ignoredContent: number; error?: string }
+    res: { ok: boolean; text: string; ignoredContent: number; error?: string | undefined }
   }
   /** 工具清单缓存 → 根搜索命令行（P-4② 收尾）：不 spawn，纯读缓存 */
   'mcp:toolCommands': { req: void; res: McpToolCommand[] }
@@ -1309,7 +1309,7 @@ export interface IpcContract {
       rejected: Array<{ index: number; reason: string }>
     }
   }
-  'automation:runNow': { req: { id: string }; res: { ok: boolean; error?: string } }
+  'automation:runNow': { req: { id: string }; res: { ok: boolean; error?: string | undefined } }
   'automation:setEnabled': { req: { id: string; enabled: boolean }; res: AutomationTaskView[] }
   'ai:listSessions': { req: void; res: AIChatSession[] }
   'ai:getSession': { req: { id: string }; res: AIChatSession | null }
@@ -1399,7 +1399,7 @@ export interface IpcContract {
   'app:isPrimaryWindow': { req: void; res: boolean }
 
   'find:files': {
-    req: { query: string; limit?: number; opts?: FileSearchOptions }
+    req: { query: string; limit?: number | undefined; opts?: FileSearchOptions | undefined }
     res: {
       ok: boolean
       supported: boolean
@@ -1407,8 +1407,8 @@ export interface IpcContract {
         path: string
         name: string
         dir: string
-        size?: number
-        modifiedAt?: number
+        size?: number | undefined
+        modifiedAt?: number | undefined
       }>
       /** 'index' = #9 自建索引命中；其余为系统检索回退路径 */
       source?: 'index' | 'mdfind' | 'powershell'
@@ -1420,7 +1420,7 @@ export interface IpcContract {
   /** E2E-only：主进程通道调用计数快照（仅 FROND_E2E=1 时注册，见 src/main/e2eProbe.ts） */
   'e2e:probeCounts': { req: void; res: Record<string, number> }
 
-  'systemcmd:run': { req: { id: string }; res: { ok: boolean; error?: string } }
+  'systemcmd:run': { req: { id: string }; res: { ok: boolean; error?: string | undefined } }
   'systemcmd:ids': {
     req: void
     res: { system: string[]; window: string[] }
@@ -1474,7 +1474,7 @@ export interface IpcContract {
   'permissions:probe': { req: void; res: PermissionStatus[] }
   'permissions:request': {
     req: { id: PermissionId }
-    res: { fired: boolean; state: PermissionState; note?: string }
+    res: { fired: boolean; state: PermissionState; note?: string | undefined }
   }
   'permissions:openSettings': {
     req: { id: PermissionId | 'privacy' }

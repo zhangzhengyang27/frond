@@ -19,10 +19,10 @@ export function registerNotesIpc(): void {
   // 更新笔记：白名单逐字段收窄，未登记的键（含渲染端误传）一律不进 SQL
   typedHandle('notes:update', (_e, { id, updates }) =>
     notesRepository.updateNote(id, {
-      title: typeof updates.title === 'string' ? updates.title : undefined,
-      content: typeof updates.content === 'string' ? updates.content : undefined,
-      folderId: updates.folderId !== undefined ? (updates.folderId as string | null) : undefined,
-      isPinned: typeof updates.isPinned === 'boolean' ? updates.isPinned : undefined
+      ...(typeof updates.title === 'string' && { title: updates.title }),
+      ...(typeof updates.content === 'string' && { content: updates.content }),
+      ...(updates.folderId !== undefined && { folderId: updates.folderId as string | null }),
+      ...(typeof updates.isPinned === 'boolean' && { isPinned: updates.isPinned })
     })
   )
 

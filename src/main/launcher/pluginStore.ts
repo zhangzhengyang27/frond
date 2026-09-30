@@ -60,7 +60,7 @@ export type PluginPreference = PluginPreferenceDeclaration
 export interface PluginManifest {
   id: string
   name: string
-  version?: string
+  version?: string | undefined
   description?: string
   main?: string
   icon?: string

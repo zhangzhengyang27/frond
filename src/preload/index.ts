@@ -794,7 +794,11 @@ const api = {
   },
   // 文件搜索（M5.3，mac mdfind）
   fileSearch: {
-    query: (q: string, limit?: number, opts?: { mode?: 'name' | 'content'; onlyIn?: string }) =>
+    query: (
+      q: string,
+      limit?: number,
+      opts?: { mode?: 'name' | 'content'; onlyIn?: string | undefined }
+    ) =>
       typedInvoke('find:files', { query: q, limit, opts }),
     reveal: (filePath: string) => typedInvoke('find:reveal', { filePath })
   },

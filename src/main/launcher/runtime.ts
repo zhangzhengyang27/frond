@@ -161,15 +161,16 @@ export function setDeclaredList(
           type: (['copy', 'open', 'callback'].includes(String(action.type))
             ? String(action.type)
             : 'callback') as 'copy' | 'open' | 'callback',
-          payload: typeof action.payload === 'string' ? action.payload.slice(0, 2000) : undefined,
+          ...(typeof action.payload === 'string' && {
+            payload: action.payload.slice(0, 2000)
+          }),
           // #11 React 视图协议：SDK 生成的回调 id，宿主交互时经 Callback 钩子原样回传
           // #11 回调 id 仅 react 模式透传（审查 M7：数据模式插件不得走 Callback 分支）
-          callbackId:
-            ctx.plugin.api === 'react' &&
-            typeof action.callbackId === 'string' &&
-            action.callbackId.trim() !== ''
-              ? action.callbackId.slice(0, 64)
-              : undefined
+          ...(ctx.plugin.api === 'react' &&
+          typeof action.callbackId === 'string' &&
+          action.callbackId.trim() !== '' && {
+            callbackId: action.callbackId.slice(0, 64)
+          })
         }
       })
     })

@@ -62,7 +62,7 @@ export interface Command {
   /** 类型徽标（右侧显示，如 '应用'、'系统'、'AI'） */
   badge?: string
   /** 别名（用户自定义 + 拼音首字母，搜索时匹配） */
-  aliases?: string[]
+  aliases?: string[] | undefined
   /** 可用动作（首个为回车默认动作，⌘K 展示全部） */
   actions: CommandAction[]
   /**

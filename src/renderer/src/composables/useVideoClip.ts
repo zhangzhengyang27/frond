@@ -26,7 +26,7 @@ export interface ExportOptions {
   backgroundMusic?: {
     path: string
     volume: number // 0-1
-  }
+  } | undefined
   resolution: 720 | 1080 | 1440 | 2160
   fps: 30 | 60
   outputPath: string

@@ -9,9 +9,9 @@ import { marked } from 'marked'
 import sanitizeHtml from '@renderer/utils/sanitize-html-wrapper'
 
 interface Props {
-  title?: string
+  title?: string | undefined
   content: string
-  format?: 'text' | 'markdown'
+  format?: 'text' | 'markdown' | undefined
 }
 
 const props = withDefaults(defineProps<Props>(), {

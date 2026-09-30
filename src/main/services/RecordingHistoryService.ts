@@ -34,7 +34,7 @@ export interface RecordingHistory {
   duration: number // 秒
   fileSize: number // 字节
   createdAt: number // 时间戳
-  thumbnail?: string // 缩略图路径
+  thumbnail?: string | undefined // 缩略图路径
 }
 
 export class RecordingHistoryService {

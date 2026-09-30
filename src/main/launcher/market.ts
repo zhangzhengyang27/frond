@@ -49,15 +49,15 @@ const execFileAsync = promisify(execFile)
 export interface MarketEntry {
   id: string
   name: string
-  version?: string
-  description?: string
-  author?: string
+  version?: string | undefined
+  description?: string | undefined
+  author?: string | undefined
   /** 本地目录 / 本地 zip / http(s) zip（相对索引文件解析本地路径） */
   download: string
   /** 压缩包 sha256（十六进制，大小写不敏感）。本地目录形态无从校验，只能缺省 */
-  sha256?: string
+  sha256?: string | undefined
   /** 索引声明的分类（自由文本，市场页作筛选标签展示；批 6 起可选） */
-  category?: string
+  category?: string | undefined
 }
 
 export interface MarketItem extends MarketEntry {
@@ -65,7 +65,7 @@ export interface MarketItem extends MarketEntry {
   source: 'bundled' | 'curated' | 'remote'
   installed: boolean
   /** 已安装插件的版本（未安装或清单无 version 时为 undefined） */
-  installedVersion?: string
+  installedVersion?: string | undefined
   /**
    * 是否可更新：语义可比时要求市场版本**确实更新**（`1.0.0` 索引对着 `1.0.1` 已装不算更新）；
    * 不可比形态退回「不等即可更新」，任一版本缺失 → false。见 isUpdatable

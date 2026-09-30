@@ -161,7 +161,7 @@ interface BackupPayload {
   schema: 1
   exportedAt: number
   docs: ExportedDoc[]
-  plugins: Array<{ id: string; name: string; version?: string }>
+  plugins: Array<{ id: string; name: string; version?: string | undefined }>
 }
 
 /** 备份：上传文档快照 + 插件清单 */

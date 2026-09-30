@@ -49,8 +49,8 @@ export interface BulkExportArgs {
     type: TimerMode
     duration: number
     completedAt: number
-    taskId?: string
-    taskTitle?: string
+    taskId?: string | undefined
+    taskTitle?: string | undefined
     date: string
   }>
 }
@@ -60,8 +60,8 @@ function asExportRecord(r: {
   type: TimerMode
   duration: number
   completedAt: number
-  note?: string | null
-  taskTitle?: string
+  note?: string | null | undefined
+  taskTitle?: string | undefined
 }): ExportRecord {
   return {
     startedAt: r.completedAt - r.duration,

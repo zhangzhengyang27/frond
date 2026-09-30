@@ -34,7 +34,7 @@ function makeTimer(overrides: Partial<Options> = {}) {
     taskId: string | null
     taskTitle: string | null
   }> = []
-  const notifies: Array<{ projectId: string; event: string; message?: string }> = []
+  const notifies: Array<{ projectId: string; event: string; message?: string | undefined }> = []
   const persists: Array<{ projectId: string; state: PersistedTimerState }> = []
   const warnings: Array<{ projectId: string; secondsLeft: number }> = []
   const strictFails: string[] = []

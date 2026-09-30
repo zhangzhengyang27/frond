@@ -156,7 +156,7 @@ const launcherApi = {
   fetch: (
     url: string,
     init?: { method?: string; headers?: Record<string, string>; body?: string }
-  ) => typedInvoke('plugapi:fetch', { url, init })
+  ) => typedInvoke('plugapi:fetch', { url, ...(init && { init }) })
 }
 
 export type LauncherPluginApi = typeof launcherApi

@@ -9,7 +9,7 @@ export interface LogEntry {
   level: 'info' | 'warn' | 'error'
   scope: string
   msg: string
-  stack?: string
+  stack?: string | undefined
 }
 
 export interface LogExportPayload {

@@ -15,7 +15,7 @@ export interface FallbackCommand {
   badge?: string
   /** 执行动作类型 */
   action:
-    | { type: 'firstParty'; page: string; query?: string }
+    | { type: 'firstParty'; page: string; query?: string | undefined }
     | { type: 'searchFiles'; query: string }
     | { type: 'openUrl'; url: string }
     | { type: 'copyText'; text: string }

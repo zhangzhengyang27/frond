@@ -35,7 +35,7 @@ export type MainAction =
 
 export interface ActionResult {
   ok: boolean
-  error?: string
+  error?: string | undefined
 }
 
 /** 执行端依赖（注入便于单测；单例处绑定真实实现） */

@@ -118,7 +118,7 @@ export class NotificationService {
     const notification = new Notification({
       title,
       body,
-      icon: notificationIcon,
+      ...(notificationIcon && { icon: notificationIcon }),
       silent: !options.sound,
       urgency: this.getUrgency(type)
     })

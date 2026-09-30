@@ -51,13 +51,13 @@ export interface ClipboardHistoryItem {
   pinned?: boolean
   createdAt: number
   /** 来源应用名（macOS 前台应用；旧数据 / 非 mac 缺失） */
-  sourceApp?: string
+  sourceApp?: string | undefined
   /** P0-3：用户补的备注关键词，胶囊搜索可命中（渲染层读 item.keywords） */
   keywords?: string[]
   /** P1-6：图片 OCR 提取的文字（异步填充，可搜索） */
-  ocrText?: string
+  ocrText?: string | undefined
   /** P1-6：OCR 处理状态（pending/done/failed），避免重复处理 */
-  ocrStatus?: 'pending' | 'done' | 'failed'
+  ocrStatus?: 'pending' | 'done' | 'failed' | undefined
 }
 
 const MAX_ITEMS = 200

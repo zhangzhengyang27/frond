@@ -20,13 +20,13 @@ export const SNIPPET_EXPORT_VERSION = 1
 export interface ExportedSnippet {
   id: string
   name: string
-  description?: string
+  description?: string | undefined
   contents: Array<{
     id: string
     label: string
     value: string
     language: string
-    contentType?: 'text' | 'rich'
+    contentType?: 'text' | 'rich' | undefined
   }>
   /** 文本扩展触发词（如 ";brb"）；空 = 不参与全局扩展 */
   trigger?: string
@@ -62,16 +62,16 @@ export interface SnippetImportResult {
 export interface TransferableSnippet {
   id: string
   name: string
-  description?: string
+  description?: string | undefined
   contents: Array<{
     id: string
     label: string
     value: string
     language: string
-    contentType?: 'text' | 'rich'
+    contentType?: 'text' | 'rich' | undefined
   }>
   trigger?: string
-  folderId?: string | null
+  folderId?: string | null | undefined
   tagIds: string[]
   isDeleted: boolean
   isFavorites: boolean

@@ -78,8 +78,8 @@ function createLauncherWindow(): BrowserWindow {
     // 玻璃材质（v5 主题化）：mac 走系统 vibrancy（深浅随系统外观），
     // win11 走 acrylic（旧系统自动忽略）。内层透明度由 --launcher-bg 深/浅档承担；
     // Electron 透明窗的 CSS backdrop-filter 无系统 backing 不可用，故材质一律交给系统层。
-    vibrancy: process.platform === 'darwin' ? 'under-window' : undefined,
-    backgroundMaterial: process.platform === 'win32' ? 'acrylic' : undefined,
+    ...(process.platform === 'darwin' && { vibrancy: 'under-window' as const }),
+    ...(process.platform === 'win32' && { backgroundMaterial: 'acrylic' as const }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true

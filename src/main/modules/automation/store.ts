@@ -340,7 +340,7 @@ export function removeTasksOwnedByPlugin(pluginId: string): number {
 async function executeAction(
   action: AutomationAction,
   pluginId: string | null
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string | undefined }> {
   if (action.type === 'ai') {
     const res = await runPrompt(action.prompt)
     return res.ok ? { ok: true } : { ok: false, error: res.error }
@@ -368,7 +368,7 @@ export interface TickDeps {
   run: (
     action: AutomationAction,
     pluginId: string | null
-  ) => Promise<{ ok: boolean; error?: string }>
+  ) => Promise<{ ok: boolean; error?: string | undefined }>
 }
 
 /**
@@ -458,7 +458,7 @@ export function saveTasksFrom(raw: unknown): {
   return { tasks: taskViews(), rejected }
 }
 
-export async function runTaskNow(id: string): Promise<{ ok: boolean; error?: string }> {
+export async function runTaskNow(id: string): Promise<{ ok: boolean; error?: string | undefined }> {
   const t = readTasks().find((x) => x.id === id)
   if (!t) return { ok: false, error: '没有这个任务' }
   try {

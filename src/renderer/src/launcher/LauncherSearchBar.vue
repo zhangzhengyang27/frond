@@ -34,7 +34,7 @@ const props = withDefaults(
      *  刻意不叫 `ariaExpanded`——`aria-*` 的绑定会被当成**属性**透传，prop 收不到值。 */
     listExpanded: boolean
     /** 高亮行的元素 id，读屏靠它在不换焦点的情况下跟住选中项（还没高亮行时是 undefined） */
-    activeDescendantId?: string | null
+    activeDescendantId?: string | null | undefined
     /** 紧凑模式：整窗收成一条栏 */
     compact?: boolean
     /** 参数模式（P-1.6b）：命令名变 chip，后面一格一格填参数 */

@@ -60,7 +60,7 @@ export async function getFaviconPath(quicklinkUrl: string): Promise<string | nul
       for (let hop = 0; hop < 2; hop++) {
         if (await isLocalTarget(target)) return null
         const res = await fetch(target, {
-          signal: controller.signal,
+          signal: controller.signal as never,
           redirect: 'manual',
           agent: pinningAgentSelector()
         })

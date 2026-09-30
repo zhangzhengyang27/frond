@@ -21,9 +21,16 @@ export class FrondIpcError extends Error {
   }
 }
 
+/** 线格式语义：结构化克隆下「缺省 ≡ 显式 undefined」，契约可选属性允许二者（EOPT 下同义） */
+type IpcRequestInput<P> = {
+  [K in keyof P as undefined extends P[K] ? K : never]?: P[K] | undefined
+} & {
+  [K in keyof P as undefined extends P[K] ? never : K]: P[K]
+}
+
 export function typedInvoke<K extends IpcKey>(
   channel: K,
-  ...req: [IpcRequest<K>] extends [void] ? [] : [IpcRequest<K>]
+  ...req: [IpcRequest<K>] extends [void] ? [] : [IpcRequestInput<IpcRequest<K>>]
 ): Promise<IpcResponse<K>> {
   return (ipcRenderer.invoke(channel, req[0]) as Promise<unknown>).catch((error: unknown) => {
     // 主进程信封 → 结构化 FrondIpcError（message 已还原为原始文案）

@@ -36,11 +36,11 @@ const CHORD_WINDOW_MS = 2000
 export interface CommandHotkeySpec {
   kind: 'module' | 'system' | 'quicklink' | 'firstParty'
   /** module id / system cmdId / firstParty page */
-  id?: string
+  id?: string | undefined
   /** module 路由路径 */
-  path?: string
+  path?: string | undefined
   /** quicklink URL */
-  url?: string
+  url?: string | undefined
 }
 
 export interface HotkeyConfig {

@@ -23,7 +23,7 @@ import { prefRepository } from './PrefRepository'
 export interface PomodoroTask {
   id: string
   title: string
-  description?: string
+  description?: string | undefined
   completed: boolean
   priority: number
   /** 预估时长（毫秒）；UI 可换算成番茄数 */
@@ -35,9 +35,9 @@ export interface PomodoroTask {
 
 export interface PomodoroRecord {
   id: string
-  taskId?: string
-  taskTitle?: string
-  projectId?: string
+  taskId?: string | undefined
+  taskTitle?: string | undefined
+  projectId?: string | undefined
   type: 'work' | 'shortBreak' | 'longBreak'
   duration: number
   completedAt: number
@@ -171,7 +171,7 @@ export class PomodoroRepository {
   addTask(
     title: string,
     options?: {
-      description?: string
+      description?: string | undefined
       priority?: number
       estimateMs?: number | null
       projectId?: string | null

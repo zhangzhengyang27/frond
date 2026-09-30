@@ -96,7 +96,7 @@ import { useStreamManager } from '@composables/useStreamManager'
 interface RecordingSettings {
   encoder: 'vp9' | 'vp8' | 'h264'
   quality: 'low' | 'medium' | 'high' | 'custom'
-  bitrate?: number
+  bitrate?: number | undefined
   fps: 30 | 60
   resolution: {
     width: number
@@ -104,14 +104,14 @@ interface RecordingSettings {
   }
   format: 'webm' | 'mp4'
   audioEnabled: boolean
-  audioCodec?: 'aac' | 'opus'
-  audioBitrate?: number
+  audioCodec?: 'aac' | 'opus' | undefined
+  audioBitrate?: number | undefined
   // PR-5a: 系统音频
   systemAudio?: {
     enabled: boolean
     deviceId?: string
     keepMicrophone?: boolean
-  }
+  } | undefined
 }
 
 const route = useRoute()

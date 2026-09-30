@@ -25,7 +25,7 @@ import { recordingSettingsRepository } from '../db/repos/RecordingSettingsReposi
 export interface RecordingSettings {
   encoder: 'vp9' | 'vp8' | 'h264'
   quality: 'low' | 'medium' | 'high' | 'custom'
-  bitrate?: number // kbps
+  bitrate?: number | undefined // kbps
   fps: 30 | 60
   resolution: {
     width: number
@@ -33,8 +33,8 @@ export interface RecordingSettings {
   }
   format: 'webm' | 'mp4'
   audioEnabled: boolean
-  audioCodec?: 'aac' | 'opus'
-  audioBitrate?: number // kbps
+  audioCodec?: ('aac' | 'opus') | undefined
+  audioBitrate?: number // kbps | undefined
   // PR-5a: 系统音频 loopback
   systemAudio?: {
     enabled: boolean

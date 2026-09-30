@@ -24,7 +24,7 @@ function makeCallback(): {
     fn: (err, address, family) => {
       result.err = err
       result.address = address
-      result.family = family
+      result.family = family ?? 0
     }
   }
 }

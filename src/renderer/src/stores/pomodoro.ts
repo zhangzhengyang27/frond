@@ -47,9 +47,9 @@ export interface PomodoroProject {
 
 export interface PomodoroRecord {
   id: string
-  taskId?: string
-  taskTitle?: string
-  projectId?: string
+  taskId?: string | undefined
+  taskTitle?: string | undefined
+  projectId?: string | undefined
   type: TimerMode
   duration: number
   completedAt: number

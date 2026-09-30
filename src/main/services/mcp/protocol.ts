@@ -158,7 +158,7 @@ export function parseToolCallResult(raw: unknown): {
   ok: boolean
   text: string
   ignoredContent: number
-  error?: string
+  error?: string | undefined
 } {
   if (!raw || typeof raw !== 'object') {
     return { ok: false, text: '', ignoredContent: 0, error: '响应不是对象' }

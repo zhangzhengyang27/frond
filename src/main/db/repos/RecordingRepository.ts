@@ -69,9 +69,9 @@ export interface RecordingFilter {
 }
 
 export interface ListOptions {
-  filter?: RecordingFilter
-  limit?: number
-  offset?: number
+  filter?: RecordingFilter | undefined
+  limit?: number | undefined
+  offset?: number | undefined
   orderBy?: 'started_at' | 'duration_ms' | 'file_size'
   orderDir?: 'ASC' | 'DESC'
 }

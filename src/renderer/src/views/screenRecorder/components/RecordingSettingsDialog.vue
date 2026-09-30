@@ -492,7 +492,7 @@ import AppIcon from '@components/AppIcon.vue'
 interface RecordingSettings {
   encoder: 'vp9' | 'vp8' | 'h264'
   quality: 'low' | 'medium' | 'high' | 'custom'
-  bitrate?: number
+  bitrate?: number | undefined
   fps: 30 | 60
   resolution: {
     width: number
@@ -500,8 +500,8 @@ interface RecordingSettings {
   }
   format: 'webm' | 'mp4'
   audioEnabled: boolean
-  audioCodec?: 'aac' | 'opus'
-  audioBitrate?: number
+  audioCodec?: 'aac' | 'opus' | undefined
+  audioBitrate?: number | undefined
   // PR-5a
   systemAudio?: {
     enabled: boolean
@@ -762,7 +762,7 @@ const handleSave = async (): Promise<void> => {
     // PR-5a: 系统音频
     systemAudio: {
       enabled: systemAudioEnabled.value,
-      deviceId: systemAudioDeviceId.value || undefined,
+      ...(systemAudioDeviceId.value && { deviceId: systemAudioDeviceId.value }),
       keepMicrophone: keepMicrophone.value
     },
     // PR-7a/b

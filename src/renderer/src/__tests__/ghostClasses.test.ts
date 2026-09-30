@@ -1,24 +1,28 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { compile } from '@tailwindcss/node'
 
 /**
- * 幽灵类门禁（B17 家族的系统性防线）。
+ * 幽灵类门禁 · 管线版（2026-09-30 批 1 随 dump 退役重写）。
  *
- * 背景：`assets/main.css` 是 2026-09-22 的编译产物静态转储——**没有 Tailwind
- * 生成管线**。转储之后新增的任何工具类都静默失效（B17/B18 幽灵类、设置页
- * 0×0 开关、UModal max-h-[70vh] 底栏顶出屏幕都是这条根上的）。缺口由
- * `styles/recovered-css-gap.css` 手工补（取值依据见其文件头）。
+ * 演进：旧版以「main.css 转储 + recovered-css-gap.css 补口」为 CSS 事实源——
+ * 因为那时没有生成管线，类名必须在静态文件里人工登记，转储后新增的类会静默失效
+ * （B17 家族、设置页 0×0 开关都栽在这条根上）。
  *
- * 本测试把「类名必须在 CSS 事实源里存在」变成门禁：扫描全部 .vue 的
- * class 与 :class 字符串，逐一在 main.css + gap 文件 + 全部 SFC <style>
- * 里查证。新增幽灵类 = 测试红；要引入新工具类 = 先补进 gap 文件。
+ * 现在 Tailwind 4 管线（styles/tailwind.css）是唯一工具类事实源。本门禁用
+ * @tailwindcss/node 的 compile()（与 @tailwindcss/vite 插件同引擎）在测试内编译
+ * 管线入口，把从模板扫到的候选类喂给 build()，产物即「管线会生成的全部工具类」。
+ * 判定：模板出现、而管线与既有事实源（SFC scoped / global.css /
+ * legacy-preflight.css / remixicon）都不认识的类 = 红。这就是路线图批 1 的
+ * 「产物 diff = 0」验收门禁化：写对的新工具类天然被管线生成，本测试绿；
+ * 写错的类名（TW4 不认识且无自定义定义）→ 红。
  *
- * 已知局限：模板里运行时拼出来的类（变量拼接而非完整字面量）扫不到；
- * 逃逸口是 inline style（如 UModal 的 max-height:70vh）。
+ * 已知局限（沿旧版）：运行时拼接的类名扫不到；逃逸口是 inline style。
  */
 
 const repoRoot = join(__dirname, '../../../..')
+const stylesDir = join(repoRoot, 'src/renderer/src/styles')
 
 function collectVueFiles(dir: string): string[] {
   const out: string[] = []
@@ -33,34 +37,52 @@ function collectVueFiles(dir: string): string[] {
   return out
 }
 
-/** 事实源：转储 + 手工补口 + 全部 SFC <style>（含 scoped）+ remixicon 图标类 */
-function buildFactSources(): { text: string; styleText: string } {
-  const text =
-    readFileSync(join(repoRoot, 'src/renderer/src/assets/main.css'), 'utf-8') +
-    readFileSync(join(repoRoot, 'src/renderer/src/styles/recovered-css-gap.css'), 'utf-8') +
-    readFileSync(join(repoRoot, 'node_modules/remixicon/fonts/remixicon.css'), 'utf-8')
+/** 候选提取：静态 class="..." + :class 绑定里的字符串字面量（与旧版逐字一致） */
+function buildCandidates(): string[] {
+  const candidates: string[] = []
+  for (const file of collectVueFiles(join(repoRoot, 'src/renderer/src'))) {
+    const src = readFileSync(file, 'utf-8')
+    for (const m of src.matchAll(/(?<![:@\w-])class="([^"]*)"/g)) {
+      candidates.push(...m[1].split(/\s+/))
+    }
+    for (const m of src.matchAll(/(?<!\w):class="([^"]*)"/g)) {
+      for (const lit of m[1].matchAll(/'([^']*)'/g)) {
+        const v = lit[1]
+        if (/\s/.test(v) || /[-:[]/.test(v)) candidates.push(...v.split(/\s+/))
+      }
+    }
+  }
+  return candidates
+}
+
+/** 非管线的既有事实源：SFC <style> 段 + 全局自定义 + TW3 preflight 保留 + 图标库 */
+function buildExtraFacts(): string {
   let styleText = ''
   for (const f of collectVueFiles(join(repoRoot, 'src/renderer/src'))) {
     const src = readFileSync(f, 'utf-8')
     for (const m of src.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) styleText += m[1] + '\n'
   }
-  return { text, styleText }
+  return (
+    styleText +
+    readFileSync(join(stylesDir, 'global.css'), 'utf-8') +
+    readFileSync(join(stylesDir, 'legacy-preflight.css'), 'utf-8') +
+    readFileSync(join(repoRoot, 'node_modules/remixicon/fonts/remixicon.css'), 'utf-8')
+  )
 }
 
 const CSS_SPECIAL = /([:.[\]()/\\%#,+'~!@*$&|])/g
 
-/** 类名 → CSS 里的转义形态（.h-\[18px\] 这类） */
+/** 类名 → CSS 转义形态（.h-\[18px\] 这类） */
 function cssEscape(token: string): string {
   return token.replace(CSS_SPECIAL, '\\$1')
 }
 
-/** 类名是否真的有定义：必须 `.` 锚定命中——否则 hover\:opacity-100 会被
- *  group-hover\:opacity-100 的子串掩蔽（变体前缀边界） */
+/** 类名是否真的有定义：必须 `.` 锚定命中（防变体前缀子串掩蔽） */
 function isDefined(token: string, facts: string): boolean {
   return facts.includes('.' + cssEscape(token))
 }
 
-/** 候选类名形态：小写字母/数字开头 + 工具类字符集（含变体冒号、任意值方括号） */
+/** 候选类名形态：小写字母/数字开头 + 工具类字符集 */
 const UTILITY_SHAPE = /^[a-z][a-z0-9:.[\]()/:%#!_,-]*$/
 
 /** 确认不是 CSS 类的字符串（测试钩子/组件内部约定），带理由放行 */
@@ -73,45 +95,39 @@ const ALLOWLIST = new Map<string, string>([
   ['snippets-main', '布局标记类，样式全部由同行工具类承担']
 ])
 
-/**
- * 幽灵基线（落地时点存量 80 条 → 2026-09-29 当日全部清账，现为空集）。
- *
- * 历史存档：这 80 条是「重建件 main.css 转储时刻不存在、gap 文件也未曾补过」
- * 的组件样式族（FocusShield / Markdown 呈现 / 番茄钟统计 / 任务抽屉 / 胶囊
- * 内联页等），样式在 0922 事故中丢失、组件按裸 DOM 渲染。B39 四批重建后
- * 全部按 v4 token 补回各自组件的 scoped style（排版类进 gap 全局段）。
- *
- * 基线保留为空集工作机制：未来再有还不了样式债的存量，往这里加条目
- * （写明出处），新增代码引入基线外的新幽灵类 = 本测试红。
- */
+/** 基线（现为空集）：确实还不了的样式债往这里加条目（写明出处），新增基线外幽灵类 = 红 */
 const BASELINE = new Set<string>([])
 
-describe('幽灵类门禁（每个 class 都必须能在 CSS 事实源里查到）', () => {
-  it('扫描全部 .vue 的 class/:class，逐 token 查证', () => {
-    const { text, styleText } = buildFactSources()
-    const facts = text + '\n' + styleText
-    const ghosts = new Map<string, Set<string>>() // token -> files
+describe('幽灵类门禁（管线版：每个候选类都必须被 TW4 管线或既有事实源定义）', () => {
+  it('扫描全部 .vue 的 class/:class，经管线编译后逐 token 查证', async () => {
+    const cssInput = readFileSync(join(stylesDir, 'tailwind.css'), 'utf-8')
+    const compiler = await compile(cssInput, {
+      base: stylesDir,
+      onDependency: () => {}
+    })
+    const candidates = buildCandidates().filter(
+      (t) => t && t.length >= 2 && UTILITY_SHAPE.test(t) && !ALLOWLIST.has(t) && !BASELINE.has(t)
+    )
+    const pipelineCss = compiler.build(candidates)
+    const facts = pipelineCss + '\n' + buildExtraFacts()
 
+    const ghosts = new Map<string, Set<string>>() // token -> files
     for (const file of collectVueFiles(join(repoRoot, 'src/renderer/src'))) {
       const src = readFileSync(file, 'utf-8')
       const rel = file.slice(repoRoot.length + 1)
-      const candidates: string[] = []
+      const local: string[] = []
 
-      // 静态 class="..."（不能匹配到 :class 的值，那里另抽字符串字面量）
       for (const m of src.matchAll(/(?<![:@\w-])class="([^"]*)"/g)) {
-        candidates.push(...m[1].split(/\s+/))
+        local.push(...m[1].split(/\s+/))
       }
-      // :class 绑定里的字符串字面量。只收「像类列表」的：含空白、或带 -/[:/[
-      // （三元里 'webm' === fmt 这类比较值与单个自定义类名无法区分，不扫——
-      // 已知局限，静态 class="..." 不受此限）
       for (const m of src.matchAll(/(?<!\w):class="([^"]*)"/g)) {
         for (const lit of m[1].matchAll(/'([^']*)'/g)) {
           const v = lit[1]
-          if (/\s/.test(v) || /[-:[]/.test(v)) candidates.push(...v.split(/\s+/))
+          if (/\s/.test(v) || /[-:[]/.test(v)) local.push(...v.split(/\s+/))
         }
       }
 
-      for (const token of candidates) {
+      for (const token of local) {
         if (!token || token.length < 2) continue
         if (!UTILITY_SHAPE.test(token)) continue
         if (ALLOWLIST.has(token)) continue
@@ -127,48 +143,27 @@ describe('幽灵类门禁（每个 class 都必须能在 CSS 事实源里查到�
       .join('\n')
     expect(
       ghosts.size,
-      `发现 ${ghosts.size} 个基线外新幽灵类（CSS 事实源里不存在，样式静默失效）。` +
-        `新工具类请补进 src/renderer/src/styles/recovered-css-gap.css（取值依据写注释），` +
+      `发现 ${ghosts.size} 个幽灵类（TW4 管线与既有事实源都不认识，样式会静默失效）。` +
+        `新工具类请直接写标准 TW4 类名（管线自动生成）；确属自定义的进 styles/global.css；` +
         `确实不是 CSS 类的加进本文件 ALLOWLIST 并写明理由：\n${detail}`
     ).toBe(0)
+  }, 60_000)
 
-    // 基线瘦身边：条目「样式已补上（isDefined）」或「模板里已不再使用」时
-    // 提示从 BASELINE 删除（不红，只提示；重建 B39 的工作流就是补样式→划账）
-    const usedInTemplates = new Set<string>()
-    for (const file of collectVueFiles(join(repoRoot, 'src/renderer/src'))) {
-      const src = readFileSync(file, 'utf-8')
-      for (const token of BASELINE) {
-        if (src.includes(token)) usedInTemplates.add(token)
-      }
+  it('解析哨兵：管线编译与查证链路自证能抓到已知类', async () => {
+    const cssInput = readFileSync(join(stylesDir, 'tailwind.css'), 'utf-8')
+    const compiler = await compile(cssInput, {
+      base: stylesDir,
+      onDependency: () => {}
+    })
+    // 管线应能生成这些（标准类 + 桥接语义类 + 变体）
+    const probes = ['rounded-md', 'hover:scale-110', 'group-hover:opacity-100', 'bg-surface-1']
+    const css = compiler.build(probes)
+    for (const token of probes) {
+      expect(isDefined(token, css), `${token} 应由管线生成`).toBe(true)
     }
-    const cleared = [...BASELINE].filter(
-      (t) => !usedInTemplates.has(t) || isDefined(t, facts + '\n' + styleText)
-    )
-    if (cleared.length > 0) {
-      console.warn(
-        `[ghost-baseline] 以下基线条目在模板中已不再出现，请从 BASELINE 删除：${cleared.join(', ')}`
-      )
-    }
-  })
-
-  it('解析哨兵：扫描器自己先证明能抓到已知类与已知幽灵形态', () => {
-    // 门禁自身的哨兵：提取器失效（正则被改坏）时会两边都抓不到 → 全绿假象
-    const src = readFileSync(
-      join(repoRoot, 'src/renderer/src/components/ui/UModal.vue'),
-      'utf-8'
-    )
-    expect(src.length, 'UModal.vue 读不到').toBeGreaterThan(0)
-    const { text, styleText } = buildFactSources()
-    const facts = text + '\n' + styleText
-    // 已知存在的类必须能查到（转义 + 锚定链路正确性）
-    expect(isDefined('rounded-md', facts), 'rounded-md 应在事实源里').toBe(true)
-    expect(isDefined('hover:scale-110', facts), '变体转义链路应能命中').toBe(true)
-    expect(isDefined('ri-arrow-down-s-line', facts), '图标类应经 remixicon 命中').toBe(true)
-    // `.` 锚定确实在工作：group-hover 的定义不许掩蔽裸 hover 变体
-    expect(isDefined('group-hover:opacity-100', facts)).toBe(true)
-    expect(
-      isDefined('hover:opacity-50', facts),
-      'hover:opacity-50（事实源确无）不该被 .opacity-50 或 group-hover 定义掩蔽放行'
-    ).toBe(false)
-  })
+    // `.` 锚定确实在工作：未使用的 hover:opacity-50 不许被 group-hover 定义掩蔽放行
+    expect(isDefined('hover:opacity-50', css)).toBe(false)
+    // 图标类走 remixicon 事实源
+    expect(isDefined('ri-arrow-down-s-line', buildExtraFacts())).toBe(true)
+  }, 60_000)
 })

@@ -6,7 +6,9 @@
  * 独立入口保证唤起时立即可用（不拖主应用全局状态）。
  */
 import './styles/tailwind.css'
-import './assets/main.css'
+import './styles/tokens.css'
+import './styles/legacy-preflight.css'
+import './styles/global.css'
 import 'remixicon/fonts/remixicon.css'
 
 import { createApp } from 'vue'

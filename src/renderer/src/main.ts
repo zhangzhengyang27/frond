@@ -1,10 +1,12 @@
-// TW4 生成管线（批 1）：工具类进 @layer utilities，未分层的转储在同特异性下获胜，
-// 过渡期两者共存——迁移一个模块才删一段转储，契约见 tailwind.css 文件头。
+// 样式四件套（批 1，dump 已退役）：
+// tailwind.css —— TW4 生成管线（五层声明 + tokens 桥 + @utility），先加载以声明层序；
+// tokens.css —— 唯一视觉事实源（原 dump 内联 tokens 的维护版，变量集已核等价）；
+// legacy-preflight.css —— TW3 基线重置逐字保留（@layer base，血统与退役计划见文件头）；
+// global.css —— splash/玻璃/滚动条/Markdown 排版等全局自定义段（@layer global）。
 import './styles/tailwind.css'
-import './assets/main.css'
-// main.css 是 2026-09-22 的静态转储（重建件），不含转储之后新增的工具类 ——
-// 设置页的「紧凑模式」开关因此渲染成 0×0。补齐缺口，理由与取值依据见该文件头。
-import './styles/recovered-css-gap.css'
+import './styles/tokens.css'
+import './styles/legacy-preflight.css'
+import './styles/global.css'
 import 'remixicon/fonts/remixicon.css'
 
 import { createApp } from 'vue'

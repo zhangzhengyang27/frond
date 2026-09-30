@@ -106,6 +106,8 @@ const KNOWN_REBUILD_FILES = [
  * 实测（2026-09-24）漏了 4 个 —— 其中 `main.css` 的漏登记还**直接导致过一个真 bug**
  * 被漏看：它是 2026-09-22 的静态 CSS 转储，只含转储那一刻的工具类，设置页因此有个
  * 开关渲染成 0×0（详见 `renderer/src/styles/recovered-css-gap.css` 的文件头）。
+ * （2026-09-30 批 1：该转储在 Tailwind 4 管线落地后退役，血统由 styles/legacy-preflight.css
+ * 与 styles/global.css 接续登记；gap 补口文件同日随管线接管而删除。）
  * 2026-09-24 二批：重建 `scripts/lint-css-changed.mjs` 与根 `stylelint.config.mjs` 时
  * 又登记 2 个（清单末两条）—— 两者从未入库、随事故丢失，`pnpm lint:css` 因此一直在抛
  * ConfigurationError 被 `|| true` 吞掉（HANDOFF §10.11）。
@@ -119,8 +121,12 @@ const KNOWN_REBUILD_FILES = [
  */
 const RECOVERED_WITHOUT_MARKER: ReadonlyArray<{ rel: string; why: string }> = [
   {
-    rel: 'src/renderer/src/assets/main.css',
-    why: '文件头：「2026-09-22 从 dev 缓存的 CSS 模块取出的 __vite__css 原文」——静态转储，无生成管线'
+    rel: 'src/renderer/src/styles/legacy-preflight.css',
+    why: '血统接续（2026-09-30）：assets/main.css 转储（2026-09-22 dev 缓存静态转储，本条前身）退役时逐字提取的 TW3 preflight 保留段'
+  },
+  {
+    rel: 'src/renderer/src/styles/global.css',
+    why: '血统接续（2026-09-30）：assets/main.css 转储与 recovered-css-gap.css 退役时提取归位的全局自定义段（splash/玻璃/滚动条/Markdown 排版）'
   },
   {
     rel: 'src/renderer/src/views/pomodoro/utils/exportTaskRecords.ts',

@@ -257,7 +257,7 @@ onMounted(() => {
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--launcher-accent-soft);
-  color: #2f7fe0;
+  color: var(--text-brand);
   font-size: 10px;
 }
 
@@ -293,7 +293,7 @@ onMounted(() => {
   border: none;
   border-radius: 6px;
   background: var(--launcher-accent);
-  color: #fff;
+  color: var(--text-inverse);
   cursor: pointer;
   font-size: 11px;
 }

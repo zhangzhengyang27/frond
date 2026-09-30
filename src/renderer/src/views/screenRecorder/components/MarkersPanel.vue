@@ -46,7 +46,7 @@
         <div
           class="w-0.5 h-full bg-gradient-to-b from-transparent via-blue-400 to-transparent opacity-60 group-hover:opacity-100 transition-opacity"
           :style="{
-            background: `linear-gradient(to bottom, transparent, ${marker.color || '#3b82f6'}, transparent)`,
+            background: `linear-gradient(to bottom, transparent, ${marker.color || 'var(--color-marker-default)'}, transparent)`,
             opacity: '0.6'
           }"
         ></div>
@@ -55,20 +55,20 @@
         <div
           class="absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-white rounded-full shadow-lg border-2 transition-all duration-200 group-hover:scale-125 group-hover:shadow-xl group-hover:-translate-y-1/2"
           :style="{
-            borderColor: marker.color || '#3b82f6',
-            boxShadow: `0 4px 12px ${marker.color || '#3b82f6'}40, 0 0 0 1px ${marker.color || '#3b82f6'}20`
+            borderColor: marker.color || 'var(--color-marker-default)',
+            boxShadow: `0 4px 12px ${marker.color || 'var(--color-marker-default)'}40, 0 0 0 1px ${marker.color || 'var(--color-marker-default)'}20`
           }"
         >
           <!-- 内部图标 -->
           <div class="relative">
             <div
               class="w-3 h-3 rounded-full transition-all duration-200 group-hover:scale-110"
-              :style="{ backgroundColor: marker.color || '#3b82f6' }"
+              :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
             ></div>
             <!-- 光晕效果 -->
             <div
               class="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 animate-ping"
-              :style="{ backgroundColor: marker.color || '#3b82f6' }"
+              :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
             ></div>
           </div>
         </div>
@@ -108,18 +108,18 @@
           <div class="relative flex-shrink-0">
             <div
               class="w-4 h-4 rounded-full flex items-center justify-center"
-              :style="{ backgroundColor: `${marker.color || '#3b82f6'}20` }"
+              :style="{ backgroundColor: `${marker.color || 'var(--color-marker-default)'}20` }"
             >
               <div
                 class="w-2.5 h-2.5 rounded-full"
-                :style="{ backgroundColor: marker.color || '#3b82f6' }"
+                :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
               ></div>
             </div>
             <!-- 连接线（仅在非最后一个标记时显示） -->
             <div
               v-if="markers.indexOf(marker) < markers.length - 1"
               class="absolute left-1/2 top-4 w-0.5 h-6 -translate-x-1/2 opacity-30"
-              :style="{ backgroundColor: marker.color || '#3b82f6' }"
+              :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
             ></div>
           </div>
 
@@ -132,8 +132,8 @@
               <div
                 class="px-2 py-0.5 text-xs font-medium rounded-full"
                 :style="{
-                  backgroundColor: `${marker.color || '#3b82f6'}15`,
-                  color: marker.color || '#3b82f6'
+                  backgroundColor: `${marker.color || 'var(--color-marker-default)'}15`,
+                  color: marker.color || 'var(--color-marker-default)'
                 }"
               >
                 {{ marker.label }}

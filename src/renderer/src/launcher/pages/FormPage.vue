@@ -316,8 +316,8 @@ function initValues(): void {
 }
 
 .form-select option {
-  background: #1e1e22;
-  color: #f5f5f5;
+  background: var(--gray-950);
+  color: var(--text-primary);
 }
 
 /* checkbox 开关行 */
@@ -364,7 +364,7 @@ function initValues(): void {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface-1);
   transition: transform 0.15s ease;
 }
 

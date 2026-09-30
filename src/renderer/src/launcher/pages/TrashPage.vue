@@ -205,7 +205,7 @@ defineExpose({
   border: 1px solid rgba(255, 59, 48, 0.3);
   border-radius: 6px;
   background: rgba(255, 59, 48, 0.08);
-  color: #ff3b30;
+  color: var(--color-danger);
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s;
@@ -304,6 +304,6 @@ defineExpose({
 
 .trash-action-btn.danger:hover {
   background: rgba(255, 59, 48, 0.12);
-  color: #ff3b30;
+  color: var(--color-danger);
 }
 </style>

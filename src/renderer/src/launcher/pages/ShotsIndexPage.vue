@@ -302,7 +302,7 @@ onMounted(() => {
   padding: 4px 12px;
   border-radius: 999px;
   background: var(--launcher-accent);
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 11px;
   transform: translateX(-50%);
 }

@@ -447,13 +447,13 @@ onMounted(() => {
   border: none;
   border-radius: 7px;
   background: var(--launcher-accent);
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 12px;
   cursor: pointer;
 }
 
 .notes-new-btn:hover {
-  background: #0066dd;
+  background: var(--primary-hover);
 }
 
 .notes-views {
@@ -653,7 +653,7 @@ onMounted(() => {
 
 .notes-action-btn.danger:hover {
   background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .notes-ai-btn {

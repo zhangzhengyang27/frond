@@ -69,15 +69,15 @@
                     >
                       <div
                         class="w-1 h-full"
-                        :style="{ backgroundColor: marker.color || '#ff4444' }"
+                        :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
                       ></div>
                       <div
                         class="absolute left-1 top-0 bottom-0 flex items-center justify-center w-5 h-5 bg-white rounded-full shadow-md border-2 transition-all group-hover:scale-110"
-                        :style="{ borderColor: marker.color || '#ff4444' }"
+                        :style="{ borderColor: marker.color || 'var(--color-marker-default)' }"
                       >
                         <div
                           class="w-2 h-2 rounded-full"
-                          :style="{ backgroundColor: marker.color || '#ff4444' }"
+                          :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
                         ></div>
                       </div>
                       <div

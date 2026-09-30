@@ -182,11 +182,11 @@ onBeforeUnmount(() => {
 }
 
 .focus-dot.work {
-  background: #ef4444;
+  background: var(--color-danger);
 }
 
 .focus-dot.break {
-  background: #22c55e;
+  background: var(--color-success);
 }
 
 .focus-task {
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
 }
 
 .focus-time.running {
-  color: #007aff;
+  color: var(--text-brand);
 }
 
 .focus-bar {
@@ -232,10 +232,10 @@ onBeforeUnmount(() => {
 }
 
 .focus-bar-inner.work {
-  background: #ef4444;
+  background: var(--color-danger);
 }
 
 .focus-bar-inner.break {
-  background: #22c55e;
+  background: var(--color-success);
 }
 </style>

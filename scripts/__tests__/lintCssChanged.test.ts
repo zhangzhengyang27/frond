@@ -173,13 +173,13 @@ describe('CLI 集成（真实 stylelint）', () => {
     expect(r.stdout).toContain('color-no-hex')
   })
 
-  it('同一文件、非 strict（存量容忍口径）→ exit 0 但列出 warning', () => {
+  it('同一文件、非 strict → 仍 exit 1（批 3b 起 color-no-hex 升 error，hex 恒拦停）', () => {
     const r = spawnSync('node', [CLI], {
       cwd: tmp,
       encoding: 'utf8',
       env: { ...process.env, GITHUB_ACTIONS: '' }
     })
-    expect(r.status).toBe(0)
+    expect(r.status).toBe(1)
     expect(r.stdout).toContain('color-no-hex')
   })
 })

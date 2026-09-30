@@ -256,6 +256,7 @@ onBeforeUnmount(() => {
             <div data-controls="traffic-light" class="traffic-lights">
               <svg xmlns="http://www.w3.org/2000/svg" width="54" height="14" viewBox="0 0 54 14">
                 <g fill="none" fill-rule="evenodd" transform="translate(1 1)">
+                  <!-- macOS 车窗灯：Apple HIG 固定语义色（红黄绿关闭/最小化/全屏），非主题色 -->
                   <circle cx="6" cy="6" r="6" fill="#FF5F56" stroke="#E0443E" stroke-width=".5" />
                   <circle cx="26" cy="6" r="6" fill="#FFBD2E" stroke="#DEA123" stroke-width=".5" />
                   <circle cx="46" cy="6" r="6" fill="#27C93F" stroke="#1AAB29" stroke-width=".5" />
@@ -284,11 +285,13 @@ onBeforeUnmount(() => {
 <style scoped>
 /* 五档渐变的唯一出处：BackgroundSwitch 的小色块靠继承拿同一组变量，不再抄一遍色值 */
 .code-screenshot-container {
+  /* stylelint-disable color-no-hex -- 用户可见的渐变装饰预设（非主题色，固定色值即语义） */
   --code-shot-disco: linear-gradient(90deg, #fc466b 0%, #3f5efb 100%);
   --code-shot-salad: linear-gradient(90deg, #00c9ff 0%, #92fe9d 100%);
   --code-shot-cucumber: linear-gradient(90deg, #e3ffe7 0%, #d9e7ff 100%);
   --code-shot-aqua: linear-gradient(90deg, #00d2ff 0%, #3a47d5 100%);
   --code-shot-lovely: linear-gradient(90deg, #efd5ff 0%, #515ada 100%);
+  /* stylelint-enable color-no-hex */
   display: flex;
   flex-direction: column;
   height: 100%;

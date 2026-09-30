@@ -135,7 +135,7 @@ const emit = defineEmits<{
   'create-project': [payload: { name: string; color: string }]
 }>()
 
-const PROJECT_COLORS = ['#3794f0', '#50c878', '#f59e0b', '#ba1a1a', '#9c7bff', '#8a8a8a']
+const PROJECT_COLORS = ['var(--palette-project-1)', 'var(--palette-project-2)', 'var(--palette-project-3)', 'var(--palette-project-4)', 'var(--palette-project-5)', 'var(--palette-project-6)']
 
 const isCreate = computed(() => props.mode === 'create')
 const title = computed(() => (isCreate.value ? '新建任务' : '编辑任务'))

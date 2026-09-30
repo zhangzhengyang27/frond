@@ -371,11 +371,11 @@ onMounted(() => {
   &.selected {
     background: var(--launcher-accent);
     .cal-day-num {
-      color: #fff;
+      color: var(--text-inverse);
       font-weight: 700;
     }
     .cal-dot {
-      background: #fff;
+      background: var(--text-inverse);
     }
   }
 }

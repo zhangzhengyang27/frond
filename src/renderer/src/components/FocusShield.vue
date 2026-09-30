@@ -56,8 +56,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(1200px 600px at 50% 40%, #1b2530 0%, #101418 70%);
-  color: #e8edf2;
+  background: radial-gradient(1200px 600px at 50% 40%, var(--shield-bg-core) 0%, var(--shield-bg-edge) 70%);
+  color: var(--shield-text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', sans-serif;
@@ -88,18 +88,18 @@ onUnmounted(() => {
 
 .shield-text {
   font-size: 15px;
-  color: #c7d2dc;
+  color: var(--shield-text-secondary);
   margin: 0 0 8px;
 }
 
 .shield-app {
   font-weight: 600;
-  color: #ffffff;
+  color: var(--shield-text-inverse);
 }
 
 .shield-sub {
   font-size: 13px;
-  color: #8a97a5;
+  color: var(--shield-text-faint);
   margin: 0 0 28px;
 }
 
@@ -115,7 +115,7 @@ onUnmounted(() => {
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.08);
-  color: #e8edf2;
+  color: var(--shield-text);
   font-size: 14px;
   cursor: pointer;
   transition:
@@ -132,17 +132,17 @@ onUnmounted(() => {
 }
 
 .shield-btn.primary {
-  background: var(--brand-500, #007aff);
+  background: var(--brand-500);
   border-color: transparent;
-  color: #ffffff;
+  color: var(--shield-text-inverse);
 }
 
 .shield-btn.primary:hover {
-  background: var(--brand-600, #0064d2);
+  background: var(--brand-600);
 }
 
 .shield-hint {
   font-size: 12px;
-  color: #6b7684;
+  color: var(--shield-text-dim);
 }
 </style>

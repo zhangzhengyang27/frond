@@ -64,9 +64,9 @@ const dashOffset = computed(() => circumference * (1 - progress.value))
 
 const strokeColor = computed(() => {
   const m = snapshot.value.mode
-  if (m === 'shortBreak') return '#50c878'
-  if (m === 'longBreak') return '#ff6b6b'
-  return '#4a9eff'
+  if (m === 'shortBreak') return 'var(--pomo-short-soft)'
+  if (m === 'longBreak') return 'var(--pomo-long)'
+  return 'var(--pomo-accent)'
 })
 
 const timeText = computed(() => {

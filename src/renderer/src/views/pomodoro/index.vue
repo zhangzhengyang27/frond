@@ -518,7 +518,7 @@ const backgroundProjects = computed(() => {
       return {
         projectId: s.projectId,
         name: project?.name ?? '项目',
-        color: project?.color ?? '#888',
+        color: project?.color ?? 'var(--palette-project-6)',
         mode: s.mode,
         timeLeft: s.timeLeft,
         timeLeftFormatted: formatSeconds(s.timeLeft)

@@ -34,6 +34,7 @@ const strokes = ref<Stroke[]>([])
 let currentStroke: Stroke | null = null
 let animationId: number | null = null
 
+// canvas 2D 不支持 CSS 变量，此处必须字面量（与 --launcher-danger 同源 #ff3b30）
 const LASER_COLOR = '#ff3b30'
 const LASER_WIDTH = 6
 /** 单条笔迹从画面上淡出消失所需时间（ms） */

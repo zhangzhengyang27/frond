@@ -401,7 +401,7 @@ watch(
   border: none;
   border-radius: 8px;
   background: var(--launcher-accent);
-  color: #fff;
+  color: var(--text-inverse);
   cursor: pointer;
 
   &:hover {
@@ -522,7 +522,7 @@ watch(
   }
 
   &.overdue .reminder-title {
-    color: var(--launcher-danger, #ea6668);
+    color: var(--launcher-danger);
   }
 }
 
@@ -571,7 +571,7 @@ watch(
   margin-top: 4px;
 
   .overdue {
-    color: var(--launcher-danger, #ea6668);
+    color: var(--launcher-danger);
   }
 }
 
@@ -594,7 +594,7 @@ watch(
   }
 
   &:hover {
-    color: var(--launcher-danger, #ea6668);
+    color: var(--launcher-danger);
   }
 }
 </style>

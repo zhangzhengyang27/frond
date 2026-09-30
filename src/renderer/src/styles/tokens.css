@@ -91,6 +91,45 @@
   --glass-saturate: 1.8; /* v4 新增：材质「鲜艳度」，vibrancy 观感的来源 */
   --glass-filter: blur(20px) saturate(1.8); /* v4 新增：整体 backdrop-filter */
 
+  /* v5 批 3b：模块色板与固定色彩资产（色相唯一的唯一定义处） */
+  /* FocusShield：恒暗护盾（不随主题，模块命名空间） */
+  --shield-bg-core: #1b2530;
+  --shield-bg-edge: #101418;
+  --shield-text: #e8edf2;
+  --shield-text-secondary: #c7d2dc;
+  --shield-text-inverse: #ffffff;
+  --shield-text-dim: #6b7684;
+  --shield-text-faint: #8a97a5;
+  /* JSON 可视化语法高亮（亮暗成对） */
+  --json-key: #881391;
+  --json-string: #0b6125;
+  --json-number: #1c00cf;
+  --json-null: #808080;
+  --json-meta: #808080;
+  /* 启动器分类图标底色（Raycast 风格分类色板，恒定不随主题） */
+  --launcher-cat-app: #ff6b6b;
+  --launcher-cat-system: #4ecdc4;
+  --launcher-cat-module: #45b7d1;
+  --launcher-cat-quicklink: #96ceb4;
+  --launcher-cat-file: #ffeaa7;
+  --launcher-cat-clipboard: #dda0dd;
+  --launcher-cat-snippet: #98d8c8;
+  --launcher-cat-ai: #bb8fce;
+  --launcher-cat-search: #85c1e9;
+  --launcher-cat-url: #6c9bd1;
+  --launcher-cat-other: #aab7b8;
+  /* 番茄钟项目色板（用户新建项目可选） */
+  --palette-project-1: #3794f0;
+  --palette-project-2: #50c878;
+  --palette-project-3: #f59e0b;
+  --palette-project-4: #ba1a1a;
+  --palette-project-5: #9c7bff;
+  --palette-project-6: #8a8a8a;
+  /* 标记默认色（此前 MarkersPanel #3b82f6 与 PlaybackPanel/MarkerService #ff4444 不一致） */
+  --color-marker-default: #ff4444;
+  /* 护盾网页类图标紫（SettingsView 单点语义色） */
+  --color-accent-purple: #af52de;
+
   /* v5 封闭字阶（7 档，px 基准 + 配对行高）：全局唯一字号来源 */
   --font-size-2xs: 11px;
   --font-size-xs: 12px;
@@ -437,6 +476,12 @@ html.dark {
   --glass-blur: 24px;
   --glass-saturate: 1.8;
   --glass-filter: blur(24px) saturate(1.8);
+  /* JSON 可视化语法高亮（暗色对） */
+  --json-key: #ce9ce8;
+  --json-string: #7ec97e;
+  --json-number: #79b8ff;
+  --json-null: #8a909c;
+  --json-meta: #8a909c;
   /* v5 玻璃阶梯（暗色对） */
   --glass-bg-overlay: rgba(22, 23, 28, 0.92);
   --glass-blur-strong: 30px;

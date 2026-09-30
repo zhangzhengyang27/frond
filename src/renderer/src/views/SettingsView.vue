@@ -867,7 +867,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 </button>
               </div>
             </div>
-            <p v-if="rejectedThemes.length" class="mt-2 text-[12px] leading-relaxed text-[#d70015]">
+            <p v-if="rejectedThemes.length" class="mt-2 text-[12px] leading-relaxed text-[var(--text-danger)]">
               {{ rejectedThemes.length }} 份未通过校验：{{
                 rejectedThemes.map((r) => `${r.file}（${r.error}）`).join('；')
               }}
@@ -1303,7 +1303,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
               <!-- 启用开关 -->
               <div class="flex items-center gap-3 border-b border-line-subtle px-4 py-3">
                 <div
-                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#ff9500]/10 text-[#ff9500]"
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
                 >
                   <AppIcon icon="ri-shield-line" :size="16" />
                 </div>
@@ -1376,7 +1376,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 <div>
                   <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary">
                     网站屏蔽（域名片段，逗号分隔）
-                    <span v-if="!shieldWebsiteSupported" class="text-[#ff9500]"
+                    <span v-if="!shieldWebsiteSupported" class="text-[var(--color-warning)]"
                       >（仅 macOS 支持）</span
                     >
                   </label>
@@ -1403,7 +1403,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
             <div class="overflow-hidden rounded-xl bg-surface-1 ring-1 ring-line-subtle">
               <div class="flex items-center gap-3 px-4 py-3">
                 <div
-                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#af52de]/10 text-[#af52de]"
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent-purple)]/10 text-[var(--color-accent-purple)]"
                 >
                   <AppIcon icon="plug-2-line" :size="16" />
                 </div>
@@ -1511,7 +1511,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     class="flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors"
                     :class="
                       systemInfo?.legacyArchivePath
-                        ? 'bg-fg-success/10 text-[#34c759]'
+                        ? 'bg-fg-success/10 text-fg-success'
                         : 'bg-surface-2 text-fg-tertiary'
                     "
                   >
@@ -1775,7 +1775,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   @click="onRestartOnboarding"
                 >
                   <div
-                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#ff9500]/10 text-[#ff9500]"
+                    class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-warning)]/10 text-[var(--color-warning)]"
                   >
                     <AppIcon icon="ri-refresh-line" :size="16" />
                   </div>

@@ -170,7 +170,7 @@ onMounted(async () => {
 }
 
 .settings-row.selected {
-  background: color-mix(in srgb, var(--brand, #4f8ef7) 18%, transparent);
+  background: color-mix(in srgb, var(--brand) 18%, transparent);
 }
 
 .settings-icon {

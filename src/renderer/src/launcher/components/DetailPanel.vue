@@ -124,7 +124,7 @@ function escapeHtml(text: string): string {
 }
 
 .detail-panel :deep(a) {
-  color: #007aff;
+  color: var(--text-brand);
   text-decoration: none;
 }
 

@@ -221,19 +221,20 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
   /** Raycast 风格：按命令类型给图标方形背景上色 */
   function iconBg(entry: CommandEntry): string {
     const type = entry.action.type
+    // 分类色板定义在 tokens.css（--launcher-cat-*），此处只做类型→变量名映射
     const bgMap: Record<string, string> = {
-      app: '#FF6B6B',
-      system: '#4ECDC4',
-      module: '#45B7D1',
-      quicklink: '#96CEB4',
-      file: '#FFEAA7',
-      clipboardItem: '#DDA0DD',
-      snippetItem: '#98D8C8',
-      ai: '#BB8FCE',
-      searchQuery: '#85C1E9',
-      openUrl: '#6C9BD1'
+      app: 'var(--launcher-cat-app)',
+      system: 'var(--launcher-cat-system)',
+      module: 'var(--launcher-cat-module)',
+      quicklink: 'var(--launcher-cat-quicklink)',
+      file: 'var(--launcher-cat-file)',
+      clipboardItem: 'var(--launcher-cat-clipboard)',
+      snippetItem: 'var(--launcher-cat-snippet)',
+      ai: 'var(--launcher-cat-ai)',
+      searchQuery: 'var(--launcher-cat-search)',
+      openUrl: 'var(--launcher-cat-url)'
     }
-    return bgMap[type] ?? '#AAB7B8'
+    return bgMap[type] ?? 'var(--launcher-cat-other)'
   }
 
   const entries = computed<CommandEntry[]>(() => {

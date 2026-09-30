@@ -58,7 +58,7 @@ const options: Array<{ key: CodeShotBackground; label: string; var: string }> = 
 .swatch.active {
   opacity: 1;
   transform: scale(1.06);
-  outline: 2px solid var(--pomo-accent, #007aff);
+  outline: 2px solid var(--pomo-accent);
   outline-offset: 1px;
 }
 </style>

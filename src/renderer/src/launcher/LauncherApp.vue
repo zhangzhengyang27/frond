@@ -1807,7 +1807,7 @@ onMounted(() => {
   height: 22px;
   flex-shrink: 0;
   border-radius: 5px;
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .launcher-result-icon-svg {

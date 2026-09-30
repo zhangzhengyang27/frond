@@ -197,11 +197,11 @@ onMounted(async () => {
 }
 
 .usage-bar-fill.memory {
-  background: #30d158;
+  background: var(--color-success);
 }
 
 .usage-bar-fill.disk {
-  background: #ff9f0a;
+  background: var(--color-warning);
 }
 
 .usage-text {

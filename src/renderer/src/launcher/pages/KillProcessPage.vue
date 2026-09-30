@@ -132,7 +132,7 @@ defineExpose({
 .kp-error {
   padding: 6px 16px;
   font-size: 12px;
-  color: #ff453a;
+  color: var(--launcher-danger);
   background: rgba(255, 69, 58, 0.1);
 }
 

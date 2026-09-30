@@ -724,7 +724,7 @@ onBeforeUnmount(() => {
 }
 
 .ai-history-clear:hover {
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .ai-history-list {
@@ -780,7 +780,7 @@ onBeforeUnmount(() => {
 }
 
 .ai-history-del:hover {
-  color: #ef4444;
+  color: var(--color-danger);
   background: rgba(239, 68, 68, 0.08);
 }
 
@@ -869,7 +869,7 @@ onBeforeUnmount(() => {
 
 .ai-msg.user .ai-msg-content {
   background: var(--launcher-accent);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .ai-msg-content.streaming {
@@ -920,7 +920,7 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: 8px;
   background: var(--launcher-accent);
-  color: #fff;
+  color: var(--text-inverse);
   font-size: 12px;
   cursor: pointer;
   flex-shrink: 0;

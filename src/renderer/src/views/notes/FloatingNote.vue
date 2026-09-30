@@ -194,7 +194,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: var(--bg-color, #ffffff);
+  background: var(--surface-1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
@@ -203,8 +203,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--bg-secondary, #f5f5f5);
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background: var(--surface-0);
+  border-bottom: 1px solid var(--border-default);
   -webkit-app-region: drag;
   cursor: move;
   user-select: none;
@@ -216,7 +216,7 @@ onUnmounted(() => {
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
 }
 
 .fn-actions {
@@ -233,21 +233,21 @@ onUnmounted(() => {
   justify-content: center;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 4px;
 
   &:hover {
-    background: var(--bg-hover, #e8e8e8);
-    color: var(--text-primary, #333);
+    background: var(--surface-hover);
+    color: var(--text-primary);
   }
 }
 
 .fn-list {
   max-height: 160px;
   overflow-y: auto;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-  background: var(--bg-tertiary, #fafafa);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-0);
 }
 
 .fn-list-item {
@@ -259,12 +259,12 @@ onUnmounted(() => {
   font-size: 12px;
 
   &:hover {
-    background: var(--bg-hover, #e8e8e8);
+    background: var(--surface-hover);
   }
 
   &.active {
-    background: var(--accent-bg, #e3f2fd);
-    color: var(--accent, #1976d2);
+    background: color-mix(in srgb, var(--brand-500) 12%, transparent);
+    color: var(--text-brand);
   }
 }
 
@@ -277,7 +277,7 @@ onUnmounted(() => {
 
 .fn-list-time {
   font-size: 10px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted);
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -286,7 +286,7 @@ onUnmounted(() => {
   padding: 16px;
   text-align: center;
   font-size: 12px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted);
 }
 
 .fn-editor {
@@ -303,7 +303,7 @@ onUnmounted(() => {
   outline: none;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
   background: transparent;
   padding: 4px 0;
 }
@@ -314,7 +314,7 @@ onUnmounted(() => {
   outline: none;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
   background: transparent;
   resize: none;
   font-family: inherit;
@@ -325,13 +325,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  background: var(--bg-secondary, #f5f5f5);
+  border-top: 1px solid var(--border-default);
+  background: var(--surface-0);
 }
 
 .fn-status {
   font-size: 10px;
-  color: var(--text-muted, #999);
+  color: var(--text-muted);
 }
 
 .fn-list-toggle {
@@ -340,14 +340,14 @@ onUnmounted(() => {
   gap: 4px;
   border: none;
   background: transparent;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
 
   &:hover {
-    background: var(--bg-hover, #e8e8e8);
+    background: var(--surface-hover);
   }
 }
 </style>

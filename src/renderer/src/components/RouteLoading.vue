@@ -182,11 +182,11 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .route-loading {
-  --route-loading-bg-start: var(--app-route-loading-bg-start, #f7f8fb);
-  --route-loading-bg-end: var(--app-route-loading-bg-end, #f2f4f8);
-  --route-loading-skeleton-a: var(--app-route-loading-skeleton-a, #e6e9f0);
-  --route-loading-skeleton-b: var(--app-route-loading-skeleton-b, #f6f8fc);
-  --route-loading-skeleton-c: var(--app-route-loading-skeleton-c, #e6e9f0);
+  --route-loading-bg-start: var(--app-route-loading-bg-start),;
+  --route-loading-bg-end: var(--app-route-loading-bg-end),;
+  --route-loading-skeleton-a: var(--app-route-loading-skeleton-a),;
+  --route-loading-skeleton-b: var(--app-route-loading-skeleton-b),;
+  --route-loading-skeleton-c: var(--app-route-loading-skeleton-c),;
   min-height: 100%;
   padding: 20px;
   background: linear-gradient(

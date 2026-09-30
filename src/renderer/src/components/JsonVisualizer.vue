@@ -260,19 +260,9 @@ watch(
   height: 100%;
   background: var(--surface-0);
   /* JSON 语法色：亮暗两套，跟随主题（v4） */
-  --json-key: #881391;
-  --json-string: #0b6125;
-  --json-number: #1c00cf;
-  --json-null: #808080;
-  --json-meta: #808080;
 }
 
 html.dark .json-visualizer-container {
-  --json-key: #ce9ce8;
-  --json-string: #7ec97e;
-  --json-number: #79b8ff;
-  --json-null: #8a909c;
-  --json-meta: #8a909c;
 }
 
 .visualizer-header {

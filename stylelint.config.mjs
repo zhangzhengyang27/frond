@@ -16,7 +16,11 @@
  */
 export default {
   extends: ['stylelint-config-html/vue'],
+  // 批 3b（2026-09-30）：组件层 hex 已全部 tokens 化，色相唯一强制升 error。
+  // 豁免：tokens.css（唯一视觉事实源，hex 是它的职责）、tailwind.css（孤色钉值，
+  // 见其文件头，批 3 token 化后移除）。
+  ignoreFiles: ['src/renderer/src/styles/tokens.css', 'src/renderer/src/styles/tailwind.css'],
   rules: {
-    'color-no-hex': [true, { severity: 'warning' }]
+    'color-no-hex': [true, { severity: 'error' }]
   }
 }

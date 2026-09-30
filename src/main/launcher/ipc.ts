@@ -321,12 +321,29 @@ export function registerLauncherIpc(): void {
     void shell.openPath(getPluginsRoot())
   })
 
-  // 第一方内联页（Raycast 式）：外部入口（⌘K）唤起胶囊窗并打开对应页
+  // 第一方内联页（Raycast 式）：外部入口（⌘K）唤起胶囊窗并打开对应页。
+  // 批 4（P-产品-30）：冷启动时渲染层可能还没挂监听，send 会丢——
+  // 未就绪则先缓冲，did-finish-load 后冲洗（此前 Hub 用 setTimeout 200ms 猜时机，竞态）。
+  let pendingFirstParty: string | null = null
   ipcMain.on('launcher:openFirstParty', (_e, payload: { page?: string }) => {
     const page = payload?.page
     if (!page || !FIRST_PARTY_PAGES.has(page)) return
     showLauncherWindow()
-    getLauncherWindow()?.webContents.send('launcher:firstparty:open', { page })
+    const wc = getLauncherWindow()?.webContents
+    if (!wc) {
+      pendingFirstParty = page
+      return
+    }
+    if (wc.isLoading()) {
+      pendingFirstParty = page
+      wc.once('did-finish-load', () => {
+        if (!pendingFirstParty) return
+        wc.send('launcher:firstparty:open', { page: pendingFirstParty })
+        pendingFirstParty = null
+      })
+      return
+    }
+    wc.send('launcher:firstparty:open', { page })
   })
 
   // MCP 工具从 ⌘K 面板触发时交给胶囊跑（P-4② 收尾）：面板既没有参数格也没有结果页，

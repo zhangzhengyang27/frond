@@ -115,7 +115,7 @@ test('2. 屏幕录制不给「申请」（无编程申请口），未授权时�
   }
 })
 
-test('3. 设置 → 高级 有同一块面板：跳过引导后的补授权落点，挂上自动读', async () => {
+test('3. 设置 → 通用 有同一块面板（批 4 上移自高级）：跳过引导后的补授权落点，挂上自动读', async () => {
   if (!app) throw new Error('app not launched')
   const page = await getMainWindow()
   // 路由守卫只认 markOnboardingCompleted()（只有走完/跳过引导才会调），
@@ -125,10 +125,10 @@ test('3. 设置 → 高级 有同一块面板：跳过引导后的补授权落�
   await page.evaluate(() => {
     window.location.hash = '#/settings'
   })
-  // 不按 exact 匹配：AppIcon 的 <title> 会进可访问名，整串是「图标名 + 高级」
-  const advancedNav = page.getByRole('button', { name: '高级' })
-  await expect(advancedNav.first()).toBeVisible({ timeout: 20000 })
-  await advancedNav.first().click()
+  // 批 4（P-产品-38）：权限面板从「高级」上移到「通用」——权限受众是普通用户
+  const generalNav = page.getByRole('button', { name: '通用' })
+  await expect(generalNav.first()).toBeVisible({ timeout: 20000 })
+  await generalNav.first().click()
   await expect(page.getByText('系统权限', { exact: true })).toBeVisible({ timeout: 10000 })
 
   const probed = await page.evaluate(() => window.api.permissions.probe())

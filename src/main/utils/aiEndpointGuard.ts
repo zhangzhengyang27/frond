@@ -67,6 +67,17 @@ export async function assertAiEndpointAllowed(
   if (!addrs || addrs.length === 0) {
     return { ok: false, reason: `AI baseUrl 域名解析失败：${host}` }
   }
+  // B25①（D6，2026-09-30）：fake-ip 代理环境独立可诊断——Clash TUN 等把任意域名
+  // 解析成 198.18/15（fake-ip 的转发机制，网络实际可通），全部落段时按代理环境报告，
+  // 不再误报「受限地址」。修法①：不改放行面，只把误导性 reason 换成可行动的诊断。
+  if (addrs.every(({ address }) => /^198\.(18|19)\./.test(address))) {
+    return {
+      ok: false,
+      reason: `检测到 fake-ip 代理环境：${host} 全部解析到 198.18/15 保留段` +
+        '（Clash TUN 等代理的转发机制，网络实际可通）。本守卫按保留段拦截不放行；' +
+        '如需 AI 端点，请为该域名关闭 fake-ip 或配置真实解析'
+    }
+  }
   for (const { address } of addrs) {
     const hit = checkAddr(address)
     if (hit) return hit

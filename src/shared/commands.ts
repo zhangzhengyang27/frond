@@ -49,7 +49,6 @@ export const FIRST_PARTY_PAGE_VALUES = [
   'dictionary',
   'notes',
   'reminders',
-  'calendar',
   'mcpcall',
   'mcparg'
 ] as const
@@ -309,7 +308,7 @@ export const FIRST_PARTY_COMMANDS: CommandEntry[] = [
   {
     key: 'firstparty:settings',
     icon: 'settings-line',
-    title: '快捷设置',
+    title: '快速开关',
     subtitle: '主题 / 文本扩展 / 剪贴板历史，胶囊内直达',
     badge: '动作',
     action: { type: 'firstParty', page: 'settings' }

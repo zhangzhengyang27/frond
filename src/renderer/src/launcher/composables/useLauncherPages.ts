@@ -27,7 +27,7 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   pluginarg: '插件命令参数',
   mcparg: 'MCP 工具参数',
   mcpcall: 'MCP 工具',
-  settings: '设置',
+  settings: '快速开关',
   ai: 'AI 问答',
   browserTabs: '浏览器标签',
   systemInfo: '系统信息',
@@ -38,8 +38,7 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   trash: '回收站',
   dictionary: '词典',
   notes: '笔记',
-  reminders: '提醒事项',
-  calendar: '日历'
+  reminders: '提醒与月历'
 }
 
 /** provide/inject 通道：LauncherApp 提供当前页标题，CapsulePage 消费渲染面包屑 */

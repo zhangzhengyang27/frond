@@ -6,7 +6,7 @@
  *   1. 欢迎：Frond 是什么 + 解决什么问题
  *   2. 系统权限：辅助功能 / 日历 / 屏幕录制的真状态 + 就地申请 + 跳转设置（P-3.5）
  *   3. 主题：light / dark / auto，立即生效
- *   4. 常用模块：9 模块 chips 多选（影响 Hub「收藏」区）
+ *   4. 常用模块：chips 多选（进胶囊「收藏」；可跳过）
  *   5. 快捷键：⌘K 命令面板 / ⌘2-4 跳模块 / ⌘, 设置
  *
  * 设计取舍：
@@ -76,14 +76,14 @@ const themeOptions: Array<{
 const recommendedModules = computed((): ModuleMeta[] => MODULES.slice(0, 9))
 
 const shortcuts = [
+  { keys: 'Alt+Space', desc: '唤起 Frond 胶囊（第一入口：搜索 / 启动 / 一切）' },
   { keys: '⌘K', desc: '唤起命令面板（搜索模块 / 跳转 / 动作）' },
-  { keys: '⌘2-4', desc: '按数字键直接跳到对应模块（录屏 / 番茄钟 / 启动器管理）' },
-  { keys: '⌘,', desc: '打开设置中心' },
-  { keys: '⌘⇧P', desc: '唤起命令面板（备用快捷键）' }
+  { keys: '⌘1-4', desc: '按数字键直接跳到对应模块（片段 / 录屏 / 番茄钟 / 启动器）' },
+  { keys: '⌘,', desc: '打开设置中心' }
 ]
 
 const canNext = computed(() => {
-  if (step.value === 4) return pickedModules.value.size > 0
+  // 批 4：第 4 步改为可跳过（P-产品-26），不再强制至少选 1 个
   return true
 })
 
@@ -210,7 +210,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
               <div
                 v-for="f in [
                   { icon: 'flashlight-line', title: '快', body: '全局快捷键 0.1s 唤起' },
-                  { icon: 'shapes', title: '简', body: '9 模块一屏一览' },
+                  { icon: 'shapes', title: '简', body: `${MODULES.length} 模块一屏一览` },
                   { icon: 'shield-check-line', title: '稳', body: '本地优先 SQLite 持久化' }
                 ]"
                 :key="f.title"
@@ -328,10 +328,10 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
               {{ stepLabel }}
             </div>
             <h2 class="mb-2 text-center text-2xl font-semibold tracking-tight text-fg-primary">
-              选 3-5 个常用模块
+              勾选常用模块（可跳过）
             </h2>
             <p class="mb-6 text-center text-sm text-fg-secondary">
-              Hub 会把它们放到「收藏」区；模块快捷键固定为 ⌘+模块序号（如 ⌘4 启动器）
+              选中的会进胶囊「收藏」，Alt+Space 即达；模块快捷键为 ⌘+序号（如 ⌘4 启动器）
             </p>
             <div class="flex-1 overflow-y-auto">
               <div class="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -370,10 +370,8 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
               </div>
             </div>
             <div class="mt-4 text-center text-xs text-fg-tertiary">
-              已选 {{ pickedModules.size }} / 9
-              <span v-if="pickedModules.size === 0" class="ml-2 text-warning">
-                （至少选 1 个才能继续）
-              </span>
+              已选 {{ pickedModules.size }} / {{ MODULES.length }}
+              <span v-if="pickedModules.size === 0" class="ml-2">（可跳过，随时再来选）</span>
             </div>
           </section>
 

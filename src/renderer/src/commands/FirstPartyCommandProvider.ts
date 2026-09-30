@@ -383,8 +383,8 @@ export function createFirstPartyCommandProvider(): CommandProvider {
       // ── 日历 ──
       commands.push({
         id: 'calendar:view',
-        title: '日历',
-        subtitle: '查看日程与提醒',
+        title: '提醒与月历',
+        subtitle: '提醒列表与本地月历（原独立日历页已并入）',
         icon: 'calendar',
         category: 'calendar',
         badge: '日历',
@@ -400,7 +400,7 @@ export function createFirstPartyCommandProvider(): CommandProvider {
           'month',
           '月'
         ],
-        actions: [{ type: 'firstParty', page: 'calendar' }]
+        actions: [{ type: 'firstParty', page: 'reminders' }]
       })
 
       return commands

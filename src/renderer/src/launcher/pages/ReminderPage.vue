@@ -1,5 +1,22 @@
 <template>
   <div class="reminder-page">
+    <!-- 视图开关（批 4 P-产品-41：本地月历并入提醒页，对外不再有独立日历页） -->
+    <div class="reminder-view-toggle">
+      <button
+        class="reminder-view-btn"
+        :class="{ active: view === 'list' }"
+        @mousedown.prevent="view = 'list'"
+      >
+        <AppIcon icon="list-check" :size="14" /> 列表
+      </button>
+      <button
+        class="reminder-view-btn"
+        :class="{ active: view === 'calendar' }"
+        @mousedown.prevent="view = 'calendar'"
+      >
+        <AppIcon icon="calendar-line" :size="14" /> 月历
+      </button>
+    </div>
     <!-- 新建提醒输入区 -->
     <div class="reminder-create">
       <input
@@ -97,12 +114,16 @@
         </button>
       </div>
     </div>
+      <div v-if="view === 'calendar'" class="reminder-calendar-host">
+      <CalendarPage />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import AppIcon from '@renderer/components/AppIcon.vue'
+import CalendarPage from './CalendarPage.vue'
 
 interface Reminder {
   id: string
@@ -117,6 +138,7 @@ interface Reminder {
   updatedAt: number
 }
 
+const view = ref<'list' | 'calendar'>('list')
 const props = defineProps<{ query?: string }>()
 
 const newTitle = ref('')
@@ -596,5 +618,34 @@ watch(
   &:hover {
     color: var(--launcher-danger);
   }
+}
+/* 批 4：月历视图开关 */
+.reminder-view-toggle {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--surface-hover);
+  width: fit-content;
+}
+.reminder-view-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs, 12px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.reminder-view-btn.active {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+.reminder-calendar-host {
+  margin-top: 8px;
 }
 </style>

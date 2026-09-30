@@ -38,7 +38,7 @@ const sections: SettingsSection[] = [
     id: 'general',
     label: '通用',
     icon: 'ri-settings-3-line',
-    keywords: ['主题', '外观', '浅色', '深色', '跟随系统', 'theme', 'appearance']
+    keywords: ['主题', '外观', '浅色', '深色', '跟随系统', '权限', '录屏', '麦克风', 'theme', 'appearance', 'permissions']
   },
   {
     id: 'launcher',
@@ -759,7 +759,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
         <!-- ═══ 通用 ═══ -->
         <template v-if="activeSection === 'general'">
           <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-fg-primary">通用</h1>
-          <p class="mb-8 text-[14px] text-fg-tertiary">外观与界面偏好。</p>
+          <p class="mb-8 text-[14px] text-fg-tertiary">外观、界面偏好与系统权限。</p>
 
           <!-- 外观 -->
           <section class="mb-8">
@@ -793,6 +793,14 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 </button>
               </div>
             </div>
+          </section>
+
+          <!-- 系统权限（批 4 上移自「高级」，P-产品-38：权限受众是普通用户，不该藏在开发者选项里） -->
+          <section class="mb-8">
+            <h2 class="mb-3 text-[12px] font-medium uppercase tracking-wider text-fg-tertiary">
+              系统权限
+            </h2>
+            <PermissionPanel />
           </section>
 
           <!-- 主题文件（#12 Phase 2）：userData/themes/*.json，可放多个 -->
@@ -1572,15 +1580,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
         <!-- ═══ 高级 ═══ -->
         <template v-else-if="activeSection === 'advanced'">
           <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-fg-primary">高级</h1>
-          <p class="mb-8 text-[14px] text-fg-tertiary">系统权限、日志、遥测与开发者选项。</p>
-
-          <!-- 系统权限（P-3.5）：跳过引导后补授权的落点，读的是主进程真状态 -->
-          <section class="mb-8">
-            <h2 class="mb-3 text-[12px] font-medium uppercase tracking-wider text-fg-tertiary">
-              系统权限
-            </h2>
-            <PermissionPanel />
-          </section>
+          <p class="mb-8 text-[14px] text-fg-tertiary">日志、遥测与开发者选项。系统权限已移至「通用」。</p>
 
           <!-- 定时任务（P-4④）：cron 按本机本地时间判定，动作面只留无人值守说得通的几类 -->
           <section class="mb-8">

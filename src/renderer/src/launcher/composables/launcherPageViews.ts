@@ -16,7 +16,6 @@ import type { FormField, PluginFormNode, PluginListItem } from '@shared/plugin-p
 import type { KindFilter } from '../pages/clipboardLogic'
 import AIChatPage from '../pages/AIChatPage.vue'
 import BrowserTabsPage from '../pages/BrowserTabsPage.vue'
-import CalendarPage from '../pages/CalendarPage.vue'
 import ClipboardPage from '../pages/ClipboardPage.vue'
 import DictionaryPage from '../pages/DictionaryPage.vue'
 import FilesPage from '../pages/FilesPage.vue'
@@ -208,7 +207,6 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
   dictionary: { component: DictionaryPage, name: 'dictionary', props: queryProps },
   notes: { component: NotesPage, name: 'notes' },
   reminders: { component: ReminderPage, name: 'reminders', props: queryProps },
-  calendar: { component: CalendarPage, name: 'calendar' },
   qlform: {
     component: FormPage,
     name: 'qlform',

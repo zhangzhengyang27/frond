@@ -8,19 +8,9 @@ import { useToast } from '@composables/useToast'
 
 const router = useRouter()
 const toast = useToast()
-const searchQuery = ref('')
-const searchInput = ref<HTMLInputElement | null>(null)
-
-/** 唤起启动器胶囊窗 */
+/** 唤起启动器胶囊窗（搜索在这里没有本地状态——真正的搜索在胶囊里，此按钮只是入口） */
 function openLauncher(): void {
   void window.api.launcher.show?.()
-}
-
-/** 搜索框聚焦时唤起启动器（Raycast 风格：搜索即入口） */
-function onSearchFocus(): void {
-  openLauncher()
-  searchQuery.value = ''
-  searchInput.value?.blur()
 }
 const navigate = (m: ModuleMeta): void => {
   void window.api.usage.recordUse(m.id)
@@ -52,11 +42,9 @@ function onQuickAction(action: { path?: string; action?: string }): void {
   if (action.path) {
     router.push(action.path)
   } else if (action.action) {
-    // 唤起启动器并打开对应页面
-    void window.api.launcher.show?.()
-    setTimeout(() => {
-      window.api.launcher.openFirstParty?.(action.action as FirstPartyPage)
-    }, 200)
+    // 唤起启动器并打开对应页面：openFirstParty 主进程侧自带 show + 冷启动缓冲（批 4），
+    // 不再 setTimeout 猜时机（胶囊未就绪时动作会丢，P-产品-30）
+    window.api.launcher.openFirstParty?.(action.action as FirstPartyPage)
   }
 }
 
@@ -88,25 +76,19 @@ onMounted(() => {
 
     <!-- ═══ 大搜索框（Raycast Root Search 风格）═══ -->
     <div class="relative w-full max-w-[560px] mb-10">
-      <div
-        class="flex items-center gap-3 rounded-xl border border-line-default bg-surface-1 px-4 py-3.5 shadow-lg shadow-black/5 transition-all hover:border-brand-500/40 hover:shadow-xl focus-within:border-brand-500 focus-within:shadow-ring-focus"
+      <button
+        type="button"
+        class="flex w-full items-center gap-3 rounded-xl border border-line-default bg-surface-1 px-4 py-3.5 text-left shadow-lg shadow-black/5 transition-all hover:border-brand-500/40 hover:shadow-xl focus-visible:border-brand-500 focus-visible:shadow-ring-focus focus-visible:outline-none"
+        @click="openLauncher"
       >
         <AppIcon icon="search" :size="18" class="shrink-0 text-fg-tertiary" />
-        <input
-          ref="searchInput"
-          v-model="searchQuery"
-          type="text"
-          class="flex-1 bg-transparent text-[15px] text-fg-primary placeholder:text-fg-tertiary focus:outline-none"
-          placeholder="搜索功能、文件、命令…"
-          spellcheck="false"
-          @focus="onSearchFocus"
-        />
+        <span class="flex-1 text-[15px] text-fg-tertiary">搜索功能、文件、命令…</span>
         <kbd
           class="hidden shrink-0 rounded-md border border-line-subtle bg-surface-2 px-2 py-1 font-mono text-[11px] text-fg-tertiary sm:inline-block"
         >
           Alt Space
         </kbd>
-      </div>
+      </button>
       <p class="mt-2 text-center text-xs text-fg-tertiary">
         点击搜索框或按 <span class="font-medium text-fg-secondary">Alt + Space</span> 唤起启动器
       </p>

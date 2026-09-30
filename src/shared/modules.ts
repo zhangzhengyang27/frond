@@ -43,7 +43,19 @@ export interface ModuleMeta {
 
 export const MODULES: ModuleMeta[] = [
   // 工具
-  // 注：快捷键不重排（⌘1 随截图模块下线空出，2026-09-17），见 useModuleShortcuts
+  // 注：快捷键不重排（⌘1 随截图模块下线空出；2026-09-30 重塑批 4 由晋升的 snippets 补位），
+  // 见 useModuleShortcuts
+  {
+    id: 'snippets',
+    routeName: 'snippets',
+    path: '/snippets',
+    label: '代码片段',
+    description: '触发词扩展 · 片段管理',
+    icon: 'file-code',
+    group: 'creation',
+    category: 'tool',
+    shortcut: '1'
+  },
   {
     id: 'screenRecorder',
     routeName: 'screenRecorderRecord',
@@ -127,14 +139,7 @@ export interface PendingModule {
   shortcut?: string
 }
 
-export const PENDING_MODULES: PendingModule[] = [
-  {
-    id: 'snippets',
-    routeName: 'snippets',
-    path: '/snippets',
-    label: '代码片段',
-    description: '1.0 暂不重做，下一迭代立即升级',
-    icon: 'file-code',
-    badge: 'v0.1→v1.1'
-  }
-]
+// 2026-09-30 重塑批 4：代码片段功能已完整（FTS5 搜索 + 触发词扩展 + 迁移 032 明文投影），
+// 摘掉 PENDING 牌晋升正式模块（P-产品-06）；数组保留空集，消费方（Sidebar/BuiltinCommandProvider）
+// 无需改动。若未来有新的半成品模块，往这里加回条目。
+export const PENDING_MODULES: PendingModule[] = []

@@ -1,17 +1,17 @@
-import type { UpdateEvent, UpdateStatus } from '../renderer/src/types/update'
-import type { ArchiveInfo } from '../main/db/legacyArchive'
-import type { FirstPartyPage } from '../shared/commands'
-import type { McpToolArg } from '../shared/mcp'
-import type { McpToolCommand } from '../shared/mcp'
-import type { McpCallResult } from '../main/services/mcp/client'
-import type { PopToRootMode } from '../shared/popToRoot'
-import type { WindowInfo as ScreenshotWindowInfo } from '../main/services/windowSources'
-import type { Density } from '../shared/density'
-import type { CapsuleGlass } from '../shared/capsuleGlass'
-import type { BrowserTab } from '../main/services/BrowserTabsService'
-import type { AIConfig, AIChatMessage, AIChatSession, AIModelPreset } from '../shared/ai'
-import type { ThemeDefinition } from '../shared/themeSchema'
-import type {
+export type { UpdateEvent, UpdateStatus } from '../renderer/src/types/update'
+export type { ArchiveInfo } from '../main/db/legacyArchive'
+export type { FirstPartyPage } from '../shared/commands'
+export type { McpToolArg } from '../shared/mcp'
+export type { McpToolCommand } from '../shared/mcp'
+export type { McpCallResult } from '../main/services/mcp/client'
+export type { PopToRootMode } from '../shared/popToRoot'
+export type { WindowInfo as ScreenshotWindowInfo } from '../main/services/windowSources'
+export type { Density } from '../shared/density'
+export type { CapsuleGlass } from '../shared/capsuleGlass'
+export type { BrowserTab } from '../main/services/BrowserTabsService'
+export type { AIConfig, AIChatMessage, AIChatSession, AIModelPreset } from '../shared/ai'
+export type { ThemeDefinition } from '../shared/themeSchema'
+export type {
   DailyTrendPoint,
   HeatmapCell,
   PomodoroAddTaskOptions,
@@ -23,26 +23,18 @@ import type {
   ProjectTimerOverrides,
   TaskCompletionStats
 } from '../main/stores/PomodoroDataStore'
-import type { PomodoroProject } from '../main/db/repos/ProjectRepository'
-import type { PersistedTimerState } from '../main/db/repos/PomodoroTimerStateRepository'
-import type { SyncConfig } from '../main/launcher/sync'
-import type { Reminder, ReminderFilter } from '../main/db/repos/ReminderRepository'
-import type { HotkeyConfig, HotkeyConflicts, CommandHotkeySpec } from '../main/launcher/hotkeys'
-import type { FolderWithChildren } from '../main/db/repos/FolderRepository'
-import type { ExportOptions as ClipExportOptions } from '../main/services/ClipService'
-import type { SnippetImportResult } from '../main/services/SnippetTransferService'
-import type { NotificationType, NotificationOptions } from '../main/services/NotificationService'
-import type { ClipboardHistoryItem } from '../main/services/ClipboardHistoryService'
-import type {
-  notesRepository,
-  Note,
-  NoteFilter,
-  NoteFolder
-} from '../main/db/repos/NotesRepository'
-import type { focusShield } from '../main/modules/focusShield'
-import type { MainAction } from '../main/launcher/actionHandlers'
-import type { SystemInfo as FrondSystemInfo } from '../main/ipc/system'
-import type { SystemInfo as HardwareInfoType } from '../main/services/SystemInfoService'
+export type { PomodoroProject } from '../main/db/repos/ProjectRepository'
+export type { PersistedTimerState } from '../main/db/repos/PomodoroTimerStateRepository'
+export type { Reminder, ReminderFilter } from '../main/db/repos/ReminderRepository'
+export type { FolderWithChildren } from '../main/db/repos/FolderRepository'
+export type { ExportOptions as ClipExportOptions } from '../main/services/ClipService'
+export type { SnippetImportResult } from '../main/services/SnippetTransferService'
+export type { NotificationType, NotificationOptions } from '../main/services/NotificationService'
+export type { ClipboardHistoryItem } from '../main/services/ClipboardHistoryService'
+export type { Note, NoteFilter, NoteFolder } from '../main/db/repos/NotesRepository'
+export type { MainAction } from '../main/launcher/actionHandlers'
+export type { SystemInfo as FrondSystemInfo } from '../main/ipc/system'
+export type { SystemInfo as HardwareInfoType } from '../main/services/SystemInfoService'
 
 // 渲染端经由 '@preload/index.d' 取用主进程类型（既有惯例），这里转发而不是再抄一份：
 // 手抄副本此前已经把 hotkey spec 的 kind 抄成了 string（见 views/launcher/index.vue）
@@ -212,7 +204,6 @@ export interface ShotOkRes {
   success: boolean
   error?: string
 }
-
 
 export interface EditorSettings {
   fontSize: number

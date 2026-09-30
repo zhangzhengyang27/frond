@@ -620,13 +620,13 @@ const installingId = ref<string | null>(null)
 const remoteIndexUrl = ref('')
 const remoteIndexMsg = ref('')
 const pullingIndex = ref(false)
-const indexInfo = ref<{ remoteUrl: string; remoteCount: number; remoteFetchedAt: number | null } | null>(
-  null
-)
+const indexInfo = ref<{
+  remoteUrl: string
+  remoteCount: number
+  remoteFetchedAt: number | null
+} | null>(null)
 const indexStatusText = computed(() =>
-  indexInfo.value?.remoteUrl
-    ? `索引：远程 ${indexInfo.value.remoteUrl}`
-    : '索引：打包 plugins.json'
+  indexInfo.value?.remoteUrl ? `索引：远程 ${indexInfo.value.remoteUrl}` : '索引：打包 plugins.json'
 )
 
 async function loadIndexInfo(): Promise<void> {

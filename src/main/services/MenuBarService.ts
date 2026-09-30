@@ -45,8 +45,12 @@ interface MenuBarCache {
 
 let cache: MenuBarCache | null = null
 /** in-flight 去重：深遍历数秒，关页再开页（每次 mount 都 refresh）会并发第二个 */
-let listing: Promise<{ ok: boolean; app: string | null; items: MenuBarItem[]; reason?: string }> | null =
-  null
+let listing: Promise<{
+  ok: boolean
+  app: string | null
+  items: MenuBarItem[]
+  reason?: string
+}> | null = null
 
 async function listMenuBarOnce(): Promise<{
   ok: boolean
@@ -60,7 +64,11 @@ async function listMenuBarOnce(): Promise<{
   const pid = getCachedFrontmostPid()
   const out = await runOsa(buildListScript(MAX_DEPTH, pid ?? undefined), LIST_TIMEOUT_MS)
   const items = parseMenuBarListing(out)
-  const app = out.split('\n').find((l) => l.trim())?.split('\t')[0] ?? null
+  const app =
+    out
+      .split('\n')
+      .find((l) => l.trim())
+      ?.split('\t')[0] ?? null
   cache = { at: Date.now(), app, pid, items }
   return { ok: true, app, items }
 }

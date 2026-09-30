@@ -32,10 +32,7 @@ function isSelfName(name: string): boolean {
     'electron',
     'electron.exe',
     app.getName().toLowerCase(),
-    exe
-      .split(/[/\\]/)
-      .pop()!
-      .toLowerCase()
+    exe.split(/[/\\]/).pop()!.toLowerCase()
   ])
   return selfNames.has(name.toLowerCase())
 }

@@ -137,7 +137,15 @@ describe('listModels（真起本地服务）', () => {
       setAIConfig({ enabled: true, baseUrl: 'http://169.254.169.254/v1', model: 'x' })
     ).rejects.toThrow(/受限|元数据/)
     // 存量库里可能已经有这样的地址（守卫是后加的）：发请求前还要再过一遍
-    prefRepository.set('ai.config', JSON.stringify({ enabled: true, baseUrl: 'http://169.254.169.254/v1', model: 'x', apiKey: 'k' }))
+    prefRepository.set(
+      'ai.config',
+      JSON.stringify({
+        enabled: true,
+        baseUrl: 'http://169.254.169.254/v1',
+        model: 'x',
+        apiKey: 'k'
+      })
+    )
     const res = await listModels()
     expect(res.ok).toBe(false)
     expect(res.error).toMatch(/受限|元数据/)

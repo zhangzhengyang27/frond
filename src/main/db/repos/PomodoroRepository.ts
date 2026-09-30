@@ -316,8 +316,7 @@ export class PomodoroRepository {
   getRecordDetail(id: string): { record: PomodoroRecord; task: PomodoroTask | null } | null {
     if (!id) return null
     const row = this.db.prepare(`SELECT * FROM pom_pomodoros WHERE id = ?`).get(id) as
-      | RecordRow
-      | undefined
+      RecordRow | undefined
     if (!row) return null
 
     let task: PomodoroTask | null = null
@@ -936,4 +935,3 @@ function clampPriority(value: number): number {
 }
 
 export const pomodoroRepository = new PomodoroRepository()
-

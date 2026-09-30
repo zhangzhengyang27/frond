@@ -9,15 +9,7 @@
 export interface MeetingLink {
   url: string
   provider:
-    | 'zoom'
-    | 'teams'
-    | 'meet'
-    | 'webex'
-    | 'facetime'
-    | 'whereby'
-    | 'jitsi'
-    | 'skype'
-    | 'generic'
+    'zoom' | 'teams' | 'meet' | 'webex' | 'facetime' | 'whereby' | 'jitsi' | 'skype' | 'generic'
 }
 
 /** 服务商匹配规则（按优先级；正则只做域名特征识别，不做 URL 规范化） */

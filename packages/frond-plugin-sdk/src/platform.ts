@@ -232,9 +232,7 @@ export async function listScheduledCommands(): Promise<PluginSchedule[]> {
 }
 
 /** 撤一条（只能撤本插件登记的；不是自己的会带回 error） */
-export async function cancelScheduledCommand(
-  id: string
-): Promise<{ ok: boolean; error?: string }> {
+export async function cancelScheduledCommand(id: string): Promise<{ ok: boolean; error?: string }> {
   const api = host()
   if (!api?.schedule?.remove) return { ok: false, error: '宿主不支持定时任务' }
   return (await api.schedule.remove(id)) ?? { ok: false, error: '宿主没回应' }

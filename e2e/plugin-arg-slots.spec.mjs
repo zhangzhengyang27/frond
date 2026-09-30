@@ -23,7 +23,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -45,7 +44,6 @@ const getMainWindow = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 20000
   while (Date.now() < deadline) {
@@ -62,7 +60,7 @@ const getCapsuleWindow = async () => {
 }
 
 /** 槽态下当前聚焦格子的参数名（不在槽态就 null） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const focusedSlot = (capsule) =>
   capsule.evaluate(() => {
     const el = document.activeElement
@@ -74,14 +72,13 @@ const focusedSlot = (capsule) =>
  * 槽态应当只占一栏的高度（结果列表整个藏掉）；量不到这一条，
  * 「槽态还是按列表高度撑开的空窗」就只能靠肉眼看。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const capsuleHeight = () =>
   app.evaluate(({ BrowserWindow }) => {
     const win = BrowserWindow.getAllWindows().find((w) => w.getTitle().includes('Launcher'))
     return win ? win.getBounds().height : -1
   })
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const slotState = (capsule) =>
   capsule.evaluate(() => ({
     chip: document.querySelector('[data-arg-chip]')?.textContent?.trim() ?? null,
@@ -104,7 +101,7 @@ const slotState = (capsule) =>
  * 盲按就作用在别人那行上（表现正是单跑绿、套跑红，红的还是同一条 chip 断言）。
  * 一步一按、每按读当前高亮行的标题——与 capsule-actions 量应用行同一套写法。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const selectedTitle = async (capsule) =>
   (
     (await capsule
@@ -113,7 +110,6 @@ const selectedTitle = async (capsule) =>
       .textContent()) ?? ''
   ).trim()
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const enterOnRow = async (capsule, input, text) => {
   await expect(
     async () => {
@@ -360,7 +356,7 @@ test('装卸插件不必收起再唤起：命令表靠推送刷新', async () =>
 })
 
 /** 从设置窗那侧读插件状态：胶囊窗的 DOM 只能看到降级后的列表，状态以主进程为准 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 async function getPluginStateViaMain() {
   const main = await getMainWindow()
   return main.evaluate(async () => await window.api.launcher.getPluginState())

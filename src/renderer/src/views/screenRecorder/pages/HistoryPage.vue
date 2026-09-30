@@ -120,11 +120,19 @@ import type { RecordingHistory } from '@preload/index.d'
  * 事件形状 = Layout.handlePlayVideo / handleClipVideo 的入参契约（recordingId 取 item.id）。
  */
 const emit = defineEmits<{
-  (e: 'play-video', video: { filePath: string; recordingId: string; filename: string; duration: number }): void
-  (e: 'clip-video', video: { filePath: string; recordingId: string; filename: string; duration: number }): void
+  (
+    e: 'play-video',
+    video: { filePath: string; recordingId: string; filename: string; duration: number }
+  ): void
+  (
+    e: 'clip-video',
+    video: { filePath: string; recordingId: string; filename: string; duration: number }
+  ): void
 }>()
 
-const toVideo = (item: RecordingHistory): {
+const toVideo = (
+  item: RecordingHistory
+): {
   filePath: string
   recordingId: string
   filename: string

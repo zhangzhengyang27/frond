@@ -79,7 +79,10 @@ describe('createDispatchMainAction', () => {
     const ok = await createDispatchMainAction(deps)({ type: 'openUrl', url: 'https://a.b/c' })
     expect(ok.ok).toBe(true)
     expect(deps.openExternal).toHaveBeenCalledWith('https://a.b/c')
-    const bad = await createDispatchMainAction(deps)({ type: 'openUrl', url: 'javascript:alert(1)' })
+    const bad = await createDispatchMainAction(deps)({
+      type: 'openUrl',
+      url: 'javascript:alert(1)'
+    })
     expect(bad.ok).toBe(false)
   })
 
@@ -99,9 +102,10 @@ describe('createDispatchMainAction', () => {
     const ok = await createDispatchMainAction(deps)({ type: 'snippetItem', id: 's1' })
     expect(ok.ok).toBe(true)
     expect(deps.writeClipboardText).toHaveBeenCalledWith('print(1)')
-    const empty = await createDispatchMainAction(
-      makeDeps({ getSnippetText: vi.fn(() => null) })
-    )({ type: 'snippetItem', id: 's2' })
+    const empty = await createDispatchMainAction(makeDeps({ getSnippetText: vi.fn(() => null) }))({
+      type: 'snippetItem',
+      id: 's2'
+    })
     expect(empty.ok).toBe(false)
   })
 

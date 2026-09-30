@@ -97,13 +97,17 @@ describe('protocol：分帧与解析', () => {
 
   it('结果只收 text，其它形态如实计数', () => {
     const r = parseToolCallResult({
-      result: { content: [{ type: 'text', text: 'a' }, { type: 'image' }, { type: 'text', text: 'b' }] }
+      result: {
+        content: [{ type: 'text', text: 'a' }, { type: 'image' }, { type: 'text', text: 'b' }]
+      }
     })
     expect(r).toMatchObject({ ok: true, text: 'a\nb', ignoredContent: 1 })
   })
 
   it('isError 与 JSON-RPC error 都是失败，并带上原因', () => {
-    expect(parseToolCallResult({ result: { isError: true, content: [{ type: 'text', text: '炸了' }] } })).toMatchObject({
+    expect(
+      parseToolCallResult({ result: { isError: true, content: [{ type: 'text', text: '炸了' }] } })
+    ).toMatchObject({
       ok: false,
       error: '炸了'
     })
@@ -187,11 +191,23 @@ describe('client：真 spawn node 跑夹具服务器', () => {
 })
 
 describe('sanitizeMcpServers：这是本机执行命令的清单，清洗从严', () => {
-  const ok = { id: 'demo', label: 'Demo', command: 'node', args: ['server.js'], env: { TOK: 'x' }, enabled: true }
+  const ok = {
+    id: 'demo',
+    label: 'Demo',
+    command: 'node',
+    args: ['server.js'],
+    env: { TOK: 'x' },
+    enabled: true
+  }
 
   it('合法配置通过并保留 env 值', () => {
     const { servers, rejected } = sanitizeMcpServers([ok])
-    expect(servers[0]).toMatchObject({ id: 'demo', command: 'node', args: ['server.js'], enabled: true })
+    expect(servers[0]).toMatchObject({
+      id: 'demo',
+      command: 'node',
+      args: ['server.js'],
+      enabled: true
+    })
     expect(servers[0].env.TOK).toBe('x')
     expect(rejected).toEqual([])
   })
@@ -242,6 +258,9 @@ describe('sanitizeMcpServers：这是本机执行命令的清单，清洗从严'
   })
 
   it('整体不是数组 → 一条不收并说明', () => {
-    expect(sanitizeMcpServers({})).toMatchObject({ servers: [], rejected: [{ index: -1, reason: '不是数组' }] })
+    expect(sanitizeMcpServers({})).toMatchObject({
+      servers: [],
+      rejected: [{ index: -1, reason: '不是数组' }]
+    })
   })
 })

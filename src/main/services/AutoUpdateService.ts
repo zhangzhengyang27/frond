@@ -26,11 +26,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { autoUpdater, ProgressInfo, UpdateInfo } from 'electron-updater'
 import { log } from './LogService'
-import {
-  GITHUB_LATEST_API,
-  parseLatestRelease,
-  type ManualUpdateInfo
-} from './autoUpdateManual'
+import { GITHUB_LATEST_API, parseLatestRelease, type ManualUpdateInfo } from './autoUpdateManual'
 import type { UpdateEvent, UpdateStatus } from '../../renderer/src/types/update'
 
 export type { UpdateEvent, UpdateStatus }

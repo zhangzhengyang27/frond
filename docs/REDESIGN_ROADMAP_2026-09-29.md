@@ -61,6 +61,21 @@ SettingsView(1799)→LauncherApp(2152)→preload/runtime 拆解（拆一个从�
 ### 批 8 · 总验收
 真机验证轮三合一（录屏端到端 + 菜单栏搜索 + 21 内置插件批量目检）；全界面四态目检；台账清零核对；`release:preflight --strict` 真打包一次。
 
+### D2 修注（2026-09-30，批 2a 实测后）
+
+strictTypeChecked 全量弹量实测（临时审计配置，recommendedTypeChecked + no-floating-promises
++ no-misused-promises）：**3,153 命中（error 级 2,815）**，其中 no-unsafe-* 家族 2,447 条
+——根因是 better-sqlite3 的 .get()/.all() 返回无类型行，11 个 Repository 全员重灾区。
+这不是清 lint 能解决的，是一次 Repository 类型化战役（B46）。
+
+据此 D2「一步到位」落地为**门禁一步到位、存量按棘轮清**：
+- 批 2a（本轮）：prettier 285 autofix 清零 + no-explicit-any（实测 0）+ no-unused-vars 71 清零，
+  三族升 error；explicit-function-return-type 配 allowExpressions 留 warn（20 个 composable
+  声明归 2c）；e2e 里 110 条历史 eslint-disable 指令随规则 re-scope 自动清理。
+- 批 2b：NUIA ≈349（产品代码 ~110）+ EOPT 87 开关进 tsconfig 并清账。
+- 批 2c：type-aware 层启用（recommendedTypeChecked + floating/misused-promises 为 error，
+  弹量实测 368−unsafe；unsafe-* 以 warn 过渡 + 数量棘轮测试），与 B46 战役同步推进。
+
 ## 风险与对策
 
 | 风险 | 对策 |

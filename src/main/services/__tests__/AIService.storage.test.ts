@@ -77,8 +77,7 @@ describe('AIService（SQLite 存储）', () => {
 
     // 落盘的是密文
     const raw = db.prepare('SELECT value FROM pref_preferences WHERE key = ?').get('ai.config') as
-      | { value: string }
-      | undefined
+      { value: string } | undefined
     const stored = JSON.parse(raw?.value ?? '{}') as { apiKey?: string }
     expect(stored.apiKey?.startsWith('enc:')).toBe(true)
     expect(stored.apiKey).not.toContain('sk-test-123')

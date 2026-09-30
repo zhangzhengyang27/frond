@@ -600,3 +600,16 @@
   校订未覆盖此条，本次审计未复核（scripts/recovery/ 存在，逐条可用性未验证）
 - 计划：重塑批 0 顺手核（低优先）
 - 【未修】【待核】
+
+## 2026-09-30 发现（重塑批 2a 弹量实测）
+
+### B46 Repository 类型化战役：no-unsafe-* 家族 2,447 条（type-aware 层启用的前置）
+- 实测：recommendedTypeChecked 全量跑（2026-09-30，审计配置），no-unsafe-call 1,057 /
+  no-unsafe-member-access 990 / no-unsafe-assignment 320 / no-unsafe-return 46 /
+  no-unsafe-argument 34，合计 2,447 条
+- 根因：better-sqlite3 的 .get()/.all() 返回 any/unknown 行，全仓 11 个 Repository
+  （SnippetRepository 144 / PomodoroRepository 141 / NotesRepository 87 / fileIndex/db 79…）
+  及消费链整体无类型
+- 修法：各 Repository 以泛型 `db.prepare<Row>().get/all` 或手写 Row 接口逐个类型化，
+  随批 2c 启用 no-unsafe-* 为 error；启用前以 warn + 数量棘轮测试钉住「只减不增」
+- 【未修】【重塑批 2c/7 推进】

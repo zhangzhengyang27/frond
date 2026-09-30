@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  mergeRunHistory,
-  sanitizeAction,
-  sanitizeTasks,
-  tick,
-  type TickDeps
-} from '../store'
+import { mergeRunHistory, sanitizeAction, sanitizeTasks, tick, type TickDeps } from '../store'
 import type { AutomationAction, AutomationTask } from '../../../../shared/automation'
 
 /**
@@ -66,7 +60,10 @@ const at1030 = at0930 + 3_600_000
 describe('sanitizeAction：动作面刻意收窄', () => {
   it('五类合法动作收得下', () => {
     expect(sanitizeAction({ type: 'ai', prompt: 'x' })).toEqual({ type: 'ai', prompt: 'x' })
-    expect(sanitizeAction({ type: 'copyText', text: 'hi' })).toEqual({ type: 'copyText', text: 'hi' })
+    expect(sanitizeAction({ type: 'copyText', text: 'hi' })).toEqual({
+      type: 'copyText',
+      text: 'hi'
+    })
     expect(sanitizeAction({ type: 'system', cmdId: 'sleep-display' })).toEqual({
       type: 'system',
       cmdId: 'sleep-display'
@@ -95,21 +92,23 @@ describe('sanitizeAction：动作面刻意收窄', () => {
 
 describe('sanitizeTasks', () => {
   it('合法任务通过并保留必填字段', () => {
-    const { tasks, rejected } = sanitizeTasks([{ id: 't1', cron: '30 9 * * *', action: { type: 'copyText', text: 'a' } }])
+    const { tasks, rejected } = sanitizeTasks([
+      { id: 't1', cron: '30 9 * * *', action: { type: 'copyText', text: 'a' } }
+    ])
     expect(rejected).toEqual([])
     expect(tasks[0]).toMatchObject({ id: 't1', label: 't1', enabled: true, lastFiredAt: null })
   })
 
   it('cron 写坏的任务被拒并带原因（不能存进去后靠引擎不跑）', () => {
-    const { tasks, rejected } = sanitizeTasks([{ id: 't1', cron: '99 9 * * *', action: { type: 'copyText', text: 'a' } }])
+    const { tasks, rejected } = sanitizeTasks([
+      { id: 't1', cron: '99 9 * * *', action: { type: 'copyText', text: 'a' } }
+    ])
     expect(tasks).toEqual([])
     expect(rejected[0].reason).toContain('cron 不合法')
   })
 
   it('外部回传的 lastFiredAt 一律丢弃：触发历史只能由引擎写', () => {
-    const { tasks } = sanitizeTasks([
-      { ...base, lastFiredAt: 1, lastOk: true, lastError: '伪造' }
-    ])
+    const { tasks } = sanitizeTasks([{ ...base, lastFiredAt: 1, lastOk: true, lastError: '伪造' }])
     expect(tasks[0].lastFiredAt).toBeNull()
     expect(tasks[0].lastOk).toBeNull()
     expect(tasks[0].lastError).toBeUndefined()
@@ -120,7 +119,9 @@ describe('sanitizeTasks', () => {
     const r = sanitizeTasks(many)
     expect(r.tasks).toHaveLength(20)
     expect(r.rejected[0].reason).toContain('上限')
-    expect(sanitizeTasks([base, { ...base, label: '第二条' }]).rejected[0].reason).toContain('id 重复')
+    expect(sanitizeTasks([base, { ...base, label: '第二条' }]).rejected[0].reason).toContain(
+      'id 重复'
+    )
   })
 })
 
@@ -151,7 +152,10 @@ describe('tick 的调度判据', () => {
   })
 
   it('执行失败要把原因留在任务上（界面要看得见为什么没成）', async () => {
-    const h = harness([{ ...base }], at0930, async () => ({ ok: false as const, error: 'AI 未配置' }))
+    const h = harness([{ ...base }], at0930, async () => ({
+      ok: false as const,
+      error: 'AI 未配置'
+    }))
     await tick(h.deps)
     expect(h.saved()[0]).toMatchObject({ lastOk: false, lastError: 'AI 未配置' })
   })

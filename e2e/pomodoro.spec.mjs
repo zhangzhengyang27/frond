@@ -54,7 +54,7 @@ let mainPage = null
  * 刻意**不**回退到 `app.firstWindow()`：那个 fallback 正是本文件原来的病根，
  * 找不到主窗口就应该响亮地失败。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const getMainWindow = async () => {
   if (mainPage && !mainPage.isClosed()) return mainPage
 
@@ -81,7 +81,7 @@ const getMainWindow = async () => {
  * 单列一个 helper 而不是每条重复两行，是为了让「调用失败」和「返回形状不对」
  * 在失败信息里一眼可辨：前者说明通道/主进程有问题，后者说明契约漂了。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 function expectIpcOk(res, label) {
   expect(res, `${label}：IPC 没有返回`).toBeDefined()
   expect(res?.error, `${label}：IPC 报错`).toBeUndefined()

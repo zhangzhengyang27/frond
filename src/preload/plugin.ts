@@ -21,14 +21,7 @@ function typedInvoke<K extends IpcKey>(
 }
 
 type HookType =
-  | 'Enter'
-  | 'Ready'
-  | 'Leave'
-  | 'Show'
-  | 'Hide'
-  | 'SubInputChange'
-  | 'Action'
-  | 'Callback'
+  'Enter' | 'Ready' | 'Leave' | 'Show' | 'Hide' | 'SubInputChange' | 'Action' | 'Callback'
 type HookCallback = (data: unknown) => void
 
 const hooks = new Map<HookType, Set<HookCallback>>()

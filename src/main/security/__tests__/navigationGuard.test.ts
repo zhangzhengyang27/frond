@@ -49,14 +49,18 @@ describe('isAllowedNavigation', () => {
 
   it('放行第一方产物目录下的 file:// 页面', () => {
     expect(isAllowedNavigation(RENDERER, CTX)).toBe(true)
-    expect(isAllowedNavigation(pathToFileURL(join(APP_ROOT, 'renderer', 'launcher.html')).href, CTX)).toBe(true)
+    expect(
+      isAllowedNavigation(pathToFileURL(join(APP_ROOT, 'renderer', 'launcher.html')).href, CTX)
+    ).toBe(true)
   })
 
   it('拦掉产物目录之外的 file://（读本地文件即逃逸）', () => {
     expect(isAllowedNavigation('file:///etc/passwd', CTX)).toBe(false)
     expect(isAllowedNavigation('file:///Users/someone/.ssh/id_rsa', CTX)).toBe(false)
     // 前缀相近但不在目录内的也要拦（/out-evil 不是 /out）
-    expect(isAllowedNavigation(pathToFileURL(join(APP_ROOT + '-evil', 'index.html')).href, CTX)).toBe(false)
+    expect(
+      isAllowedNavigation(pathToFileURL(join(APP_ROOT + '-evil', 'index.html')).href, CTX)
+    ).toBe(false)
   })
 
   it('拦掉远程 http(s)（含看起来像第一方的域名）', () => {

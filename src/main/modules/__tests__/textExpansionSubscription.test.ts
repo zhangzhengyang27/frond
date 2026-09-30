@@ -25,7 +25,12 @@ const { onKeydownMock, unsubscribeMock, getSnippetsMock } = vi.hoisted(() => ({
 }))
 
 vi.mock('electron', () => ({
-  app: { on: vi.fn(), getPath: () => '/tmp/frond-expansion-test', isReady: () => true, getVersion: () => '0.0.0-test' },
+  app: {
+    on: vi.fn(),
+    getPath: () => '/tmp/frond-expansion-test',
+    isReady: () => true,
+    getVersion: () => '0.0.0-test'
+  },
   clipboard: { writeText: vi.fn(), readText: vi.fn(() => '') },
   BrowserWindow: { getAllWindows: () => [] },
   shell: { openExternal: vi.fn() }

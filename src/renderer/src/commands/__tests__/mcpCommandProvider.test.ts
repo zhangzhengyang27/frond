@@ -40,9 +40,7 @@ describe('mcpToolToEntry', () => {
     expect(mcpToolToEntry(tool({ droppedArgs: 2 })).subtitle).toBe(
       '本地服务器 · 把参数原样回报 · 另有 2 个参数不支持在这里填'
     )
-    expect(mcpToolToEntry(tool({ description: '', droppedArgs: 0 })).subtitle).toBe(
-      '本地服务器'
-    )
+    expect(mcpToolToEntry(tool({ description: '', droppedArgs: 0 })).subtitle).toBe('本地服务器')
   })
 
   it('服务器名与 id 进别名（中文名工具打不出全名时，用「服务器名 + 尾巴」也能命中）', () => {

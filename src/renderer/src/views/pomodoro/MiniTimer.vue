@@ -242,4 +242,3 @@ body {
   color: var(--pomo-text-strong);
 }
 </style>
-

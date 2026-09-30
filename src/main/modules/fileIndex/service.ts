@@ -286,7 +286,8 @@ class FileIndexService {
   }
 
   /** 事件源按平台取后端（darwin=fsevents，win32=@parcel/watcher）；无后端时索引仍可用 */
-  private startWatcher(): void {    if (this.stopWatch) return
+  private startWatcher(): void {
+    if (this.stopWatch) return
     const scopes = this.getScopes()
     if (scopes.length === 0) return
     const backend = activeBackend()

@@ -38,7 +38,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 let app = null
 let mainPage = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   if (mainPage && !mainPage.isClosed()) return mainPage
 
@@ -59,7 +58,6 @@ const getMainWindow = async () => {
   throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 function expectIpcOk(res, label) {
   expect(res, `${label}：IPC 没有返回`).toBeDefined()
   expect(res?.error, `${label}：IPC 报错`).toBeUndefined()
@@ -67,7 +65,7 @@ function expectIpcOk(res, label) {
 }
 
 /** 建一行 status='recording'，返回 recordingId。每个用例自给自足。 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 async function createRecording(page, tag) {
   const started = await page.evaluate(async (name) => {
     try {

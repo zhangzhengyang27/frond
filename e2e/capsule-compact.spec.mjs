@@ -22,7 +22,6 @@ const FULL_HEIGHT = 520
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -36,10 +35,14 @@ const getMainWindow = async () => {
     }
     await new Promise((r) => setTimeout(r, 200))
   }
-  throw new Error(`找不到主窗：${app.windows().map((w) => w.url()).join(' | ')}`)
+  throw new Error(
+    `找不到主窗：${app
+      .windows()
+      .map((w) => w.url())
+      .join(' | ')}`
+  )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 20000
   while (Date.now() < deadline) {
@@ -55,7 +58,6 @@ const getCapsuleWindow = async () => {
   throw new Error('找不到胶囊窗')
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const capsuleHeight = () =>
   app.evaluate(({ BrowserWindow }) => {
     const win = BrowserWindow.getAllWindows().find((w) => w.getTitle().includes('Launcher'))
@@ -68,7 +70,7 @@ const capsuleHeight = () =>
  * 作用域属性的元素，父组件里写的 `.launcher.compact .launcher-search` 在子组件的
  * 内部元素上**不生效**，规则丢了界面只会多/少一条线，谁都不会报错。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const searchBarBorder = (capsule) =>
   capsule.evaluate(() => {
     const el = document.querySelector('.launcher-search')
@@ -123,7 +125,7 @@ test('2. 开起来后：空查询收成一条栏，打字回到完整高度', as
   await main.evaluate(() => {
     window.location.hash = '#/settings'
   })
-  // eslint-disable-next-line no-console -- 临时判异
+
   console.log('[ROUTE]', await main.evaluate(() => location.href))
   await main.getByRole('button', { name: '启动器' }).first().click()
   await main.getByText('紧凑模式').first().waitFor({ timeout: 15000 })
@@ -140,14 +142,14 @@ test('2. 开起来后：空查询收成一条栏，打字回到完整高度', as
   await input.fill('')
   await expect.poll(async () => (await capsuleHeight()) < 120, { timeout: 8000 }).toBe(true)
   // 一条栏底下没有列表，那条 hairline 会变成窗口的第二条描边 → 必须收掉
-  await expect
-    .poll(async () => searchBarBorder(capsule), { timeout: 5000 })
-    .toBe('0px')
+  await expect.poll(async () => searchBarBorder(capsule), { timeout: 5000 }).toBe('0px')
   expect(await capsule.locator('.launcher-result').count()).toBe(0)
 
   // 打字：高度回来且结果真的在
   await input.fill('se')
-  await expect.poll(async () => (await capsuleHeight()) === FULL_HEIGHT, { timeout: 8000 }).toBe(true)
+  await expect
+    .poll(async () => (await capsuleHeight()) === FULL_HEIGHT, { timeout: 8000 })
+    .toBe(true)
   expect(await capsule.locator('.launcher-result').count()).toBeGreaterThan(0)
 
   // 清空：又收回一条栏（双向都要跟，不然「收缩」变成「一次性的」）
@@ -163,6 +165,8 @@ test('2. 开起来后：空查询收成一条栏，打字回到完整高度', as
       timeout: 10000
     })
     .toBe(false)
-  await expect.poll(async () => (await capsuleHeight()) === FULL_HEIGHT, { timeout: 8000 }).toBe(true)
+  await expect
+    .poll(async () => (await capsuleHeight()) === FULL_HEIGHT, { timeout: 8000 })
+    .toBe(true)
   expect(await capsule.locator('.launcher-result').count()).toBeGreaterThan(0)
 })

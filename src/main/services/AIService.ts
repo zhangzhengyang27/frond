@@ -242,7 +242,9 @@ async function chatStream(
       if (!resp.body) throw new Error('AI API 返回空响应体')
 
       // node-fetch 的 body 是 Node Readable：转 Web 流保住下方 getReader() 消费形态
-      const reader = Readable.toWeb(resp.body as unknown as import('node:stream').Readable).getReader()
+      const reader = Readable.toWeb(
+        resp.body as unknown as import('node:stream').Readable
+      ).getReader()
       const decoder = new TextDecoder()
       let buffer = ''
       let fullText = ''

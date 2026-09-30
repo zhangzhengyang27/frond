@@ -78,16 +78,14 @@ describe('sanitizePluginArguments', () => {
   })
 
   it('数量封顶 3（对标 Raycast argument1-3）', () => {
-    const args = sanitizePluginArguments(
-      Array.from({ length: 8 }, (_, i) => ({ name: `arg${i}` }))
-    )
+    const args = sanitizePluginArguments(Array.from({ length: 8 }, (_, i) => ({ name: `arg${i}` })))
     expect(args).toHaveLength(PLUGIN_MAX_ARGUMENTS)
     expect(PLUGIN_MAX_ARGUMENTS).toBe(3)
   })
 
   it('placeholder 非 string 剔除、required 非 true 不保留', () => {
-    expect(
-      sanitizePluginArguments([{ name: 'q', placeholder: 123, required: 'yes' }])
-    ).toEqual([{ name: 'q', type: 'text' }])
+    expect(sanitizePluginArguments([{ name: 'q', placeholder: 123, required: 'yes' }])).toEqual([
+      { name: 'q', type: 'text' }
+    ])
   })
 })

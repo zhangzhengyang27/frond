@@ -206,7 +206,12 @@ describe('useMultiPomodoroTimer', () => {
       expect(api.getTimer('p1').timeLeft).toBe(25 * 60 - 6)
       // p2 只跑了 2s
       expect(api.getTimer('p2').timeLeft).toBe(25 * 60 - 2)
-      expect(api.activeProjects().map((t) => t.projectId).sort()).toEqual(['p1', 'p2'])
+      expect(
+        api
+          .activeProjects()
+          .map((t) => t.projectId)
+          .sort()
+      ).toEqual(['p1', 'p2'])
     })
 
     it('pause 的项目在 tick 里被跳过（暂停期间不计时）', async () => {

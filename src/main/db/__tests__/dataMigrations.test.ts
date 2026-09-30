@@ -49,8 +49,7 @@ interface TestEnv {
 
 function metaValue(db: Database.Database, key: string): string | undefined {
   const row = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(key) as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   return row?.value
 }
 

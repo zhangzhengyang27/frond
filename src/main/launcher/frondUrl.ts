@@ -13,9 +13,7 @@
 
 /** 单个 frond:// 路由（判别联合，kind 为路由段） */
 export type FrondRoute =
-  | { kind: 'launcher' }
-  | { kind: 'settings' }
-  | { kind: 'plugin'; pluginId: string }
+  { kind: 'launcher' } | { kind: 'settings' } | { kind: 'plugin'; pluginId: string }
 
 /** frond:// scheme 名（与 setAsDefaultProtocolClient 注册保持一致） */
 export const FROND_SCHEME = 'frond'
@@ -39,7 +37,9 @@ export function parseFrondUrl(raw: unknown): FrondRoute | null {
   const trimmed = raw.trim()
   if (!/^frond:/i.test(trimmed)) return null
   // 容错 frond:launcher（无 authority）形态 → 补 // 使 URL 解析器识别出 host
-  const normalized = /^frond:\/\//i.test(trimmed) ? trimmed : trimmed.replace(/^frond:/i, 'frond://')
+  const normalized = /^frond:\/\//i.test(trimmed)
+    ? trimmed
+    : trimmed.replace(/^frond:/i, 'frond://')
   let url: URL
   try {
     url = new URL(normalized)

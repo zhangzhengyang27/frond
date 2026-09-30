@@ -9,12 +9,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { FIRST_PARTY_PAGE_VALUES } from '@shared/commands'
-import {
-  LAUNCHER_PAGE_VIEWS,
-  pickPageView,
-  type LauncherViewCtx,
-  type McpCallView
-} from '../launcherPageViews'
+import { LAUNCHER_PAGE_VIEWS, pickPageView, type LauncherViewCtx } from '../launcherPageViews'
 
 const ctx = (over: Partial<LauncherViewCtx> = {}): LauncherViewCtx => ({
   query: () => '',
@@ -67,10 +62,7 @@ describe('pickPageView', () => {
   })
 
   it('栈顶优先：插件开着但栈上有人时，渲染栈顶那一页', () => {
-    const view = pickPageView(
-      'notes',
-      ctx({ pluginList: () => [{ title: 'x' }] as never })
-    )
+    const view = pickPageView('notes', ctx({ pluginList: () => [{ title: 'x' }] as never }))
     expect(view?.component).toBe(LAUNCHER_PAGE_VIEWS.notes.component)
   })
 
@@ -80,9 +72,9 @@ describe('pickPageView', () => {
       pluginList: () => [{ title: 'x' }] as never
     })
     expect(pickPageView(null, both)?.component).toBe(LAUNCHER_PAGE_VIEWS.pluginform.component)
-    expect(pickPageView(null, ctx({ pluginList: () => [{ title: 'x' }] as never }))?.component).toBe(
-      LAUNCHER_PAGE_VIEWS.pluginlist.component
-    )
+    expect(
+      pickPageView(null, ctx({ pluginList: () => [{ title: 'x' }] as never }))?.component
+    ).toBe(LAUNCHER_PAGE_VIEWS.pluginlist.component)
   })
 
   it('数据没就位的参数页不渲染（旧模板里 `&& qlArgTarget` 那几个条件）', () => {

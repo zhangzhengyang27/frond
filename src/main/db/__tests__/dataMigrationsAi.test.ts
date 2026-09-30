@@ -47,8 +47,7 @@ function freshDb(): Database.Database {
 
 function pref(db: Database.Database, key: string): string | undefined {
   const row = db.prepare('SELECT value FROM pref_preferences WHERE key = ?').get(key) as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   return row?.value
 }
 
@@ -89,7 +88,11 @@ describe('migrateAiFromLegacyStore', () => {
   })
 
   it('部分键存在时只导入存在的键', () => {
-    writeFileSync(join(userData, 'config.json'), JSON.stringify({ 'ai.config': { enabled: true } }), 'utf-8')
+    writeFileSync(
+      join(userData, 'config.json'),
+      JSON.stringify({ 'ai.config': { enabled: true } }),
+      'utf-8'
+    )
     migrateAiFromLegacyStore()
     expect(pref(db, 'ai.config')).toBe(JSON.stringify({ enabled: true }))
     expect(pref(db, 'ai.sessions')).toBeUndefined()

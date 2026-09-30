@@ -32,7 +32,7 @@ test.skip(!isMac, '文件索引 Windows 后端未实机验证')
 
 // 按 url 匹配主窗口（title 匹配会连胶囊窗 "Frond Launcher" 一起命中，见
 // getCapsuleWindow 走的是 launcher.html）。
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -48,7 +48,6 @@ const getMainWindow = async () => {
   throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -65,21 +64,20 @@ const getCapsuleWindow = async () => {
 }
 
 /** 主进程探针快照：{ [channel]: 调用次数 } */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const probeCounts = (capsule) => capsule.evaluate(() => window.api.e2e.probeCounts())
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const rowsOf = (capsule) => capsule.locator('.launcher-result')
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const titleAt = async (capsule, i) =>
   (await rowsOf(capsule).nth(i).locator('.launcher-result-title').innerText()).trim()
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const badgeAt = async (capsule, i) =>
   (
     (await rowsOf(capsule).nth(i).locator('.launcher-result-badge').first().textContent()) ?? ''
   ).trim()
 /** 唤起胶囊并把查询词设为 term（等结果首行真的变成 term 再返回） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const searchInCapsule = async (main, term) => {
   await main.evaluate(() => window.api.launcher.show())
   const capsule = await getCapsuleWindow()
@@ -219,7 +217,7 @@ test('键盘选中应用行 → 详情面板异步出现包元数据（函数型
   // Bundle ID，而单跑一次过、套跑就红——套跑时磁盘上的索引更热，行数变化更快）；
   // ② 分组渲染后 DOM 序 ≠ results 扁平序，nth(i) 本就不等价于第 i 个结果。
   // 所以每按一次都重新数行、只认 .launcher-result.selected（那才是回车会作用的行）。
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
   const selectedBadge = async () =>
     (
       (await capsule

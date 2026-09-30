@@ -403,4 +403,3 @@ export function useSourceSelection(): SourceSelectionComposable {
     handleThumbnailLoad
   }
 }
-

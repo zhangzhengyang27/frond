@@ -27,7 +27,6 @@ const isMac = process.platform === 'darwin'
 // 同上：Windows 后端未实机验证
 test.skip(!isMac, '文件索引 Windows 后端未实机验证')
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 async function launch() {
   const env = { ...process.env }
   env.FROND_USER_DATA_DIR = USER_DATA
@@ -60,13 +59,10 @@ async function launch() {
   return { app, main }
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const indexStatus = (main) => main.evaluate(async () => await window.api.fileIndex.status())
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const indexFiles = async (main) => (await indexStatus(main)).files
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 async function waitReady(main) {
   await expect
     .poll(() => main.evaluate(async () => (await window.api.fileIndex.status()).status), {

@@ -33,7 +33,6 @@ let mainPage = null
 /** 用例 1 建的片段，后续用例串在这上面 */
 let snippetId = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   if (mainPage && !mainPage.isClosed()) return mainPage
 
@@ -54,7 +53,6 @@ const getMainWindow = async () => {
   throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 function expectIpcOk(res, label) {
   expect(res, `${label}：IPC 没有返回`).toBeDefined()
   expect(res?.error, `${label}：IPC 报错`).toBeUndefined()
@@ -62,7 +60,7 @@ function expectIpcOk(res, label) {
 }
 
 /** 在渲染进程里读 snippet 统计（多条用例都要用，单独抽出来） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const readStats = (page) =>
   page.evaluate(async () => {
     try {
@@ -73,7 +71,7 @@ const readStats = (page) =>
   })
 
 /** 在渲染进程里读主列表 / 回收站列表 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const readList = (page, filters) =>
   page.evaluate(async (f) => {
     try {

@@ -301,7 +301,10 @@ describe('远程索引（P-3.1）', () => {
 
   it('同形态不互相污染：打包索引仍可用本地相对路径（回归护栏）', () => {
     const index = parseMarketIndex(
-      { version: 1, plugins: [{ id: 'com.local.p', name: 'L', download: './plugins/com.local.p' }] },
+      {
+        version: 1,
+        plugins: [{ id: 'com.local.p', name: 'L', download: './plugins/com.local.p' }]
+      },
       root
     )
     expect(index.plugins[0].download).toBe(join(root, 'plugins/com.local.p'))
@@ -347,12 +350,12 @@ describe('远程索引（P-3.1）', () => {
 
   it('远程闸门：明文 http 与本地/内网目标都拒（内网判定注入桩，不靠真联网）', async () => {
     const publicOnly = async (): Promise<boolean> => false
-    await expect(assertRemoteTargetAllowed('https://example.com/p.json', publicOnly)).resolves.toMatchObject(
-      { ok: true }
-    )
-    await expect(assertRemoteTargetAllowed('http://example.com/p.json', publicOnly)).resolves.toMatchObject(
-      { ok: false, error: expect.stringContaining('https') }
-    )
+    await expect(
+      assertRemoteTargetAllowed('https://example.com/p.json', publicOnly)
+    ).resolves.toMatchObject({ ok: true })
+    await expect(
+      assertRemoteTargetAllowed('http://example.com/p.json', publicOnly)
+    ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('https') })
     await expect(
       assertRemoteTargetAllowed('https://127.0.0.1:8787/p.json', async () => true)
     ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('内网') })
@@ -460,7 +463,10 @@ describe('远程索引（P-3.1）', () => {
 
   it('同形态不互相污染：打包索引仍可用本地相对路径（回归护栏）', () => {
     const index = parseMarketIndex(
-      { version: 1, plugins: [{ id: 'com.local.p', name: 'L', download: './plugins/com.local.p' }] },
+      {
+        version: 1,
+        plugins: [{ id: 'com.local.p', name: 'L', download: './plugins/com.local.p' }]
+      },
       root
     )
     expect(index.plugins[0].download).toBe(join(root, 'plugins/com.local.p'))
@@ -506,12 +512,12 @@ describe('远程索引（P-3.1）', () => {
 
   it('远程闸门：明文 http 与本地/内网目标都拒（内网判定注入桩，不靠真联网）', async () => {
     const publicOnly = async (): Promise<boolean> => false
-    await expect(assertRemoteTargetAllowed('https://example.com/p.json', publicOnly)).resolves.toMatchObject(
-      { ok: true }
-    )
-    await expect(assertRemoteTargetAllowed('http://example.com/p.json', publicOnly)).resolves.toMatchObject(
-      { ok: false, error: expect.stringContaining('https') }
-    )
+    await expect(
+      assertRemoteTargetAllowed('https://example.com/p.json', publicOnly)
+    ).resolves.toMatchObject({ ok: true })
+    await expect(
+      assertRemoteTargetAllowed('http://example.com/p.json', publicOnly)
+    ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('https') })
     await expect(
       assertRemoteTargetAllowed('https://127.0.0.1:8787/p.json', async () => true)
     ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('内网') })

@@ -22,7 +22,6 @@ const PLUGIN_ID = 'com.frond.example-react'
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -36,10 +35,14 @@ const getMainWindow = async () => {
     }
     await new Promise((r) => setTimeout(r, 200))
   }
-  throw new Error(`找不到主窗：${app.windows().map((w) => w.url()).join(' | ')}`)
+  throw new Error(
+    `找不到主窗：${app
+      .windows()
+      .map((w) => w.url())
+      .join(' | ')}`
+  )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 20000
   while (Date.now() < deadline) {
@@ -56,9 +59,11 @@ const getCapsuleWindow = async () => {
 }
 
 /** 本插件在宿主侧的任务（从主窗读，与设置页同一份数据源） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const myTasks = async (main) =>
-  (await main.evaluate(() => window.api.ai.automationList())).filter((t) => t.owner === `plugin:${PLUGIN_ID}`)
+  (await main.evaluate(() => window.api.ai.automationList())).filter(
+    (t) => t.owner === `plugin:${PLUGIN_ID}`
+  )
 
 test.beforeAll(async () => {
   const env = { ...process.env }
@@ -85,10 +90,7 @@ test.describe.configure({ timeout: 120000 })
 
 test('① 三道闸的结果在插件侧读得到：收下的回 id，被拒的回宿主原话', async () => {
   const main = await getMainWindow()
-  await main.evaluate(
-    (id) => window.api.launcher.openPlugin(id, 'schedule-selftest'),
-    PLUGIN_ID
-  )
+  await main.evaluate((id) => window.api.launcher.openPlugin(id, 'schedule-selftest'), PLUGIN_ID)
   const capsule = await getCapsuleWindow()
   // 探针渲染的是 Detail 正文（action 命令真做出视图 → 宿主升级为可见，P-2.2 那条）
   await expect(capsule.locator('text=排程探针').first()).toBeVisible({ timeout: 25000 })
@@ -127,9 +129,12 @@ test('② 到点真跑：活跃视图占着槽时跳过，关掉插件后才投�
 
   await main.evaluate(() => window.api.launcher.closePlugin())
   await expect
-    .poll(async () => (await capsule.evaluate(() => document.body.innerText)).includes('排程探针'), {
-      timeout: 15000
-    })
+    .poll(
+      async () => (await capsule.evaluate(() => document.body.innerText)).includes('排程探针'),
+      {
+        timeout: 15000
+      }
+    )
     .toBe(false)
 
   const ran = await main.evaluate((id) => window.api.ai.automationRunNow(id), task.id)

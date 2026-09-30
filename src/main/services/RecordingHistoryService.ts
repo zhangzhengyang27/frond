@@ -345,4 +345,3 @@ export class RecordingHistoryService {
     }
   }
 }
-

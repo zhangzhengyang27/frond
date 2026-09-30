@@ -30,8 +30,7 @@ export class PrefRepository {
   /** 取单个偏好（不存在返回 null） */
   get(key: string): string | null {
     const row = this.db.prepare('SELECT value FROM pref_preferences WHERE key = ?').get(key) as
-      | { value: string }
-      | undefined
+      { value: string } | undefined
     return row?.value ?? null
   }
 

@@ -34,16 +34,16 @@ export class MarkerRepository {
 
   listByRecording(recordingId: string): MarkerRow[] {
     return this.db
-      .prepare(`${SELECT_MARKER}
+      .prepare(
+        `${SELECT_MARKER}
          WHERE recording_id = ?
-         ORDER BY time_ms ASC`)
+         ORDER BY time_ms ASC`
+      )
       .all(recordingId) as MarkerRow[]
   }
 
   get(id: string): MarkerRow {
-    const row = this.db
-      .prepare(`${SELECT_MARKER} WHERE id = ?`)
-      .get(id) as MarkerRow | undefined
+    const row = this.db.prepare(`${SELECT_MARKER} WHERE id = ?`).get(id) as MarkerRow | undefined
     return mustGet(row, 'marker', id)
   }
 
@@ -60,7 +60,14 @@ export class MarkerRepository {
         `INSERT INTO rec_markers (id, recording_id, time_ms, label, color, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`
       )
-      .run(input.id, input.recording_id, input.time_ms, input.label ?? null, input.color ?? null, ts)
+      .run(
+        input.id,
+        input.recording_id,
+        input.time_ms,
+        input.label ?? null,
+        input.color ?? null,
+        ts
+      )
     return this.get(input.id)
   }
 

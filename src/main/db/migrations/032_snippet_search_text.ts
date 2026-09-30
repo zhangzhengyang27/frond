@@ -26,9 +26,11 @@ export const m032_snippet_search_text: Migration = {
         db.exec(`ALTER TABLE snip_snippets ADD COLUMN search_text TEXT NOT NULL DEFAULT ''`)
       }
 
-      const rows = db
-        .prepare(`SELECT id, title, description FROM snip_snippets`)
-        .all() as Array<{ id: string; title: string; description: string | null }>
+      const rows = db.prepare(`SELECT id, title, description FROM snip_snippets`).all() as Array<{
+        id: string
+        title: string
+        description: string | null
+      }>
       const contentsStmt = db.prepare(
         `SELECT label, value FROM snip_snippet_contents WHERE snippet_id = ? ORDER BY position ASC, id ASC`
       )

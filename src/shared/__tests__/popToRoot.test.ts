@@ -43,8 +43,16 @@ describe('shouldPopToRootOnShow', () => {
 
   it('afterInterval：间隔内保留状态，超过间隔清栈', () => {
     const hiddenAt = 1000
-    expect(shouldPopToRootOnShow('afterInterval', hiddenAt, hiddenAt + POP_TO_ROOT_REOPEN_INTERVAL_MS - 1)).toBe(false)
-    expect(shouldPopToRootOnShow('afterInterval', hiddenAt, hiddenAt + POP_TO_ROOT_REOPEN_INTERVAL_MS)).toBe(true)
+    expect(
+      shouldPopToRootOnShow(
+        'afterInterval',
+        hiddenAt,
+        hiddenAt + POP_TO_ROOT_REOPEN_INTERVAL_MS - 1
+      )
+    ).toBe(false)
+    expect(
+      shouldPopToRootOnShow('afterInterval', hiddenAt, hiddenAt + POP_TO_ROOT_REOPEN_INTERVAL_MS)
+    ).toBe(true)
   })
 
   it('间隔为 30 秒（对标 Raycast）', () => {

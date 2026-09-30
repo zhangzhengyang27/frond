@@ -638,4 +638,3 @@ onMounted(async () => {
   color: var(--launcher-text-faint);
 }
 </style>
-

@@ -25,7 +25,6 @@ const FIXTURE = join(ROOT, 'src/main/services/mcp/__tests__/fixtures/fixture-ser
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -41,7 +40,6 @@ const getMainWindow = async () => {
   return app.firstWindow()
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const openAiSettings = async (page) => {
   await expect(page.getByText('跳过引导').first()).toBeVisible({ timeout: 30000 })
   await page.getByText('跳过引导').first().click()

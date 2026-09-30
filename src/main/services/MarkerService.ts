@@ -71,11 +71,7 @@ export class MarkerService {
     return markerRepository.listByRecording(recordingId).map((row) => this.rowToMarker(row))
   }
 
-  updateMarker(
-    recordingId: string,
-    markerId: string,
-    updates: Partial<Marker>
-  ): Marker | null {
+  updateMarker(recordingId: string, markerId: string, updates: Partial<Marker>): Marker | null {
     if (!this.rowOfRecording(recordingId, markerId)) return null
     const fields: { timeMs?: number; label?: string | null; color?: string | null } = {}
     if (updates.timestamp !== undefined) fields.timeMs = Math.round(updates.timestamp * 1000)

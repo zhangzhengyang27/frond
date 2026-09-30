@@ -45,7 +45,6 @@ test.afterAll(async () => {
   rmSync(USER_DATA, { recursive: true, force: true })
 })
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -69,12 +68,11 @@ const getMainWindow = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const readVar = (page, name) =>
   page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name)
 
 /** 胶囊窗是另一个渲染进程，只能按 URL 找 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 15000
   while (Date.now() < deadline) {
@@ -134,7 +132,7 @@ test('主题文件被列出 → 点选后 CSS 变量生效 → 切回内置后�
  */
 test('2. 用户主题跟着进胶囊窗：底色与文本都是主题派生值，切回内置即复原', async () => {
   const page = await getMainWindow()
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
   const readCapsule = async () => {
     const capsule = await getCapsuleWindow()
     if (!capsule)
@@ -156,7 +154,7 @@ test('2. 用户主题跟着进胶囊窗：底色与文本都是主题派生值�
    * 切完立刻读会拿到插值中的中间色——那串值既不是主题也不是内置，
    * 拿它当基线会让「切回内置」这条断言永远对不上（实测抓到 rgba(224,223,224,0.957)）。
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
   const readSettled = async () => {
     let prev = null
     await expect

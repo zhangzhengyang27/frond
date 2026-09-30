@@ -99,7 +99,7 @@ describe('B3 命令 id 注册完整性', () => {
     { action: 'Show Desktop 显示桌面', frondId: 'system.showDesktop' },
     { action: 'Show Screen Saver 屏幕保护', frondId: 'system.screensaver' },
     { action: 'Dismiss Notifications 清除通知', frondId: 'system.dismissNotifications' },
-    { action: 'Eject All Disks 弹出所有磁盘', frondId: 'system.ejectAllDisks' },
+    { action: 'Eject All Disks 弹出所有磁盘', frondId: 'system.ejectAllDisks' }
     // 'Hide All Apps 隐藏所有窗口'（system.hideAll）已删：与 showDesktop 文案完全相同，
     // 是 mergeCommands.ts:34 记载的「两份文案并存」重复，2026-09-25 随 e2e 清红移除
   ]

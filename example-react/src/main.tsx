@@ -161,7 +161,10 @@ void (async () => {
           `# 排程探针\n\nadd=${okAdd.ok ? okAdd.id : okAdd.error}\n` +
           `dense=${tooDense.ok ? 'ACCEPTED' : tooDense.error}\n` +
           `view=${notAction.ok ? 'ACCEPTED' : notAction.error}\n` +
-          `count=${list.length}\nlabels=${list.map((t) => t.label).sort().join(',')}`
+          `count=${list.length}\nlabels=${list
+            .map((t) => t.label)
+            .sort()
+            .join(',')}`
         }
       />
     )

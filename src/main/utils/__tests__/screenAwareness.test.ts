@@ -42,9 +42,9 @@ describe('classifyContextError', () => {
   })
 
   it('取不到前台进程与别的失败要分开', () => {
-    expect(classifyContextError('System Events got an error: Can’t get application process 1.')).toBe(
-      'no-frontmost'
-    )
+    expect(
+      classifyContextError('System Events got an error: Can’t get application process 1.')
+    ).toBe('no-frontmost')
     expect(classifyContextError('spawn ENOENT')).toBe('failed')
     expect(classifyContextError('')).toBe('failed')
   })

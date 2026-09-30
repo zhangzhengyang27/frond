@@ -221,9 +221,10 @@ const SCALAR = new Set(['string', 'number', 'integer', 'boolean'])
  * 摆出一个提交上去必然被服务器拒的工具。
  * 顺序 = schema 里出现的顺序；必填的排前面（第一格预填时落在必填参数上）。
  */
-export function toolArgSpecs(
-  schema: Record<string, unknown> | undefined
-): { args: McpToolArg[]; dropped: number } {
+export function toolArgSpecs(schema: Record<string, unknown> | undefined): {
+  args: McpToolArg[]
+  dropped: number
+} {
   const props = schema?.properties
   if (!props || typeof props !== 'object' || Array.isArray(props)) return { args: [], dropped: 0 }
   const required = new Set(requiredArgNames(schema))

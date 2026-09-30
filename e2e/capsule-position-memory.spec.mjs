@@ -22,7 +22,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const findCapsule = async () => {
   const deadline = Date.now() + 20000
   while (Date.now() < deadline) {
@@ -43,7 +42,6 @@ const findCapsule = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -69,7 +67,7 @@ const getMainWindow = async () => {
  * 等显入动画跑完再量（P-6⑤ 的动画会让窗口有 ~90ms 在落点上方 12px 处）。
  * 不等就是拿中间帧当落点断言——那条红不代表记忆坏了。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const settleCapsule = async () => {
   await expect
     .poll(
@@ -84,7 +82,7 @@ const settleCapsule = async () => {
 }
 
 /** 胶囊窗自己的矩形 + 它所在显示器的工作区（用来确认「默认落点」确实是居中） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const capsuleGeometry = () =>
   app.evaluate(({ BrowserWindow, screen }) => {
     const win = BrowserWindow.getAllWindows().find((w) => w.getTitle().includes('Launcher'))
@@ -123,7 +121,6 @@ test('1. 搜索行是拖拽把手，但输入框不吃 drag', async () => {
     .toBe(true)
 
   const regions = await capsule.evaluate(() => {
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
     const cs = (sel) => {
       const el = document.querySelector(sel)
       // 计算样式里 app-region 的键名各引擎写法不同，两个都读

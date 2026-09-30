@@ -39,4 +39,3 @@ export function registerLogIpcHandlers(): void {
     return log.getMode()
   })
 }
-

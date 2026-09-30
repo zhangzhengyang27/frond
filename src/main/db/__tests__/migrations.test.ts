@@ -17,9 +17,11 @@ function runMigrations(db: Database.Database, ms: Migration[]): void {
 }
 
 function tableNames(db: Database.Database): string[] {
-  return (db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{
-    name: string
-  }>).map((r) => r.name)
+  return (
+    db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{
+      name: string
+    }>
+  ).map((r) => r.name)
 }
 
 describe('migrations', () => {
@@ -56,7 +58,9 @@ describe('migrations', () => {
     const v31 = migrations.find((m) => m.version === 31)
     const before31 = migrations.filter((m) => m.version < 31)
     runMigrations(db, before31)
-    db.exec(`CREATE TABLE leaf_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER)`)
+    db.exec(
+      `CREATE TABLE leaf_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER)`
+    )
     db.prepare(`INSERT INTO leaf_meta VALUES ('data_migration_v2', '1', 1)`).run()
     db.prepare(
       `INSERT INTO launcher_docs (doc_id, plugin_id, data, updated_at) VALUES ('com.leaf.jwt:help', 'com.leaf.jwt', '{}', 1)`
@@ -67,11 +71,13 @@ describe('migrations', () => {
 
     expect(tableNames(db)).not.toContain('leaf_meta')
     // 标志位还在：丢了它 dataMigrations 会把 electron-store 老数据再导入一遍
-    expect(db.prepare(`SELECT value FROM frond_meta WHERE key = 'data_migration_v2'`).get()).toEqual(
-      { value: '1' }
-    )
     expect(
-      db.prepare(`SELECT doc_id, plugin_id FROM launcher_docs WHERE plugin_id = 'com.frond.jwt'`).get()
+      db.prepare(`SELECT value FROM frond_meta WHERE key = 'data_migration_v2'`).get()
+    ).toEqual({ value: '1' })
+    expect(
+      db
+        .prepare(`SELECT doc_id, plugin_id FROM launcher_docs WHERE plugin_id = 'com.frond.jwt'`)
+        .get()
     ).toEqual({ doc_id: 'com.frond.jwt:help', plugin_id: 'com.frond.jwt' })
     // 再跑一次没有可改的行（幂等）
     expect(() => runMigrations(db, [v31!])).not.toThrow()

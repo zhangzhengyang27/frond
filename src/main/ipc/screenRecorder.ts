@@ -225,4 +225,3 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
     return result.filePath
   })
 }
-

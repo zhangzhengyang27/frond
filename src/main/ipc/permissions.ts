@@ -25,12 +25,7 @@ const execFileAsync = promisify(execFile)
 
 export type PermissionId = 'accessibility' | 'calendar' | 'screenRecording'
 export type PermissionState =
-  | 'granted'
-  | 'denied'
-  | 'not-determined'
-  | 'restricted'
-  | 'unknown'
-  | 'unsupported'
+  'granted' | 'denied' | 'not-determined' | 'restricted' | 'unknown' | 'unsupported'
 
 export interface PermissionStatus {
   id: PermissionId

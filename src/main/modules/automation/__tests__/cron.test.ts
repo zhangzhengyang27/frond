@@ -26,7 +26,8 @@ describe('parseCron / cronMatches', () => {
   })
 
   it('步进 */15 与 5-45/10', () => {
-    for (const m of [0, 15, 30, 45]) expect(matches('*/15 * * * *', at(2026, 1, 1, 0, m))).toBe(true)
+    for (const m of [0, 15, 30, 45])
+      expect(matches('*/15 * * * *', at(2026, 1, 1, 0, m))).toBe(true)
     expect(matches('*/15 * * * *', at(2026, 1, 1, 0, 7))).toBe(false)
     expect(matches('5-45/10 * * * *', at(2026, 1, 1, 0, 25))).toBe(true)
     expect(matches('5-45/10 * * * *', at(2026, 1, 1, 0, 26))).toBe(false)

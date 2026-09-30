@@ -97,4 +97,3 @@ describe('createPinningLookup', () => {
     expect(result.err?.message).toBe('ENOTFOUND')
   })
 })
-

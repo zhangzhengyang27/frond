@@ -1,4 +1,5 @@
 <template>
+  <!-- eslint-disable-next-line vue/no-v-html —— renderedContent 经 marked+sanitizeHtml 白名单清洗（:20-30），内容源可信 -->
   <div class="detail-panel" v-html="renderedContent" />
 </template>
 
@@ -155,4 +156,3 @@ function escapeHtml(text: string): string {
   font-weight: 600;
 }
 </style>
-

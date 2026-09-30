@@ -45,7 +45,13 @@ function freshDb(): Database.Database {
   return db
 }
 
-type Row = { id: string; recording_id: string; time_ms: number; label: string | null; color: string | null }
+type Row = {
+  id: string
+  recording_id: string
+  time_ms: number
+  label: string | null
+  color: string | null
+}
 
 function rows(db: Database.Database): Row[] {
   return db

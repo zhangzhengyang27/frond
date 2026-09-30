@@ -24,7 +24,7 @@ let app = null
 
 // 按 url 匹配主窗口（title 匹配会连胶囊窗 "Frond Launcher" 一起命中，见
 // getCapsuleWindow 走的是 launcher.html）。
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -40,7 +40,6 @@ const getMainWindow = async () => {
   throw new Error('30s 内没等到主窗口（out/renderer/index.html）')
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -192,7 +191,6 @@ test('P-2.2 Action 命令（mode:"action"）：不挂插件视图、跑完自关
   await input.fill('三模式')
   await expect(capsule.locator('.launcher-result').first()).toBeVisible()
 
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
   const notifyCount = async () =>
     (await capsule.evaluate(() => window.api.e2e.probeCounts()))['plugapi:notify'] ?? 0
   const before = await notifyCount()
@@ -297,7 +295,7 @@ test('P-2.2 Action 命令确实未挂视图，且不自关时被宿主兜底回�
 test('P-2.6 列表加载态与插件自定义空态文案（两个稳定态，不用计时器切换）', async () => {
   const main = await getMainWindow()
   await main.waitForLoadState('domcontentloaded')
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
   const ensureClosed = async () => {
     await expect
       .poll(
@@ -397,7 +395,6 @@ test('P-2.5 平台能力：一次读全偏好 + open(url) 的两道闸', async (
   await capsule.evaluate(() => window.api.launcher.closePlugin())
   await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'platform'))
 
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
   const detailText = async () => {
     const st = await main.evaluate(async () => await window.api.launcher.getPluginState())
     return (st.declaredList ?? []).map((i) => i.detail ?? '').join('\n')

@@ -63,18 +63,18 @@ describe('isLocalAiBaseUrl', () => {
 
 describe('aiConfigUsable', () => {
   it('本地端点免 key（BYOM 主场景），远程三件齐备才算齐', () => {
-    expect(aiConfigUsable({ baseUrl: 'http://127.0.0.1:11434/v1', model: 'llama3.2', apiKey: '' })).toBe(
-      true
-    )
-    expect(aiConfigUsable({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', apiKey: '' })).toBe(
-      false
-    )
+    expect(
+      aiConfigUsable({ baseUrl: 'http://127.0.0.1:11434/v1', model: 'llama3.2', apiKey: '' })
+    ).toBe(true)
+    expect(
+      aiConfigUsable({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', apiKey: '' })
+    ).toBe(false)
     expect(
       aiConfigUsable({ baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', apiKey: 'sk-x' })
     ).toBe(true)
-    expect(aiConfigUsable({ baseUrl: 'https://api.openai.com/v1', model: '', apiKey: 'sk-x' })).toBe(
-      false
-    )
+    expect(
+      aiConfigUsable({ baseUrl: 'https://api.openai.com/v1', model: '', apiKey: 'sk-x' })
+    ).toBe(false)
     expect(aiConfigUsable({})).toBe(false)
   })
 })
@@ -118,7 +118,8 @@ describe('AI_PROVIDERS 目录', () => {
 
   it('免 key 的项必须是本地端点：远程无凭据不是本产品要支持的形态', () => {
     for (const p of AI_PROVIDERS.filter((x) => x.baseUrl)) {
-      if (!p.keyRequired) expect(isLocalAiBaseUrl(p.baseUrl), `${p.id} 免 key 但端点不本地`).toBe(true)
+      if (!p.keyRequired)
+        expect(isLocalAiBaseUrl(p.baseUrl), `${p.id} 免 key 但端点不本地`).toBe(true)
     }
   })
 

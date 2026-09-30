@@ -298,7 +298,13 @@ describe('宿主配置自身的形参顺序（把 0.34 的调用原样喂进去�
     const instance = { type: 'list-item', props: { title: '旧' }, children: [] }
     const fiberLike = { tag: 5, stateNode: {} }
     // 把 fiber 放第 4 位 = 模拟错位后的实际后果
-    ;(hostConfig.commitUpdate as AnyFn)(instance, 'list-item', { title: '旧' }, fiberLike, undefined)
+    ;(hostConfig.commitUpdate as AnyFn)(
+      instance,
+      'list-item',
+      { title: '旧' },
+      fiberLike,
+      undefined
+    )
     expect(Object.keys(instance.props)).toContain('stateNode')
   })
 })

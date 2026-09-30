@@ -4,10 +4,7 @@
 import type { CommandDetail } from '@shared/commandRegistry'
 
 export type DetailInput =
-  | CommandDetail
-  | (() => Promise<CommandDetail | null> | CommandDetail | null)
-  | undefined
-  | null
+  CommandDetail | (() => Promise<CommandDetail | null> | CommandDetail | null) | undefined | null
 
 /** detail 字段三态：没详情 / 直给 / 要异步取 */
 export function detailKind(detail: DetailInput): 'none' | 'static' | 'async' {

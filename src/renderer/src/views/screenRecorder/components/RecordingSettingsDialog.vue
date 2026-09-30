@@ -665,7 +665,9 @@ const loadSettings = async (): Promise<void> => {
 }
 
 // 选择质量预设
-const selectQualityPreset = async (quality: 'low' | 'medium' | 'high' | 'custom'): Promise<void> => {
+const selectQualityPreset = async (
+  quality: 'low' | 'medium' | 'high' | 'custom'
+): Promise<void> => {
   localSettings.value.quality = quality
 
   if (quality !== 'custom') {

@@ -75,7 +75,12 @@ describe('autoUpdateManual · mac 未签名手动更新（MelodyAir 方案移植
     })
 
     it('一个 dmg 都没有返回 null（调用方退到 releases 页）', () => {
-      expect(pickMacDownloadUrl([{ name: 'latest-mac.yml', browser_download_url: 'https://x/y' }], 'arm64')).toBeNull()
+      expect(
+        pickMacDownloadUrl(
+          [{ name: 'latest-mac.yml', browser_download_url: 'https://x/y' }],
+          'arm64'
+        )
+      ).toBeNull()
       expect(pickMacDownloadUrl([], 'arm64')).toBeNull()
     })
   })
@@ -106,7 +111,10 @@ describe('autoUpdateManual · mac 未签名手动更新（MelodyAir 方案移植
     })
 
     it('没有可用 dmg 资产时 downloadUrl 退到 releases 页', () => {
-      const noDmg = { tag_name: 'v0.2.0', assets: [{ name: 'latest-mac.yml', browser_download_url: 'https://x/y' }] }
+      const noDmg = {
+        tag_name: 'v0.2.0',
+        assets: [{ name: 'latest-mac.yml', browser_download_url: 'https://x/y' }]
+      }
       expect(parseLatestRelease(noDmg, '0.1.0', 'arm64')?.downloadUrl).toBe(GITHUB_RELEASES_URL)
       expect(parseLatestRelease({ tag_name: 'v0.2.0' }, '0.1.0', 'arm64')?.downloadUrl).toBe(
         GITHUB_RELEASES_URL

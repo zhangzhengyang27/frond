@@ -47,8 +47,7 @@ function freshDb(): Database.Database {
 
 function prefClips(db: Database.Database): string | undefined {
   const row = db.prepare('SELECT value FROM pref_preferences WHERE key = ?').get('clips') as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   return row?.value
 }
 

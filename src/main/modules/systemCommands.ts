@@ -875,4 +875,3 @@ export function registerSystemCommandIpc(): void {
   // app ready 前调用 exec 会失败，这里仅注册通道（exec 在触发时才执行）
   void app
 }
-

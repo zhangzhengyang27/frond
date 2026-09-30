@@ -167,25 +167,22 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
     }
   })
 
-  typedHandle(
-    'screen-recorder:appendChunk',
-    async (_event, req) => {
-      const target = resolveGrantedRecordingPath(req.filePath)
-      const session = target ? activeWriteSessions.get(target) : undefined
-      if (!session) return { ok: false, error: 'no active write session' }
-      if (session.error) return { ok: false, error: session.error.message }
-      try {
-        const nodeBuffer = Buffer.from(req.chunk)
-        await new Promise<void>((resolve, reject) => {
-          session.ws.write(nodeBuffer, (err) => (err ? reject(err) : resolve()))
-        })
-        return { ok: true }
-      } catch (error) {
-        console.error('[screenRecorderSave] appendChunk failed:', error)
-        return { ok: false, error: (error as Error).message }
-      }
+  typedHandle('screen-recorder:appendChunk', async (_event, req) => {
+    const target = resolveGrantedRecordingPath(req.filePath)
+    const session = target ? activeWriteSessions.get(target) : undefined
+    if (!session) return { ok: false, error: 'no active write session' }
+    if (session.error) return { ok: false, error: session.error.message }
+    try {
+      const nodeBuffer = Buffer.from(req.chunk)
+      await new Promise<void>((resolve, reject) => {
+        session.ws.write(nodeBuffer, (err) => (err ? reject(err) : resolve()))
+      })
+      return { ok: true }
+    } catch (error) {
+      console.error('[screenRecorderSave] appendChunk failed:', error)
+      return { ok: false, error: (error as Error).message }
     }
-  )
+  })
 
   // 中止写盘会话：关闭流并删除半截文件，不写历史（写盘出错/启动失败时用）
   typedHandle('screen-recorder:abortWrite', async (_event, req) => {
@@ -203,23 +200,20 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
     return { ok: true }
   })
 
-  typedHandle(
-    'screen-recorder:endWrite',
-    async (_event, req) => {
-      const target = resolveGrantedRecordingPath(req.filePath)
-      const session = target ? activeWriteSessions.get(target) : undefined
-      if (!target || !session) return { success: false, error: 'no active write session' }
-      activeWriteSessions.delete(target)
-      try {
-        await endStream(session.ws)
-        if (session.error) throw session.error
-        return finalizeSavedFile(target, req.duration, req.recordingId)
-      } catch (error) {
-        console.error('[screenRecorderSave] endWrite failed:', error)
-        return { success: false, error: (error as Error).message }
-      }
+  typedHandle('screen-recorder:endWrite', async (_event, req) => {
+    const target = resolveGrantedRecordingPath(req.filePath)
+    const session = target ? activeWriteSessions.get(target) : undefined
+    if (!target || !session) return { success: false, error: 'no active write session' }
+    activeWriteSessions.delete(target)
+    try {
+      await endStream(session.ws)
+      if (session.error) throw session.error
+      return finalizeSavedFile(target, req.duration, req.recordingId)
+    } catch (error) {
+      console.error('[screenRecorderSave] endWrite failed:', error)
+      return { success: false, error: (error as Error).message }
     }
-  )
+  })
 
   // 保存录制文件（一次性写盘：旧链路兜底，渲染端优先走上面的分片写盘）
   typedHandle('screen-recorder:saveFile', async (_event, req) => {
@@ -237,4 +231,3 @@ export function registerScreenRecorderSaveIpcHandlers(): void {
     }
   })
 }
-

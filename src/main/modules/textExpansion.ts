@@ -451,4 +451,3 @@ export function openAccessibilitySettings(): void {
 }
 
 export const textExpansion = new TextExpansionService()
-

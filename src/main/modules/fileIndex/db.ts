@@ -177,8 +177,7 @@ export class FileIndexDb {
 
   getDirEpoch(path: string): number | null {
     const row = this.db.prepare('SELECT mtime_epoch FROM dirs WHERE path = ?').get(path) as
-      | { mtime_epoch: number }
-      | undefined
+      { mtime_epoch: number } | undefined
     return row ? row.mtime_epoch : null
   }
 
@@ -269,8 +268,7 @@ export class FileIndexDb {
 
   getMeta(key: string): string | null {
     const row = this.db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as
-      | { value: string }
-      | undefined
+      { value: string } | undefined
     return row ? row.value : null
   }
 

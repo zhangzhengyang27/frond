@@ -33,13 +33,21 @@ vi.mock('../pluginStore', () => ({
   listEnabledPlugins: () => [...plugins.values()].filter((p) => p.enabled)
 }))
 
-import { setPluginSearchItems, listPluginSearchItems, clearPluginSearchItems } from '../pluginSearchIndex'
+import {
+  setPluginSearchItems,
+  listPluginSearchItems,
+  clearPluginSearchItems
+} from '../pluginSearchIndex'
 import { getLauncherDocStore } from '../docStore'
 
 const docs = (getLauncherDocStore() as unknown as { __docs: Map<string, unknown> }).__docs
 
 const VALID_ITEMS = [
-  { title: 'Rust 入门笔记', subtitle: 'Trae KB', action: { type: 'open', payload: 'https://e.com/rust' } }
+  {
+    title: 'Rust 入门笔记',
+    subtitle: 'Trae KB',
+    action: { type: 'open', payload: 'https://e.com/rust' }
+  }
 ]
 
 beforeEach(() => {
@@ -76,9 +84,7 @@ describe('listPluginSearchItems', () => {
     plugins.set('com.b', { id: 'com.b', enabled: true, searchable: true })
     plugins.set('com.off', { id: 'com.off', enabled: false, searchable: true })
     setPluginSearchItems('com.a', VALID_ITEMS)
-    setPluginSearchItems('com.b', [
-      { title: 'B 条目', action: { type: 'copy', payload: 'p' } }
-    ])
+    setPluginSearchItems('com.b', [{ title: 'B 条目', action: { type: 'copy', payload: 'p' } }])
     setPluginSearchItems('com.off', [{ title: 'OFF', action: { type: 'copy', payload: 'p' } }])
 
     const merged = listPluginSearchItems()

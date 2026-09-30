@@ -19,7 +19,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -36,12 +35,12 @@ const getMainWindow = async () => {
 }
 
 /** 设置页里一张卡片 + 一个标题：both 都取 token 化的元素 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const readTokens = (page) =>
   page.evaluate(() => {
     const card = document.querySelector('main .bg-surface-1')
     const head = document.querySelector('main h1.text-fg-primary')
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
     const cs = (el) => (el ? getComputedStyle(el).backgroundColor : 'none')
     return {
       card: cs(card),
@@ -74,9 +73,7 @@ test('1. 深色主题下设置页跟着变暗（原本整页留白）', async ()
   await expect(page.locator('main h1').first()).toBeVisible({ timeout: 15000 })
 
   await page.evaluate(() => window.api.preferences.setTheme('light'))
-  await expect
-    .poll(async () => (await readTokens(page)).htmlDark, { timeout: 10000 })
-    .toBe(false)
+  await expect.poll(async () => (await readTokens(page)).htmlDark, { timeout: 10000 }).toBe(false)
   const light = await readTokens(page)
   expect(light.card).not.toBe('none')
   expect(light.head).not.toBe('none')

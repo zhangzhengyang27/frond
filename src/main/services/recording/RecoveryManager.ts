@@ -72,7 +72,12 @@ export class RecoveryManager {
         } catch {
           continue
         }
-        orphans.push({ recordingId: this.findRowByFileName(name)?.id ?? null, filePath, fileSize, mtimeMs })
+        orphans.push({
+          recordingId: this.findRowByFileName(name)?.id ?? null,
+          filePath,
+          fileSize,
+          mtimeMs
+        })
       }
     }
     return { orphans }

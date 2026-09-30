@@ -8,20 +8,27 @@ import { AI_ASK_BODY_MAX, buildEntryAsk } from '../aiAsk'
 describe('buildEntryAsk', () => {
   it('文件行带的是路径，不是标题', () => {
     expect(
-      buildEntryAsk({ title: 'notes.md', subtitle: '~/Documents', action: { type: 'file', path: '/Users/x/Documents/notes.md' } })
+      buildEntryAsk({
+        title: 'notes.md',
+        subtitle: '~/Documents',
+        action: { type: 'file', path: '/Users/x/Documents/notes.md' }
+      })
     ).toBe('解释这个本地文件是什么、通常用来做什么：/Users/x/Documents/notes.md')
   })
 
   it('应用行带标题与安装路径', () => {
-    const t = buildEntryAsk({ title: 'Safari', action: { type: 'app', path: '/Applications/Safari.app' } })
+    const t = buildEntryAsk({
+      title: 'Safari',
+      action: { type: 'app', path: '/Applications/Safari.app' }
+    })
     expect(t).toContain('Safari')
     expect(t).toContain('/Applications/Safari.app')
   })
 
   it('链接行用 url，正文行用 content', () => {
-    expect(buildEntryAsk({ title: 'GH', action: { type: 'openUrl', url: 'https://github.com' } })).toContain(
-      'https://github.com'
-    )
+    expect(
+      buildEntryAsk({ title: 'GH', action: { type: 'openUrl', url: 'https://github.com' } })
+    ).toContain('https://github.com')
     expect(
       buildEntryAsk({ title: '片段', action: { type: 'snippetItem', content: 'SELECT * FROM t' } })
     ).toContain('SELECT * FROM t')
@@ -35,14 +42,18 @@ describe('buildEntryAsk', () => {
   })
 
   it('内容缺省时退回 subtitle / title，不留空问题', () => {
-    expect(buildEntryAsk({ title: '剪贴', subtitle: '一段文本', action: { type: 'clipboardItem' } })).toContain(
-      '一段文本'
-    )
+    expect(
+      buildEntryAsk({ title: '剪贴', subtitle: '一段文本', action: { type: 'clipboardItem' } })
+    ).toContain('一段文本')
     expect(buildEntryAsk({ title: '剪贴', action: { type: 'clipboardItem' } })).toContain('剪贴')
   })
 
   it('模块与内联页问的是「这个功能能做什么」', () => {
-    const t = buildEntryAsk({ title: '录屏', subtitle: '/screen-recorder', action: { type: 'module' } })
+    const t = buildEntryAsk({
+      title: '录屏',
+      subtitle: '/screen-recorder',
+      action: { type: 'module' }
+    })
     expect(t).toContain('介绍 Frond 的这个功能')
     expect(t).toContain('（/screen-recorder）')
   })

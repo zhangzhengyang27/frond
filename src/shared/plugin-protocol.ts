@@ -290,7 +290,10 @@ function sanitizeViewAction(a: unknown): PluginViewAction | null {
   const rec = a as Record<string, unknown>
   if (typeof rec.type !== 'string' || !SEARCH_ACTION_TYPES.has(rec.type)) return null
   if (typeof rec.label !== 'string' || rec.label.trim() === '') return null
-  const action: PluginViewAction = { label: rec.label.trim().slice(0, 60), type: rec.type as PluginItemAction['type'] }
+  const action: PluginViewAction = {
+    label: rec.label.trim().slice(0, 60),
+    type: rec.type as PluginItemAction['type']
+  }
   if (typeof rec.payload === 'string') action.payload = rec.payload.slice(0, 4096)
   if (typeof rec.callbackId === 'string' && rec.callbackId.trim() !== '') {
     action.callbackId = rec.callbackId.trim().slice(0, 64)
@@ -362,11 +365,12 @@ export function parsePluginView(raw: unknown): PluginViewListItem[] {
   if (typeof raw !== 'object' || raw === null) return []
   const node = raw as Record<string, unknown>
   if (node.$t === 'detail') {
-    const detail = typeof node.markdown === 'string'
-      ? { text: node.markdown.slice(0, PLUGIN_MAX_VIEW_TEXT), format: 'markdown' as const }
-      : typeof node.text === 'string'
-        ? { text: node.text.slice(0, PLUGIN_MAX_VIEW_TEXT), format: 'text' as const }
-        : null
+    const detail =
+      typeof node.markdown === 'string'
+        ? { text: node.markdown.slice(0, PLUGIN_MAX_VIEW_TEXT), format: 'markdown' as const }
+        : typeof node.text === 'string'
+          ? { text: node.text.slice(0, PLUGIN_MAX_VIEW_TEXT), format: 'text' as const }
+          : null
     if (!detail) return []
     // Detail.actions（P-2.6）挂在占位条目上：SDK 侧已把 ActionPanel 序列化进 detail 节点
     //（见 frond-plugin-sdk reconciler serializeActions），宿主接住后复用既有的 runPluginAction
@@ -480,9 +484,8 @@ export function parsePluginForm(raw: unknown): ParsedPluginForm | null {
     if (seenKeys.has(key)) continue
     seenKeys.add(key)
 
-    const label = typeof rec.label === 'string' && rec.label.trim() !== ''
-      ? rec.label.trim().slice(0, 60)
-      : key
+    const label =
+      typeof rec.label === 'string' && rec.label.trim() !== '' ? rec.label.trim().slice(0, 60) : key
     let type: FormFieldType =
       typeof rec.type === 'string' && FORM_FIELD_TYPES.has(rec.type)
         ? (rec.type as FormFieldType)
@@ -636,12 +639,14 @@ export function sanitizePluginPreferences(raw: unknown): PluginPreference[] {
     if (type === 'select') {
       const options = Array.isArray(rec.options)
         ? rec.options.filter(
-            (o): o is string => typeof o === 'string' && o !== '' && o.length <= PREFERENCE_OPTION_MAX
+            (o): o is string =>
+              typeof o === 'string' && o !== '' && o.length <= PREFERENCE_OPTION_MAX
           )
         : []
       if (options.length === 0) continue // 无候选的 select 换了个控件，整条丢
       pref.options = options
-      if (typeof rec.default === 'string' && options.includes(rec.default)) pref.default = rec.default
+      if (typeof rec.default === 'string' && options.includes(rec.default))
+        pref.default = rec.default
     } else if (type === 'checkbox') {
       if (typeof rec.default === 'boolean') pref.default = rec.default
     } else if (typeof rec.default === 'string' && rec.default.length <= PREFERENCE_DEFAULT_MAX) {

@@ -223,16 +223,17 @@ class FocusShieldService {
       if (action === 'hide') {
         await execFileAsync(
           'osascript',
-          ['-e', `tell application "System Events" to set visible of application process "${esc}" to false`],
+          [
+            '-e',
+            `tell application "System Events" to set visible of application process "${esc}" to false`
+          ],
           { timeout: 3000 }
         )
         this.hiddenApps.add(processName)
       } else {
-        await execFileAsync(
-          'osascript',
-          ['-e', `tell application "${esc}" to quit`],
-          { timeout: 3000 }
-        )
+        await execFileAsync('osascript', ['-e', `tell application "${esc}" to quit`], {
+          timeout: 3000
+        })
       }
     } catch {
       // 退出/隐藏失败（应用名与 bundle 名不一致等）静默：遮罩层仍在提醒
@@ -246,7 +247,10 @@ class FocusShieldService {
       try {
         await execFileAsync(
           'osascript',
-          ['-e', `tell application "System Events" to set visible of application process "${escapeAppleScriptString(name)}" to true`],
+          [
+            '-e',
+            `tell application "System Events" to set visible of application process "${escapeAppleScriptString(name)}" to true`
+          ],
           { timeout: 3000 }
         )
       } catch {
@@ -415,7 +419,10 @@ class FocusShieldService {
       if (isMac()) {
         void execFileAsync(
           'osascript',
-          ['-e', `tell application "System Events" to set visible of application process "${escapeAppleScriptString(current)}" to true`],
+          [
+            '-e',
+            `tell application "System Events" to set visible of application process "${escapeAppleScriptString(current)}" to true`
+          ],
           { timeout: 3000 }
         ).catch(() => {})
       }

@@ -27,7 +27,6 @@ const SHOT_DIRS = join(ROOT, 'test-results', 'shot-dirs-screenshot-upstream')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const pages = () => {
   const out = []
   for (const w of app.windows()) {
@@ -40,7 +39,6 @@ const pages = () => {
   return out
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -59,7 +57,7 @@ const getMainWindow = async () => {
  * Playwright 会把这个 view 的 webContents 一并列进 `electronApp.windows()`，
  * 所以直接拿它当 Page 用（能拖选、能点按钮），不必从主进程侧绕。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const getOverlay = async () => {
   await expect
     .poll(() => pages().filter((u) => u.includes('react-screenshots')).length, {
@@ -75,7 +73,7 @@ const getOverlay = async () => {
  * 先等放大镜出现（`坐标:` 那条）再按下 —— 探针实测：capture 刚发出就 mousedown，
  * react-screenshots 还没接上图，选区起点会整个丢掉（只剩放大镜，没有尺寸）。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const selectRegion = async (overlay) => {
   // 放大镜（`坐标:` 来自我们传的 lang）出现 = 图已接上，可以按下了。
   // 每个轮询周期都要重发一次 mousemove：上一轮截图 endCapture 之后，页面要的是
@@ -101,7 +99,6 @@ const selectRegion = async (overlay) => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const shotIndexTotal = async () => {
   const main = await getMainWindow()
   // 必须 await 再取字段：`status().total` 是在 Promise 上取属性，只会得到 undefined

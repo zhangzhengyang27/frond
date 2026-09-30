@@ -147,8 +147,7 @@ export class ReminderRepository {
 
   get(id: string): Reminder | null {
     const row = this.db.prepare('SELECT * FROM reminders WHERE id = ?').get(id) as
-      | ReminderRow
-      | undefined
+      ReminderRow | undefined
     return row ? this.fromRow(row) : null
   }
 

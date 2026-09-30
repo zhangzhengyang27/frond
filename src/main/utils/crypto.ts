@@ -173,13 +173,7 @@ export function encryptFileWithPassword(plain: Buffer, password: string): Buffer
   const cipher = createCipheriv(ALGO, key, iv)
   const encrypted = Buffer.concat([cipher.update(plain), cipher.final()])
   const tag = cipher.getAuthTag()
-  return Buffer.concat([
-    Buffer.from(BAK_MAGIC, 'latin1'),
-    salt,
-    iv,
-    tag,
-    encrypted
-  ])
+  return Buffer.concat([Buffer.from(BAK_MAGIC, 'latin1'), salt, iv, tag, encrypted])
 }
 
 /** 逆操作；密码错误 / 篡改 / 非本产品文件都以人话抛错 */
@@ -196,7 +190,10 @@ export function decryptFileWithPassword(blob: Buffer, password: string): Buffer 
   }
   const salt = blob.subarray(magicLen, magicLen + BAK_SALT_LEN)
   const iv = blob.subarray(magicLen + BAK_SALT_LEN, magicLen + BAK_SALT_LEN + IV_LEN)
-  const tag = blob.subarray(magicLen + BAK_SALT_LEN + IV_LEN, magicLen + BAK_SALT_LEN + IV_LEN + TAG_LEN)
+  const tag = blob.subarray(
+    magicLen + BAK_SALT_LEN + IV_LEN,
+    magicLen + BAK_SALT_LEN + IV_LEN + TAG_LEN
+  )
   const encrypted = blob.subarray(magicLen + BAK_SALT_LEN + IV_LEN + TAG_LEN)
   const key = scryptSync(password, salt, KEY_LEN, { N: SCRYPT_N, r: 8, p: 1 })
   try {

@@ -169,17 +169,29 @@ describe('工具清单缓存 → 命令表', () => {
     prefRepository.set(
       'mcp.toolCache',
       JSON.stringify({
-        on: { label: '开着', cachedAt: 1, tools: [{ name: 't1', description: '', args: [], droppedArgs: 0 }] },
-        off: { label: '关了', cachedAt: 1, tools: [{ name: 't2', description: '', args: [], droppedArgs: 0 }] }
+        on: {
+          label: '开着',
+          cachedAt: 1,
+          tools: [{ name: 't1', description: '', args: [], droppedArgs: 0 }]
+        },
+        off: {
+          label: '关了',
+          cachedAt: 1,
+          tools: [{ name: 't2', description: '', args: [], droppedArgs: 0 }]
+        }
       })
     )
     expect(mcpToolCommands().map((r) => r.serverId)).toEqual(['on'])
   })
 
   it('配置里删掉的服务器，缓存跟着删（否则命令表会留一条再也跑不动的行）', async () => {
-    writeMcpServers([{ id: 'fx', label: '夹具', command: 'node', args: [], env: {}, enabled: true }])
+    writeMcpServers([
+      { id: 'fx', label: '夹具', command: 'node', args: [], env: {}, enabled: true }
+    ])
     const store = await import('../store')
-    store.cacheTools({ id: 'fx', label: '夹具' }, [{ name: 'keep', description: '', inputSchema: {} }])
+    store.cacheTools({ id: 'fx', label: '夹具' }, [
+      { name: 'keep', description: '', inputSchema: {} }
+    ])
     expect(mcpToolCommands().map((r) => r.tool)).toEqual(['keep'])
     saveMcpServers([{ id: 'other', command: 'node' }])
     markConfirmed()
@@ -195,7 +207,9 @@ describe('runMcpTool：回车那一刻的门槛', () => {
   })
 
   it('已停用的服务器不连接也不执行', async () => {
-    writeMcpServers([{ id: 'fx', label: '夹具', command: 'node', args: [], env: {}, enabled: false }])
+    writeMcpServers([
+      { id: 'fx', label: '夹具', command: 'node', args: [], env: {}, enabled: false }
+    ])
     const r = await runMcpTool('fx', 'echo', { msg: 'hi' })
     expect(r.ok).toBe(false)
     expect(r.error).toContain('停用')

@@ -20,7 +20,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -31,12 +30,11 @@ const getMainWindow = async () => {
         /* 窗口可能已关闭 */
       }
     }
-      await new Promise((r) => setTimeout(r, 200))
+    await new Promise((r) => setTimeout(r, 200))
   }
   return app.firstWindow()
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -114,7 +112,7 @@ test('2. combobox ↔ listbox ↔ option 三者是连上的，且 ↓ 会带着�
 })
 
 /** 让胶囊回到有结果的搜索态（冷实例要 poll，理由见上一条用例的注释） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const readyCapsule = async (main) => {
   await main.evaluate(() => window.api.launcher.show())
   const capsule = await getCapsuleWindow()

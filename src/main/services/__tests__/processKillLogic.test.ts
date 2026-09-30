@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { parsePsOutput, deriveDisplayName, isProtected, type ProcessInfo } from '../processKillLogic'
+import {
+  parsePsOutput,
+  deriveDisplayName,
+  isProtected,
+  type ProcessInfo
+} from '../processKillLogic'
 
 describe('processKillLogic · Kill Process（Raycast parity）', () => {
   describe('parsePsOutput（ps -axo pid=,pcpu=,pmem=,comm= 输出 → 列表）', () => {
@@ -34,9 +39,9 @@ describe('processKillLogic · Kill Process（Raycast parity）', () => {
       expect(
         deriveDisplayName('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
       ).toBe('Google Chrome')
-      expect(deriveDisplayName('/System/Applications/Calculator.app/Contents/MacOS/Calculator')).toBe(
-        'Calculator'
-      )
+      expect(
+        deriveDisplayName('/System/Applications/Calculator.app/Contents/MacOS/Calculator')
+      ).toBe('Calculator')
     })
 
     it('非 bundle 取 basename', () => {
@@ -57,8 +62,20 @@ describe('processKillLogic · Kill Process（Raycast parity）', () => {
     it('pid ≤ 1 与自身进程树拒绝', () => {
       expect(isProtected(row(1, 'launchd'), 500, '/Applications/Frond.app')).toBe(true)
       expect(isProtected(row(0, 'kernel'), 500, '/Applications/Frond.app')).toBe(true)
-      expect(isProtected(row(500, 'Frond', '/Applications/Frond.app/Contents/MacOS/Frond'), 500, '/Applications/Frond.app')).toBe(true)
-      expect(isProtected(row(501, 'Frond Helper', '/Applications/Frond.app/Contents/MacOS/Frond Helper'), 500, '/Applications/Frond.app')).toBe(true)
+      expect(
+        isProtected(
+          row(500, 'Frond', '/Applications/Frond.app/Contents/MacOS/Frond'),
+          500,
+          '/Applications/Frond.app'
+        )
+      ).toBe(true)
+      expect(
+        isProtected(
+          row(501, 'Frond Helper', '/Applications/Frond.app/Contents/MacOS/Frond Helper'),
+          500,
+          '/Applications/Frond.app'
+        )
+      ).toBe(true)
     })
 
     it('核心系统进程拒绝（杀掉会话就没了）', () => {

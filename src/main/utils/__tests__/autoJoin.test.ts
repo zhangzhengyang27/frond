@@ -30,7 +30,9 @@ describe('autoJoinDue', () => {
   })
 
   it('同标题不同场次不去重冲突', () => {
-    const joined = new Set([autoJoinKey({ title: '周会', startMs: START + 3600_000, meetingUrl: 'x' })])
+    const joined = new Set([
+      autoJoinKey({ title: '周会', startMs: START + 3600_000, meetingUrl: 'x' })
+    ])
     expect(autoJoinDue(event, START + 1000, joined)).toBe(true)
   })
 })

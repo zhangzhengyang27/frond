@@ -43,8 +43,16 @@ describe('stableServersKey / serversHash（配置指纹）', () => {
 
 describe('diffServers（当前 vs 上次确认）', () => {
   it('新增 / 移除 / 变更各归各位', () => {
-    const confirmed = [server({ id: 'keep' }), server({ id: 'chg', command: 'old-cmd' }), server({ id: 'gone' })]
-    const current = [server({ id: 'keep' }), server({ id: 'chg', command: 'new-cmd' }), server({ id: 'new' })]
+    const confirmed = [
+      server({ id: 'keep' }),
+      server({ id: 'chg', command: 'old-cmd' }),
+      server({ id: 'gone' })
+    ]
+    const current = [
+      server({ id: 'keep' }),
+      server({ id: 'chg', command: 'new-cmd' }),
+      server({ id: 'new' })
+    ]
     const diff = diffServers(current, confirmed)
     expect(diff.added.map((s) => s.id)).toEqual(['new'])
     expect(diff.removed.map((s) => s.id)).toEqual(['gone'])

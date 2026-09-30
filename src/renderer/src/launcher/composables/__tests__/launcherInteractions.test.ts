@@ -189,7 +189,10 @@ describe('latestOnly（推送驱动的重拉：只认最新一趟）', () => {
 
   it('一趟都没有更新时照常提交（这条闸不能变成「什么都不提交」）', async () => {
     const commit = ref<number | null>(null)
-    const load = latestOnly<number>(async () => 7, (v) => (commit.value = v))
+    const load = latestOnly<number>(
+      async () => 7,
+      (v) => (commit.value = v)
+    )
     await load()
     expect(commit.value).toBe(7)
   })

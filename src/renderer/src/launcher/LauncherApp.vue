@@ -253,13 +253,7 @@
 import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import LauncherSearchBar from './LauncherSearchBar.vue'
-import {
-  buildQuicklinkUrlMulti,
-  quicklinkFieldNames,
-  FIRST_PARTY_COMMANDS,
-  type CommandEntry,
-  type FirstPartyPage
-} from '@shared/commands'
+import { FIRST_PARTY_COMMANDS, type CommandEntry, type FirstPartyPage } from '@shared/commands'
 import { normalizeWithMap, type ScoredEntry } from '@shared/search'
 import {
   normalizePopToRootMode,
@@ -304,26 +298,6 @@ import { useCapsuleAppearance } from './composables/useCapsuleAppearance'
 import { isReservedCombo, prettyKey, resolveModifierAction } from './composables/modifierKeys'
 import { DetailToken, detailKind } from './composables/detailLogic'
 import type { CommandDetail } from '@shared/commandRegistry'
-import FocusPage from './pages/FocusPage.vue'
-import SnippetsPage from './pages/SnippetsPage.vue'
-import ClipboardPage from './pages/ClipboardPage.vue'
-import ShotsIndexPage from './pages/ShotsIndexPage.vue'
-import SchedulePage from './pages/SchedulePage.vue'
-import FocusStatsPage from './pages/FocusStatsPage.vue'
-import PluginListPage from './pages/PluginListPage.vue'
-import FilesPage from './pages/FilesPage.vue'
-import SettingsPage from './pages/SettingsPage.vue'
-import FormPage from './pages/FormPage.vue'
-import AIChatPage from './pages/AIChatPage.vue'
-import BrowserTabsPage from './pages/BrowserTabsPage.vue'
-import SystemInfoPage from './pages/SystemInfoPage.vue'
-import WindowSwitcherPage from './pages/WindowSwitcherPage.vue'
-import TrashPage from './pages/TrashPage.vue'
-import DictionaryPage from './pages/DictionaryPage.vue'
-import McpCallPage from './pages/McpCallPage.vue'
-import NotesPage from './pages/NotesPage.vue'
-import ReminderPage from './pages/ReminderPage.vue'
-import CalendarPage from './pages/CalendarPage.vue'
 import type { PluginListItem, PluginFormNode } from '@shared/plugin-protocol'
 import type { McpToolArg } from '@shared/mcp'
 
@@ -362,7 +336,8 @@ function toggleFavorite(key: string): void {
 const showShortcuts = ref(false)
 
 /** 内联页导航栈（M5.2） */
-const { pageStack, firstPartyPage, pageRef, pushPage, popPage, beginShowCycle, pushedSince } = useLauncherPages()
+const { pageStack, firstPartyPage, pageRef, pushPage, popPage, beginShowCycle, pushedSince } =
+  useLauncherPages()
 
 /** I7 面包屑：向 CapsulePage 提供当前页标题（底栏左侧返回按钮） */
 providePageTitle(

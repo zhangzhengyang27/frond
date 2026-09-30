@@ -23,7 +23,6 @@ export function initCommandRegistry(): void {
   commandRegistry.register(createFirstPartyCommandProvider())
   // P-7②：模块行与系统页行也进 Registry——此前它们是最后一个「调用方各自摊平」的静态清单
   commandRegistry.register(createBuiltinCommandProvider())
-
 }
 
 /**

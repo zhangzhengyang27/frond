@@ -190,7 +190,11 @@ function buildTemplate(
  * 构建并按需挂载 dock / tray 菜单（两者共用同一份 template，见文件头）。
  * dock 侧每次调用都重新 setMenu —— macOS 的 dock 菜单没有「惰性取单」能力。
  */
-export function buildAndSetAppMenu(kind: 'tray' | 'dock', target: MenuTarget, ctx: AppMenuContext): void {
+export function buildAndSetAppMenu(
+  kind: 'tray' | 'dock',
+  target: MenuTarget,
+  ctx: AppMenuContext
+): void {
   const menu = Menu.buildFromTemplate(buildTemplate(kind, ctx))
   if (kind === 'dock') {
     if (isMac() && app.dock) app.dock.setMenu(menu)
@@ -213,7 +217,11 @@ export function installApplicationMenu(ctx: AppMenuContext): void {
       label: app.name,
       submenu: [
         { label: '关于 Frond', click: () => sendToRenderer(ctx, 'app:openAbout') },
-        { label: '偏好设置…', accelerator: 'Cmd+,', click: () => sendToRenderer(ctx, 'app:openSettings') },
+        {
+          label: '偏好设置…',
+          accelerator: 'Cmd+,',
+          click: () => sendToRenderer(ctx, 'app:openSettings')
+        },
         { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
@@ -239,4 +247,3 @@ export function installApplicationMenu(ctx: AppMenuContext): void {
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
-

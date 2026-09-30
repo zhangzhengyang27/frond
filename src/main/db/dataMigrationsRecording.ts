@@ -80,9 +80,9 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
   )
 
   // 幂等：v3 已 done 直接返回
-  const v3Done = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
-    | { value: string }
-    | undefined
+  const v3Done = db
+    .prepare('SELECT value FROM frond_meta WHERE key = ?')
+    .get(DATA_MIGRATION_KEY) as { value: string } | undefined
   if (v3Done?.value === 'done') {
     log.info('dataMigration.v3', 'already done, skip')
     return result
@@ -181,4 +181,3 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
 
   return result
 }
-

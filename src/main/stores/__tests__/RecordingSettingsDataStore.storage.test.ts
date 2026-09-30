@@ -54,10 +54,7 @@ vi.mock('electron-store', () => {
 import Database from 'better-sqlite3'
 import { migrations } from '../../db/migrations'
 import { database } from '../../db/database'
-import {
-  RecordingSettingsDataStore,
-  QUALITY_PRESETS
-} from '../RecordingSettingsDataStore'
+import { RecordingSettingsDataStore, QUALITY_PRESETS } from '../RecordingSettingsDataStore'
 
 function injectDb(db: Database.Database): void {
   ;(database as unknown as { db: Database.Database | null }).db = db

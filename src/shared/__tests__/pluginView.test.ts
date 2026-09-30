@@ -35,8 +35,23 @@ describe('parsePluginView', () => {
     const items = parsePluginView({
       $t: 'list',
       sections: [
-        { title: '仓库', items: [{ title: 'a', actions: [{ label: 'x', type: 'callback', payload: 'p', callbackId: 'c1' }] }] },
-        { items: [{ title: 'b', actions: [{ label: 'y', type: 'callback', payload: 'q', callbackId: 'c2' }] }] }
+        {
+          title: '仓库',
+          items: [
+            {
+              title: 'a',
+              actions: [{ label: 'x', type: 'callback', payload: 'p', callbackId: 'c1' }]
+            }
+          ]
+        },
+        {
+          items: [
+            {
+              title: 'b',
+              actions: [{ label: 'y', type: 'callback', payload: 'q', callbackId: 'c2' }]
+            }
+          ]
+        }
       ]
     })
     expect(items.map((i) => i.title)).toEqual(['a', 'b'])

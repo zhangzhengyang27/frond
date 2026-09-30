@@ -1,6 +1,6 @@
 <template>
   <div class="emoji-picker">
-    <div class="ep-scroll" ref="scrollRef">
+    <div ref="scrollRef" class="ep-scroll">
       <template v-if="props.query?.trim()">
         <div
           v-for="(item, index) in flatRows"

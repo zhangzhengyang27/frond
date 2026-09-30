@@ -23,7 +23,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -44,7 +43,6 @@ const getMainWindow = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -66,7 +64,7 @@ const getCapsuleWindow = async () => {
  * Chromium 把 `color-mix(in srgb, #ffffff 92%, transparent)` 算成
  * `color(srgb 1 1 1 / 0.92)` 而不是 `rgba(...)`——只认 rgba 的写法会在产品没错时假失败。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const alphaOf = (cssColor) => {
   const slash = /\/\s*([\d.]+)\s*\)?$/.exec(cssColor)
   if (slash) return Number(slash[1])
@@ -79,7 +77,7 @@ const alphaOf = (cssColor) => {
 }
 
 /** 胶囊根元素（.launcher）的底色与模糊 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const readGlass = (capsule) =>
   capsule.evaluate(() => {
     const el = document.querySelector('.launcher')
@@ -89,7 +87,7 @@ const readGlass = (capsule) =>
   })
 
 /** 改档走设置页的按钮（不是直接调 API）：控件本身也要接上 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const pickGlass = async (main, value) => {
   await main.evaluate(() => {
     window.location.hash = '#/settings'

@@ -78,8 +78,7 @@ export class FolderRepository {
 
   getFolderById(id: string): Folder | undefined {
     const row = this.db.prepare(`SELECT * FROM folder_folders WHERE id = ?`).get(id) as
-      | FolderRow
-      | undefined
+      FolderRow | undefined
     return row ? this.fromRow(row) : undefined
   }
 

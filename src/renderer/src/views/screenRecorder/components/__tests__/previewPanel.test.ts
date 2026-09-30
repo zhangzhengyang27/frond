@@ -59,6 +59,8 @@ describe('PreviewPanel · defineExpose 的形状（父组件靠它挂 srcObject�
    */
   it('父组件用 ref 能拿到 previewVideoRef 与 pipCameraRef，且指向两个不同的 video', () => {
     let captured: { previewVideoRef?: unknown; pipCameraRef?: unknown } | null = null
+    /* 测试桩组件，单文件多组件为刻意形态 */
+    // eslint-disable-next-line vue/one-component-per-file
     const Parent = defineComponent({
       setup() {
         return () =>
@@ -81,10 +83,7 @@ describe('PreviewPanel · defineExpose 的形状（父组件靠它挂 srcObject�
       exposed.previewVideoRef,
       'expose 面上没有 previewVideoRef —— 父组件挂不了 srcObject（预览永远黑屏）'
     ).toBeTruthy()
-    expect(
-      exposed.pipCameraRef,
-      'expose 面上没有 pipCameraRef —— 画中画挂不了流'
-    ).toBeTruthy()
+    expect(exposed.pipCameraRef, 'expose 面上没有 pipCameraRef —— 画中画挂不了流').toBeTruthy()
     // 两个 ref 必须指向**不同**的元素，否则给画中画挂 srcObject 会覆盖主预览
     expect(exposed.previewVideoRef).not.toBe(exposed.pipCameraRef)
     expect(exposed.previewVideoRef!.tagName).toBe('VIDEO')
@@ -99,6 +98,8 @@ describe('PreviewPanel · defineExpose 的形状（父组件靠它挂 srcObject�
    */
   it('showPipCamera=false 挂载时 pipCameraRef 也非空（v-show 语义，B28）', () => {
     let captured: { pipCameraRef?: unknown } | null = null
+    /* 测试桩组件，单文件多组件为刻意形态 */
+    // eslint-disable-next-line vue/one-component-per-file
     const Parent = defineComponent({
       setup() {
         return () =>

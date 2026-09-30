@@ -22,7 +22,7 @@ const SCOPE_DIR = join(ROOT, 'test-results', 'file-index-scopes')
 
 const RUN = `e2e${Date.now().toString(36)}`
 const UNIQUE = `e2e-index-${RUN}`
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const DOC_PATH = () => join(SCOPE_DIR, `${UNIQUE}.md`)
 
 let app = null
@@ -39,7 +39,7 @@ test.beforeAll(async () => {
   writeFileSync(join(SCOPE_DIR, 'node_modules', 'x.js'), 'const x = 1')
 
   const env = { ...process.env }
-env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-file-index')
+  env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-file-index')
   // 剪枝断言需要纯索引口径：关掉「零结果回退系统检索」（见 fileSearch.ts 钩子）
   env.FROND_FILE_SEARCH_NO_FALLBACK = '1'
   delete env.ELECTRON_RUN_AS_NODE
@@ -53,7 +53,7 @@ test.afterAll(async () => {
 
 // 按 url 匹配主窗口：胶囊窗 title 是 "Frond Launcher"，同样命中 `/Frond/`，
 // 用 title 选窗口依赖创建顺序（当前恰好 index.html 先建，属潜在竞态）。
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -70,7 +70,7 @@ const getMainWindow = async () => {
 }
 
 /** 轮询索引就绪（初始全量完成后 status = ready） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 async function waitIndexReady(page) {
   await expect
     .poll(
@@ -84,7 +84,6 @@ async function waitIndexReady(page) {
     .toBe('ready')
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
 const query = (page, q, mode = 'name') =>
   page.evaluate(
     async ({ q, mode }) => {

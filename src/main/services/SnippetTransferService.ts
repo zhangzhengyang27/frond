@@ -113,8 +113,7 @@ export function buildExportPayload(list: TransferableSnippet[]): SnippetExportFi
 
 /** 解析结果：文件级失败给 error；条目级问题只丢该条（不进 error，避免一个坏条目否定整份文件） */
 export type ParseImportResult =
-  | { ok: true; snippets: ExportedSnippet[] }
-  | { ok: false; error: string }
+  { ok: true; snippets: ExportedSnippet[] } | { ok: false; error: string }
 
 export function parseImportPayload(raw: unknown): ParseImportResult {
   let parsed: unknown
@@ -156,7 +155,8 @@ function toExportedSnippet(item: unknown): ExportedSnippet | null {
       id: typeof cRec.id === 'string' ? cRec.id : '',
       label: typeof cRec.label === 'string' ? cRec.label : '',
       value: cRec.value,
-      language: typeof cRec.language === 'string' && cRec.language !== '' ? cRec.language : 'plaintext',
+      language:
+        typeof cRec.language === 'string' && cRec.language !== '' ? cRec.language : 'plaintext',
       contentType: cRec.contentType === 'rich' ? 'rich' : 'text'
     })
   }
@@ -165,7 +165,9 @@ function toExportedSnippet(item: unknown): ExportedSnippet | null {
     id: rec.id,
     name: rec.name,
     contents,
-    tagIds: Array.isArray(rec.tagIds) ? rec.tagIds.filter((t): t is string => typeof t === 'string') : [],
+    tagIds: Array.isArray(rec.tagIds)
+      ? rec.tagIds.filter((t): t is string => typeof t === 'string')
+      : [],
     isDeleted: rec.isDeleted === true,
     isFavorites: rec.isFavorites === true,
     createdAt: rec.createdAt,

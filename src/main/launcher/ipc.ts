@@ -351,9 +351,7 @@ export function registerLauncherIpc(): void {
       getLauncherWindow()?.webContents.send('launcher:mcp:run', {
         serverId,
         serverLabel:
-          typeof payload?.serverLabel === 'string'
-            ? payload.serverLabel.slice(0, 60)
-            : serverId,
+          typeof payload?.serverLabel === 'string' ? payload.serverLabel.slice(0, 60) : serverId,
         tool,
         argSpecs: Array.isArray(payload?.argSpecs) ? payload.argSpecs.slice(0, 6) : []
       })

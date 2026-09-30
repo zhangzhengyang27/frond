@@ -22,7 +22,6 @@ const FIXTURE = join(ROOT, 'src/main/services/mcp/__tests__/fixtures/fixture-ser
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -44,7 +43,6 @@ const getMainWindow = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 20000
   while (Date.now() < deadline) {
@@ -67,13 +65,13 @@ const getCapsuleWindow = async () => {
  * 先等那一行**出现在列表里**，再按 DOM 序算出要按几次 ↓（`moveSelection` 是绕圈的，
  * 圈数 = 列表长度）。列表没渲染完时绕圈只会把测试预算耗光——上一版就是这么超时的。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const rowIndexes = (capsule, text) =>
   capsule.evaluate((t) => {
     const rows = [...document.querySelectorAll('.launcher-result')]
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
     const badge = (el) => el.querySelector('.launcher-result-badge')?.textContent?.trim() ?? ''
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
     const title = (el) => el.querySelector('.launcher-result-title')?.textContent?.trim() ?? ''
     return {
       n: rows.length,
@@ -82,7 +80,6 @@ const rowIndexes = (capsule, text) =>
     }
   }, text)
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const enterOnMcpRow = async (capsule, input, text) => {
   let idx = null
   await expect
@@ -98,7 +95,7 @@ const enterOnMcpRow = async (capsule, input, text) => {
 }
 
 /** 内联槽现场：chip 文案 + 每格的参数名与值 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const slotState = (capsule) =>
   capsule.evaluate(() => ({
     chip: document.querySelector('[data-arg-chip]')?.textContent?.trim() ?? null,
@@ -111,7 +108,7 @@ const slotState = (capsule) =>
   }))
 
 /** 结果页现场（在 mcpcall 页上时非 null） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const callState = (capsule) =>
   capsule.evaluate(() => {
     // 以**页面根**为准：出错与运行中都没有 output 元素，那时更要读得到界面说了什么

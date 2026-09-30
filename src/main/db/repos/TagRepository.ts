@@ -43,8 +43,7 @@ export class TagRepository {
   getById(id: string): TagRow | null {
     return (
       (this.db.prepare('SELECT * FROM tag_tags WHERE id = ? AND deleted_at IS NULL').get(id) as
-        | TagRow
-        | undefined) ?? null
+        TagRow | undefined) ?? null
     )
   }
 

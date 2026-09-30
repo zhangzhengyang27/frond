@@ -238,9 +238,10 @@ describe('重建件台账', () => {
       if (relToSrc && markerFiles.has(relToSrc)) wronglyMarked.push(rel)
     }
 
-    expect(missing, '清单里的恢复件在磁盘上找不到了（删了要同步改 RECOVERED_WITHOUT_MARKER）').toEqual(
-      []
-    )
+    expect(
+      missing,
+      '清单里的恢复件在磁盘上找不到了（删了要同步改 RECOVERED_WITHOUT_MARKER）'
+    ).toEqual([])
     expect(
       wronglyMarked,
       '这些文件现在带了重建标记 —— 说明措辞统一了，应把它们并进 KNOWN_REBUILD_FILES 并从这里删掉'

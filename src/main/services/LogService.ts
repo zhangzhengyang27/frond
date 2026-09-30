@@ -100,13 +100,7 @@ class LogService {
     }
   }
 
-  private write(
-    level: LogLevel,
-    scope: string,
-    msg: string,
-    stack?: string,
-    meta?: string
-  ): void {
+  private write(level: LogLevel, scope: string, msg: string, stack?: string, meta?: string): void {
     const entry: LogEntry = { ts: Date.now(), level, scope, msg, stack, meta }
     this.ring.push(entry)
     if (this.ring.length > RING_SIZE) this.ring.splice(0, this.ring.length - RING_SIZE)

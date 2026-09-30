@@ -117,8 +117,9 @@ export function runDataMigrations(): MigrationResult {
   const v1Done = db
     .prepare('SELECT value FROM frond_meta WHERE key = ?')
     .get('data_migration_v1') as { value: string } | undefined
-  const v2Done = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
-    { value: string } | undefined
+  const v2Done = db
+    .prepare('SELECT value FROM frond_meta WHERE key = ?')
+    .get(DATA_MIGRATION_KEY) as { value: string } | undefined
   // 两段都完成才跳过；任一段上次因导入失败未标记，本次都要补跑
   // （importMany 均为 ON CONFLICT(id) DO UPDATE，重跑幂等）
   if (v1Done?.value === 'done' && v2Done?.value === 'done') {

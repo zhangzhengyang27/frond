@@ -39,7 +39,9 @@ describe('parsePluginForm', () => {
   it('缺 submitId / 非法 $t / 无字段 → null', () => {
     expect(parsePluginForm({ $t: 'form', fields: [{ id: 'a', label: 'A' }] })).toBeNull()
     expect(parsePluginForm({ $t: 'form', submitId: 's', fields: [] })).toBeNull()
-    expect(parsePluginForm({ $t: 'list', submitId: 's', fields: [{ id: 'a', label: 'A' }] })).toBeNull()
+    expect(
+      parsePluginForm({ $t: 'list', submitId: 's', fields: [{ id: 'a', label: 'A' }] })
+    ).toBeNull()
     expect(parsePluginForm(null)).toBeNull()
   })
 

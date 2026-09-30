@@ -22,8 +22,14 @@ describe('parseFrondUrl（frond:// 路由表）', () => {
   })
 
   it('frond://plugin/<id> → plugin 路由并解码 pluginId', () => {
-    expect(parseFrondUrl('frond://plugin/quicklinks')).toEqual({ kind: 'plugin', pluginId: 'quicklinks' })
-    expect(parseFrondUrl('frond://plugin/My%20Plugin')).toEqual({ kind: 'plugin', pluginId: 'My Plugin' })
+    expect(parseFrondUrl('frond://plugin/quicklinks')).toEqual({
+      kind: 'plugin',
+      pluginId: 'quicklinks'
+    })
+    expect(parseFrondUrl('frond://plugin/My%20Plugin')).toEqual({
+      kind: 'plugin',
+      pluginId: 'My Plugin'
+    })
     expect(parseFrondUrl('frond://plugin/%E4%B8%AD%E6%96%87/')).toEqual({
       kind: 'plugin',
       pluginId: '中文'
@@ -117,7 +123,10 @@ describe('findMatchingTab（标签页匹配谓词）', () => {
   })
 
   it('列表中 URL 非法的条目被跳过而不抛错', () => {
-    const dirty = [{ id: 't1', url: '::::' }, { id: 't2', url: 'https://a.com/x' }]
+    const dirty = [
+      { id: 't1', url: '::::' },
+      { id: 't2', url: 'https://a.com/x' }
+    ]
     expect(findMatchingTab('https://a.com/x', dirty)).toEqual(dirty[1])
   })
 })

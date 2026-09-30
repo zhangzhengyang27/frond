@@ -69,7 +69,11 @@ describe('新增与快进', () => {
 
   it('只有一边改过 → 快进那一侧，不算冲突', () => {
     const state: StateTable = { r1: { rev: 10 } }
-    const r = run([row({ id: 'r1', body: 'old', __rev: 10 })], [row({ id: 'r1', body: 'new', __rev: 30 })], state)
+    const r = run(
+      [row({ id: 'r1', body: 'old', __rev: 10 })],
+      [row({ id: 'r1', body: 'new', __rev: 30 })],
+      state
+    )
     expect(r.conflicts, '远端单方面改过，就是拉下来而已').toEqual([])
     expect(r.upsert).toHaveLength(1)
     expect(r.upsert[0].body).toBe('new')
@@ -77,7 +81,11 @@ describe('新增与快进', () => {
 
   it('本地单方面改过 → 本地不动（下一次 push 带走）', () => {
     const state: StateTable = { r1: { rev: 10 } }
-    const r = run([row({ id: 'r1', body: 'mine', __rev: 40 })], [row({ id: 'r1', body: 'stale', __rev: 10 })], state)
+    const r = run(
+      [row({ id: 'r1', body: 'mine', __rev: 40 })],
+      [row({ id: 'r1', body: 'stale', __rev: 10 })],
+      state
+    )
     expect(r.upsert).toEqual([])
     expect(r.removeKeys).toEqual([])
     expect(r.nextState['r1'].rev).toBe(40)
@@ -115,7 +123,10 @@ describe('两边都改过', () => {
       [row({ id: 'n1', title: '远端旧', __rev: 30 })],
       state
     )
-    expect(r.upsert.find((x) => x.id === 'n1'), '本地已经是赢家，不该被远端盖掉').toBeUndefined()
+    expect(
+      r.upsert.find((x) => x.id === 'n1'),
+      '本地已经是赢家，不该被远端盖掉'
+    ).toBeUndefined()
     expect(r.copies[0].title).toContain('远端旧')
   })
 
@@ -188,7 +199,10 @@ describe('删除与编辑撞车', () => {
 
 describe('没有基线时不产假冲突', () => {
   it('首次同步（state 全空）两边都有同一行 → 新的留下，不产副本也不报冲突', () => {
-    const r = run([row({ id: 'n1', title: '本地', __rev: 20 })], [row({ id: 'n1', title: '远端', __rev: 40 })])
+    const r = run(
+      [row({ id: 'n1', title: '本地', __rev: 20 })],
+      [row({ id: 'n1', title: '远端', __rev: 40 })]
+    )
     expect(r.conflicts).toEqual([])
     expect(r.copies).toEqual([])
     expect(r.upsert[0].title, '但也不能静默丢掉更新的那份').toBe('远端')
@@ -232,7 +246,9 @@ describe('收敛', () => {
   })
 
   it('汇总把各表的产出加起来（状态页要的那几个数）', () => {
-    const a = run([row({ id: 'n1', __rev: 20 })], [row({ id: 'n1', __rev: 40 })], { n1: { rev: 10 } })
+    const a = run([row({ id: 'n1', __rev: 20 })], [row({ id: 'n1', __rev: 40 })], {
+      n1: { rev: 10 }
+    })
     const b = run([row({ id: 'x', __rev: 5 })], [], {}, notes)
     const s = summarize([a, b])
     expect(s.copies).toBe(0 + 0)
@@ -252,7 +268,12 @@ describe('makeConflictCopy', () => {
   })
 
   it('副本时间串里的标点不会污染 id（id 会被当主键比较）', () => {
-    const copy = makeConflictCopy(notes, row({ id: 'a1', title: 't', __rev: 1 }), 'D', '2026/09/21 14:03')
+    const copy = makeConflictCopy(
+      notes,
+      row({ id: 'a1', title: 't', __rev: 1 }),
+      'D',
+      '2026/09/21 14:03'
+    )
     expect(copy.id).toBe('a1~c~202609211403')
   })
 })

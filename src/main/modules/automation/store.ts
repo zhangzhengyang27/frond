@@ -81,7 +81,9 @@ export function sanitizeAction(raw: unknown): AutomationAction | null {
         if (typeof k !== 'string' || !k || typeof v !== 'string') continue
         args[k.slice(0, 64)] = v.slice(0, 2000)
       }
-      return Object.keys(args).length ? { type: 'plugin', cmd, arguments: args } : { type: 'plugin', cmd }
+      return Object.keys(args).length
+        ? { type: 'plugin', cmd, arguments: args }
+        : { type: 'plugin', cmd }
     }
   }
   return null
@@ -166,11 +168,15 @@ export function sanitizeTasks(raw: unknown): {
 }
 
 /** 合并触发历史：界面向后端回写配置时不能把「上次跑到什么时候」洗掉 */
-export function mergeRunHistory(next: AutomationTask[], previous: AutomationTask[]): AutomationTask[] {
+export function mergeRunHistory(
+  next: AutomationTask[],
+  previous: AutomationTask[]
+): AutomationTask[] {
   const byId = new Map(previous.map((t) => [t.id, t]))
   return next.map((t) => {
     const old = byId.get(t.id)
-    if (!old || old.cron !== t.cron || JSON.stringify(old.action) !== JSON.stringify(t.action)) return t
+    if (!old || old.cron !== t.cron || JSON.stringify(old.action) !== JSON.stringify(t.action))
+      return t
     return {
       ...t,
       lastFiredAt: old.lastFiredAt,
@@ -380,13 +386,18 @@ export async function tick(deps: TickDeps): Promise<string[]> {
     let next = t
     if (t.enabled) {
       const spec = parseCron(t.cron)
-      const alreadyFired = t.lastFiredAt !== null && Math.floor(t.lastFiredAt / MINUTE_MS) === bucket
+      const alreadyFired =
+        t.lastFiredAt !== null && Math.floor(t.lastFiredAt / MINUTE_MS) === bucket
       if (spec && cronMatches(spec, now) && !alreadyFired) {
         next = { ...t, lastFiredAt: now.getTime() }
         fired.push(t.id)
         try {
           const res = await deps.run(t.action, ownerPluginId(t.owner))
-          next = { ...next, lastOk: res.ok, ...(res.ok ? {} : { lastError: res.error ?? '执行失败' }) }
+          next = {
+            ...next,
+            lastOk: res.ok,
+            ...(res.ok ? {} : { lastError: res.error ?? '执行失败' })
+          }
         } catch (error) {
           next = { ...next, lastOk: false, lastError: (error as Error).message }
         }

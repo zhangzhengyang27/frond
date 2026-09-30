@@ -37,9 +37,7 @@ const sysEntry: CommandEntry = {
   action: { type: 'system', cmdId: 'system.lock' }
 }
 
-function mockUsageApi(
-  stats: Array<{ moduleId: string; useCount: number; usedAt: number }>
-): void {
+function mockUsageApi(stats: Array<{ moduleId: string; useCount: number; usedAt: number }>): void {
   ;(window as unknown as { api: unknown }).api = {
     usage: { getStats: async () => stats }
   }

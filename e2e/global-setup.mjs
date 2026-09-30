@@ -14,10 +14,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-const PKGS_IN_ORDER = [
-  join(ROOT, 'packages', 'frond-plugin-sdk'),
-  join(ROOT, 'example-react')
-]
+const PKGS_IN_ORDER = [join(ROOT, 'packages', 'frond-plugin-sdk'), join(ROOT, 'example-react')]
 
 export default function setup() {
   for (const dir of PKGS_IN_ORDER) {

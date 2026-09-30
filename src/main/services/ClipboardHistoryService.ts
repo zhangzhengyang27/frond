@@ -222,8 +222,6 @@ class ClipboardHistoryService {
     })
   }
 
-
-
   togglePin(id: string): boolean {
     const item = this.items.find((i) => i.id === id)
     if (!item) return false
@@ -505,7 +503,10 @@ class ClipboardHistoryService {
   private pushItem(item: ClipboardHistoryItem): void {
     // 单条文本上限：贴 base64/日志的几 MB 文本一旦入历史，此后每次复制的
     // persist 都要对它全量重加密。超限不入历史（系统剪贴板本身仍持有原文）
-    if ((item.kind === 'text' || item.kind === 'link') && (item.text?.length ?? 0) > MAX_TEXT_CHARS) {
+    if (
+      (item.kind === 'text' || item.kind === 'link') &&
+      (item.text?.length ?? 0) > MAX_TEXT_CHARS
+    ) {
       return
     }
     // 同内容已存在则移除旧条目（提到最前，Raycast 行为）；图片已由指纹层去重
@@ -680,4 +681,3 @@ class ClipboardHistoryService {
 }
 
 export const clipboardHistory = new ClipboardHistoryService()
-

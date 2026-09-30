@@ -75,10 +75,7 @@ describe('groupItems', () => {
   })
 
   it('空组不输出；无置顶时今天在最前', () => {
-    const groups = groupItems(
-      [mk({ id: 't1', createdAt: at(2026, 9, 7, 9, 0) })],
-      NOW
-    )
+    const groups = groupItems([mk({ id: 't1', createdAt: at(2026, 9, 7, 9, 0) })], NOW)
     expect(groups).toHaveLength(1)
     expect(groups[0]).toMatchObject({ key: 'today', label: '今天' })
   })
@@ -144,7 +141,6 @@ describe('kindLabelOf', () => {
   })
 })
 
-
 describe('sizeSummaryOf', () => {
   it('text/link 统计字符数', () => {
     expect(sizeSummaryOf(mk({ id: '1', text: '你好 world' }))).toBe('8 字符')
@@ -187,4 +183,3 @@ describe('titleOf', () => {
     )
   })
 })
-

@@ -15,9 +15,7 @@ import {
 const baseSnippet = (overrides?: Partial<TransferableSnippet>): TransferableSnippet => ({
   id: 'snip-1',
   name: '签名',
-  contents: [
-    { id: 'c1', label: '正文', value: 'Best regards', language: 'plaintext' }
-  ],
+  contents: [{ id: 'c1', label: '正文', value: 'Best regards', language: 'plaintext' }],
   tagIds: [],
   isDeleted: false,
   isFavorites: false,
@@ -59,7 +57,9 @@ describe('buildExportPayload 导出负载', () => {
         description: 'desc',
         trigger: ';sig',
         isFavorites: true,
-        contents: [{ id: 'c1', label: '正文', value: '<b>hi</b>', language: 'html', contentType: 'rich' }]
+        contents: [
+          { id: 'c1', label: '正文', value: '<b>hi</b>', language: 'html', contentType: 'rich' }
+        ]
       })
     ])
     const s = payload.snippets[0]
@@ -96,7 +96,9 @@ describe('parseImportPayload 导入校验', () => {
       {
         id: 'a',
         name: '片段A',
-        contents: [{ id: '', label: '', value: 'hello', language: 'plaintext', contentType: 'text' }],
+        contents: [
+          { id: '', label: '', value: 'hello', language: 'plaintext', contentType: 'text' }
+        ],
         tagIds: [],
         isDeleted: false,
         isFavorites: false,

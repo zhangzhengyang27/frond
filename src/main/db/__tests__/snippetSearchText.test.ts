@@ -59,7 +59,9 @@ describe('片段明文搜索列（B42）', () => {
   it('写入即可搜：内容子串命中（大小写不敏感），不相关词不命中', () => {
     repo.addSnippet({
       name: '部署脚本',
-      contents: [{ id: 'c1', label: 'bash', value: 'kubectl apply -f prod.yaml', language: 'plaintext' }],
+      contents: [
+        { id: 'c1', label: 'bash', value: 'kubectl apply -f prod.yaml', language: 'plaintext' }
+      ],
       tagIds: [],
       isDeleted: false,
       isFavorites: false
@@ -156,10 +158,7 @@ describe('片段明文搜索列（B42）', () => {
 
   it('buildSnippetSearchText：纯函数拼接', () => {
     expect(
-      buildSnippetSearchText('名', '描述', [
-        { label: 'L1', value: 'V1' },
-        { label: 'L2' }
-      ])
+      buildSnippetSearchText('名', '描述', [{ label: 'L1', value: 'V1' }, { label: 'L2' }])
     ).toBe('名\n描述\nL1\nV1\nL2\n')
   })
 })

@@ -9,9 +9,39 @@ import { FileIndexDb } from '../db'
 function makeDb(): FileIndexDb {
   const db = FileIndexDb.openInMemory()
   db.upsertFiles([
-    { path: '/repo/项目计划.md', parent: '/repo', name: '项目计划.md', ext: 'md', size: 100, mtime: 1, isDir: false, skeleton: 'xmjhmd', content: '# 项目计划\n完成文件索引' },
-    { path: '/repo/README.md', parent: '/repo', name: 'README.md', ext: 'md', size: 20, mtime: 2, isDir: false, skeleton: 'readmemd', content: 'hello world' },
-    { path: '/repo/src/fileIndex/a.ts', parent: '/repo/src/fileIndex', name: 'a.ts', ext: 'ts', size: 5, mtime: 3, isDir: false, skeleton: 'ats', content: 'const a = 1' }
+    {
+      path: '/repo/项目计划.md',
+      parent: '/repo',
+      name: '项目计划.md',
+      ext: 'md',
+      size: 100,
+      mtime: 1,
+      isDir: false,
+      skeleton: 'xmjhmd',
+      content: '# 项目计划\n完成文件索引'
+    },
+    {
+      path: '/repo/README.md',
+      parent: '/repo',
+      name: 'README.md',
+      ext: 'md',
+      size: 20,
+      mtime: 2,
+      isDir: false,
+      skeleton: 'readmemd',
+      content: 'hello world'
+    },
+    {
+      path: '/repo/src/fileIndex/a.ts',
+      parent: '/repo/src/fileIndex',
+      name: 'a.ts',
+      ext: 'ts',
+      size: 5,
+      mtime: 3,
+      isDir: false,
+      skeleton: 'ats',
+      content: 'const a = 1'
+    }
   ])
   return db
 }

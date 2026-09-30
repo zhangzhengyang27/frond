@@ -26,7 +26,6 @@ const RUN = `auto${Date.now().toString(36)}`
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -43,7 +42,7 @@ const getMainWindow = async () => {
 }
 
 /** 进设置 → 高级（定时任务与系统权限同区） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const openAdvanced = async (page) => {
   await expect(page.getByText('跳过引导').first()).toBeVisible({ timeout: 30000 })
   await page.getByText('跳过引导').first().click()
@@ -76,8 +75,18 @@ test('1. 非法 cron 在保存时就被拒，并把原因显示出来', async ()
   await page.getByTestId('automation-json').fill(
     JSON.stringify(
       [
-        { id: `${RUN}-ok`, label: '合法', cron: '30 9 * * *', action: { type: 'ai', prompt: '在做什么' } },
-        { id: `${RUN}-bad`, label: '坏表达式', cron: '99 9 * * *', action: { type: 'ai', prompt: 'x' } }
+        {
+          id: `${RUN}-ok`,
+          label: '合法',
+          cron: '30 9 * * *',
+          action: { type: 'ai', prompt: '在做什么' }
+        },
+        {
+          id: `${RUN}-bad`,
+          label: '坏表达式',
+          cron: '99 9 * * *',
+          action: { type: 'ai', prompt: 'x' }
+        }
       ],
       null,
       2

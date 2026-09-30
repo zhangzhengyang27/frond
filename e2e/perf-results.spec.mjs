@@ -34,7 +34,6 @@ const PROBES = ['a', 'e', 'i', 's', 'se', 'er', 'co', 'clip', 'safari', 'note']
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 20000
   while (Date.now() < deadline) {
@@ -55,7 +54,6 @@ const getCapsuleWindow = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -77,7 +75,6 @@ const getMainWindow = async () => {
   )
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const rowCount = (capsule) => capsule.locator('.launcher-result').count()
 
 /**
@@ -93,7 +90,6 @@ const rowCount = (capsule) => capsule.locator('.launcher-result').count()
  */
 const MEASURE_WINDOW_MS = 1600
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const measure = (capsule, q) =>
   capsule.evaluate(
     ({ text, windowMs }) => {

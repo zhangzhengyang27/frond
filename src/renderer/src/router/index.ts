@@ -95,7 +95,8 @@ const router = createRouter({
       component: () => import('../views/launcher/index.vue')
     },
     // 旧路径兼容重定向
-    { path: '/fastSearch', redirect: '/launcher' },    {
+    { path: '/fastSearch', redirect: '/launcher' },
+    {
       path: '/pomodoro',
       name: 'pomodoro',
       component: () => import('../views/pomodoro/index.vue')

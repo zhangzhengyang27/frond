@@ -54,12 +54,18 @@ const exportBtn = (w: ReturnType<typeof setup>): ReturnType<typeof w.get> =>
  */
 const chooseOutput = async (w: ReturnType<typeof setup>, path: string): Promise<void> => {
   selectSavePath.mockResolvedValueOnce(path)
-  await w.findAll('button').find((b) => b.text() === '浏览…')!.trigger('click')
+  await w
+    .findAll('button')
+    .find((b) => b.text() === '浏览…')!
+    .trigger('click')
   await w.vm.$nextTick()
 }
 /** 输出位置展示（B27 后是只读文本，不再是输入框） */
 const outputValue = (w: ReturnType<typeof setup>): string =>
-  w.findAll('span').find((s) => s.text().includes('输出位置') || s.text().includes('.mp4'))!.text()
+  w
+    .findAll('span')
+    .find((s) => s.text().includes('输出位置') || s.text().includes('.mp4'))!
+    .text()
 const selects = (w: ReturnType<typeof setup>): ReturnType<typeof w.findAll> => w.findAll('select')
 
 beforeEach(() => {
@@ -135,7 +141,10 @@ describe('ExportDialog · 守卫与禁用态', () => {
 describe('ExportDialog · 关闭与进度', () => {
   it('取消按钮发 close', async () => {
     const w = setup()
-    await w.findAll('button').find((b) => b.text() === '取消')!.trigger('click')
+    await w
+      .findAll('button')
+      .find((b) => b.text() === '取消')!
+      .trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
   })
 
@@ -182,12 +191,18 @@ describe('ExportDialog · 关闭与进度', () => {
   it('「浏览…」把选中的路径填进输出框（选了才填，取消不动）', async () => {
     const w = setup()
     selectSavePath.mockResolvedValueOnce('/picked/a.mp4')
-    await w.findAll('button').find((b) => b.text() === '浏览…')!.trigger('click')
+    await w
+      .findAll('button')
+      .find((b) => b.text() === '浏览…')!
+      .trigger('click')
     await w.vm.$nextTick()
     expect(outputValue(w)).toBe('/picked/a.mp4')
 
     selectSavePath.mockResolvedValueOnce(null)
-    await w.findAll('button').find((b) => b.text() === '浏览…')!.trigger('click')
+    await w
+      .findAll('button')
+      .find((b) => b.text() === '浏览…')!
+      .trigger('click')
     await w.vm.$nextTick()
     expect(outputValue(w)).toBe('/picked/a.mp4') // 取消不改
   })
@@ -195,7 +210,10 @@ describe('ExportDialog · 关闭与进度', () => {
   it('选片头后按钮文案变「换片头」并显示路径（状态真的接上了）', async () => {
     const w = setup()
     selectVideoFile.mockResolvedValueOnce('/x/intro.mp4')
-    await w.findAll('button').find((b) => b.text() === '选片头')!.trigger('click')
+    await w
+      .findAll('button')
+      .find((b) => b.text() === '选片头')!
+      .trigger('click')
     await w.vm.$nextTick()
     expect(w.text()).toContain('换片头')
     expect(w.text()).toContain('/x/intro.mp4')

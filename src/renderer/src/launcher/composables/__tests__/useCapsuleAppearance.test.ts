@@ -73,8 +73,7 @@ afterEach(() => {
   document.documentElement.removeAttribute('style')
 })
 
-const varOf = (name: string): string =>
-  document.documentElement.style.getPropertyValue(name)
+const varOf = (name: string): string => document.documentElement.style.getPropertyValue(name)
 
 function make(opts?: { barOnly?: boolean; barHeight?: number }): {
   api: ReturnType<typeof mod.useCapsuleAppearance>

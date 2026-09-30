@@ -22,7 +22,12 @@ describe('computeWindowRect · 无 gap', () => {
 
   it('四分格', () => {
     expect(computeWindowRect('topRight', WA, 0)).toEqual({ x: 500, y: 0, width: 500, height: 350 })
-    expect(computeWindowRect('bottomLeft', WA, 0)).toEqual({ x: 0, y: 350, width: 500, height: 350 })
+    expect(computeWindowRect('bottomLeft', WA, 0)).toEqual({
+      x: 0,
+      y: 350,
+      width: 500,
+      height: 350
+    })
   })
 
   it('三分（左右三等分，中三分之一居中）', () => {

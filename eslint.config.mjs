@@ -10,14 +10,7 @@ export default defineConfig(
   // 会对第三方源码报 6 条错（5 条解析错 + 1 条 no-unused-expressions），
   // 而 CONTRIBUTING 又要求「提交前 pnpm lint 无 error」。
   {
-    ignores: [
-      '**/node_modules',
-      '**/dist',
-      '**/out',
-      'scripts/**',
-      'extension/**',
-      'references/**'
-    ]
+    ignores: ['**/node_modules', '**/dist', '**/out', 'scripts/**', 'extension/**', 'references/**']
   }, // extension/：浏览器扩展独立产物，chrome 全局/JS 运行时不适用应用 TS 规则集
   tseslint.configs.recommended,
   eslintPluginVue.configs['flat/recommended'],
@@ -47,23 +40,24 @@ export default defineConfig(
           }
         }
       ],
-      // 存量代码库严格度调整：降级为 warn，消除 lint error 阻塞，保留可见性
-      // 后续增量代码建议遵循（新增文件可单独启用 error 级）
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/explicit-function-return-type': 'warn',
+      // 批 2a（2026-09-30）三族升 error：prettier 存量已 autofix 清零、no-explicit-any
+      // 实测命中 0、no-unused-vars 存量已清——升 error 锁住不再回潮。
+      // explicit-function-return-type 留 warn：存量 20 个 composable 函数声明的返回类型
+      // 注解归入批 2c（与 NUIA/EOPT 同波清账）；allowExpressions 豁免回调箭头降噪。
+      'prettier/prettier': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/explicit-function-return-type': ['warn', { allowExpressions: true }],
       '@typescript-eslint/no-unused-vars': [
-        'warn',
+        'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
       ]
     }
   },
-  // .js/.mjs（e2e 探针 / playwright spec / 配置件）写不了 TS 返回类型注解，
-  // 该规则对纯 JS 的裸函数恒报 error——与上面存量降级同理降为 warn（CI 只挡 error）。
-  // 首跑咬到 e2e/global-setup.mjs 的 export default function setup()。
+  // .js/.mjs（e2e 探针 / playwright spec / 配置件）写不了 TS 返回类型注解——直接关闭。
   {
     files: ['**/*.{js,mjs,cjs}'],
     rules: {
-      '@typescript-eslint/explicit-function-return-type': 'warn'
+      '@typescript-eslint/explicit-function-return-type': 'off'
     }
   },
   eslintConfigPrettier

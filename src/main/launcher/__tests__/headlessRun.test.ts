@@ -9,7 +9,10 @@ import { headlessRunBlocker } from '../headlessRun'
  * 而且要真的按清单判，不能只看命令码存不存在。
  */
 const plugin = (
-  over: Partial<{ enabled: boolean; commands: Array<{ code: string; mode?: 'view' | 'action' }> }> = {}
+  over: Partial<{
+    enabled: boolean
+    commands: Array<{ code: string; mode?: 'view' | 'action' }>
+  }> = {}
 ) => ({
   enabled: true,
   commands: [

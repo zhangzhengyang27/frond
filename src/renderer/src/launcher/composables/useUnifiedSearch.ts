@@ -11,7 +11,7 @@ import { evaluateExpression } from '@shared/calculator'
 import { convertUnit } from '@shared/unitConverter'
 import { searchEmoji } from '@shared/emoji'
 import type { CommandEntry } from '@shared/commands'
-import { normalizeWithMap, searchEntries, type ScoredEntry } from '@shared/search'
+import { searchEntries, type ScoredEntry } from '@shared/search'
 import type { useUsageBoost } from '@renderer/composables/useUsageBoost'
 
 type UsageBoost = ReturnType<typeof useUsageBoost>['boost']

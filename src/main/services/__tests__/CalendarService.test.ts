@@ -25,7 +25,11 @@ describe('mapAuthStatus（EKAuthorizationStatus → 语义）', () => {
 
 describe('extractAndSortMeetings', () => {
   const now = 1_789_000_000_000
-  const ev = (start: number, end: number, allDay = false): { start: number; end: number; allDay: boolean } => ({
+  const ev = (
+    start: number,
+    end: number,
+    allDay = false
+  ): { start: number; end: number; allDay: boolean } => ({
     start,
     end,
     allDay
@@ -33,7 +37,11 @@ describe('extractAndSortMeetings', () => {
 
   it('过滤全天事件与已结束事件，按开始时间升序', () => {
     const meetings = extractAndSortMeetings(
-      [ev(now + 7200_000, now + 7800_000), ev(now - 3600_000, now - 1800_000), ev(now + 3600_000, now + 4200_000, true)],
+      [
+        ev(now + 7200_000, now + 7800_000),
+        ev(now - 3600_000, now - 1800_000),
+        ev(now + 3600_000, now + 4200_000, true)
+      ],
       now
     )
     expect(meetings).toHaveLength(1)

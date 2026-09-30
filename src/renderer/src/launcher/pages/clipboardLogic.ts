@@ -168,4 +168,3 @@ export function titleOf(item: ClipItemLike): string {
   const firstLine = (item.text ?? '').split('\n')[0].trim()
   return firstLine.slice(0, 60) || '空文本'
 }
-

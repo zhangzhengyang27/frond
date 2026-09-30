@@ -115,8 +115,7 @@ export class SnippetRepository {
 
   private hydrate(snippetId: string): Snippet {
     const row = this.db.prepare(`SELECT * FROM snip_snippets WHERE id = ?`).get(snippetId) as
-      | SnippetRow
-      | undefined
+      SnippetRow | undefined
     if (!row) throw new Error('[SnippetRepository] snippet missing: ' + snippetId)
     return this.fromRow(row, this.getContents(snippetId), this.getTagIds(snippetId))
   }
@@ -256,8 +255,7 @@ export class SnippetRepository {
 
   getSnippetById(id: string): Snippet | undefined {
     const row = this.db.prepare(`SELECT * FROM snip_snippets WHERE id = ?`).get(id) as
-      | SnippetRow
-      | undefined
+      SnippetRow | undefined
     if (!row) return undefined
     return this.fromRow(row, this.getContents(id), this.getTagIds(id))
   }
@@ -507,7 +505,6 @@ export class SnippetRepository {
 }
 
 export const snippetRepository = new SnippetRepository()
-
 
 /**
  * 明文搜索投影（B42）：name / description / contents 标签与明文值，\n 拼接。

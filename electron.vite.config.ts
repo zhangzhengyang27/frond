@@ -11,7 +11,12 @@ export default defineConfig({
       // （exclude），三者全仓零 import、package.json 也零声明 —— 是被移除功能的残留，
       // 留着会让后来者以为项目还在用它们。sanitize-html 是真依赖（见下方 renderer 段），保留。
       externalizeDepsPlugin({
-        include: ['electron', '@electron-toolkit/utils', '@electron-toolkit/preload', 'better-sqlite3']
+        include: [
+          'electron',
+          '@electron-toolkit/utils',
+          '@electron-toolkit/preload',
+          'better-sqlite3'
+        ]
       })
     ],
     resolve: {

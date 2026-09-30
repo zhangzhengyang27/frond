@@ -128,10 +128,7 @@ export async function createClient(config: SyncConfig): Promise<WebDAVClient> {
 }
 
 /** 确保远端子目录存在（不存在则递归创建）；云备份与文档同步共用 */
-export async function ensureRemoteDir(
-  client: WebDAVClient,
-  dir: string
-): Promise<void> {
+export async function ensureRemoteDir(client: WebDAVClient, dir: string): Promise<void> {
   if (!(await withTimeout(client.exists(dir), '检查目录'))) {
     await withTimeout(client.createDirectory(dir, { recursive: true }), '创建目录')
   }

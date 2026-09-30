@@ -9,7 +9,7 @@
  *   MCP_FIXTURE_MODE=normal|garbage|silent|hugeframe|badtools
  */
 const mode = process.env.MCP_FIXTURE_MODE ?? 'normal'
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 夹具不写 TS 注解
+
 const out = (obj) => process.stdout.write(JSON.stringify(obj) + '\n')
 
 const TOOLS = [
@@ -61,7 +61,6 @@ process.stdin.on('data', (chunk) => {
   }
 })
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 夹具不写 TS 注解
 function garbageResult(msg) {
   if (msg.method === 'initialize') {
     return {

@@ -19,7 +19,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -35,7 +34,6 @@ const getMainWindow = async () => {
   return app.firstWindow()
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -52,7 +50,7 @@ const getCapsuleWindow = async () => {
 }
 
 /** 当前一行的高与该行的字号 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const measureRow = async (capsule) => {
   const row = capsule.locator('.launcher-result').first()
   const box = await row.boundingBox()
@@ -75,7 +73,7 @@ test.afterAll(async () => {
 })
 
 /** 让胶囊处于有结果的状态（冷实例要 poll，理由见 a11y 用例的注释） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const showResults = async (main) => {
   await main.evaluate(() => window.api.launcher.show())
   const capsule = await getCapsuleWindow()
@@ -102,7 +100,7 @@ const showResults = async (main) => {
  * 密度与紧凑模式控件都在「启动器」节里 —— 只改 hash 不切节，那些控件被 `v-if` 掉、
  * 根本不在 DOM 里。此前这里只改 hash 就等文案，2026-09-24 起必然超时。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const gotoSettingsLauncherSection = async (main) => {
   await main.evaluate(() => {
     window.location.hash = '#/settings'
@@ -140,8 +138,8 @@ test('2. 设置页与主进程说的是同一个档', async () => {
   const main = await getMainWindow()
   // 不依赖上一条用例把页面停在哪儿：自己重新切一次（幂等）
   await gotoSettingsLauncherSection(main)
-  const shown = await main.locator('[data-density-opt="compact"]').evaluate((el) =>
-    el.classList.contains('bg-brand-500')
-  )
+  const shown = await main
+    .locator('[data-density-opt="compact"]')
+    .evaluate((el) => el.classList.contains('bg-brand-500'))
   expect(shown, '界面高亮的档与存储的档不一致').toBe(true)
 })

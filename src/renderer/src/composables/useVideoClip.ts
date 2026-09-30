@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted, toRaw, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, onUnmounted, toRaw } from 'vue'
 
 // 检查窗口/API 是否可用
 function isApiAvailable(): boolean {

@@ -23,7 +23,7 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 let app = null
 
 /** 主窗口（管理页所在） */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -39,12 +39,11 @@ const getMainWindow = async () => {
   return app.firstWindow()
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const indexInput = (page) =>
   page.getByPlaceholder('远程索引 https://…/plugins.json（留空 = 只用打包索引）')
 
 /** 市场 section：页面上有别的「保存」按钮，按钮必须按在这个块里找 */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const marketSection = (page) =>
   page.locator('section').filter({ has: page.getByText('插件市场', { exact: true }) })
 

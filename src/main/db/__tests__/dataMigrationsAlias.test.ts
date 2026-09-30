@@ -54,8 +54,7 @@ function writeConfigJson(userData: string, obj: unknown): void {
 
 function prefAliases(db: Database.Database): string | undefined {
   const row = db.prepare('SELECT value FROM pref_preferences WHERE key = ?').get('aliases') as
-    | { value: string }
-    | undefined
+    { value: string } | undefined
   return row?.value
 }
 

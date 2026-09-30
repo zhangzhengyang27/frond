@@ -38,7 +38,7 @@ let app = null
  * electron-screenshots 的截图覆盖层窗口（title "Rsbuild App"，没有 window.api），
  * 拿它跑断言会全军覆没。找不到主窗口就应该响亮地失败。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 返回类型
+
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {

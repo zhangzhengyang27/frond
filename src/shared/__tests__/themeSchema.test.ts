@@ -51,16 +51,14 @@ describe('themeSchema 结构不变量', () => {
   it('值与 tokens.css 同步（抽查语义层关键变量，防漂移）', () => {
     // 每条断言：CSS 变量的亮/暗值必须与 schema 一致——手改 CSS 忘改 schema 时此测试红
     const expectVarPair = (name: string, light: string, dark: string): void => {
-      expect(FROND_LIGHT_THEME).toEqual(
-        expect.objectContaining({})
-      )
+      expect(FROND_LIGHT_THEME).toEqual(expect.objectContaining({}))
       expect(light).toBeTruthy()
       expect(dark).toBeTruthy()
       // schema 侧
       const find = (theme: ThemeDefinition): string | undefined => {
-      const tables = [theme.surface, theme.text, theme.border, theme.glass] as unknown as Array<
-        Record<string, string>
-      >
+        const tables = [theme.surface, theme.text, theme.border, theme.glass] as unknown as Array<
+          Record<string, string>
+        >
         for (const t of tables) if (name in t) return t[name]
         return undefined
       }

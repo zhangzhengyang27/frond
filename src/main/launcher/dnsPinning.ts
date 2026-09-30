@@ -65,7 +65,9 @@ export function createPinningLookup(resolver: DnsResolver = systemResolver): Pin
         // 阻断时也要给 address（net.LookupFunction 的回调签名要求）：交空数组，
         // 连接层拿到空列表就无地址可连，不留 undefined 让下游各自解释
         if (safe.length === 0) {
-          const err = new Error(`blocked: DNS 解析命中本地/内网地址（${hostname}）`) as NodeJS.ErrnoException
+          const err = new Error(
+            `blocked: DNS 解析命中本地/内网地址（${hostname}）`
+          ) as NodeJS.ErrnoException
           err.code = 'EFROND_BLOCKED_LOCAL'
           callback(err, [], want ?? 4)
           return
@@ -91,9 +93,9 @@ function pinningLookup(): PinningLookup {
  * 给 node-fetch 的 `agent` 选项用：返回一个按请求协议挑 Agent 的 selector。
  * keepAlive 与原生默认一致；两个 Agent 都缓存，避免每次抓取新建连接池。
  */
-export function pinningAgentSelector(): (
-  request: { protocol?: string }
-) => http.Agent | https.Agent {
+export function pinningAgentSelector(): (request: {
+  protocol?: string
+}) => http.Agent | https.Agent {
   return (request) => {
     if (request.protocol === 'https:') {
       pinnedHttpsAgent ??= new https.Agent({ lookup: pinningLookup(), keepAlive: true })

@@ -51,9 +51,7 @@ const QUICK_PRESS_VALUES: QuickPressAction[] = ['toggle', 'escape', 'caps', 'not
 
 /** 规范化快按行为（未知值回落 toggle，纯函数可单测） */
 export function normalizeQuickPress(v: unknown): QuickPressAction {
-  return QUICK_PRESS_VALUES.includes(v as QuickPressAction)
-    ? (v as QuickPressAction)
-    : 'toggle'
+  return QUICK_PRESS_VALUES.includes(v as QuickPressAction) ? (v as QuickPressAction) : 'toggle'
 }
 
 /** 单按判定（纯函数，可单测）：窗口期内且期间未触发命令 */
@@ -174,7 +172,10 @@ class HyperKeyService {
         // ESC(53) / 真 Caps(57)：osascript 注入的合成事件在 HID 层之上，
         // 不会被 hidutil 重映射二次改写（caps 仍是真 Caps）
         const key = quickPress === 'escape' ? 53 : 57
-        execFile('osascript', ['-e', `tell application "System Events" to key code ${key}`]).unref?.()
+        execFile('osascript', [
+          '-e',
+          `tell application "System Events" to key code ${key}`
+        ]).unref?.()
         break
       }
       case 'nothing':

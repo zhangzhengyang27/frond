@@ -162,4 +162,3 @@ export function registerBrowserTabsIpc(): void {
     return { ok: success }
   })
 }
-

@@ -420,7 +420,8 @@ const api = {
   // 菜单栏项搜索（Raycast parity）
   menuBar: {
     list: () => typedInvoke('menubar:list'),
-    trigger: (segments: string[], title: string) => typedInvoke('menubar:trigger', { segments, title })
+    trigger: (segments: string[], title: string) =>
+      typedInvoke('menubar:trigger', { segments, title })
   },
   // 回收站管理（阶段3.3c）
   trash: {
@@ -626,9 +627,7 @@ const api = {
     /** 当前插件状态（挂载后主动拉取，兜住丢失的一次性推送） */
     getPluginState: () => typedInvoke('launcher:getPluginState'),
     /** 插件状态变化（打开/关闭/副输入框 placeholder/声明式列表） */
-    onPluginChanged: (
-      cb: (state: PluginStateSnapshot) => void
-    ): (() => void) => {
+    onPluginChanged: (cb: (state: PluginStateSnapshot) => void): (() => void) => {
       const l = (_e: unknown, state: unknown): void => cb(state as PluginStateSnapshot)
       ipcRenderer.on('launcher:plugin-changed', l as never)
       return () => ipcRenderer.removeListener('launcher:plugin-changed', l as never)

@@ -17,13 +17,7 @@ import { database } from '../db/database'
 import { validateSqliteFile, applyDbFile } from '../db/dbBackup'
 import { encryptFileWithPassword, decryptFileWithPassword } from '../utils/crypto'
 import { log } from '../services/LogService'
-import {
-  getSyncConfig,
-  createClient,
-  ensureRemoteDir,
-  withTimeout,
-  type SyncConfig
-} from './sync'
+import { getSyncConfig, createClient, ensureRemoteDir, withTimeout, type SyncConfig } from './sync'
 
 const FULL_DIR = 'full'
 const MANIFEST_FILE = 'latest.json'
@@ -55,9 +49,7 @@ export function tsFromFileName(name: string): number {
  * 独立导出便于单测。
  */
 export function pickPruneCandidates(fileNames: string[], keep = KEEP_REMOTE): string[] {
-  const sorted = [...new Set(fileNames)].sort(
-    (a, b) => tsFromFileName(b) - tsFromFileName(a)
-  )
+  const sorted = [...new Set(fileNames)].sort((a, b) => tsFromFileName(b) - tsFromFileName(a))
   return sorted.slice(keep)
 }
 
@@ -123,7 +115,10 @@ export async function backupFullDb(
         await client.deleteFile(`${fullDir(config)}/${stale}`).catch(() => undefined)
       }
 
-      log.info('cloudBackup', `full backup uploaded: ${file} (${Math.round(plain.length / 1024)}KB)`)
+      log.info(
+        'cloudBackup',
+        `full backup uploaded: ${file} (${Math.round(plain.length / 1024)}KB)`
+      )
       return { ok: true, file }
     } finally {
       if (existsSync(tmpSnap)) rmSync(tmpSnap, { force: true })

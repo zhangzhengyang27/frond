@@ -24,7 +24,6 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 
 let app = null
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getMainWindow = async () => {
   const deadline = Date.now() + 30000
   while (Date.now() < deadline) {
@@ -40,7 +39,6 @@ const getMainWindow = async () => {
   return app.firstWindow()
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
 const getCapsuleWindow = async () => {
   const deadline = Date.now() + 10000
   while (Date.now() < deadline) {
@@ -61,7 +59,7 @@ const getCapsuleWindow = async () => {
  * 用「重填 + poll 计数」而不是「fill 后 assert 可见」：首启实例里结果要等
  * 别名/索引异步就绪，一次 fill 的时机太早会拿到空列表（capsule-search 就是这么写的）。
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- .mjs 无法写 TS 注解
+
 const searchInCapsule = async (main, term) => {
   await main.waitForLoadState('domcontentloaded')
   await main.evaluate(async () => {

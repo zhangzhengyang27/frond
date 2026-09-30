@@ -41,9 +41,8 @@ export function runPomodoroDurationMsMigration(): PomodoroMsMigrationResult {
     updated_at INTEGER NOT NULL
   )`)
 
-  const done = db
-    .prepare('SELECT value FROM frond_meta WHERE key = ?')
-    .get(DATA_MIGRATION_KEY) as { value: string } | undefined
+  const done = db.prepare('SELECT value FROM frond_meta WHERE key = ?').get(DATA_MIGRATION_KEY) as
+    { value: string } | undefined
   if (done?.value === 'done') {
     log.info('dataMigration.v4', 'already done, skip')
     return result
@@ -51,9 +50,7 @@ export function runPomodoroDurationMsMigration(): PomodoroMsMigrationResult {
   result.ran = true
 
   const run = db.transaction(() => {
-    const info = db
-      .prepare('UPDATE pom_pomodoros SET duration_ms = duration_ms * 1000')
-      .run()
+    const info = db.prepare('UPDATE pom_pomodoros SET duration_ms = duration_ms * 1000').run()
     result.rowsUpdated = info.changes
     db.prepare(
       `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)

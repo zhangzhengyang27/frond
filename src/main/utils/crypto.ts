@@ -17,7 +17,6 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypt
 import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from 'fs'
-import { log } from '../services/LogService'
 
 const ALGO = 'aes-256-gcm'
 const IV_LEN = 12
@@ -95,7 +94,9 @@ export function decryptText(ciphertext: string): string {
     const key = getKey()
     const raw = Buffer.from(ciphertext.slice(ENC_PREFIX.length), 'base64')
     if (raw.length < IV_LEN + TAG_LEN) {
-      log.error('crypto', 'decrypt failed: payload too short')
+      // 底层工具不经 LogService（会构成 crypto→LogService→database→migrations→crypto 环，批 7a）；
+    // console 由主进程日志管道镜像
+    console.error('[crypto] decrypt failed: payload too short')
       return ''
     }
     const iv = raw.subarray(0, IV_LEN)
@@ -108,7 +109,7 @@ export function decryptText(ciphertext: string): string {
   } catch {
     // 解密失败 = 密钥丢失/轮换或数据损坏，唯一诚实的语义是空串：
     // 返回密文字符串会让 UI 显示乱码、让密码字段拿乱码去静默连接
-    log.error('crypto', 'decrypt failed: key mismatch or corrupted data')
+    console.error('[crypto] decrypt failed: key mismatch or corrupted data')
     return ''
   }
 }

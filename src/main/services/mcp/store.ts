@@ -24,15 +24,8 @@ const MAX_ARGS = 32
 const MAX_TOOL_COMMANDS = 200
 const ID_RE = /^[a-z0-9][a-z0-9_-]{0,31}$/
 
-export interface McpServerConfig {
-  id: string
-  label: string
-  command: string
-  args: string[]
-  /** 只在本机持有；读接口一律不回传值，只回键名（可能装着 token） */
-  env: Record<string, string>
-  enabled: boolean
-}
+export type { McpServerConfig } from './types'
+import type { McpServerConfig } from './types'
 
 /** 返回给渲染端的配置形态 */
 export type McpServerPublic = Omit<McpServerConfig, 'env'> & { envKeys: string[] }

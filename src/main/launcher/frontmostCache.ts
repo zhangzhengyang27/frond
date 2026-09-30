@@ -6,9 +6,9 @@
  * 因此在胶囊隐藏期间低频轮询缓存前台应用名（首次被 IPC 调用时启用轮询），
  * 渲染端读缓存展示目标级提示。
  */
+import { onLauncherVisibility } from './visibilityBus'
 import { app } from 'electron'
 import { frontmostAppIdentity } from '../modules/focusShield'
-import { getLauncherWindow } from './window'
 
 const POLL_INTERVAL_MS = 5000
 /** hide 后焦点回落需要一拍，立即查只会查到正在消失的胶囊 */
@@ -37,8 +37,16 @@ function isSelfName(name: string): boolean {
   return selfNames.has(name.toLowerCase())
 }
 
+// 批 7a 循环拆解：胶囊可见性经总线获得（不再 import window）
+let launcherVisible = false
+onLauncherVisibility((visible) => {
+  launcherVisible = visible
+  // 隐藏 = 即将切回用户应用：此刻补拍把轮询陈旧窗口压到一次焦点切换以内（B36）
+  if (!visible) noteLauncherHidden()
+})
+
 function poll(): void {
-  if (getLauncherWindow()?.isVisible()) return
+  if (launcherVisible) return
   void frontmostAppIdentity().then(({ name, pid }) => {
     if (name && pid !== null && !isSelfName(name)) cached = { name, pid }
   })

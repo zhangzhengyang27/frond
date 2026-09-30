@@ -16,6 +16,7 @@ import { BrowserView, BrowserWindow, Notification } from 'electron'
 import { join } from 'path'
 import { getPlugin, pluginEntryUrl, type InstalledPlugin } from './pluginStore'
 import { ensureLauncherWindow, getLauncherWindow } from './window'
+import { onLauncherVisibility } from './visibilityBus'
 import { headlessRunBlocker } from './headlessRun'
 import {
   pluginCanGoBack,
@@ -829,6 +830,9 @@ export function notifyWindowVisibility(visible: boolean): void {
   if (!active) return
   sendHook(active, visible ? 'Show' : 'Hide', null)
 }
+
+// 批 7a 循环拆解：window 不再反向 import 本模块——显隐经 visibilityBus 订阅转发给插件
+onLauncherVisibility((visible) => notifyWindowVisibility(visible))
 
 /** 分离：把插件 view 从胶囊窗迁移到独立窗口，返回是否成功 */
 export function detachActivePlugin(capsuleWin: BrowserWindow): boolean {

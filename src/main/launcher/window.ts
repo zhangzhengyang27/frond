@@ -8,8 +8,7 @@
 import { BrowserWindow, screen, systemPreferences } from 'electron'
 import { join } from 'path'
 import { prefRepository } from '../db/repos/PrefRepository'
-import { notifyWindowVisibility } from './runtime'
-import { noteLauncherHidden } from './frontmostCache'
+import { emitLauncherVisibility } from './visibilityBus'
 import { shouldHideOnBlur } from './pinLogic'
 import {
   animationFrames,
@@ -373,7 +372,7 @@ export function showLauncherWindow(): void {
     }, 50)
   }
   win.webContents.send('launcher:shown')
-  notifyWindowVisibility(true)
+  emitLauncherVisibility(true)
 }
 
 /**
@@ -401,9 +400,8 @@ export function getLauncherWindow(): BrowserWindow | null {
 function finishHide(win: BrowserWindow): void {
   win.setOpacity(1)
   win.hide()
-  // hide 后焦点回落到用户应用，补拍前台快照（菜单栏搜索按 pid 寻址的依据，B36）
-  noteLauncherHidden()
-  notifyWindowVisibility(false)
+  // hide 后焦点回落到用户应用——补拍快照（B36）与插件 onHide 由总线订阅者自理
+  emitLauncherVisibility(false)
 }
 
 /** 隐藏胶囊窗（淡出到点后真的 hide；插件的 onHide 也在那一刻才发） */

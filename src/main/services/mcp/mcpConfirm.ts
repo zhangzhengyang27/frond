@@ -8,7 +8,7 @@
  * store.ts 侧动态引入（可单测、E2E 旁路与 pluginConfirm 同口径）。
  */
 import { createHash } from 'crypto'
-import type { McpServerConfig } from './store'
+import type { McpServerConfig } from './types'
 
 export interface ServerDiff {
   added: McpServerConfig[]

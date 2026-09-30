@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "meta": {
+    "name": "Frond 官方精选索引",
+    "description": "随应用分发的精选第三方插件索引。未来切换到线上官方仓库时，仅需把 market.ts 的 OFFICIAL_INDEX_URL 指向仓库 raw 地址。",
+    "submitUrl": "https://github.com/frond-app/frond-desktop/issues",
+    "note": "条目与 plugins.json 同 schema；download 必须 https 且声明 sha256"
+  },
+  "plugins": []
+}

@@ -133,11 +133,12 @@ describe('parseSemver / compareSemver', () => {
 })
 
 describe('isUpdatable / toMarketItems（版本更新通道）', () => {
-  const entry = (version?: string): MarketEntry => ({
+  const entry = (version?: string): MarketEntry & { source: 'bundled' } => ({
     id: 'com.a.p',
     name: 'A',
     version,
-    download: './a'
+    download: './a',
+    source: 'bundled'
   })
   const installed = (version?: string): InstalledPlugin => ({
     id: 'com.a.p',
@@ -181,7 +182,7 @@ describe('isUpdatable / toMarketItems（版本更新通道）', () => {
         entry('1.1.0'), // 已装旧版 → 可更新
         entry('1.0.0'), // 已装同版 → 不可更新
         entry(undefined), // 市场无版本 → 不可判定
-        { id: 'com.b.p', name: 'B', download: './b' } // 未安装
+        { id: 'com.b.p', name: 'B', download: './b', source: 'bundled' as const } // 未安装
       ],
       [installed('1.0.0')]
     )
@@ -255,10 +256,11 @@ describe('包体 sha256 校验（分发与信任 P-3.3）', () => {
 })
 
 describe('远程索引（P-3.1）', () => {
-  const remoteEntry = (over: Partial<MarketEntry> = {}): MarketEntry => ({
+  const remoteEntry = (over: Partial<MarketEntry> = {}): MarketEntry & { source: 'remote' } => ({
     id: 'com.remote.p',
     name: 'Remote',
     download: 'https://mirror.example.com/com.remote.p-1.0.0.zip',
+    source: 'remote',
     ...over
   })
 
@@ -417,8 +419,9 @@ describe('包体 sha256 校验（分发与信任 P-3.3）', () => {
 })
 
 describe('远程索引（P-3.1）', () => {
-  const remoteEntry = (over: Partial<MarketEntry> = {}): MarketEntry => ({
+  const remoteEntry = (over: Partial<MarketEntry> = {}): MarketEntry & { source: 'remote' } => ({
     id: 'com.remote.p',
+    source: 'remote',
     name: 'Remote',
     download: 'https://mirror.example.com/com.remote.p-1.0.0.zip',
     ...over

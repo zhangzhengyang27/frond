@@ -311,6 +311,39 @@ onDevPluginsChanged: (cb: (p: { kind: 'added'|'removed'|'reloaded'|'error'; plug
 
 ---
 
+## 6. 兼容性契约（@frond/raycast-api 对 Raycast API 的支持边界）
+
+> 作者按 Raycast 官方文档写代码时，以下能力**当前不可用**。SDK 对它们的处理是
+> 首次调用 `console.warn` 一次（不抛错、不阻断渲染），清单由
+> `raycast-api.test.ts` 的兼容性契约测试双向钉住——新增降级必须同步本节，
+> 接上宿主后也必须同步删条目。
+
+| 能力 | 现状与原因 |
+| --- | --- |
+| `getSelectedText` | 需要辅助功能权限模拟 ⌘C，会污染剪贴板历史；按 Raycast parity 优先级排期（审计 P-产品-15） |
+| `Action.<name>`（部分具名动作） | 无对应宿主动作；用 `Action.Push` / 自定义 `action` 表达 |
+| `List.Section.actions` | 分组级动作宿主协议暂无 |
+| `List.searchBarPlaceholder` | 胶囊占位文案由宿主控制 |
+| `Detail` 富组件子元素 | 详情区仅支持 Markdown 文本（`markdown` prop） |
+| `Form.Tags` | 降级为单行文本输入 |
+| `Alert.enableInput` | 原生模态框无输入框，按无输入呈现 |
+
+其余常用面（List/Detail/Form/ActionPanel/getPreferenceValues/Toast/LocalStorage/Cache/
+Clipboard/Alert/open/environment）均已接宿主能力，见源码内「已接宿主的能力」段。
+
+## 7. 发布到市场（批 6 通道）
+
+1. 打包：`pnpm release:plugin`（产出 zip + sha256，流程见 PLUGIN_RELEASE_CHECKLIST.md）；
+2. 提交索引：编辑 **`curated-index.json`**（官方精选索引，随应用分发）追加条目——
+   schema 与 `plugins.json` 完全一致，但 `download` **必须 https** 且**必须带 sha256**
+   （主进程 fail-closed 校验，缺哈希的远程条目会被剔除）；`category` 字段可选（市场页筛选用）；
+   暂时以 issue/PR 形式提交到 frond-app/frond-desktop 仓库；
+3. 线上官方索引仓库建好后，`market.ts` 的 `OFFICIAL_INDEX_URL` 指向其 raw 地址即完成切换，
+   市场页「远程索引」输入框随之预填；
+4. 内置 21 件走仓库根 `plugins.json`（本地相对路径形态，随包分发），与精选索引互不干扰。
+
+---
+
 ## 6. 修订记录
 
 - 2026-09：新增开发模式热重载（`devPlugins.ts`）、市场版本更新通道（`launcher:market:update`）、

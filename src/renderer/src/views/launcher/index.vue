@@ -135,6 +135,13 @@
            界面提示只是转述 —— 拒绝的权威在主进程，e2e market-index 3 钉的就是这一条 -->
       <div class="mb-3 flex flex-wrap items-center gap-2">
         <input
+          v-model="marketQuery"
+          class="min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-primary outline-none focus:border-brand-500/40"
+          placeholder="搜索市场（名称 / 描述 / 作者 / 分类）"
+        />
+      </div>
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <input
           v-model="remoteIndexUrl"
           class="min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-primary outline-none focus:border-brand-500/40"
           placeholder="远程索引 https://…/plugins.json（留空 = 只用打包索引）"
@@ -149,8 +156,11 @@
         <div v-if="market.length === 0" class="p-6">
           <UEmpty title="市场索引为空" description="未找到 plugins.json 或索引中没有条目" />
         </div>
+        <div v-else-if="filteredMarket.length === 0" class="p-6">
+          <UEmpty title="没有匹配的插件" description="换个关键词试试" />
+        </div>
         <div v-else class="divide-y divide-line-subtle">
-          <div v-for="entry in market" :key="entry.id" class="flex items-center gap-3 p-4">
+          <div v-for="entry in filteredMarket" :key="entry.id" class="flex items-center gap-3 p-4">
             <div
               class="flex size-9 shrink-0 items-center justify-center rounded-md border border-line-subtle bg-surface-2 text-fg-tertiary"
             >
@@ -160,6 +170,10 @@
               <div class="flex items-center gap-2">
                 <span class="truncate text-sm font-medium text-fg-primary">{{ entry.name }}</span>
                 <span class="shrink-0 text-xs text-fg-tertiary">v{{ entry.version ?? '—' }}</span>
+                <UBadge :variant="entry.source === 'bundled' ? 'neutral' : 'brand'">
+                  {{ SOURCE_LABELS[entry.source] }}
+                </UBadge>
+                <UBadge v-if="entry.category" variant="neutral">{{ entry.category }}</UBadge>
                 <UBadge variant="neutral">{{ entry.sha256 ? 'sha256 校验' : '未校验' }}</UBadge>
                 <UBadge v-if="entry.installed && entry.updatable" variant="warning">
                   可更新 {{ entry.installedVersion }} → {{ entry.version }}
@@ -611,11 +625,33 @@ interface MarketEntry {
   updatable: boolean
   /** 远程索引条目才可能有；打包索引是本地目录形态，如实标「未校验」 */
   sha256?: string
+  /** 条目来源（批 6）：bundled=内置 / curated=官方精选 / remote=用户自配远程 */
+  source: 'bundled' | 'curated' | 'remote'
+  /** 索引声明的分类标签（可选） */
+  category?: string
 }
 
 const market = ref<MarketEntry[]>([])
 const marketLoading = ref(false)
 const installingId = ref<string | null>(null)
+const marketQuery = ref('')
+
+const SOURCE_LABELS: Record<MarketEntry['source'], string> = {
+  bundled: '内置',
+  curated: '精选',
+  remote: '远程'
+}
+
+const filteredMarket = computed(() => {
+  const q = marketQuery.value.trim().toLowerCase()
+  if (!q) return market.value
+  return market.value.filter((e) =>
+    [e.name, e.id, e.description ?? '', e.author ?? '', e.category ?? '']
+      .join(' ')
+      .toLowerCase()
+      .includes(q)
+  )
+})
 
 const remoteIndexUrl = ref('')
 const remoteIndexMsg = ref('')

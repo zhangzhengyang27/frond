@@ -265,3 +265,34 @@ describe('open 与 getPreferenceValues 适配', () => {
     await expect(api.getPreferenceValues()).resolves.toEqual({})
   })
 })
+
+describe('兼容性契约（批 6 P-产品-03：作者按 Raycast 文档写代码前该知道边界）', () => {
+  it('notSupported 清单与文档契约一致（新增降级必须同步 docs/PLUGIN_DEVELOPMENT.md）', async () => {
+    const src = await import('node:fs/promises').then((fs) =>
+      fs.readFile(new URL('../src/index.ts', import.meta.url), 'utf-8')
+    )
+    const declared = [...src.matchAll(/notSupported\((['"`])([^'(（]+)/g)].map((m) => m[2].trim())
+    // 契约清单（与 docs/PLUGIN_DEVELOPMENT.md「兼容性契约」节逐字对齐；括号前取主干）
+    const contract = [
+      'Action.', // Action 具名组件按名报（模板字面量动态形态，主干前缀匹配）
+      'List.Section.actions',
+      'List.searchBarPlaceholder',
+      'Detail 的富组件子元素',
+      'Form.Tags',
+      'Alert.enableInput',
+      'getSelectedText'
+    ]
+    for (const c of contract) {
+      const hit = declared.some((d) => d === c || d.startsWith(c))
+      expect(
+        hit,
+        `契约条目「${c}」在源码里找不到对应 notSupported —— 若已接宿主，请同步删掉文档条目`
+      ).toBe(true)
+    }
+    // 反向：源码里的每条都该被契约覆盖（防新降级漏文档）
+    for (const d of declared) {
+      const covered = contract.some((c) => d.startsWith(c))
+      expect(covered, `源码新降级「${d}」不在契约清单——请补进 docs/PLUGIN_DEVELOPMENT.md`).toBe(true)
+    }
+  })
+})

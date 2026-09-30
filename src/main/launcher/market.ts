@@ -55,9 +55,13 @@ export interface MarketEntry {
   download: string
   /** 压缩包 sha256（十六进制，大小写不敏感）。本地目录形态无从校验，只能缺省 */
   sha256?: string
+  /** 索引声明的分类（自由文本，市场页作筛选标签展示；批 6 起可选） */
+  category?: string
 }
 
 export interface MarketItem extends MarketEntry {
+  /** 条目来源：bundled=随应用打包的内置件；curated=官方精选索引；remote=用户自配远程源 */
+  source: 'bundled' | 'curated' | 'remote'
   installed: boolean
   /** 已安装插件的版本（未安装或清单无 version 时为 undefined） */
   installedVersion?: string
@@ -162,7 +166,8 @@ export function parseMarketIndex(
       description: typeof e.description === 'string' ? e.description : undefined,
       author: typeof e.author === 'string' ? e.author : undefined,
       download: isUrl ? e.download : (local as string),
-      sha256
+      sha256,
+      ...(typeof e.category === 'string' && e.category ? { category: e.category } : {})
     })
   }
   return { version: typeof obj.version === 'number' ? obj.version : 1, plugins }
@@ -208,7 +213,10 @@ export function isUpdatable(marketVersion?: string, installedVersion?: string): 
 }
 
 /** 索引条目 × 已装插件 → 市场列表行（纯函数，可单测）：补充安装态与可更新标识 */
-export function toMarketItems(entries: MarketEntry[], installed: InstalledPlugin[]): MarketItem[] {
+export function toMarketItems(
+  entries: Array<MarketEntry & { source: MarketItem['source'] }>,
+  installed: InstalledPlugin[]
+): MarketItem[] {
   const byId = new Map(installed.map((p) => [p.id, p]))
   return entries.map((e) => {
     const local = byId.get(e.id)
@@ -221,8 +229,40 @@ export function toMarketItems(entries: MarketEntry[], installed: InstalledPlugin
   })
 }
 
+/** 官方线上索引 URL（批 6 预留）：官方仓库建好后把常量指向其 raw 地址，
+ *  市场页「启用官方源」即可用；为空表示尚未上线（UI 侧据此禁用入口）。 */
+export const OFFICIAL_INDEX_URL = ''
+
+/** 精选索引（resources/curated-index.json）：随应用分发的官方精选第三方件。
+ *  读不到或整体非法 → 空表，不连带废掉其余来源。 */
+export function curatedMarketEntries(): Array<MarketEntry & { source: 'curated' }> {
+  const path = curatedIndexPath()
+  if (!existsSync(path)) return []
+  try {
+    return parseMarketIndex(JSON.parse(readFileSync(path, 'utf-8')), dirname(path)).plugins.map(
+      (e) => ({ ...e, source: 'curated' as const })
+    )
+  } catch (error) {
+    console.error('[Launcher] 精选索引读取失败:', (error as Error).message)
+    return []
+  }
+}
+
+export function curatedIndexPath(): string {
+  if (app.isPackaged) return join(process.resourcesPath, 'curated-index.json')
+  const direct = join(app.getAppPath(), 'curated-index.json')
+  if (existsSync(direct)) return direct
+  return join(app.getAppPath(), '..', '..', 'curated-index.json')
+}
+
 export function listMarket(): MarketItem[] {
-  const merged = mergeMarketEntries(localMarketEntries(), readRemoteCache()?.plugins ?? [])
+  const bundled = localMarketEntries().map((e) => ({ ...e, source: 'bundled' as const }))
+  const remote = (readRemoteCache()?.plugins ?? []).map((e) => ({ ...e, source: 'remote' as const }))
+  const localAll: Array<MarketEntry & { source: MarketItem['source'] }> = [
+    ...bundled,
+    ...curatedMarketEntries()
+  ]
+  const merged = mergeMarketEntries(localAll, remote)
   return toMarketItems(merged.plugins, listPlugins())
 }
 
@@ -271,10 +311,10 @@ export function normalizeIndexUrl(raw: unknown): string | null {
  * 合并两半索引（纯函数）：打包索引优先——远程条目 id 撞上本地条目直接丢弃。
  * 顺序即展示顺序，shadowed 回传给 UI 说明「配了索引但这几条被挡住」。
  */
-export function mergeMarketEntries(
-  local: MarketEntry[],
-  remote: MarketEntry[]
-): { plugins: MarketEntry[]; shadowed: string[] } {
+export function mergeMarketEntries<T extends MarketEntry & { source: MarketItem['source'] }>(
+  local: T[],
+  remote: T[]
+): { plugins: T[]; shadowed: string[] } {
   const seen = new Set(local.map((e) => e.id))
   const plugins = [...local]
   const shadowed: string[] = []
@@ -346,7 +386,14 @@ export function marketIndexInfo(): {
   shadowed: string[]
 } {
   const cache = readRemoteCache()
-  const merged = mergeMarketEntries(localMarketEntries(), cache?.plugins ?? [])
+  // 此处只消费 shadowed/条目数：远端条目统一记 remote 来源
+  type Sourced = MarketEntry & { source: MarketItem['source'] }
+  const remoteEntries: Sourced[] = (cache?.plugins ?? []).map((e) => ({
+    ...e,
+    source: 'remote'
+  }))
+  const localTyped: Sourced[] = localMarketEntries().map((e) => ({ ...e, source: 'bundled' }))
+  const merged = mergeMarketEntries(localTyped, remoteEntries)
   return {
     localFile: marketIndexPath(),
     remoteUrl: getRemoteIndexUrl(),
@@ -432,7 +479,14 @@ export async function refreshRemoteIndex(): Promise<{
     ).plugins
     const fetchedAt = Date.now()
     writeRemoteCache({ url, fetchedAt, plugins })
-    const merged = mergeMarketEntries(localMarketEntries(), plugins)
+    const localTyped: Array<MarketEntry & { source: MarketItem['source'] }> = localMarketEntries().map(
+      (e) => ({ ...e, source: 'bundled' })
+    )
+    const remoteTyped: Array<MarketEntry & { source: MarketItem['source'] }> = plugins.map((e) => ({
+      ...e,
+      source: 'remote'
+    }))
+    const merged = mergeMarketEntries(localTyped, remoteTyped)
     return { ok: true, count: merged.plugins.length, shadowed: merged.shadowed, fetchedAt }
   } catch (error) {
     return { ok: false, count: 0, shadowed: [], error: (error as Error).message }

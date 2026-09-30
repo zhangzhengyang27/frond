@@ -231,7 +231,7 @@ describe('launcherThemeVars', () => {
       '--launcher-text-muted',
       '--launcher-text-faint'
     ]
-    const seq = keys.map((k) => a(dark[k]))
+    const seq = keys.map((k) => a(dark[k]!))
     expect(seq.every(Number.isFinite)).toBe(true)
     // 四档必须互不相同，否则「递减」会被四个相等糊过去
     expect(new Set(seq).size).toBe(4)

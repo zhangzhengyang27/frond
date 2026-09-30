@@ -85,7 +85,7 @@ export function registerClipsIpcHandlers(getMainWindow: () => BrowserWindow | nu
     if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
       return null
     }
-    return result.filePaths[0]
+    return result.filePaths[0] ?? null
   })
 
   typedHandle('clip:selectAudioFile', async () => {
@@ -101,7 +101,7 @@ export function registerClipsIpcHandlers(getMainWindow: () => BrowserWindow | nu
     if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
       return null
     }
-    return result.filePaths[0]
+    return result.filePaths[0] ?? null
   })
 
   typedHandle('clip:selectSavePath', async () => {

@@ -36,14 +36,14 @@ function extractExposedApiSurface(): Set<string> {
   for (const line of lines) {
     const m = line.match(/^(\s+)(\w+):\s*(.*)$/)
     if (!m) continue
-    const indent = m[1].length
+    const indent = m[1]!.length
     const name = m[2]
     const rest = m[3]
     // 缩进回退时弹出路径（顶层键缩进 2、子级 4、孙级 6）
     while (stack.length * 2 + 2 > indent) stack.pop()
-    const isNamespace = /^\{/.test(rest.trimStart())
+    const isNamespace = /^\{/.test(rest!.trimStart())
     if (isNamespace) {
-      stack.push(name)
+      stack.push(name!)
     } else {
       exposed.add([...stack, name].join('.'))
     }
@@ -92,7 +92,7 @@ describe('渲染端 window.api 奇偶校验', { timeout: 120_000 }, () => {
       // 捕获 window.api 之后至少两段属性链（window.api.ns.method[.sub]）
       for (const m of code.matchAll(/window\.api\??\.(\w+(?:\.\w+)+)/g)) {
         matchCount++
-        const chain = m[1]
+        const chain = m[1]!
         // 命中规则：完整链或其任意前缀在暴露面中（前缀用于「先取子对象再调方法」写法）
         const segs = chain.split('.')
         const ok = segs.some((_, i) => exposed.has(segs.slice(0, i + 1).join('.')))

@@ -31,7 +31,7 @@ class Parser {
   }
 
   private skipWs(): void {
-    while (this.pos < this.src.length && /\s/.test(this.src[this.pos])) this.pos++
+    while (this.pos < this.src.length && /\s/.test(this.src[this.pos] ?? '')) this.pos++
   }
 
   private peek(): string {
@@ -85,7 +85,7 @@ class Parser {
       return value
     }
     const start = this.pos
-    while (this.pos < this.src.length && /[0-9.]/.test(this.src[this.pos])) this.pos++
+    while (this.pos < this.src.length && /[0-9.]/.test(this.src[this.pos] ?? '')) this.pos++
     if (start === this.pos) throw new Error('expected number')
     const num = Number(this.src.slice(start, this.pos))
     if (!Number.isFinite(num)) throw new Error('bad number')

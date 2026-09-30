@@ -73,8 +73,8 @@ describe('runPomodoroDurationMsMigration', () => {
     const rows = db
       .prepare('SELECT duration_ms FROM pom_pomodoros ORDER BY started_at DESC')
       .all() as Array<{ duration_ms: number }>
-    expect(rows[0].duration_ms).toBe(1_500_000)
-    expect(rows[1].duration_ms).toBe(300_000)
+    expect(rows[0]!.duration_ms).toBe(1_500_000)
+    expect(rows[1]!.duration_ms).toBe(300_000)
   })
 
   it('done 标记写入 frond_meta，二次调用幂等不放大', () => {

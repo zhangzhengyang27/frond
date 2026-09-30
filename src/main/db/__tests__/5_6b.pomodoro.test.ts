@@ -56,8 +56,8 @@ describe('PomodoroRepository', () => {
       repo.addRecord({ type: 'work', duration: 25 * 60_000, completedAt: Date.now() })
       const trend = repo.getDailyTrend(1)
       expect(trend).toHaveLength(1)
-      expect(trend[0].workMinutes).toBe(25)
-      expect(trend[0].completedPomodoros).toBe(1)
+      expect(trend[0]!.workMinutes).toBe(25)
+      expect(trend[0]!.completedPomodoros).toBe(1)
     })
   })
 

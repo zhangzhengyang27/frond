@@ -93,7 +93,7 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
     }
     let jsonText: string
     try {
-      const filePath = dialogResult.filePaths[0]
+      const filePath = dialogResult.filePaths[0]! // canceled/空列表已在上方守卫
       // 大小上限：超大 JSON 在主进程 JSON.parse 会冻结全应用（同步解析）
       const statResult = await stat(filePath)
       if (statResult.size > SNIPPET_IMPORT_MAX_BYTES) {

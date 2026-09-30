@@ -156,7 +156,7 @@ if (!app.requestSingleInstanceLock()) {
   // dev 两态：开发态应用是 electron 二进制 + 入口脚本，注册协议必须把入口脚本
   // 作为执行参数带上，否则系统唤起 frond:// 时不知道要加载哪个入口；
   // 打包态（process.defaultApp 为 false）只注册 scheme 即可
-  app.setAsDefaultProtocolClient('frond', process.execPath, [resolve(process.argv[1])])
+  app.setAsDefaultProtocolClient('frond', process.execPath, [resolve(process.argv[1]!)]) // defaultApp 分支 argv[1] 必为脚本路径
 } else {
   app.setAsDefaultProtocolClient('frond')
 }

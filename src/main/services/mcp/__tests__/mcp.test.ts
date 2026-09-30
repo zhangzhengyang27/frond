@@ -87,8 +87,8 @@ describe('protocol：分帧与解析', () => {
     expect(tools.map((t) => t.name)).toEqual(['ok_tool', 'ok_two'])
     expect(skipped).toBe(5)
     // inputSchema 缺失时补空对象，界面按「无必填」处理
-    expect(tools[1].inputSchema).toEqual({})
-    expect(tools[1].description).toBe('')
+    expect(tools[1]!.inputSchema).toEqual({})
+    expect(tools[1]!.description).toBe('')
   })
 
   it('非数组的 tools 不当成空列表蒙混（调用方据此报错）', () => {
@@ -208,7 +208,7 @@ describe('sanitizeMcpServers：这是本机执行命令的清单，清洗从严'
       args: ['server.js'],
       enabled: true
     })
-    expect(servers[0].env.TOK).toBe('x')
+    expect(servers[0]!.env.TOK).toBe('x')
     expect(rejected).toEqual([])
   })
 
@@ -227,7 +227,7 @@ describe('sanitizeMcpServers：这是本机执行命令的清单，清洗从严'
   it('把「命令 + 参数」整串塞进 command 的写法直接拒收（我们不开 shell，那样只会变成找不到的可执行文件）', () => {
     const { servers, rejected } = sanitizeMcpServers([{ ...ok, command: 'node server.js' }])
     expect(servers).toHaveLength(0)
-    expect(rejected[0].reason).toContain('参数放 args')
+    expect(rejected[0]!.reason).toContain('参数放 args')
   })
 
   it('空 command 剔除；args 与 env 有上限；非字符串 env 键丢掉', () => {
@@ -240,9 +240,9 @@ describe('sanitizeMcpServers：这是本机执行命令的清单，清洗从严'
         env: { GOOD: '1', 'bad key': '2', 123: '3' }
       }
     ])
-    expect(r.rejected[0].reason).toBe('command 为空')
-    expect(r.servers[0].args).toHaveLength(32)
-    expect(Object.keys(r.servers[0].env)).toEqual(['GOOD'])
+    expect(r.rejected[0]!.reason).toBe('command 为空')
+    expect(r.servers[0]!.args).toHaveLength(32)
+    expect(Object.keys(r.servers[0]!.env)).toEqual(['GOOD'])
   })
 
   it('enabled 缺省为 true，显式 false 才停用；label 缺省取 id', () => {

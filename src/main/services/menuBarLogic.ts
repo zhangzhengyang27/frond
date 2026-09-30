@@ -46,9 +46,9 @@ export function escapeAppleScriptString(value: string): string {
  * 不给 pid 回退 frontmost（兼容无快照场景）。
  */
 export function buildClickScript(segments: string[], title: string, targetPid?: number): string {
-  let target = `menu bar item "${escapeAppleScriptString(segments[0])}"`
+  let target = `menu bar item "${escapeAppleScriptString(segments[0] ?? '')}"`
   for (let i = 1; i < segments.length; i++) {
-    target = `menu item "${escapeAppleScriptString(segments[i])}" of menu 1 of ${target}`
+    target = `menu item "${escapeAppleScriptString(segments[i]!)}" of menu 1 of ${target}`
   }
   const locate =
     typeof targetPid === 'number' && Number.isInteger(targetPid)

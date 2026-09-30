@@ -234,7 +234,7 @@ function runShowFrames(win: BrowserWindow, from: Rect, to: Rect): void {
       endAnim()
       return
     }
-    win.setBounds(frames[i])
+    win.setBounds(frames[i]!) // 帧序列非空才起定时器，i 递进受 frames.length 约束
     win.setOpacity(Math.min(1, (i + 1) / frames.length))
     i += 1
     if (i < frames.length) {
@@ -301,7 +301,7 @@ function applyLauncherHeight(): void {
       endAnim()
       return
     }
-    win.setBounds(frames[i])
+    win.setBounds(frames[i]!) // 帧序列非空才起定时器，i 递进受 frames.length 约束
     i += 1
     if (i < frames.length) {
       animTimer = setTimeout(tick, RESIZE_FRAME_MS)

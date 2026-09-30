@@ -301,7 +301,7 @@ export function runDataMigrations(): MigrationResult {
       const dir = join(userData, 'legacy-backup')
       const subs = readdirSync(dir).sort().reverse()
       if (subs.length > 0) {
-        const latest = join(dir, subs[0])
+        const latest = join(dir, subs[0]!) // length>0 已守卫
         db.prepare(
           `INSERT INTO frond_meta (key, value, updated_at) VALUES (?, ?, ?)
            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`

@@ -29,7 +29,7 @@ export async function showInputBox(opts: {
     const match = stdout.match(/text returned:(.*)/)
     if (match) {
       // 只去掉末尾换行，保留用户输入的首尾空格
-      return match[1].replace(/\n$/, '')
+      return match[1]!.replace(/\n$/, '')
     }
     return ''
   } catch {

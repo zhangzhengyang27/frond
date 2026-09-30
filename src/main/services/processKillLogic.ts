@@ -24,7 +24,7 @@ export function parsePsOutput(out: string): ProcessInfo[] {
     const cpu = Number(m[2])
     const mem = Number(m[3])
     if (!Number.isFinite(pid) || !Number.isFinite(cpu) || !Number.isFinite(mem)) continue
-    const command = m[4].trim()
+    const command = m[4]!.trim()
     if (!command) continue
     rows.push({ pid, cpu, mem, command, displayName: deriveDisplayName(command) })
   }
@@ -34,7 +34,7 @@ export function parsePsOutput(out: string): ProcessInfo[] {
 /** .app bundle 路径取 bundle 名（如「Google Chrome.app」→「Google Chrome」），否则 basename */
 export function deriveDisplayName(command: string): string {
   const m = command.match(/\/([^/]+)\.app\//)
-  if (m) return m[1]
+  if (m) return m[1]!
   const base = command.split('/').pop() ?? command
   return base || command
 }

@@ -122,7 +122,7 @@ class FrondDatabase {
       const probe = new Database(file, { readonly: true })
       try {
         const rows = probe.pragma('quick_check') as Array<Record<string, unknown>>
-        return rows.length > 0 && Object.values(rows[0]).some((v) => v === 'ok')
+        return rows.length > 0 && Object.values(rows[0]!).some((v) => v === 'ok')
       } finally {
         probe.close()
       }

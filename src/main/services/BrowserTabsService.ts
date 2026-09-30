@@ -86,8 +86,8 @@ function parseTabOutput(output: string, browser: 'chrome' | 'safari'): BrowserTa
   const lines = output.split('\n').filter((l) => l.trim())
   return lines.map((line) => {
     const parts = line.split('||')
-    const windowId = parseInt(parts[0], 10) || 1
-    const tabIndex = parseInt(parts[1], 10) || 1
+    const windowId = parseInt(parts[0] ?? '', 10) || 1
+    const tabIndex = parseInt(parts[1] ?? '', 10) || 1
     const title = parts[2] || ''
     const url = parts[3] || ''
     return {

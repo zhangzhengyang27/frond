@@ -4,6 +4,7 @@
     "src/shared/**/*"
   ],
   "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
     "composite": true,
     "baseUrl": ".",
     "types": ["electron-vite/node"],

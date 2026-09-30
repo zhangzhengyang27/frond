@@ -42,6 +42,6 @@ function pick(value: 'fade' | 'cut' | 'slide'): void {
         {{ opt.label }}
       </button>
     </div>
-    <span class="text-[11px] text-fg-tertiary">{{ current.hint }}</span>
+    <span class="text-[11px] text-fg-tertiary">{{ current?.hint }}</span>
   </div>
 </template>

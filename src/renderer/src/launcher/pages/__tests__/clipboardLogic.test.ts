@@ -67,11 +67,11 @@ describe('groupItems', () => {
     ]
     const groups = groupItems(items, NOW)
     expect(groups.map((g) => g.key)).toEqual(['pinned', 'today', 'yesterday', 'earlier'])
-    expect(groups[0].label).toBe('置顶')
-    expect(groups[0].items.map((i) => i.id)).toEqual(['p1', 'p2']) // 组内保持传入顺序
-    expect(groups[1].items.map((i) => i.id)).toEqual(['t1'])
-    expect(groups[2].label).toBe('昨天')
-    expect(groups[3].label).toBe('更早')
+    expect(groups[0]!.label).toBe('置顶')
+    expect(groups[0]!.items.map((i) => i.id)).toEqual(['p1', 'p2']) // 组内保持传入顺序
+    expect(groups[1]!.items.map((i) => i.id)).toEqual(['t1'])
+    expect(groups[2]!.label).toBe('昨天')
+    expect(groups[3]!.label).toBe('更早')
   })
 
   it('空组不输出；无置顶时今天在最前', () => {

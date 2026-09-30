@@ -138,7 +138,7 @@ export function quicklinkArgNames(url: string): string[] {
   const re = /\{([a-zA-Z_][\w-]*)\}/g
   let m: RegExpExecArray | null
   while ((m = re.exec(url)) !== null) {
-    const name = m[1]
+    const name = m[1]!
     if (name === 'query' || name === 'encodedQuery') continue
     if (!names.includes(name)) names.push(name)
   }

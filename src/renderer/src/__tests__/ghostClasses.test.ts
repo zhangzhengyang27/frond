@@ -43,12 +43,12 @@ function buildCandidates(): string[] {
   for (const file of collectVueFiles(join(repoRoot, 'src/renderer/src'))) {
     const src = readFileSync(file, 'utf-8')
     for (const m of src.matchAll(/(?<![:@\w-])class="([^"]*)"/g)) {
-      candidates.push(...m[1].split(/\s+/))
+      candidates.push(...m[1]!.split(/\s+/))
     }
     for (const m of src.matchAll(/(?<!\w):class="([^"]*)"/g)) {
-      for (const lit of m[1].matchAll(/'([^']*)'/g)) {
+      for (const lit of m[1]!.matchAll(/'([^']*)'/g)) {
         const v = lit[1]
-        if (/\s/.test(v) || /[-:[]/.test(v)) candidates.push(...v.split(/\s+/))
+        if (/\s/.test(v!) || /[-:[]/.test(v!)) candidates.push(...v!.split(/\s+/))
       }
     }
   }
@@ -118,12 +118,12 @@ describe('幽灵类门禁（管线版：每个候选类都必须被 TW4 管线�
       const local: string[] = []
 
       for (const m of src.matchAll(/(?<![:@\w-])class="([^"]*)"/g)) {
-        local.push(...m[1].split(/\s+/))
+        local.push(...m[1]!.split(/\s+/))
       }
       for (const m of src.matchAll(/(?<!\w):class="([^"]*)"/g)) {
-        for (const lit of m[1].matchAll(/'([^']*)'/g)) {
+        for (const lit of m[1]!.matchAll(/'([^']*)'/g)) {
           const v = lit[1]
-          if (/\s/.test(v) || /[-:[]/.test(v)) local.push(...v.split(/\s+/))
+          if (/\s/.test(v!) || /[-:[]/.test(v!)) local.push(...v!.split(/\s+/))
         }
       }
 

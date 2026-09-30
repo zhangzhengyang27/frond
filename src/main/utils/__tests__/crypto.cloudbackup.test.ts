@@ -29,7 +29,7 @@ describe('encryptFileWithPassword / decryptFileWithPassword', () => {
 
   it('密文被篡改抛错', () => {
     const blob = encryptFileWithPassword(Buffer.from('secret'), 'p')
-    blob[blob.length - 1] ^= 0xff
+    blob[blob.length - 1]! ^= 0xff
     expect(() => decryptFileWithPassword(blob, 'p')).toThrow()
   })
 

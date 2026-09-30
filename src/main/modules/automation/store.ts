@@ -290,7 +290,7 @@ export function planPluginTask(
   if (rejected.length > 0 || checked.length === 0) {
     return { ok: false, error: rejected[0]?.reason ?? '没存下' }
   }
-  return { ok: true, task: checked[0] }
+  return { ok: true, task: checked[0]! } // checked.length===0 已在上方守卫
 }
 
 /**

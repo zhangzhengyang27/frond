@@ -56,11 +56,11 @@ describe('MarkerService（rec_markers 存储）', () => {
     service.addMarker('rec-1', 65, '章节')
     const markers = service.getMarkers('rec-1')
     expect(markers).toHaveLength(2)
-    expect(markers[0].timestamp).toBe(5)
-    expect(markers[1].timestamp).toBe(65)
-    expect(markers[0].color).toBe('#ff4444')
+    expect(markers[0]!.timestamp).toBe(5)
+    expect(markers[1]!.timestamp).toBe(65)
+    expect(markers[0]!.color).toBe('#ff4444')
     // 落库毫秒
-    const row = db.prepare('SELECT time_ms FROM rec_markers WHERE id = ?').get(markers[0].id) as {
+    const row = db.prepare('SELECT time_ms FROM rec_markers WHERE id = ?').get(markers[0]!.id) as {
       time_ms: number
     }
     expect(row.time_ms).toBe(5000)

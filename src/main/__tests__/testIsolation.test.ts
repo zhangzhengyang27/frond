@@ -67,7 +67,7 @@ describe('测试隔离（不得写真实用户目录）', { timeout: 30_000 }, (
 
     for (const tf of testFiles) {
       const src = readFileSync(tf, 'utf-8')
-      const specs = [...src.matchAll(/from\s+['"](\.[^'"]+)['"]/g)].map((m) => m[1])
+      const specs = [...src.matchAll(/from\s+['"](\.[^'"]+)['"]/g)].map((m) => m[1]!)
       const importsStoreBacked = specs.some((spec) => {
         const p = resolveLocal(tf, spec)
         if (!p) return false

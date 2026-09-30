@@ -516,7 +516,7 @@ describe('useMultiPomodoroTimer', () => {
       await vi.advanceTimersByTimeAsync(61_000)
 
       expect(completes).toHaveLength(1)
-      expect(completes[0].duration).toBe(60 * 1000)
+      expect(completes[0]!.duration).toBe(60 * 1000)
       // 完成后标志位清掉，回到正常节奏
       expect(api.getTimer('p1').specialBreak).toBe(false)
       expect(api.getTimer('p1').mode).toBe('work')
@@ -540,8 +540,8 @@ describe('useMultiPomodoroTimer', () => {
       api.pause('p1')
 
       expect(persists).toHaveLength(1)
-      expect(persists[0].projectId).toBe('p1')
-      expect(persists[0].state).toMatchObject({ status: 'paused', timeLeft: 25 * 60 - 3 })
+      expect(persists[0]!.projectId).toBe('p1')
+      expect(persists[0]!.state).toMatchObject({ status: 'paused', timeLeft: 25 * 60 - 3 })
     })
 
     it('stopAll 把 running 转成 paused 并逐个落盘', async () => {

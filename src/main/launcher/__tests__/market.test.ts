@@ -53,8 +53,8 @@ describe('parseMarketIndex', () => {
     )
     expect(index.version).toBe(1)
     expect(index.plugins).toHaveLength(2)
-    expect(index.plugins[0].download).toBe(join(root, 'pkgs', 'a'))
-    expect(index.plugins[1].download).toBe('https://example.com/b.zip')
+    expect(index.plugins[0]!.download).toBe(join(root, 'pkgs', 'a'))
+    expect(index.plugins[1]!.download).toBe('https://example.com/b.zip')
   })
 
   it('非法条目剔除而非整体失败', () => {
@@ -72,7 +72,7 @@ describe('parseMarketIndex', () => {
       root
     )
     expect(index.plugins).toHaveLength(1)
-    expect(index.plugins[0].id).toBe('good.id')
+    expect(index.plugins[0]!.id).toBe('good.id')
   })
 
   it('非对象输入抛错', () => {
@@ -195,7 +195,7 @@ describe('isUpdatable / toMarketItems（版本更新通道）', () => {
     expect(items[1]).toMatchObject({ installed: true, installedVersion: '1.0.0', updatable: false })
     expect(items[2]).toMatchObject({ installed: true, installedVersion: '1.0.0', updatable: false })
     expect(items[3]).toMatchObject({ id: 'com.b.p', installed: false, updatable: false })
-    expect(items[3].installedVersion).toBeUndefined()
+    expect(items[3]!.installedVersion).toBeUndefined()
   })
 
   it('toMarketItems：市场条目保留原字段（name/version/download）', () => {
@@ -307,7 +307,7 @@ describe('远程索引（P-3.1）', () => {
       },
       root
     )
-    expect(index.plugins[0].download).toBe(join(root, 'plugins/com.local.p'))
+    expect(index.plugins[0]!.download).toBe(join(root, 'plugins/com.local.p'))
   })
 
   it('mergeMarketEntries：打包索引胜出，远程同名条目被挡且如实上报', () => {
@@ -318,7 +318,7 @@ describe('远程索引（P-3.1）', () => {
     ]
     const merged = mergeMarketEntries(local, remote)
     expect(merged.plugins.map((p) => p.id)).toEqual(['com.frond.example', 'com.a.p', 'com.new.p'])
-    expect(merged.plugins[0].download).not.toMatch(/evil/)
+    expect(merged.plugins[0]!.download).not.toMatch(/evil/)
     expect(merged.shadowed).toEqual(['com.frond.example'])
   })
 
@@ -469,7 +469,7 @@ describe('远程索引（P-3.1）', () => {
       },
       root
     )
-    expect(index.plugins[0].download).toBe(join(root, 'plugins/com.local.p'))
+    expect(index.plugins[0]!.download).toBe(join(root, 'plugins/com.local.p'))
   })
 
   it('mergeMarketEntries：打包索引胜出，远程同名条目被挡且如实上报', () => {
@@ -480,7 +480,7 @@ describe('远程索引（P-3.1）', () => {
     ]
     const merged = mergeMarketEntries(local, remote)
     expect(merged.plugins.map((p) => p.id)).toEqual(['com.frond.example', 'com.a.p', 'com.new.p'])
-    expect(merged.plugins[0].download).not.toMatch(/evil/)
+    expect(merged.plugins[0]!.download).not.toMatch(/evil/)
     expect(merged.shadowed).toEqual(['com.frond.example'])
   })
 

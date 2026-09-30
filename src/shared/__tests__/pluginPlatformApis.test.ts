@@ -69,17 +69,17 @@ describe('sanitizePluginPreferences', () => {
     const sel = sanitizePluginPreferences([
       { name: 's', label: 'S', type: 'select', options: ['x', 'y'.repeat(121)], default: 'x' }
     ])
-    expect(sel[0].options).toEqual(['x'])
+    expect(sel[0]!.options).toEqual(['x'])
     // label 是显示用的，超长截断即可（不改变功能）
     expect(
-      sanitizePluginPreferences([{ name: 'l', label: 'L'.repeat(80), type: 'text' }])[0].label
+      sanitizePluginPreferences([{ name: 'l', label: 'L'.repeat(80), type: 'text' }])[0]!.label
     ).toHaveLength(60)
   })
 
   it('重复 name 只留第一条；总数封顶', () => {
     const dup = sanitizePluginPreferences([ok, { ...ok, default: 'other' }])
     expect(dup).toHaveLength(1)
-    expect(dup[0].default).toBe('k')
+    expect(dup[0]!.default).toBe('k')
     const many = Array.from({ length: PLUGIN_MAX_PREFERENCES + 30 }, (_, i) => ({
       name: `p${i}`,
       label: `P${i}`,
@@ -154,7 +154,7 @@ describe('sanitizeAlertRequest', () => {
     expect(out?.title).toBe('标题')
     expect(out?.actions).toHaveLength(PLUGIN_MAX_ALERT_ACTIONS)
     expect(out?.actions[0]).toEqual({ id: 'a', title: 'A', style: 'destructive' })
-    expect(out?.actions[1].style).toBe('default')
+    expect(out?.actions[1]!.style).toBe('default')
     expect(out?.actions.map((a) => a.id)).toEqual(['a', 'b', 'x0', 'x1'])
   })
 

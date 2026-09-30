@@ -18,13 +18,13 @@ describe('processKillLogic · Kill Process（Raycast parity）', () => {
       const rows = parsePsOutput(out)
       expect(rows).toHaveLength(3)
       // cpu 降序：Chrome Helper (88.1) 在最前
-      expect(rows[0].pid).toBe(456)
-      expect(rows[0].cpu).toBe(88.1)
-      expect(rows[0].mem).toBe(4)
-      expect(rows[0].command).toBe(
+      expect(rows[0]!.pid).toBe(456)
+      expect(rows[0]!.cpu).toBe(88.1)
+      expect(rows[0]!.mem).toBe(4)
+      expect(rows[0]!.command).toBe(
         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome Helper (Renderer)'
       )
-      expect(rows[2].pid).toBe(78)
+      expect(rows[2]!.pid).toBe(78)
     })
 
     it('畸形行（缺列/非数字）跳过而不是炸掉整个列表', () => {

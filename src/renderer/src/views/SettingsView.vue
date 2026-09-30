@@ -135,7 +135,7 @@ const filteredSections = computed(() => {
 watch(searchQuery, () => {
   const hits = filteredSections.value
   if (hits.length > 0 && !hits.some((s) => s.id === activeSection.value)) {
-    activeSection.value = hits[0].id
+    activeSection.value = hits[0]!.id
   }
 })
 

@@ -95,7 +95,7 @@ describe('AIService（SQLite 存储）', () => {
     } as AIChatSession
     saveSession(session)
     expect(listSessions()).toHaveLength(1)
-    expect(listSessions()[0].id).toBe('s1')
+    expect(listSessions()[0]!.id).toBe('s1')
     clearSessions()
     expect(listSessions()).toEqual([])
   })

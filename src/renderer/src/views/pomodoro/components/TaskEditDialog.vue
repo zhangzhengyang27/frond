@@ -184,7 +184,7 @@ function createProject(): void {
   const name = newProjectName.value.trim()
   if (!name) return
   pendingProjectName.value = name
-  emit('create-project', { name, color: newProjectColor.value })
+  emit('create-project', { name, color: newProjectColor.value ?? '' })
   newProjectName.value = ''
   showNewProject.value = false
 }

@@ -923,9 +923,9 @@ function todayDate(): string {
 
 /** 本地时区 [当日 00:00, 次日 00:00) 毫秒区间（date 为 YYYY-MM-DD） */
 function localDayRange(date: string): { start: number; end: number } {
-  const [y, m, d] = date.split('-').map(Number)
-  const start = new Date(y, (m ?? 1) - 1, d ?? 1).getTime()
-  const endDate = new Date(y, (m ?? 1) - 1, (d ?? 1) + 1)
+  const [y = 1970, m = 1, d = 1] = date.split('-').map(Number)
+  const start = new Date(y, m - 1, d).getTime()
+  const endDate = new Date(y, m - 1, d + 1)
   return { start, end: endDate.getTime() }
 }
 

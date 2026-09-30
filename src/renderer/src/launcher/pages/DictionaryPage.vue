@@ -26,7 +26,7 @@
           </button>
         </div>
         <div class="dict-meanings">
-          <div v-for="(meaning, mi) in definitions[0].meanings" :key="mi" class="dict-meaning">
+          <div v-for="(meaning, mi) in definitions[0]!.meanings" :key="mi" class="dict-meaning">
             <div class="dict-pos">{{ meaning.partOfSpeech }}</div>
             <ol class="dict-defs">
               <li v-for="(def, di) in meaning.definitions.slice(0, 3)" :key="di" class="dict-def">

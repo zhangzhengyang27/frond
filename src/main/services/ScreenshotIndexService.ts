@@ -48,7 +48,7 @@ export function parseShotQuery(
   let m: RegExpExecArray | null
   while ((m = re.exec(raw)) !== null) {
     consumed.push(m[0])
-    const key = m[1].toLowerCase()
+    const key = m[1]!.toLowerCase()
     const value = m[2] ?? m[3] ?? m[4] ?? ''
     if (key === 'name' && value) out.name = value
     else if (key === 'text' && value) out.text = value

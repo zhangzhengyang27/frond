@@ -160,7 +160,7 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
     const d = new Date(now)
     d.setDate(d.getDate() + 1)
     const period = tomorrowMatch[1] || ''
-    let hour = parseInt(tomorrowMatch[2])
+    let hour = parseInt(tomorrowMatch[2]!)
     const minute = tomorrowMatch[3] ? parseInt(tomorrowMatch[3]) : 0
     if ((period === '下午' || period === '晚上') && hour < 12) hour += 12
     if ((period === '早上' || period === '上午') && hour === 12) hour = 0
@@ -174,7 +174,7 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
   if (todayMatch && !remindAt) {
     const d = new Date(now)
     const period = todayMatch[1] || ''
-    let hour = parseInt(todayMatch[2])
+    let hour = parseInt(todayMatch[2]!)
     const minute = todayMatch[3] ? parseInt(todayMatch[3]) : 0
     if ((period === '下午' || period === '晚上') && hour < 12) hour += 12
     if ((period === '早上' || period === '上午') && hour === 12) hour = 0
@@ -188,7 +188,7 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
   // "1小时后" / "30分钟后"
   const durationMatch = text.match(/(\d+)(小时|分钟|天)后/)
   if (durationMatch && !remindAt) {
-    const num = parseInt(durationMatch[1])
+    const num = parseInt(durationMatch[1]!)
     const unit = durationMatch[2]
     const d = new Date(now)
     if (unit === '小时') d.setHours(d.getHours() + num)
@@ -205,7 +205,7 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
   if (enTomorrowMatch && !remindAt) {
     const d = new Date(now)
     d.setDate(d.getDate() + 1)
-    let hour = parseInt(enTomorrowMatch[1])
+    let hour = parseInt(enTomorrowMatch[1]!)
     const minute = enTomorrowMatch[2] ? parseInt(enTomorrowMatch[2]) : 0
     const period = enTomorrowMatch[3]?.toLowerCase()
     if (period === 'pm' && hour < 12) hour += 12
@@ -219,7 +219,7 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
   const enTodayMatch = text.match(/(?:\btoday\b\s+)?(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i)
   if (enTodayMatch && !remindAt) {
     const d = new Date(now)
-    let hour = parseInt(enTodayMatch[1])
+    let hour = parseInt(enTodayMatch[1]!)
     const minute = enTodayMatch[2] ? parseInt(enTodayMatch[2]) : 0
     const period = enTodayMatch[3]?.toLowerCase()
     if (period === 'pm' && hour < 12) hour += 12
@@ -236,8 +236,8 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
   // "in 1 hour" / "in 30 minutes" / "in 2 days"
   const enDurationMatch = text.match(/\bin\s+(\d+)\s+(hour|hours|minute|minutes|day|days)\b/i)
   if (enDurationMatch && !remindAt) {
-    const num = parseInt(enDurationMatch[1])
-    const unit = enDurationMatch[2].toLowerCase()
+    const num = parseInt(enDurationMatch[1]!)
+    const unit = enDurationMatch[2]!.toLowerCase()
     const d = new Date(now)
     if (unit.startsWith('hour')) d.setHours(d.getHours() + num)
     else if (unit.startsWith('minute')) d.setMinutes(d.getMinutes() + num)

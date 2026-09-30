@@ -271,7 +271,7 @@ class ClipboardHistoryService {
   remove(id: string): boolean {
     const idx = this.items.findIndex((i) => i.id === id)
     if (idx === -1) return false
-    const [item] = this.items.splice(idx, 1)
+    const item = this.items.splice(idx, 1)[0]! // idx!==-1 已守卫，必然移除到元素
     if (item.kind === 'image' && item.filePath && existsSync(item.filePath)) {
       try {
         unlinkSync(item.filePath)

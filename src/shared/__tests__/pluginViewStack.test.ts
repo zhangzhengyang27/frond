@@ -30,7 +30,7 @@ describe('生长只由插件明说（pushLayer），重绘永远不生长（repl
     const one = replaceLayer([], L('search'))
     const two = replaceLayer(one, L('search'))
     expect(two).toHaveLength(1)
-    expect(two[0].id).toBe('search')
+    expect(two[0]!.id).toBe('search')
   })
 
   it('换了 id 也只替换栈顶，**不**多长一层（进下一层要明说 push）', () => {
@@ -64,7 +64,7 @@ describe('栈深上限：丢最底下一层，而不是拒收新层', () => {
     let stack: PluginViewLayer[] = [L('l0')]
     for (let i = 1; i <= PLUGIN_VIEW_STACK_MAX; i++) stack = pushLayer(stack, L(`l${i}`))
     expect(stack).toHaveLength(PLUGIN_VIEW_STACK_MAX)
-    expect(stack[0].id).toBe('l1')
+    expect(stack[0]!.id).toBe('l1')
     expect(topLayer(stack)?.id).toBe(`l${PLUGIN_VIEW_STACK_MAX}`)
   })
 })

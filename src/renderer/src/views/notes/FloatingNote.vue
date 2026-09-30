@@ -179,7 +179,7 @@ onMounted(async () => {
   await loadRecentNotes()
   // 默认打开最近的笔记，或者新建一个
   if (recentNotes.value.length > 0) {
-    await selectNote(recentNotes.value[0].id)
+    await selectNote(recentNotes.value[0]!.id)
   }
 })
 

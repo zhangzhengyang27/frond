@@ -100,11 +100,11 @@ function referencedTables(): Map<string, string> {
   for (const file of files) {
     const sql = stripComments(readFileSync(join(REPOS_DIR, file), 'utf-8'))
     for (const m of sql.matchAll(TABLE_REF_RE)) {
-      const name = m[1].toLowerCase()
+      const name = m[1]!.toLowerCase()
       if (NON_TABLE_TOKENS.has(name)) continue
       if (!found.has(name)) found.set(name, file)
     }
-    for (const m of sql.matchAll(CTE_RE)) cteNames.add(m[1].toLowerCase())
+    for (const m of sql.matchAll(CTE_RE)) cteNames.add(m[1]!.toLowerCase())
   }
 
   // 统一剔除 CTE 名：必须等全部文件扫完再剔，否则同文件里 CTE 之后的引用会被重新加回
@@ -149,7 +149,7 @@ describe('迁移与仓储一致性', () => {
     const versions = migrations.map((m) => m.version)
     expect(versions.length).toBeGreaterThan(25)
     for (let i = 1; i < versions.length; i++) {
-      expect(versions[i]).toBeGreaterThan(versions[i - 1])
+      expect(versions[i]).toBeGreaterThan(versions[i - 1]!)
     }
   })
 

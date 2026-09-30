@@ -63,12 +63,12 @@ describe('buildExportPayload 导出负载', () => {
       })
     ])
     const s = payload.snippets[0]
-    expect(s.folderId).toBeNull()
-    expect(s.tagIds).toEqual(['t1'])
-    expect(s.description).toBe('desc')
-    expect(s.trigger).toBe(';sig')
-    expect(s.isFavorites).toBe(true)
-    expect(s.contents[0].contentType).toBe('rich')
+    expect(s!.folderId).toBeNull()
+    expect(s!.tagIds).toEqual(['t1'])
+    expect(s!.description).toBe('desc')
+    expect(s!.trigger).toBe(';sig')
+    expect(s!.isFavorites).toBe(true)
+    expect(s!.contents[0]!.contentType).toBe('rich')
   })
 })
 
@@ -150,7 +150,7 @@ describe('parseImportPayload 导入校验', () => {
     const r = parseImportPayload(json)
     expect(r.ok).toBe(true)
     if (!r.ok) return
-    expect(r.snippets[0].contents).toEqual([
+    expect(r.snippets[0]!.contents).toEqual([
       { id: '', label: '', value: 'v', language: 'plaintext', contentType: 'rich' }
     ])
   })
@@ -187,8 +187,8 @@ describe('导出 → 导入往返（结构自洽）', () => {
     expect(roundTrip.ok).toBe(true)
     if (!roundTrip.ok) return
     expect(roundTrip.snippets.map((s) => s.id)).toEqual(['x1', 'x2'])
-    expect(roundTrip.snippets[0].trigger).toBe(';brb')
-    expect(roundTrip.snippets[0].tagIds).toEqual(['t1'])
-    expect(roundTrip.snippets[1].isFavorites).toBe(true)
+    expect(roundTrip.snippets[0]!.trigger).toBe(';brb')
+    expect(roundTrip.snippets[0]!.tagIds).toEqual(['t1'])
+    expect(roundTrip.snippets[1]!.isFavorites).toBe(true)
   })
 })

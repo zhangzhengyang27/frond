@@ -32,7 +32,7 @@ function extractExposedApi(): Set<string> {
   for (const line of body.split('\n')) {
     const ns = line.match(/^ {2}(\w+): \{$/)
     if (ns) {
-      currentNamespace = ns[1]
+      currentNamespace = ns[1]!
       continue
     }
     // 命名空间结束（回到 2 空格缩进的下一行由后续匹配处理；仅两个扁平命名空间，简单重置）
@@ -46,7 +46,7 @@ function extractExposedApi(): Set<string> {
     }
     const topLevel = line.match(/^ {2}(\w+):/)
     if (topLevel) {
-      exposed.add(topLevel[1])
+      exposed.add(topLevel[1]!)
     }
   }
 
@@ -85,7 +85,7 @@ describe('插件 API 奇偶校验', () => {
         // 负向断言排除 URL 中的 "api.xxx.com" 之类字符串，只匹配真正的 api 对象调用
         const calls = html.matchAll(/(?<![\w./$-])api\.(\w+(?:\.\w+)?)/g)
         for (const m of calls) {
-          const name = m[1]
+          const name = m[1]!
           if (!exposed.has(name)) {
             offenders.push(`${rel}: api.${name} 不在 preload 暴露的 API 中`)
           }
@@ -122,7 +122,7 @@ describe('插件敏感权限声明制', () => {
         }
         for (const api of used) {
           const perm = SENSITIVE_PLUGIN_API_PERMISSIONS[api]
-          if (!declared.includes(perm)) {
+          if (!declared.includes(perm!)) {
             offenders.push(
               `${file.slice(repoRoot.length + 1)}: 使用 api.${api} 但未声明权限 "${perm}"`
             )

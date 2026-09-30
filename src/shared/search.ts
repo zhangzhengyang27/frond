@@ -37,7 +37,7 @@ export function normalizeWithMap(text: string): NormalizedText {
   const chars: string[] = []
   const map: number[] = []
   for (let i = 0; i < text.length; i++) {
-    const ch = lower[i]
+    const ch = lower[i] ?? ''
     if (WHITESPACE.test(ch) || !WORD_CHAR.test(ch)) continue
     chars.push(ch)
     map.push(i)
@@ -63,7 +63,7 @@ export function matchNormalized(normText: string, nq: string): NormalizedMatch |
   let first = -1
   let last = -1
   for (let i = 0; i < nq.length; i++) {
-    const found = normText.indexOf(nq[i], cursor)
+    const found = normText.indexOf(nq[i] ?? '', cursor)
     if (found === -1) return null
     if (first === -1) first = found
     last = found
@@ -149,7 +149,7 @@ export function argPrefixMatch(query: string, title: string): NormalizedMatch | 
   const offset = query.length - q.length
   if (!title || q.length <= title.length) return null
   if (q.slice(0, title.length).toLowerCase() !== title.toLowerCase()) return null
-  if (!/\s/.test(q[title.length])) return null
+  if (!/\s/.test(q[title.length]!)) return null
   return { contiguous: true, start: offset, end: offset + title.length - 1 }
 }
 

@@ -78,7 +78,7 @@ describe('toolArgSpecs：inputSchema → 能填的参数表', () => {
       ['city', 'string', false],
       ['flag', 'boolean', false]
     ])
-    expect(args[1].description).toBe('城市名')
+    expect(args[1]!.description).toBe('城市名')
   })
 
   it('type 写成数组（联合类型）按不支持处理，不猜哪个', () => {
@@ -148,7 +148,7 @@ describe('工具清单缓存 → 命令表', () => {
     const rows = mcpToolCommands()
     expect(rows.map((r) => r.tool)).toEqual(['echo', 'ping_no_args'])
     expect(rows[0]).toMatchObject({ serverId: 'fx', serverLabel: '夹具' })
-    expect(rows[0].args.map((a) => a.name)).toEqual(['msg'])
+    expect(rows[0]!.args.map((a) => a.name)).toEqual(['msg'])
     // 停掉会话之后命令表照旧（这就是缓存存在的意义：胶囊唤起不该 spawn）
     stopAllServers()
     expect(mcpToolCommands().map((r) => r.tool)).toEqual(['echo', 'ping_no_args'])

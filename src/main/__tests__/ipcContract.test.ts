@@ -71,13 +71,13 @@ function extractMainChannelsDetailed(filePath: string): {
   // 直接 ipcMain.handle('ch', ...) / ipcMain.on('ch', ...)
   const re1 = /ipcMain\.(?:handle|on)\(\s*['"`]([^'"`]+)['"`]/g
   let m: RegExpExecArray | null
-  while ((m = re1.exec(code))) request.push(m[1])
+  while ((m = re1.exec(code))) request.push(m[1]!)
   // typedHandle('ch', ...) —— 单对象约定的类型化注册（通道仍是字面量，才可静态检查）
   const reTyped = /typedHandle(?:Logged)?\(\s*['"`]([^'"`]+)['"`]/g
-  while ((m = reTyped.exec(code))) request.push(m[1])
+  while ((m = reTyped.exec(code))) request.push(m[1]!)
   // webContents.send('ch', ...) —— 主进程向渲染端推事件（push channel）
   const reSend = /webContents\.send\(\s*['"`]([^'"`]+)['"`]/g
-  while ((m = reSend.exec(code))) push.push(m[1])
+  while ((m = reSend.exec(code))) push.push(m[1]!)
   return { request, push }
 }
 
@@ -95,7 +95,7 @@ function extractPreloadInvokes(filePath: string): string[] {
   const re = /(?:ipcRenderer\.invoke|typedInvoke)\(\s*['"`]([^'"`]+)['"`]/g
   const out: string[] = []
   let m: RegExpExecArray | null
-  while ((m = re.exec(src))) out.push(m[1])
+  while ((m = re.exec(src))) out.push(m[1]!)
   return out
 }
 
@@ -107,7 +107,7 @@ function extractPreloadOns(filePath: string): string[] {
   const re = /ipcRenderer\.on\(\s*['"`]([^'"`]+)['"`]/g
   const out: string[] = []
   let m: RegExpExecArray | null
-  while ((m = re.exec(src))) out.push(m[1])
+  while ((m = re.exec(src))) out.push(m[1]!)
   return out
 }
 
@@ -120,7 +120,7 @@ function extractPreloadSends(filePath: string): string[] {
   const re = /ipcRenderer\.send\(\s*['"`]([^'"`]+)['"`]/g
   const out: string[] = []
   let m: RegExpExecArray | null
-  while ((m = re.exec(src))) out.push(m[1])
+  while ((m = re.exec(src))) out.push(m[1]!)
   return out
 }
 
@@ -182,7 +182,7 @@ describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', { tim
       src.indexOf('export interface IpcContract'),
       src.indexOf('\nexport type IpcKey')
     )
-    return [...body.matchAll(/^ {2}'([^']+)':\s*\{/gm)].map((m) => m[1])
+    return [...body.matchAll(/^ {2}'([^']+)':\s*\{/gm)].map((m) => m[1]!)
   }
 
   let realChannelsCache: Set<string> | null = null
@@ -425,7 +425,7 @@ describe('路由表组件完整性', () => {
     const re = /import\(\s*['"`]([^'"`]+)['"`]\s*\)/g
     const imports: string[] = []
     let m: RegExpExecArray | null
-    while ((m = re.exec(src))) imports.push(m[1])
+    while ((m = re.exec(src))) imports.push(m[1]!)
 
     const missing: string[] = []
     for (const p of imports) {
@@ -460,7 +460,7 @@ describe('shared/modules.ts 与 router 路径一致', () => {
     const pathRe = /path:\s*['"`]([^'"`]+)['"`]/g
     const paths = new Set<string>()
     let m: RegExpExecArray | null
-    while ((m = pathRe.exec(modSrc))) paths.add(m[1])
+    while ((m = pathRe.exec(modSrc))) paths.add(m[1]!)
 
     const routerSrc = readSource(routerFile)
     // 收集 router 里出现的所有 path / redirect 目标 / children path
@@ -470,12 +470,12 @@ describe('shared/modules.ts 与 router 路径一致', () => {
     const allRouterPaths = new Set<string>()
 
     const reProp = /(?:path|redirect|to):\s*['"`]([^'"`]+)['"`]/g
-    while ((m = reProp.exec(routerSrc))) allRouterPaths.add(m[1])
+    while ((m = reProp.exec(routerSrc))) allRouterPaths.add(m[1]!)
 
     // 额外扫描：找 router 里有没有 screenRecorder / xxx 这种父 path，
     // 与模块 path 的前缀匹配（嵌套路由）
     const parentRe = /path:\s*['"`](\/[a-zA-Z][\w-]*)['"`]/g
-    while ((m = parentRe.exec(routerSrc))) allRouterPaths.add(m[1])
+    while ((m = parentRe.exec(routerSrc))) allRouterPaths.add(m[1]!)
 
     const missing: string[] = []
     for (const p of paths) {
@@ -563,7 +563,7 @@ describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', {
       const body = src.slice(open + 1, end)
       const reqMatch = /(?:^|[\s{,])req\s*:/.exec(body)
       if (!reqMatch) {
-        out.set(channel, false)
+        out.set(channel!, false)
         continue
       }
       const afterReq = body.slice(reqMatch.index + reqMatch[0].length)
@@ -571,7 +571,7 @@ describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', {
       let d = 0
       let cut = afterReq.length
       for (let i = 0; i < afterReq.length; i++) {
-        const c = afterReq[i]
+        const c = afterReq[i] ?? ''
         if ('{(['.includes(c)) d++
         else if ('})]'.includes(c)) d--
         else if (d === 0) {
@@ -585,7 +585,7 @@ describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', {
           }
         }
       }
-      out.set(channel, afterReq.slice(0, cut).trim() === 'void')
+      out.set(channel!, afterReq.slice(0, cut).trim() === 'void')
     }
     return out
   }
@@ -603,7 +603,7 @@ describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', {
         .join('\n')
       const re = /ipcMain\.handle\(\s*['"`]([^'"`]+)['"`]/g
       let m: RegExpExecArray | null
-      while ((m = re.exec(code))) out.set(m[1], f)
+      while ((m = re.exec(code))) out.set(m[1]!, f)
     }
     return out
   }

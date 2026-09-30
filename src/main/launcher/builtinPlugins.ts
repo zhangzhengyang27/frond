@@ -29,7 +29,7 @@ export function builtinPluginsDir(): string {
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate
   }
-  return candidates[0]
+  return candidates[0] ?? ''
 }
 
 /** 读取目录下的 plugin.json */

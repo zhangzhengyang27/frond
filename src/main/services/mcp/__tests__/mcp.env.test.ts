@@ -40,14 +40,14 @@ beforeEach(() => {
 describe('sanitize 与 env 保留的接口约定', () => {
   it('未显式带 env 的条目清洗后是空对象（保留动作由 saveMcpServers 负责）', () => {
     const { servers } = sanitizeMcpServers([{ id: 'a', command: 'node' }])
-    expect(servers[0].env).toEqual({})
+    expect(servers[0]!.env).toEqual({})
   })
 
   it('显式带 env 的条目原样收下（值保留、非法键丢掉）', () => {
     const { servers } = sanitizeMcpServers([
       { id: 'a', command: 'node', env: { TOK: 'v', 'bad key': 'x' } }
     ])
-    expect(servers[0].env).toEqual({ TOK: 'v' })
+    expect(servers[0]!.env).toEqual({ TOK: 'v' })
   })
 
   it('两条都有 env 时键集合不同也能区分（合并逻辑按 id 走）', () => {
@@ -62,7 +62,7 @@ describe('sanitize 与 env 保留的接口约定', () => {
 describe('saveMcpServers：改 label 不能洗掉凭据', () => {
   it('回传不带 env → 沿用本机原值；带 env → 替换；删掉服务器 → env 一起消失', () => {
     saveMcpServers([{ id: 'a', command: 'node', label: '原名', env: { TOK: 'secret' } }])
-    expect(readMcpServers()[0].env).toEqual({ TOK: 'secret' })
+    expect(readMcpServers()[0]!.env).toEqual({ TOK: 'secret' })
 
     // 界面只改了 label，没带 env 字段
     saveMcpServers([{ id: 'a', command: 'node', label: '新名' }])
@@ -70,10 +70,10 @@ describe('saveMcpServers：改 label 不能洗掉凭据', () => {
 
     // 显式带 env（哪怕是空对象）按新值走：这是用户主动清凭据
     saveMcpServers([{ id: 'a', command: 'node', label: '新名', env: {} }])
-    expect(readMcpServers()[0].env).toEqual({})
+    expect(readMcpServers()[0]!.env).toEqual({})
 
     saveMcpServers([{ id: 'a', command: 'node', label: '新名', env: { OTHER: 'x' } }])
-    expect(readMcpServers()[0].env).toEqual({ OTHER: 'x' })
+    expect(readMcpServers()[0]!.env).toEqual({ OTHER: 'x' })
 
     saveMcpServers([])
     expect(readMcpServers()).toEqual([])
@@ -82,7 +82,7 @@ describe('saveMcpServers：改 label 不能洗掉凭据', () => {
   it('公开形态里永远看不到 env 值', () => {
     const { servers } = saveMcpServers([{ id: 'a', command: 'node', env: { TOK: 'secret' } }])
     expect(servers[0]).not.toHaveProperty('env')
-    expect(servers[0].envKeys).toEqual(['TOK'])
+    expect(servers[0]!.envKeys).toEqual(['TOK'])
     // 总览接口同样不能漏：它是设置页唯一的数据源
     expect(JSON.stringify(mcpOverview())).not.toContain('secret')
   })

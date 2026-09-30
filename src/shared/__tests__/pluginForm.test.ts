@@ -32,8 +32,8 @@ describe('parsePluginForm', () => {
       type: 'textarea',
       placeholder: '想说的话'
     })
-    expect(form!.fields[2].type).toBe('checkbox')
-    expect(form!.fields[2].initial).toBe(true)
+    expect(form!.fields[2]!.type).toBe('checkbox')
+    expect(form!.fields[2]!.initial).toBe(true)
   })
 
   it('缺 submitId / 非法 $t / 无字段 → null', () => {
@@ -58,7 +58,7 @@ describe('parsePluginForm', () => {
       ]
     })
     expect(form!.fields.map((f) => f.key)).toEqual(['a', 'b'])
-    expect(form!.fields[1].label).toBe('b') // 无 label 用 id 兜底
+    expect(form!.fields[1]!.label).toBe('b') // 无 label 用 id 兜底
   })
 
   it('select 无选项降级 text；非法类型降级 text', () => {

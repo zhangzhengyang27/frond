@@ -141,28 +141,28 @@ describe('groupResultsForDisplay（V5 分区渲染的扁平下标映射）', () 
   it('根态（无查询词）：单「建议」分区，保序 + 扁平下标', () => {
     const groups = groupResultsForDisplay(mixed, false)
     expect(groups).toHaveLength(1)
-    expect(groups[0].label).toBe('建议')
-    expect(groups[0].items.map((s) => s.index)).toEqual([0, 1, 2, 3])
+    expect(groups[0]!.label).toBe('建议')
+    expect(groups[0]!.items.map((s) => s.index)).toEqual([0, 1, 2, 3])
   })
 
   it('查询态：文件行归「文件」，其余归「结果」，槽位保留原扁平下标', () => {
     const groups = groupResultsForDisplay(mixed, true)
     expect(groups.map((g) => g.label)).toEqual(['结果', '文件'])
-    expect(groups[0].items.map((s) => s.index)).toEqual([0, 2])
-    expect(groups[1].items.map((s) => s.index)).toEqual([1, 3])
+    expect(groups[0]!.items.map((s) => s.index)).toEqual([0, 2])
+    expect(groups[1]!.items.map((s) => s.index)).toEqual([1, 3])
   })
 
   it('查询态无文件结果：只输出「结果」一个分区', () => {
     const groups = groupResultsForDisplay([mk('app', 'a')], true)
     expect(groups).toHaveLength(1)
-    expect(groups[0].label).toBe('结果')
+    expect(groups[0]!.label).toBe('结果')
   })
 
   it('查询态全是文件：输出空的「结果」分区 + 「文件」分区', () => {
     const groups = groupResultsForDisplay([mk('file', 'f1')], true)
     expect(groups.map((g) => g.label)).toEqual(['结果', '文件'])
-    expect(groups[0].items).toEqual([])
-    expect(groups[1].items.map((s) => s.index)).toEqual([0])
+    expect(groups[0]!.items).toEqual([])
+    expect(groups[1]!.items.map((s) => s.index)).toEqual([0])
   })
 })
 

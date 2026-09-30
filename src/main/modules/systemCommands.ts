@@ -636,7 +636,7 @@ async function macProbeFrontWindow(): Promise<{ ok: boolean; rect?: Rect }> {
   const probe = await run(MAC_PROBE_WINDOW_CMD, 4000)
   const nums = String(probe.stdout ?? '').match(/-?\d+/g)
   if (!probe.ok || !nums || nums.length < 4) return { ok: false }
-  const [x, y, w, h] = nums.map(Number)
+  const [x = 0, y = 0, w = 0, h = 0] = nums.map(Number)
   return { ok: true, rect: { x, y, width: w, height: h } }
 }
 
@@ -680,13 +680,14 @@ async function macMoveToNextDisplay(): Promise<{ ok: boolean; error?: string }> 
   if (!probe.ok || !nums || nums.length < 4) {
     return { ok: false, error: '无法读取前台窗口位置' }
   }
-  const [wx, wy, ww, wh] = nums.map(Number)
+  const [wx = 0, wy = 0, ww = 0, wh = 0] = nums.map(Number)
   const cur = screen.getDisplayNearestPoint({ x: wx, y: wy })
   const curIdx = Math.max(
     0,
     displays.findIndex((d) => d.id === cur.id)
   )
-  const next = displays[(curIdx + 1) % displays.length]
+  // displays.length>1 已守卫：模运算索引恒在界内，displays[0] 必存在
+  const next = displays[(curIdx + 1) % displays.length] ?? displays[0]!
   // 相对 workArea 的偏移平移到目标屏，越界时夹回目标屏可见区域内
   const nx = clamp(
     next.workArea.x + (wx - cur.workArea.x),

@@ -88,10 +88,10 @@ describe('applyGlassVars', () => {
             v
           )?.[1] ?? NaN
         )
-      const bgPct = mixPct(el.set[GLASS_CSS_VARS.bg])
+      const bgPct = mixPct(el.set[GLASS_CSS_VARS.bg]!)
       expect(bgPct, '底色不是掺透明的 color-mix 形态').toBeGreaterThan(0)
       expect(bgPct, '掺 100% 就是原值，等于这一档没生效').toBeLessThan(100)
-      expect(mixPct(el.set[GLASS_CSS_VARS.elevated])).toBe(bgPct)
+      expect(mixPct(el.set[GLASS_CSS_VARS.elevated]!)).toBe(bgPct)
       expect(el.set[GLASS_CSS_VARS.blur]).toMatch(/^blur\(\d+px\)$/)
     }
   })

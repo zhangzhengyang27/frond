@@ -1214,7 +1214,7 @@ onMounted(() => {
           v-else-if="isShowMarkdown && hasMarkdownContent"
           class="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <MarkdownPreview :content="selectedSnippetContent" @close="isShowMarkdown = false" />
+          <MarkdownPreview :content="selectedSnippetContent ?? null" @close="isShowMarkdown = false" />
         </div>
 
         <!-- JSON 可视化 -->

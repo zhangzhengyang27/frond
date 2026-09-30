@@ -89,7 +89,7 @@ describe('ClipTimeline', () => {
     await wrapper.get('[data-clip-id="c2"]').trigger('click')
     const selected = wrapper.emitted('clip-select')
     expect(selected).toHaveLength(1)
-    expect((selected![0][0] as Clip).id).toBe('c2')
+    expect((selected![0]![0] as Clip).id).toBe('c2')
   })
 
   it('拖片段右边界 → update 只动 endTime，startEdge 不动', async () => {
@@ -107,7 +107,7 @@ describe('ClipTimeline', () => {
 
     const updates = wrapper.emitted('update')
     expect(updates).toHaveLength(1)
-    const next = updates![0][0] as Clip
+    const next = updates![0]![0] as Clip
     expect(next.startTime).toBe(10)
     expect(next.endTime).toBe(35)
     // 改边界不该同时被当成「框选新增」或「跳转」

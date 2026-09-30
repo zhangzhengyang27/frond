@@ -17,7 +17,7 @@ describe('menuBarLogic · 菜单栏项搜索（Raycast parity）', () => {
       ].join('\n')
       const items = parseMenuBarListing(out)
       expect(items).toHaveLength(3)
-      const pdf: MenuBarItem = items[1]
+      const pdf: MenuBarItem = items[1]!
       // segments 只含路径段（不含条目名本身）
       expect(pdf.segments).toEqual(['文件', '导出为'])
       expect(pdf.title).toBe('PDF…')
@@ -33,8 +33,8 @@ describe('menuBarLogic · 菜单栏项搜索（Raycast parity）', () => {
     it('深层路径逐段进 segments，末列是 title', () => {
       const out = ['X\t文件\t导出为\tPDF…'].join('\n')
       const items = parseMenuBarListing(out)
-      expect(items[0].segments).toEqual(['文件', '导出为'])
-      expect(items[0].title).toBe('PDF…')
+      expect(items[0]!.segments).toEqual(['文件', '导出为'])
+      expect(items[0]!.title).toBe('PDF…')
     })
   })
 

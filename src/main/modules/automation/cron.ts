@@ -32,7 +32,7 @@ function parseField(raw: string, [min, max]: [number, number]): Set<number> | nu
   const out = new Set<number>()
   for (const part of raw.split(',')) {
     if (part === '') return null
-    const [body, stepStr] = part.split('/')
+    const [body = '', stepStr] = part.split('/')
     let step = 1
     if (stepStr !== undefined) {
       if (!/^\d+$/.test(stepStr)) return null
@@ -44,7 +44,7 @@ function parseField(raw: string, [min, max]: [number, number]): Set<number> | nu
     if (body !== '*' && body !== '') {
       const range = /^(\d+)(?:-(\d+))?$/.exec(body)
       if (!range) return null
-      from = Number(range[1])
+      from = Number(range[1]!)
       to = range[2] === undefined ? (stepStr !== undefined ? max : from) : Number(range[2])
     }
     if (from < min || to > max || from > to) return null
@@ -58,7 +58,7 @@ export function parseCron(source: string): CronSpec | null {
   const parts = (source ?? '').trim().split(/\s+/)
   if (parts.length !== 5) return null
   const [minutes, hours, daysOfMonth, months, daysOfWeek] = parts.map((p, i) =>
-    parseField(p, RANGES[i])
+    parseField(p, RANGES[i]!) // parts.length===5 已守卫，RANGES 恒五段
   )
   if (!minutes || !hours || !daysOfMonth || !months || !daysOfWeek) return null
   return { minutes, hours, daysOfMonth, months, daysOfWeek, source: parts.join(' ') }

@@ -50,7 +50,7 @@ describe('buildPermissionStatuses', () => {
 
   it('辅助功能读成 false 就是 denied，不是「未确定」', () => {
     const rows = buildPermissionStatuses({ ...allGranted, accessibility: false }, 'darwin')
-    expect(rows[0].state).toBe('denied')
+    expect(rows[0]!.state).toBe('denied')
   })
 
   it('信号读不到（null）→ unknown，界面不得报「已授权」', () => {
@@ -68,7 +68,7 @@ describe('buildPermissionStatuses', () => {
     )
     expect(rows).toHaveLength(3)
     expect(rows.every((r) => r.state === 'unsupported' && !r.canRequest)).toBe(true)
-    expect(rows[0].note).toContain('不需要')
+    expect(rows[0]!.note).toContain('不需要')
   })
 
   it('屏幕录制没有可编程申请口：canRequest=false 且带「重启」指引', () => {

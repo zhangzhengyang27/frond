@@ -311,9 +311,9 @@ const getCameraStream = async (device: CameraDevice): Promise<MediaStream> => {
 
         // 尝试使用第一个可用的摄像头
         constraints = {
-          video: availableCameras[0].deviceId
+          video: availableCameras[0]!.deviceId
             ? {
-                deviceId: { ideal: availableCameras[0].deviceId },
+                deviceId: { ideal: availableCameras[0]!.deviceId },
                 width: { ideal: 1280, min: 640 },
                 height: { ideal: 720, min: 480 },
                 frameRate: { ideal: 30 }
@@ -374,8 +374,8 @@ const getCameraStream = async (device: CameraDevice): Promise<MediaStream> => {
   }
 
   const track = videoTracks[0]
-  if (track.readyState !== 'live') {
-    throw new Error(`摄像头轨道状态异常: ${track.readyState}`)
+  if (!track || track.readyState !== 'live') {
+    throw new Error(`摄像头轨道状态异常: ${track?.readyState ?? '不存在'}`)
   }
 
   cameraStream.value = newCameraStream

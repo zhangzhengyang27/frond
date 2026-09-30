@@ -161,10 +161,10 @@ export function titleOf(item: ClipItemLike): string {
   if (item.kind === 'files') {
     const paths = item.paths ?? []
     if (paths.length === 1) {
-      return paths[0].split(/[\\/]/).pop() ?? paths[0]
+      return paths[0]!.split(/[\\/]/).pop() ?? paths[0]! // length===1 已守卫
     }
     return `${paths[0] ?? ''} 等 ${paths.length} 个文件`
   }
-  const firstLine = (item.text ?? '').split('\n')[0].trim()
+  const firstLine = (item.text ?? '').split('\n')[0]!.trim() // split 恒返回至少一段
   return firstLine.slice(0, 60) || '空文本'
 }

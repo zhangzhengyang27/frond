@@ -24,7 +24,7 @@ export async function loadGrammars(): Promise<void> {
 
   await Promise.all(
     Object.keys(grammars).map(async (scopeName) => {
-      const { grammar, language, priority } = grammars[scopeName]
+      const { grammar, language, priority } = grammars[scopeName]! // 自有键索引
       const { default: grammarDoc } = await grammar()
 
       try {

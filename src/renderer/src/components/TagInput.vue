@@ -86,7 +86,7 @@ function colorOf(tag: Tag): string {
         @blur="focused = false"
         @keydown.enter.prevent="onEnter"
         @keydown.backspace="
-          query === '' && selected.length > 0 && remove(selected[selected.length - 1].id)
+          query === '' && selected.length > 0 && remove(selected[selected.length - 1]!.id)
         "
       />
     </div>

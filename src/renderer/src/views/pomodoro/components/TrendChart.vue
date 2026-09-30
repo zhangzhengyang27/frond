@@ -33,8 +33,8 @@
       <path :d="linePath" class="line" vector-effect="non-scaling-stroke" />
     </svg>
     <footer v-if="points.length > 0" class="chart-axis-labels">
-      <span>{{ points[0].date.slice(5) }}</span>
-      <span>{{ points[points.length - 1].date.slice(5) }}</span>
+      <span>{{ points[0]!.date.slice(5) }}</span>
+      <span>{{ points[points.length - 1]!.date.slice(5) }}</span>
     </footer>
   </section>
 </template>

@@ -149,7 +149,7 @@ describe('内置插件清单审计', () => {
       // 类型不许被降级：降级 = 清单写的是下拉、界面渲染成文本框
       for (const [i, item] of raw.entries()) {
         const t = (item as { type?: string }).type
-        if (t) expect(cleaned[i].type, `${dir}[${i}]`).toBe(t)
+        if (t) expect(cleaned[i]!.type, `${dir}[${i}]`).toBe(t)
         const dflt = (item as { default?: string | boolean }).default
         if (t === 'checkbox') expect(typeof dflt, `${dir}[${i}] default 必须是布尔`).toBe('boolean')
         if (t === 'select' && typeof dflt === 'string') {

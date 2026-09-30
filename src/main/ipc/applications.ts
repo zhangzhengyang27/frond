@@ -280,7 +280,7 @@ async function attachIcons(entries: AppEntry[]): Promise<void> {
   let next = 0
   const workers = Array.from({ length: Math.min(ICON_CONCURRENCY, entries.length) }, async () => {
     while (next < entries.length) {
-      const entry = entries[next++]
+      const entry = entries[next++]! // while 守卫 next < entries.length 保证在界内
       entry.icon = await getAppIcon(entry.path)
     }
   })

@@ -39,7 +39,7 @@ const markdownRef = ref<HTMLDivElement | null>(null)
 // 获取所有 Markdown 代码片段
 const mdSnippetIds = computed(() => {
   return props.allSnippets
-    .filter((s) => s.contents && s.contents.length > 0 && s.contents[0].language === 'markdown')
+    .filter((s) => s.contents && s.contents.length > 0 && s.contents[0]!.language === 'markdown')
     .map((s) => s.id)
 })
 
@@ -187,20 +187,20 @@ function toggleLaserPointer(): void {
 }
 
 // 键盘快捷键（只有在有多个片段时才启用）
-watch(left, (v) => {
+watch(left!, (v) => { // useMagicKeys 的键位记录类型上可缺省
   if (v && showNavigation.value) onPrevNext('prev')
 })
 
-watch(right, (v) => {
+watch(right!, (v) => {
   if (v && showNavigation.value) onPrevNext('next')
 })
 
-watch(escape, (v) => {
+watch(escape!, (v) => {
   if (v) onClose()
 })
 
 watchEffect(() => {
-  if ((meta.value || ctrl.value) && l.value) {
+  if ((meta!.value || ctrl!.value) && l!.value) {
     toggleLaserPointer()
   }
 })

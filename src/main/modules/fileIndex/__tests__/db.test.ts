@@ -61,13 +61,13 @@ describe('FileIndexDb 基础读写', () => {
   it('name 模式：标题子串前缀命中', () => {
     const hits = db.search(['readme'], { mode: 'name', limit: 10 })
     expect(hits).toHaveLength(1)
-    expect(hits[0].path).toBe('/repo/README.md')
+    expect(hits[0]!.path).toBe('/repo/README.md')
   })
 
   it('skeleton：拼音首字母可搜中文文件名', () => {
     const hits = db.search(['xmjh'], { mode: 'name', limit: 10 })
     expect(hits).toHaveLength(1)
-    expect(hits[0].path).toBe('/repo/项目计划.md')
+    expect(hits[0]!.path).toBe('/repo/项目计划.md')
   })
 
   it('中文原文可搜（unicode61 逐字 token）', () => {

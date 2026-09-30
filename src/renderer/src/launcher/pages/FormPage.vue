@@ -164,7 +164,7 @@ function moveSelectOption(field: FormField, delta: number): void {
   if (opts.length === 0) return
   const at = opts.indexOf(values.value[field.key] ?? '')
   const next = at === -1 ? 0 : (at + delta + opts.length) % opts.length
-  values.value[field.key] = opts[next]
+  values.value[field.key] = opts[next] ?? ''
 }
 
 function onFieldKeydown(e: KeyboardEvent, index: number): void {

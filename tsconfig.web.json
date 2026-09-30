@@ -9,6 +9,7 @@
     "src/shared/**/*"
   ],
   "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
     "composite": true,
     "baseUrl": ".",
     "moduleResolution": "bundler",

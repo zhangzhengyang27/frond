@@ -104,22 +104,22 @@ describe('sanitizeTasks', () => {
       { id: 't1', cron: '99 9 * * *', action: { type: 'copyText', text: 'a' } }
     ])
     expect(tasks).toEqual([])
-    expect(rejected[0].reason).toContain('cron 不合法')
+    expect(rejected[0]!.reason).toContain('cron 不合法')
   })
 
   it('外部回传的 lastFiredAt 一律丢弃：触发历史只能由引擎写', () => {
     const { tasks } = sanitizeTasks([{ ...base, lastFiredAt: 1, lastOk: true, lastError: '伪造' }])
-    expect(tasks[0].lastFiredAt).toBeNull()
-    expect(tasks[0].lastOk).toBeNull()
-    expect(tasks[0].lastError).toBeUndefined()
+    expect(tasks[0]!.lastFiredAt).toBeNull()
+    expect(tasks[0]!.lastOk).toBeNull()
+    expect(tasks[0]!.lastError).toBeUndefined()
   })
 
   it('id 重复与超过上限都要报', () => {
     const many = Array.from({ length: 25 }, (_, i) => ({ ...base, id: `t${i}` }))
     const r = sanitizeTasks(many)
     expect(r.tasks).toHaveLength(20)
-    expect(r.rejected[0].reason).toContain('上限')
-    expect(sanitizeTasks([base, { ...base, label: '第二条' }]).rejected[0].reason).toContain(
+    expect(r.rejected[0]!.reason).toContain('上限')
+    expect(sanitizeTasks([base, { ...base, label: '第二条' }]).rejected[0]!.reason).toContain(
       'id 重复'
     )
   })
@@ -130,8 +130,8 @@ describe('tick 的调度判据', () => {
     const h = harness([{ ...base }], at0930)
     const fired = await tick(h.deps)
     expect(fired).toEqual(['t1'])
-    expect(h.saved()[0].lastFiredAt).toBe(at0930)
-    expect(h.saved()[0].lastOk).toBe(true)
+    expect(h.saved()[0]!.lastFiredAt).toBe(at0930)
+    expect(h.saved()[0]!.lastOk).toBe(true)
   })
 
   it('同一分钟再 tick 一次不会重复跑', async () => {
@@ -196,13 +196,13 @@ describe('mergeRunHistory：改配置不能把触发历史洗掉', () => {
   })
 
   it('改了 cron 或 action → 视为换了件事，历史清零（否则当分钟会被旧记录挡住不跑）', () => {
-    expect(mergeRunHistory([{ ...base, cron: '0 10 * * *' }], [old])[0].lastFiredAt).toBeNull()
+    expect(mergeRunHistory([{ ...base, cron: '0 10 * * *' }], [old])[0]!.lastFiredAt).toBeNull()
     expect(
-      mergeRunHistory([{ ...base, action: { type: 'copyText', text: 'z' } }], [old])[0].lastFiredAt
+      mergeRunHistory([{ ...base, action: { type: 'copyText', text: 'z' } }], [old])[0]!.lastFiredAt
     ).toBeNull()
   })
 
   it('新任务没有历史就是没有', () => {
-    expect(mergeRunHistory([{ ...base, id: 'new' }], [old])[0].lastFiredAt).toBeNull()
+    expect(mergeRunHistory([{ ...base, id: 'new' }], [old])[0]!.lastFiredAt).toBeNull()
   })
 })

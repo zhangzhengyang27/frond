@@ -212,10 +212,10 @@ export function convertUnit(query: string): UnitConvertResult | null {
   const m = trimmed.match(CONVERT_PATTERN)
   if (!m) return null
 
-  const value = parseFloat(m[1])
+  const value = parseFloat(m[1]!)
   if (!Number.isFinite(value)) return null
-  const fromRaw = m[2]
-  const toRaw = m[3]
+  const fromRaw = m[2]!
+  const toRaw = m[3]!
 
   // 1) 温度
   const fromTemp = resolveTemp(fromRaw)

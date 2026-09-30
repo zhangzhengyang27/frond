@@ -20,9 +20,9 @@ export function bgraToRgba(
 ): Uint8ClampedArray {
   const out = new Uint8ClampedArray(width * height * 4)
   for (let i = 0; i < width * height; i++) {
-    out[i * 4] = bitmap[i * 4 + 2]
-    out[i * 4 + 1] = bitmap[i * 4 + 1]
-    out[i * 4 + 2] = bitmap[i * 4]
+    out[i * 4] = bitmap[i * 4 + 2] ?? 0
+    out[i * 4 + 1] = bitmap[i * 4 + 1] ?? 0
+    out[i * 4 + 2] = bitmap[i * 4] ?? 0
     out[i * 4 + 3] = 255
   }
   return out
@@ -32,8 +32,8 @@ export function bgraToRgba(
 function swapRB(data: Uint8ClampedArray): Uint8ClampedArray {
   const out = new Uint8ClampedArray(data)
   for (let i = 0; i < out.length; i += 4) {
-    const r = out[i]
-    out[i] = out[i + 2]
+    const r = out[i] ?? 0
+    out[i] = out[i + 2] ?? 0
     out[i + 2] = r
   }
   return out

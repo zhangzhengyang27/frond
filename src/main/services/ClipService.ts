@@ -271,7 +271,7 @@ export class ClipService {
       })
 
       for (let i = 0; i < options.clips.length; i++) {
-        const clip = options.clips[i]
+        const clip = options.clips[i]! // 循环条件 i < clips.length 保证在界内
         const clipPath = join(tempDir, `clip-${clip.id}.mp4`)
         const startTime = this.formatTime(clip.startTime)
         const duration = clip.endTime - clip.startTime
@@ -508,9 +508,9 @@ export class ClipService {
     const durationMatch = stderr.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/)
     if (durationMatch) {
       duration = Math.round(
-        parseInt(durationMatch[1]) * 3600 +
-          parseInt(durationMatch[2]) * 60 +
-          parseFloat(durationMatch[3])
+        parseInt(durationMatch[1]!) * 3600 +
+          parseInt(durationMatch[2]!) * 60 +
+          parseFloat(durationMatch[3]!)
       )
     }
 
@@ -519,15 +519,15 @@ export class ClipService {
     let height = 1080
     const videoLineMatch = stderr.match(/Stream #.*Video:.*?(\d{2,5})x(\d{2,5})/)
     if (videoLineMatch) {
-      width = parseInt(videoLineMatch[1])
-      height = parseInt(videoLineMatch[2])
+      width = parseInt(videoLineMatch[1]!)
+      height = parseInt(videoLineMatch[2]!)
     }
 
     // 解析帧率: "30 fps" 或 "29.97 fps"
     let fps = 30
     const fpsMatch = stderr.match(/(\d+(?:\.\d+)?)\s*fps/)
     if (fpsMatch) {
-      fps = Math.round(parseFloat(fpsMatch[1]))
+      fps = Math.round(parseFloat(fpsMatch[1]!))
     }
 
     return { duration, width, height, fps }

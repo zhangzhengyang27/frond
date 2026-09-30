@@ -185,12 +185,12 @@ describe('PreviewPanel · 可选区块的出现条件', () => {
   it('showPipCamera 决定画中画 video 的可见性（元素恒存在，B28 v-show 契约）', () => {
     const on = setup({ showPipCamera: true })
     expect(on.findAll('video')).toHaveLength(2)
-    expect(on.findAll('video')[1].isVisible()).toBe(true)
+    expect(on.findAll('video')[1]!.isVisible()).toBe(true)
     const off = setup({ showPipCamera: false })
     // 元素仍在（ref 从挂载起就非空，见 B28 用例），只是不可见——
     // happy-dom 的 isVisible() 对 video 不可靠，直接断言 v-show 的内联 display
     expect(off.findAll('video')).toHaveLength(2)
-    expect(off.findAll('video')[1].attributes('style')).toContain('display: none')
+    expect(off.findAll('video')[1]!.attributes('style')).toContain('display: none')
   })
 
   it('showRecordingModeHint 决定区域录制提示是否出现', () => {

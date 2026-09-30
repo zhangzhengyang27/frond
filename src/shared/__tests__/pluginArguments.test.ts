@@ -73,8 +73,8 @@ describe('sanitizePluginArguments', () => {
   it('dropdown data 非法项剔除、封顶 20 项', () => {
     const many = Array.from({ length: 25 }, (_, i) => ({ title: `t${i}`, value: `v${i}` }))
     const args = sanitizePluginArguments([{ name: 'a', type: 'dropdown', data: many }])
-    expect(args[0].type).toBe('dropdown')
-    expect(args[0].data).toHaveLength(20)
+    expect(args[0]!.type).toBe('dropdown')
+    expect(args[0]!.data).toHaveLength(20)
   })
 
   it('数量封顶 3（对标 Raycast argument1-3）', () => {

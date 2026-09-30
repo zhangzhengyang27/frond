@@ -55,8 +55,8 @@ function updateDebugPanel(): void {
       return {
         count: durations.length,
         avg: Number(avg.toFixed(2)),
-        p95: Number(durations[p95Index].toFixed(2)),
-        max: Number(durations[durations.length - 1].toFixed(2))
+        p95: Number(durations[p95Index]!.toFixed(2)),
+        max: Number(durations[durations.length - 1]!.toFixed(2))
       }
     },
     clear() {

@@ -90,7 +90,7 @@ function drawStroke(ctx: CanvasRenderingContext2D, stroke: Stroke, alpha: number
   ctx.shadowColor = LASER_COLOR
   ctx.shadowBlur = 12
   ctx.beginPath()
-  ctx.moveTo(points[0].x, points[0].y)
+  ctx.moveTo(points[0]!.x, points[0]!.y)
   for (const point of points) ctx.lineTo(point.x, point.y)
   ctx.stroke()
   ctx.restore()
@@ -127,6 +127,7 @@ function onMouseUp(): void {
 function onTouchStart(event: TouchEvent): void {
   event.preventDefault()
   const touch = event.touches[0]
+  if (!touch) return // touchend 等场景 touches 可能为空
   const mouseEvent = new MouseEvent('mousedown', {
     clientX: touch.clientX,
     clientY: touch.clientY
@@ -137,6 +138,7 @@ function onTouchStart(event: TouchEvent): void {
 function onTouchMove(event: TouchEvent): void {
   event.preventDefault()
   const touch = event.touches[0]
+  if (!touch) return // touchend 等场景 touches 可能为空
   const mouseEvent = new MouseEvent('mousemove', {
     clientX: touch.clientX,
     clientY: touch.clientY

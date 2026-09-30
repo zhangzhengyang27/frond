@@ -473,7 +473,7 @@ function sendHook(ctx: PluginViewContext, type: string, data?: unknown): void {
 
 function applyViewBounds(ctx: PluginViewContext, win: BrowserWindow): void {
   if (ctx.detached) return
-  const [width] = win.getContentSize()
+  const [width = 0] = win.getContentSize() // getContentSize 恒返回二元组
   // 声明式模式：胶囊原生渲染列表，插件视图缩为 0 高（纯数据源）
   if (ctx.declaredList) {
     ctx.view.setBounds({ x: 0, y: SEARCH_ROW_HEIGHT, width, height: 0 })
@@ -481,7 +481,7 @@ function applyViewBounds(ctx: PluginViewContext, win: BrowserWindow): void {
   }
   const height = Math.max(
     MIN_PLUGIN_HEIGHT,
-    Math.min(ctx.expandHeight, MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT)
+    Math.min(ctx.expandHeight ?? MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT, MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT)
   )
   ctx.view.setBounds({ x: 0, y: SEARCH_ROW_HEIGHT, width, height })
 }

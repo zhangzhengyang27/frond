@@ -186,7 +186,7 @@ export function compareSemver(a: string, b: string): number | null {
   const pb = parseSemver(b)
   if (!pa || !pb) return null
   for (let i = 0; i < 3; i++) {
-    if (pa.num[i] !== pb.num[i]) return pa.num[i] < pb.num[i] ? -1 : 1
+    if (pa.num[i] !== pb.num[i]) return pa.num[i]! < pb.num[i]! ? -1 : 1 // i<3，semver num 恒三段
   }
   // 同版本号：无 prerelease 的是正式版，正式版大于预发布版
   if (pa.pre === pb.pre) return 0

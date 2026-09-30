@@ -130,7 +130,7 @@ function moveSelection(delta: number): void {
   if (flat.value.length === 0) return
   const idx = selectedItem.value ? flat.value.indexOf(selectedItem.value) : -1
   const next = idx === -1 ? 0 : (idx + delta + flat.value.length) % flat.value.length
-  selectedItem.value = flat.value[next]
+  selectedItem.value = flat.value[next]!
 }
 
 function handleKey(e: KeyboardEvent): boolean {

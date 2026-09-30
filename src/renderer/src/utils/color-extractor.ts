@@ -48,9 +48,9 @@ export async function extractColorsFromImage(imageUrl: string): Promise<ColorPal
   const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height)
   const colors: RGB[] = []
   for (let i = 0; i < data.length; i += 16) {
-    const a = data[i + 3]
+    const a = data[i + 3] ?? 0
     if (a < 125) continue // 透明与半透明像素不参与
-    colors.push({ r: data[i], g: data[i + 1], b: data[i + 2] })
+    colors.push({ r: data[i] ?? 0, g: data[i + 1] ?? 0, b: data[i + 2] ?? 0 })
   }
 
   // 主色：按 Rec. 601 亮度加权取最突出的那个采样点

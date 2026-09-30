@@ -423,8 +423,9 @@ export function registerLauncherIpc(): void {
       title: '选择要索引的目录'
     })
     if (canceled || filePaths.length === 0) return { ok: false, canceled: true }
+    const dir = filePaths[0]! // 上行已守卫非空
     const scopes = fileIndex.getScopes()
-    if (!scopes.includes(filePaths[0])) fileIndex.setScopes([...scopes, filePaths[0]])
+    if (!scopes.includes(dir)) fileIndex.setScopes([...scopes, dir])
     return { ok: true as const, scopes: fileIndex.getScopes() }
   })
   typedHandle('fileIndex:removeScope', (_e, { dir }) => {

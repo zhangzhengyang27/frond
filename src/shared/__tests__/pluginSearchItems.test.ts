@@ -29,7 +29,7 @@ describe('sanitizePluginSearchItems', () => {
       badge: '笔记',
       action: { type: 'open', payload: 'https://example.com/rust' }
     })
-    expect(items[1].action).toEqual({ type: 'copy', payload: 'secret' })
+    expect(items[1]!.action).toEqual({ type: 'copy', payload: 'secret' })
   })
 
   it('非数组输入返回空数组', () => {
@@ -45,8 +45,8 @@ describe('sanitizePluginSearchItems', () => {
       { title: 'a'.repeat(130) + 'tail', action: { type: 'copy', payload: 'p' } }
     ])
     expect(items).toHaveLength(1)
-    expect(items[0].title.length).toBeLessThanOrEqual(120)
-    expect(items[0].title.startsWith('aaa')).toBe(true)
+    expect(items[0]!.title.length).toBeLessThanOrEqual(120)
+    expect(items[0]!.title.startsWith('aaa')).toBe(true)
   })
 
   it('action 非法 → 整条剔除（fail-closed：动作必须有类型和非空 payload，不猜测默认动作）', () => {
@@ -67,7 +67,7 @@ describe('sanitizePluginSearchItems', () => {
         keywords: [' a ', '', 'a', 42, 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
       }
     ])
-    expect(items[0].keywords).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
+    expect(items[0]!.keywords).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'])
   })
 
   it(`数量封顶 300 条`, () => {

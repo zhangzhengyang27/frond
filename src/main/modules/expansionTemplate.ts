@@ -112,7 +112,7 @@ export function extractDynamicParams(text: string): string[] {
   const params: string[] = []
   let match: RegExpExecArray | null
   while ((match = regex.exec(text)) !== null) {
-    const name = match[1].trim()
+    const name = match[1]!.trim()
     if (name && !params.includes(name)) {
       params.push(name)
     }

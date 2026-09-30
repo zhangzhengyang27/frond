@@ -33,7 +33,7 @@ describe('groupSchedule', () => {
       NOW
     )
     expect(groups.map((g) => g.label)).toEqual(['今天', '周六 09/19'])
-    expect(groups[0].items.map((i) => i.title)).toEqual(['all', 'a', 'b'])
+    expect(groups[0]!.items.map((i) => i.title)).toEqual(['all', 'a', 'b'])
   })
 
   it('早于今天零点的历史事件不出现', () => {

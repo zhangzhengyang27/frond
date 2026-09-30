@@ -10,7 +10,7 @@ export function isLocalAddressLiteral(value: string): boolean {
   if (v === 'localhost' || v.endsWith('.localhost')) return true
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(v)) {
     const parts = v.split('.').map(Number)
-    const [a, b, c] = parts
+    const [a = 0, b = 0, c = 0] = parts
     if (a === 127 || a === 10 || a === 0) return true
     if (a === 192 && b === 168) return true
     if (a === 169 && b === 254) return true
@@ -48,7 +48,7 @@ export function mappedIpv6ToIpv4(v: string): string | null {
   if (groups.length !== 2) return null
   const nums = groups.map((g) => parseInt(g.padStart(4, '0'), 16))
   if (nums.some((n) => Number.isNaN(n) || n < 0 || n > 0xffff)) return null
-  const [hi, lo] = nums
+  const [hi = 0, lo = 0] = nums
   return `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`
 }
 
@@ -66,7 +66,7 @@ export type IpRiskLevel = 'loopback' | 'lan' | 'blocked' | 'public'
 export function classifyIpRisk(value: string): IpRiskLevel {
   const v = value.toLowerCase().replace(/^\[|\]$/g, '')
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(v)) {
-    const [a, b, c] = v.split('.').map(Number)
+    const [a = 0, b = 0, c = 0] = v.split('.').map(Number)
     if (a === 127) return 'loopback'
     if (a === 10 || a === 192 || a === 172) {
       // 10/8、192.168/16、172.16/12（172 的后两段仅 16-31 是私网）

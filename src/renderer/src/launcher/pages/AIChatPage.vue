@@ -448,7 +448,7 @@ async function sendPreset(preset: 'translate' | 'summarize' | 'rewrite'): Promis
       ? `请润色改写以下文本，使其更流畅专业，保留原意：\n\n${text}`
       : '请润色改写我接下来发送的文本'
   }
-  const prompt = prompts[preset]
+  const prompt = prompts[preset] ?? ''
   messages.value.push({ role: 'user', content: prompt })
   streaming.value = true
   streamText.value = ''

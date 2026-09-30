@@ -86,7 +86,7 @@ describe('ExportDialog · 默认导出参数（模板反推出来的值，猜错
 
     const events = w.emitted('export')
     expect(events).toHaveLength(1)
-    const opts = events![0][0] as Record<string, unknown>
+    const opts = events![0]![0] as Record<string, unknown>
     expect(opts).toMatchObject({
       resolution: 1080,
       fps: 30,
@@ -102,17 +102,17 @@ describe('ExportDialog · 默认导出参数（模板反推出来的值，猜错
   it('分辨率下拉真的接到 options 上（不是只渲染了个 select）', async () => {
     const w = setup()
     await chooseOutput(w, '/tmp/out.mp4')
-    await selects(w)[0].setValue('2160')
+    await selects(w)[0]!.setValue('2160')
     await exportBtn(w).trigger('click')
-    expect((w.emitted('export')![0][0] as Record<string, unknown>).resolution).toBe(2160)
+    expect((w.emitted('export')![0]![0] as Record<string, unknown>).resolution).toBe(2160)
   })
 
   it('帧率下拉同理：选 60 就发 60', async () => {
     const w = setup()
     await chooseOutput(w, '/tmp/out.mp4')
-    await selects(w)[1].setValue('60')
+    await selects(w)[1]!.setValue('60')
     await exportBtn(w).trigger('click')
-    expect((w.emitted('export')![0][0] as Record<string, unknown>).fps).toBe(60)
+    expect((w.emitted('export')![0]![0] as Record<string, unknown>).fps).toBe(60)
   })
 })
 

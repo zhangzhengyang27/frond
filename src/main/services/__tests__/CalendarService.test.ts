@@ -45,7 +45,7 @@ describe('extractAndSortMeetings', () => {
       now
     )
     expect(meetings).toHaveLength(1)
-    expect(meetings[0].start).toBe(now + 7200_000)
+    expect(meetings[0]!.start).toBe(now + 7200_000)
   })
 
   it('空输入返回空数组', () => {

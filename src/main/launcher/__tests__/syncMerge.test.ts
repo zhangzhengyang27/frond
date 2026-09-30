@@ -76,7 +76,7 @@ describe('新增与快进', () => {
     )
     expect(r.conflicts, '远端单方面改过，就是拉下来而已').toEqual([])
     expect(r.upsert).toHaveLength(1)
-    expect(r.upsert[0].body).toBe('new')
+    expect(r.upsert[0]!.body).toBe('new')
   })
 
   it('本地单方面改过 → 本地不动（下一次 push 带走）', () => {
@@ -88,7 +88,7 @@ describe('新增与快进', () => {
     )
     expect(r.upsert).toEqual([])
     expect(r.removeKeys).toEqual([])
-    expect(r.nextState['r1'].rev).toBe(40)
+    expect(r.nextState['r1']!.rev).toBe(40)
   })
 })
 
@@ -108,13 +108,13 @@ describe('两边都改过', () => {
     // 输家（本地那份）没消失，而是变成了另一行
     const copy = r.copies[0]
     expect(r.copies).toHaveLength(1)
-    expect(copy.id).not.toBe('n1')
-    expect(String(copy.id).startsWith('n1~c~')).toBe(true)
-    expect(copy.title).toContain('冲突副本')
-    expect(copy.title).toContain('MacBook-Pro')
-    expect(copy.__rev, '副本沿用输家自己的修订号，别伪装成刚改的').toBe(20)
+    expect(copy!.id).not.toBe('n1')
+    expect(String(copy!.id).startsWith('n1~c~')).toBe(true)
+    expect(copy!.title).toContain('冲突副本')
+    expect(copy!.title).toContain('MacBook-Pro')
+    expect(copy!.__rev, '副本沿用输家自己的修订号，别伪装成刚改的').toBe(20)
     // 两份都得有 state 记录，否则下一次同步会再判一次冲突
-    expect(Object.keys(r.nextState).sort()).toEqual([copy.id, 'n1'].sort())
+    expect(Object.keys(r.nextState).sort()).toEqual([copy!.id, 'n1'].sort())
   })
 
   it('本地更新时赢家是本地，副本装的是远端那份', () => {
@@ -127,7 +127,7 @@ describe('两边都改过', () => {
       r.upsert.find((x) => x.id === 'n1'),
       '本地已经是赢家，不该被远端盖掉'
     ).toBeUndefined()
-    expect(r.copies[0].title).toContain('远端旧')
+    expect(r.copies[0]!.title).toContain('远端旧')
   })
 
   it('修订号相同（同一毫秒各改一次）也要留两份，不许只活一份', () => {
@@ -138,7 +138,7 @@ describe('两边都改过', () => {
     )
     expect(r.conflicts).toHaveLength(1)
     expect(r.copies).toHaveLength(1)
-    const titles = [r.upsert.find((x) => x.id === 'n1')?.title, r.copies[0].title].filter(Boolean)
+    const titles = [r.upsert.find((x) => x.id === 'n1')?.title, r.copies[0]!.title].filter(Boolean)
     expect(new Set(['A', 'B']).size).toBe(2)
     expect(titles.join(' ')).toContain('A')
     expect(titles.join(' ')).toContain('B')
@@ -156,7 +156,7 @@ describe('两边都改过', () => {
     expect(r.conflicts).toEqual([
       { table: 'launcher_docs', key: 'quicklinks', kind: 'edit-edit', loser: 'local' }
     ])
-    expect(r.upsert[0].data).toBe('remote')
+    expect(r.upsert[0]!.data).toBe('remote')
   })
 })
 
@@ -174,7 +174,7 @@ describe('删除与编辑撞车', () => {
     expect(r.conflicts).toEqual([
       { table: 'notes', key: 'n1', kind: 'delete-edit', loser: 'remote' }
     ])
-    expect(r.nextState['n1'].deletedAt, '留着的行不能被记成墓碑').toBeUndefined()
+    expect(r.nextState['n1']!.deletedAt, '留着的行不能被记成墓碑').toBeUndefined()
   })
 
   it('本地删了、远端又改过 → 把远端那份取回来（等于撤销删除）并报告', () => {
@@ -190,7 +190,7 @@ describe('删除与编辑撞车', () => {
     expect(first.nextState['n1']).toEqual({ rev: 10, deletedAt: 5000 })
     const second = run([], [], first.nextState)
     expect(second.upsert).toEqual([])
-    expect(second.nextState['n1'].deletedAt, '墓碑过期前一直算墓碑').toBe(5000)
+    expect(second.nextState['n1']!.deletedAt, '墓碑过期前一直算墓碑').toBe(5000)
     // 对端把这条又推过来（它还没同步到删除）：按墓碑基线判，不算「远端新增」
     const revived = run([], [row({ id: 'n1', __rev: 5 })], second.nextState)
     expect(revived.upsert, '比删除还旧的行不得借推送复活').toEqual([])
@@ -205,7 +205,7 @@ describe('没有基线时不产假冲突', () => {
     )
     expect(r.conflicts).toEqual([])
     expect(r.copies).toEqual([])
-    expect(r.upsert[0].title, '但也不能静默丢掉更新的那份').toBe('远端')
+    expect(r.upsert[0]!.title, '但也不能静默丢掉更新的那份').toBe('远端')
   })
 
   it('清空 state 之后重跑一遍也不会满屏冲突副本', () => {

@@ -36,7 +36,7 @@ describe('searchEntries 拼写容错层', () => {
       [e('typo', 'Chrome', ''), e('exact', 'Chromee Browser', '')],
       'chromee'
     )
-    expect(rows[0].entry.id).toBe('exact')
+    expect(rows[0]!.entry.id).toBe('exact')
     expect(rows.some((r) => r.entry.id === 'typo')).toBe(true)
   })
 
@@ -45,12 +45,12 @@ describe('searchEntries 拼写容错层', () => {
     // 'chromee' 只能走容错层，必须低于子序列档
     const subseq = searchEntries([e('a', 'Chrome', '')], 'chrme')
     const typo = searchEntries([e('a', 'Chrome', '')], 'chromee')
-    expect(subseq[0].score).toBeGreaterThan(typo[0].score)
+    expect(subseq[0]!.score).toBeGreaterThan(typo[0]!.score)
   })
 
   it('容错命中携带标题高亮区间', () => {
     const rows = searchEntries([e('a', 'Chrome', '')], 'chromee')
-    expect(rows[0].highlight).toMatchObject({ contiguous: false, start: 0, end: 5 })
+    expect(rows[0]!.highlight).toMatchObject({ contiguous: false, start: 0, end: 5 })
   })
 
   it('可注入自定义引擎（引擎切换封装）', () => {
@@ -65,7 +65,7 @@ describe('searchEntries 拼写容错层', () => {
     expect(rows).toHaveLength(1)
     // 引擎收到的是归一化后的标题文本
     expect(seen).toContain('abcd')
-    expect(rows[0].highlight).toEqual({ contiguous: false, start: 1, end: 2 })
+    expect(rows[0]!.highlight).toEqual({ contiguous: false, start: 1, end: 2 })
   })
 
   it('引擎抛异常不崩溃，降级为无命中', () => {

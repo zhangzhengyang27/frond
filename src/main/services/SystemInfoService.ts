@@ -73,8 +73,8 @@ async function getCpuUsage(): Promise<number> {
     const { stdout } = await execAsync('top -l 2 -n 0 -s 0 | grep "CPU usage" | tail -1')
     const match = stdout.match(/(\d+\.\d+)% user,\s*(\d+\.\d+)% sys/)
     if (match) {
-      const user = parseFloat(match[1])
-      const sys = parseFloat(match[2])
+      const user = parseFloat(match[1]!)
+      const sys = parseFloat(match[2]!)
       return Math.round((user + sys) * 10) / 10
     }
   } catch {
@@ -105,10 +105,10 @@ async function getDiskInfo(): Promise<{ total: number; used: number; usage: numb
   try {
     const { stdout } = await execAsync('df -h / | tail -1')
     const parts = stdout.trim().split(/\s+/)
-    // Filesystem Size Used Avail Capacity Mounted
-    const totalStr = parts[1] // e.g. "460Gi"
-    const usedStr = parts[2] // e.g. "230Gi"
-    const usageStr = parts[4] // e.g. "50%"
+    if (parts.length < 5) throw new Error('df 输出格式异常') // Filesystem Size Used Avail Capacity Mounted
+    const totalStr = parts[1]! // e.g. "460Gi"
+    const usedStr = parts[2]! // e.g. "230Gi"
+    const usageStr = parts[4]! // e.g. "50%"
     const parseSize = (s: string): number => {
       const num = parseFloat(s)
       if (s.includes('Ti')) return num * 1024

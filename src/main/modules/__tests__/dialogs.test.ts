@@ -22,7 +22,7 @@ import { showOpenDialogFor, showSaveDialogFor, showMessageBoxFor } from '../dial
 
 /** 按预期实参元组读取被 mock 的 dialog 方法首次调用的实参（规避 electron 重载签名收窄） */
 function firstCall<TArgs extends unknown[]>(fn: unknown): TArgs {
-  return (fn as { mock: { calls: TArgs[] } }).mock.calls[0]
+  return (fn as { mock: { calls: TArgs[] } }).mock.calls[0]!
 }
 
 /** 最小化的假窗口：仅需 isDestroyed() 返回 false */
@@ -60,7 +60,7 @@ describe('dialogs helpers', () => {
     const callArgs = firstCall<[OpenDialogOptions]>(dialog.showOpenDialog)
     // 无窗口重载只有一个参数；检查 options 内容
     expect(callArgs.length).toBe(1)
-    expect(callArgs[0].filters?.[0].name).toBe('图片')
+    expect(callArgs[0]!.filters?.[0]!.name).toBe('图片')
   })
 
   it('showSaveDialogFor: 使用无窗口重载', async () => {

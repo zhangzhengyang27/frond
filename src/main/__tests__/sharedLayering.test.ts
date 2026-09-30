@@ -52,7 +52,7 @@ describe('分层门禁：src/shared 不得依赖 src/main（棘轮）', () => {
     const perFile: Array<{ rel: string; hits: string[] }> = []
     for (const f of files) {
       const hits = [...readFileSync(f, 'utf-8').matchAll(/from\s+'(\.\.\/main\/[^']*)'/g)].map(
-        (m) => m[1]
+        (m) => m[1]!
       )
       if (hits.length) perFile.push({ rel: relative(SHARED_DIR, f), hits })
     }

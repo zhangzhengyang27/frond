@@ -38,7 +38,7 @@ export function validateSqliteFile(src: string): string | null {
     const probe = new Database(src, { readonly: true })
     try {
       const rows = probe.pragma('quick_check') as Array<Record<string, unknown>>
-      const ok = rows.length > 0 && Object.values(rows[0]).some((v) => v === 'ok')
+      const ok = rows.length > 0 && Object.values(rows[0]!).some((v) => v === 'ok')
       if (!ok) return '完整性检查未通过（文件可能已损坏）'
     } finally {
       probe.close()

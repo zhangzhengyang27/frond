@@ -38,8 +38,9 @@ export function registerProcessIpc(): void {
       const out = await runPs(['-p', String(pid), '-o', 'pid=,pcpu=,pmem=,comm='])
       const rows = parsePsOutput(out)
       if (rows.length === 0) return { success: false, error: '进程不存在' }
-      if (isProtected(rows[0], process.pid, dirname(app.getPath('exe')))) {
-        return { success: false, error: `受保护进程：${rows[0].displayName}` }
+      const row = rows[0]! // 上行已守卫非空
+      if (isProtected(row, process.pid, dirname(app.getPath('exe')))) {
+        return { success: false, error: `受保护进程：${row.displayName}` }
       }
       process.kill(pid, 'SIGKILL')
       return { success: true }

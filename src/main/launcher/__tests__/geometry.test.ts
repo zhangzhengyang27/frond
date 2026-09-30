@@ -120,7 +120,7 @@ describe('按显示器记忆的读写', () => {
     expect(parseBoundsMap(serializeBoundsMap(next))).toEqual(next)
     // 调用方之后改自己手里那个矩形，不能顺带改掉已经记下的位置
     source.x = 999
-    expect(next['2'].x).toBe(5)
+    expect(next['2']!.x).toBe(5)
   })
 
   it('resolveBounds：命中记忆用记忆（并夹回当前工作区），没命中用默认落点', () => {
@@ -227,8 +227,8 @@ describe('Compact Mode 与动画帧', () => {
     expect(frames).toHaveLength(5)
     expect(frames[frames.length - 1]).toEqual(to)
     for (let i = 1; i < frames.length; i++) {
-      expect(frames[i].width).toBeLessThanOrEqual(frames[i - 1].width)
-      expect(frames[i].height).toBeLessThanOrEqual(frames[i - 1].height)
+      expect(frames[i]!.width).toBeLessThanOrEqual(frames[i - 1]!.width)
+      expect(frames[i]!.height).toBeLessThanOrEqual(frames[i - 1]!.height)
     }
     // steps<=1 只给终点，不能停在起点（那是「动画没跑但卡在半路」）
     expect(animationFrames(full, to, 0)).toEqual([to])

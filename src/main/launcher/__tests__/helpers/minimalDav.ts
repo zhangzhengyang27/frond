@@ -32,7 +32,7 @@ export function startDav(): Promise<DavHandle> {
   const files = new Map<string, Buffer>()
   const dirs = new Set<string>(['/'])
   const srv: Server = createServer((req, res) => {
-    const path = decodeURIComponent(String(req.url).split('?')[0])
+    const path = decodeURIComponent(String(req.url).split('?')[0]!)
     const chunks: Buffer[] = []
     const reply = (code: number, body: Buffer | string, type?: string): void => {
       res.writeHead(code, type ? { 'content-type': type } : {})

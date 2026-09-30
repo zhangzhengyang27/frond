@@ -29,7 +29,7 @@ function split(p: string): { root: string; body: string } {
 export function join(...paths: string[]): string {
   const filtered = paths.filter((p) => !!p)
   if (filtered.length === 0) return '.'
-  return normalizeParts(filtered.join('/').split('/'), filtered[0].startsWith('/'))
+  return normalizeParts(filtered.join('/').split('/'), filtered[0]!.startsWith('/'))
 }
 
 export function resolve(...paths: string[]): string {

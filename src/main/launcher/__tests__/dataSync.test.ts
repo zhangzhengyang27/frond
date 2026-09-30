@@ -98,8 +98,8 @@ describe('DataSyncService：bundle 构建', () => {
       '设备身份不同步'
     ).not.toContain(DEVICE_ID_PREF)
     const snip = (bundle.tables['snip_snippets'] as Array<Record<string, unknown>>)[0]
-    expect(snip.id).toBe('s1')
-    expect(snip.__rev, '修订号必须随行带走').toBe(7)
+    expect(snip!.id).toBe('s1')
+    expect(snip!.__rev, '修订号必须随行带走').toBe(7)
   })
 
   it('子表的修订号跟它的父片段（对端拿不到就无从比新旧）', () => {
@@ -114,7 +114,7 @@ describe('DataSyncService：bundle 构建', () => {
     const rows = new DataSyncService(db).buildBundle().tables['snip_snippet_contents'] as Array<
       Record<string, unknown>
     >
-    expect(rows[0].__rev).toBe(55)
+    expect(rows[0]!.__rev).toBe(55)
   })
 })
 

@@ -13,13 +13,13 @@ function e(id: string, title: string, subtitle: string): Entry {
 describe('searchEntries boost', () => {
   it('无 boost 时按原有打分排序', () => {
     const rows = searchEntries([e('a', 'Alpha', ''), e('b', 'Beta', 'alpha')], 'alpha')
-    expect(rows[0].entry.id).toBe('a')
+    expect(rows[0]!.entry.id).toBe('a')
   })
 
   it('boost 可让副标题命中的常用条目反超（频率自学习）', () => {
     const entries = [e('fresh', 'Alpha', ''), e('hot', 'Beta', 'alpha tool')]
     const boosted = searchEntries(entries, 'alpha', 8, (entry) => (entry.id === 'hot' ? 100 : 0))
-    expect(boosted[0].entry.id).toBe('hot')
+    expect(boosted[0]!.entry.id).toBe('hot')
   })
 
   it('boost 不影响无命中条目（不产生新结果）', () => {

@@ -28,7 +28,7 @@ describe('parsePluginView', () => {
     })
     expect(items).toHaveLength(1)
     expect(items[0]).toMatchObject({ title: 'frond/launcher', subtitle: '主仓库' })
-    expect(items[0].actions[1].callbackId).toBe('cb-1')
+    expect(items[0]!.actions[1]!.callbackId).toBe('cb-1')
   })
 
   it('sections 拍平为扁平列表（v1 不分组渲染）', () => {
@@ -55,20 +55,20 @@ describe('parsePluginView', () => {
       ]
     })
     expect(items.map((i) => i.title)).toEqual(['a', 'b'])
-    expect(items[0].actions[0].callbackId).toBe('c1')
+    expect(items[0]!.actions[0]!.callbackId).toBe('c1')
   })
 
   it('detail 视图降级为单条占位条目', () => {
     const items = parsePluginView({ $t: 'detail', markdown: '# 详情正文' })
     expect(items).toHaveLength(1)
-    expect(items[0].detail).toBe('# 详情正文')
-    expect(items[0].detailFormat).toBe('markdown')
+    expect(items[0]!.detail).toBe('# 详情正文')
+    expect(items[0]!.detailFormat).toBe('markdown')
   })
 
   it('detail 视图 text 优先级低于 markdown，纯 text 也支持', () => {
     const items = parsePluginView({ $t: 'detail', text: '纯文本' })
-    expect(items[0].detail).toBe('纯文本')
-    expect(items[0].detailFormat).toBe('text')
+    expect(items[0]!.detail).toBe('纯文本')
+    expect(items[0]!.detailFormat).toBe('text')
   })
 
   it('detail 视图携带 Detail.actions（P-2.6：动作挂上占位条目；非法动作剔除）', () => {
@@ -84,8 +84,8 @@ describe('parsePluginView', () => {
         'not-an-object'
       ]
     })
-    expect(items[0].actions).toHaveLength(1)
-    expect(items[0].actions[0]).toMatchObject({ label: '复制结果', callbackId: 'copy-1' })
+    expect(items[0]!.actions).toHaveLength(1)
+    expect(items[0]!.actions[0]!).toMatchObject({ label: '复制结果', callbackId: 'copy-1' })
   })
 
   it('非法视图：未知 $t / 非对象 / 空 detail 拒绝；超长 markdown 截断', () => {
@@ -95,7 +95,7 @@ describe('parsePluginView', () => {
     expect(parsePluginView({ $t: 'detail', markdown: 42 })).toEqual([])
     const truncated = parsePluginView({ $t: 'detail', markdown: 'x'.repeat(100 * 1024 + 1) })
     expect(truncated).toHaveLength(1)
-    expect(truncated[0].detail?.length).toBe(100 * 1024)
+    expect(truncated[0]!.detail?.length).toBe(100 * 1024)
   })
 
   it('item 清洗：title 必填、非法动作剔除（纯展示条目保留）', () => {
@@ -107,7 +107,7 @@ describe('parsePluginView', () => {
       ]
     })
     expect(items.map((i) => i.title)).toEqual(['bad', 'noaction'])
-    expect(items[0].actions).toEqual([])
+    expect(items[0]!.actions).toEqual([])
   })
 
   it('数量封顶 300 条', () => {

@@ -32,6 +32,60 @@ const loading = ref(false)
 const busyKey = ref<string | null>(null)
 const lastMessage = ref<{ kind: 'ok' | 'err'; text: string } | null>(null)
 
+// ---- 多设备同步（批 5，P-产品-08/36：后端在而 UI 零调用的接线补全）----
+interface SyncStatus {
+  lastAppliedAt: number
+  snapshots: number
+  configured: boolean
+}
+const syncStatus = ref<SyncStatus | null>(null)
+
+async function loadSyncStatus(): Promise<void> {
+  try {
+    syncStatus.value = await window.api.dataSync.status()
+  } catch (e) {
+    lastMessage.value = { kind: 'err', text: `读取同步状态失败：${(e as Error).message}` }
+  }
+}
+
+async function onSyncPush(): Promise<void> {
+  busyKey.value = 'sync-push'
+  try {
+    const r = await window.api.dataSync.push()
+    if (r.ok) {
+      await loadSyncStatus()
+      lastMessage.value = {
+        kind: 'ok',
+        text: '已推送到云端（推送前自动吸收远端，双向合并）'
+      }
+    } else {
+      lastMessage.value = { kind: 'err', text: `推送失败：${r.error ?? '未知错误'}` }
+    }
+  } finally {
+    busyKey.value = null
+  }
+}
+
+async function onSyncPull(): Promise<void> {
+  busyKey.value = 'sync-pull'
+  try {
+    const r = await window.api.dataSync.pull()
+    if (r.ok) {
+      await loadSyncStatus()
+      const parts: string[] = []
+      if (r.decision === 'push') parts.push('云端还没有数据，已改为首次推送')
+      else parts.push(`已拉平（应用 ${r.applied ?? 0} 行）`)
+      if (r.conflicts) parts.push(`⚠ ${r.conflicts} 行两边都改过，已按新者优先合并并另存冲突副本`)
+      if (r.snapshot) parts.push('覆盖前已在本地留存快照')
+      lastMessage.value = { kind: 'ok', text: parts.join('；') }
+    } else {
+      lastMessage.value = { kind: 'err', text: `拉平失败：${r.error ?? '未知错误'}` }
+    }
+  } finally {
+    busyKey.value = null
+  }
+}
+
 // ---- 应用内二次确认（替代 window.confirm）----
 interface ConfirmRequest {
   title: string
@@ -103,6 +157,7 @@ async function loadArchives(): Promise<void> {
 
 onMounted(() => {
   loadArchives()
+  loadSyncStatus()
 })
 
 async function onExport(): Promise<void> {
@@ -224,7 +279,7 @@ function onDeleteArchive(a: ArchiveInfo): void {
     <header class="mb-8">
       <h1 class="text-xl font-semibold tracking-tight text-fg-primary">数据迁移中心</h1>
       <p class="mt-1 text-sm leading-relaxed text-fg-secondary">
-        导出 / 导入整库、恢复出厂，以及旧版 JSON 归档的时间线。危险操作会先在这里二次确认。
+        导出 / 导入整库、多设备轻量同步、恢复出厂，以及旧版 JSON 归档的时间线。危险操作会先在这里二次确认。
       </p>
     </header>
 
@@ -259,6 +314,36 @@ function onDeleteArchive(a: ArchiveInfo): void {
           <span>恢复出厂</span>
         </UButton>
         <span class="ml-auto text-xs text-fg-muted">导入与恢复出厂后应用会自动重启</span>
+      </div>
+    </section>
+
+    <!-- 多设备同步（批 5：dataSync 后端此前零 UI 可达，P-产品-08/36） -->
+    <section class="mb-10">
+      <h2 class="mb-3 text-xs font-medium tracking-wider text-fg-muted uppercase">多设备同步</h2>
+      <div class="rounded-lg border border-line-subtle bg-surface-1 p-5 shadow-sm">
+        <div v-if="syncStatus" class="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-fg-secondary">
+          <span>
+            WebDAV：
+            <span :class="syncStatus.configured ? 'text-fg-success' : 'text-warning'">
+              {{ syncStatus.configured ? '已配置' : '未配置' }}
+            </span>
+          </span>
+          <span>上次应用：{{ syncStatus.lastAppliedAt ? new Date(syncStatus.lastAppliedAt).toLocaleString() : '从未' }}</span>
+          <span>本地快照：{{ syncStatus.snapshots }} 份</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <UButton :loading="busyKey === 'sync-push'" :disabled="!syncStatus?.configured" @click="onSyncPush">
+            <AppIcon icon="ri-upload-cloud-line" :size="14" />
+            <span>推送到云端</span>
+          </UButton>
+          <UButton variant="secondary" :loading="busyKey === 'sync-pull'" :disabled="!syncStatus?.configured" @click="onSyncPull">
+            <AppIcon icon="ri-download-cloud-line" :size="14" />
+            <span>从云端拉平</span>
+          </UButton>
+          <span class="ml-auto text-xs text-fg-muted">
+            WebDAV 服务器在「启动器管理页 → WebDAV 同步」配置；行级三方合并，冲突自动另存副本
+          </span>
+        </div>
       </div>
     </section>
 

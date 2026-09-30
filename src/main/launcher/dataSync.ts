@@ -35,7 +35,7 @@ import {
   type MergeSummary,
   type StateTable,
   type SyncTableSpec
-} from './syncMerge'
+, rowKeyOf } from './syncMerge'
 import { database } from '../db/database'
 import { prefRepository } from '../db/repos'
 
@@ -192,6 +192,13 @@ export interface SyncBundle {
   /** 本机派生的设备身份，不同步（见 DEVICE_ID_PREF） */
   deviceId: string
   tables: Record<string, Array<Record<string, unknown>>>
+  /**
+   * B38（批 5）：墓碑段——各表已删除行的 rowKey → deletedAt。
+   * 以前 sync_state 刻意不同步，没见过该行的设备永远学不到「它被删了」
+   * （正向删除传播缺失，只能靠 conflict 副本兜底）。可选字段：老版本对端
+   * 读到会忽略，向后兼容。
+   */
+  tombstones?: Record<string, Record<string, number>>
 }
 
 /**
@@ -300,13 +307,24 @@ export class DataSyncService {
 
   buildBundle(): SyncBundle {
     const tables: Record<string, Array<Record<string, unknown>>> = {}
-    for (const spec of SYNC_TABLE_SPECS) tables[spec.table] = this.rowsOf(spec)
+    let tombstones: Record<string, Record<string, number>> | undefined
+    for (const spec of SYNC_TABLE_SPECS) {
+      tables[spec.table] = this.rowsOf(spec)
+      // B38（批 5）：state 里的墓碑随 bundle 走——这是删除的正向传播通道
+      const st = this.readState(spec.table)
+      for (const [key, v] of Object.entries(st)) {
+        if (v.deletedAt === undefined) continue
+        tombstones ??= {}
+        ;(tombstones[spec.table] ??= {})[key] = v.deletedAt
+      }
+    }
     return {
       version: 2,
       exportedAt: Date.now(),
       device: safeAppName(),
       deviceId: this.deviceId(),
-      tables
+      tables,
+      ...(tombstones ? { tombstones } : {})
     }
   }
 
@@ -368,6 +386,33 @@ export class DataSyncService {
         )
         for (const key of r.removeKeys) del.run(...pkValues(spec, key))
         this.writeState(spec.table, r.nextState)
+        // B38（批 5）：远端墓碑落地。三种情形——
+        // ① 本地有行且修订号早于删除 → 删掉并记墓碑（正向删除传播的主路径）；
+        // ② 本地有行但删除之后又改过 → 保留（删除输给编辑），墓碑入 state 防对端回推旧版；
+        // ③ 本地没有该行 → 墓碑入 state，将来第三方推旧版过来会被基线挡住。
+        const remoteTombs = bundle.tombstones?.[spec.table]
+        if (remoteTombs) {
+          const localRows = this.rowsOf(spec)
+          const stateNow = this.readState(spec.table)
+          for (const [key, deletedAt] of Object.entries(remoteTombs)) {
+            if (typeof deletedAt !== 'number' || !Number.isFinite(deletedAt)) continue
+            const s = stateNow[key]
+            if (s && (s.deletedAt ?? 0) >= deletedAt && s.rev >= deletedAt) continue
+            const row = localRows.find((r2) => rowKeyOf(spec, r2) === key)
+            if (!row) {
+              stateNow[key] = { rev: Math.max(s?.rev ?? 0, deletedAt), deletedAt }
+              continue
+            }
+            const rev = typeof row['__rev'] === 'number' ? row['__rev'] : 0
+            if (rev > deletedAt) {
+              stateNow[key] = { rev, deletedAt }
+              continue
+            }
+            del.run(...pkValues(spec, key))
+            stateNow[key] = { rev: Math.max(s?.rev ?? 0, deletedAt), deletedAt }
+          }
+          this.writeState(spec.table, stateNow)
+        }
         outs.push(r)
       }
     })
@@ -556,13 +601,31 @@ export async function pushDataSync(deps: SyncDeps = {}): Promise<{
       client.putFileContents(`${remotePath}/bundle.json.enc`, buf, { overwrite: true }),
       '同步：上传数据'
     )
-    await withTimeout(
-      client.putFileContents(
-        `${remotePath}/latest.json`,
-        JSON.stringify({ exportedAt: bundle.exportedAt, device: bundle.device })
-      ),
-      '同步：上传版本'
-    )
+    // B38 半失败态：bundle 成功而 latest.json 失败 → exportedAt 不前移，
+    // 其他设备读旧版本号永不拉。latest 是「要不要拉」的唯一指针，瞬断占大头
+    // → 重试 3 次；仍失败则整笔报错（markApplied 不执行，下次 push 重走合并自愈）
+    let latestOk = false
+    let lastErr: unknown
+    for (let attempt = 0; attempt < 3 && !latestOk; attempt++) {
+      try {
+        await withTimeout(
+          client.putFileContents(
+            `${remotePath}/latest.json`,
+            JSON.stringify({ exportedAt: bundle.exportedAt, device: bundle.device })
+          ),
+          '同步：上传版本'
+        )
+        latestOk = true
+      } catch (e) {
+        lastErr = e
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)))
+      }
+    }
+    if (!latestOk) {
+      throw lastErr instanceof Error
+        ? lastErr
+        : new Error('latest.json 上传失败（bundle 已上传；本地版本号未前移，下次推送自愈）')
+    }
     service.markPublished(bundle)
     markApplied(bundle.exportedAt)
     return { ok: true, decision: 'push' }

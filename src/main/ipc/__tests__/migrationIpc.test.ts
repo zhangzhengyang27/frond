@@ -92,10 +92,10 @@ describe('migration IPC 单对象入参', () => {
     expect(legacyArchiveMocks.listArchives).toHaveBeenCalledWith(USER_DATA)
   })
 
-  it('listArchives 在底层抛错时降级为空数组而不是把异常透给渲染端', () => {
+  it('listArchives 在底层抛错时降级为空数组而不是把异常透给渲染端', async () => {
     legacyArchiveMocks.listArchives.mockImplementationOnce(() => {
       throw new Error('EACCES')
     })
-    expect(invoke('migration:listArchives', undefined)).toEqual([])
+    await expect(invoke('migration:listArchives', undefined)).resolves.toEqual([])
   })
 })

@@ -58,10 +58,10 @@ vi.mock('../recordingSavePathGrants', () => ({
 
 import { registerRecordingHistoryIpcHandlers } from '../recordingHistory'
 
-function call(channel: string, req?: unknown): unknown {
+function call(channel: string, req?: unknown): Promise<unknown> {
   const fn = handlers.get(channel)
   if (!fn) throw new Error(`channel not registered: ${channel}`)
-  return fn({}, req)
+  return Promise.resolve(fn({}, req))
 }
 
 async function callAsync(channel: string, req?: unknown): Promise<unknown> {
@@ -85,17 +85,19 @@ describe('recordingHistory 白名单守卫（B30）', () => {
     rmSync(dir, { recursive: true, force: true })
   })
 
-  it('addHistory 拒绝未经签发的路径（污染源头封死）', () => {
+  it('addHistory 拒绝未经签发的路径（污染源头封死）——批 7a 起走异步 rejection+信封', async () => {
     resolveGrantedMock.mockReturnValue(null)
-    expect(() => call('recording-history:addHistory', { filePath: '/etc/passwd' })).toThrow(
+    await expect(call('recording-history:addHistory', { filePath: '/etc/passwd' })).rejects.toThrow(
       '未经主进程签发'
     )
     expect(svc.addHistory).not.toHaveBeenCalled()
   })
 
-  it('addHistory 放行已签发路径', () => {
+  it('addHistory 放行已签发路径', async () => {
     resolveGrantedMock.mockReturnValue(video)
-    const res = call('recording-history:addHistory', { filePath: video }) as { id: string }
+    const res = (await call('recording-history:addHistory', { filePath: video })) as {
+      id: string
+    }
     expect(res.id).toBe('h1')
     expect(svc.addHistory).toHaveBeenCalled()
   })

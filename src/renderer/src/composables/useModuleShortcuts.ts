@@ -47,7 +47,7 @@ export function useModuleShortcuts(): void {
 
     e.preventDefault()
     void window.api.usage.recordUse(m.id)
-    router.push(m.path)
+    void router.push(m.path)
   }
 
   onMounted(() => {

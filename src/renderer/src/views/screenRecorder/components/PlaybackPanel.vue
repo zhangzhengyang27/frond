@@ -503,7 +503,7 @@ const handlePlayPause = (): void => {
     if (isPlaying.value) {
       videoRef.value.pause()
     } else {
-      videoRef.value.play()
+      void videoRef.value.play()
     }
   }
 }

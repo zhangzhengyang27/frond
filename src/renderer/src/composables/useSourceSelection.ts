@@ -150,11 +150,11 @@ const switchSourceType = (type: 'screen' | 'camera'): void => {
   sourceType.value = type
   // 只自动加载屏幕源，摄像头需要用户主动点击刷新按钮
   if (type === 'screen' && sources.value.length === 0) {
-    loadSources()
+    void loadSources()
   }
   // 切换到摄像头标签页时，尝试枚举设备（不请求权限）
   if (type === 'camera' && cameraDevices.value.length === 0) {
-    loadCameraDevices()
+    void loadCameraDevices()
   }
 }
 

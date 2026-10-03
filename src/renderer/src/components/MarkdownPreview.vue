@@ -128,13 +128,13 @@ function zoomOut(): void {
 watch(
   () => props.content,
   () => {
-    renderMarkdown()
+    void renderMarkdown()
   },
   { immediate: true }
 )
 
 watch(renderedContent, () => {
-  nextTick(() => {
+  void nextTick(() => {
     renderCodeBlockEditors()
     markdownRef.value?.removeEventListener('click', onLinkClick)
     markdownRef.value?.addEventListener('click', onLinkClick)

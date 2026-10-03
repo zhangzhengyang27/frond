@@ -277,7 +277,7 @@ if (process.platform === 'darwin') {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+void app.whenReady().then(() => {
   // 常驻开启 Chromium 无障碍树渲染：VoiceOver 等辅助工具、系统自动化、
   // 依赖 AX 的功能（菜单栏搜索类）都需要渲染层可被辅助功能读取。
   // Electron 默认只在探测到辅助技术时开启，这里显式常开（对齐 Raycast）。

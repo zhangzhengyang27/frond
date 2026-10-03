@@ -26,7 +26,7 @@ export function useAppMenu(): {
   const route = useRoute()
 
   function navigateAndRecord(moduleId: string, path: string): void {
-    router.push(path)
+    void router.push(path)
     if (window.api?.usage?.recordUse) {
       void window.api.usage.recordUse(moduleId)
     }
@@ -42,7 +42,7 @@ export function useAppMenu(): {
         window.api.launcher.onAppRouteTaken(({ path }) => {
           const target = path.split('?')[0]
           if (route.path === target) {
-            router.push('/')
+            void router.push('/')
           }
         })
       )
@@ -56,23 +56,35 @@ export function useAppMenu(): {
       )
     }
     if (window.api?.onAppGoHome) {
-      unsubs.push(window.api.onAppGoHome(() => router.push('/')))
+      unsubs.push(
+        window.api.onAppGoHome(() => {
+          void router.push('/')
+        })
+      )
     }
     if (window.api?.onAppOpenCommandPalette) {
       unsubs.push(
         window.api.onAppOpenCommandPalette(() => {
           // 引入 useCommandPalette（动态 import 避免 SSR / 测试环境报错）
-          import('./useCommandPalette').then(({ useCommandPalette }) => {
+          void import('./useCommandPalette').then(({ useCommandPalette }) => {
             useCommandPalette().open()
           })
         })
       )
     }
     if (window.api?.onAppOpenSettings) {
-      unsubs.push(window.api.onAppOpenSettings(() => router.push('/settings')))
+      unsubs.push(
+        window.api.onAppOpenSettings(() => {
+          void router.push('/settings')
+        })
+      )
     }
     if (window.api?.onAppOpenAbout) {
-      unsubs.push(window.api.onAppOpenAbout(() => router.push('/about')))
+      unsubs.push(
+        window.api.onAppOpenAbout(() => {
+          void router.push('/about')
+        })
+      )
     }
 
     return () => {

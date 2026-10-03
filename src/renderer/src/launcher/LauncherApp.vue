@@ -315,6 +315,13 @@ const searchBarRef = ref<InstanceType<typeof LauncherSearchBar> | null>(null)
  * 指示器与动作文案用，且以主进程返回的生效值为准，避免两边各说各话。
  */
 const pinned = ref(false)
+// misused-promises（批 2c）：配置对象要求 void 返回的回调，异步函数经 voidify 收口
+const voidify =
+  <A extends unknown[]>(fn: (...args: A) => unknown) =>
+  (...args: A): void => {
+    void fn(...args)
+  }
+
 async function togglePinned(): Promise<void> {
   const { pinned: effective } = await window.api.launcher.setPinned(!pinned.value)
   pinned.value = effective
@@ -748,7 +755,7 @@ const { actionPanelEntry, actionIndex, panelActions, actionsFor, toggleActionPan
     runEntry,
     hideWindow,
     pinned,
-    togglePinned,
+    togglePinned: voidify(togglePinned),
     favorites: favoriteKeys,
     toggleFavorite,
     aiReady,
@@ -770,7 +777,7 @@ watch(actionFilter, () => {
 watch(actionPanelEntry, (entry) => {
   actionFilter.value = ''
   if (entry) {
-    nextTick(() => actionFilterRef.value?.focus())
+    void nextTick(() => actionFilterRef.value?.focus())
   }
 })
 
@@ -839,7 +846,7 @@ function runFallbackCommand(cmd: FallbackCommand): void {
       if (action.page === 'ai') {
         // Quick AI 兜底：把当前搜索词交给 AI 页自动发送（一次直达）
         query.value = ''
-        nextTick(() => {
+        void nextTick(() => {
           const page = pageRef.value as unknown as { queueInitial?: (text: string) => void } | null
           page?.queueInitial?.(action.query as string)
         })
@@ -877,7 +884,7 @@ function moveSelection(delta: number): void {
 }
 
 function scrollSelectedIntoView(index: number): void {
-  nextTick(() => {
+  void nextTick(() => {
     // 分组渲染后 DOM 序 ≠ results 扁平序（文件分区会把靠后的文件行挪到组尾），
     // 用 data-index 精确定位，不依赖 DOM 顺序
     document
@@ -946,7 +953,7 @@ async function runEntry(entry: CommandEntry): Promise<void> {
           // 番茄钟日报：聚合今日数据 → AI 页排队生成（无今日数据时不发）
           void buildPomodoroDigest().then((digest) => {
             if (!digest) return
-            nextTick(() => {
+            void nextTick(() => {
               const aiPage = pageRef.value as unknown as {
                 queueInitial?: (text: string) => void
               } | null
@@ -955,7 +962,7 @@ async function runEntry(entry: CommandEntry): Promise<void> {
           })
         } else if (['translate', 'summarize', 'rewrite'].includes(preset)) {
           const typed = preset as 'translate' | 'summarize' | 'rewrite'
-          nextTick(() => {
+          void nextTick(() => {
             const aiPage = pageRef.value as unknown as {
               sendPreset?: (p: 'translate' | 'summarize' | 'rewrite') => void
             } | null
@@ -1034,8 +1041,8 @@ const viewCtx: LauncherViewCtx = {
   popPage,
   onSnippetCopied,
   askAIWithText,
-  createCalendarEvent,
-  saveQuicklinkForm,
+  createCalendarEvent: voidify(createCalendarEvent),
+  saveQuicklinkForm: voidify(saveQuicklinkForm),
   // 注意两个同名接口：viewCtx 这条是 qlarg 表单的**提交**（FormValues）；「打开表单页」
   // 的入口（CommandEntry）在 executeCommand 依赖对象那边，两者曾经共用一个函数名
   openQuicklinkArg: submitQuicklinkArg,
@@ -1055,7 +1062,7 @@ const viewCtx: LauncherViewCtx = {
   pluginId: () => pluginState.value.pluginId ?? '',
   pluginListLoading: () => declaredLoading.value,
   pluginListEmptyMessage: () => declaredEmptyMessage.value,
-  submitPluginForm,
+  submitPluginForm: voidify(submitPluginForm),
   closePluginForm
 }
 

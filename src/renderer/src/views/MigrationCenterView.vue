@@ -156,8 +156,8 @@ async function loadArchives(): Promise<void> {
 }
 
 onMounted(() => {
-  loadArchives()
-  loadSyncStatus()
+  void loadArchives()
+  void loadSyncStatus()
 })
 
 async function onExport(): Promise<void> {

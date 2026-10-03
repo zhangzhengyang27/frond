@@ -254,18 +254,20 @@ async function createNote(): Promise<void> {
 function saveNote(): void {
   if (!currentNoteId.value) return
   if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(async () => {
-    if (!currentNoteId.value) return
-    try {
-      await window.api.notes.update(currentNoteId.value, {
-        title: editTitle.value,
-        content: editContent.value
-      })
-      await loadNotes()
-      await loadStats()
-    } catch {
-      /* ignore */
-    }
+  saveTimer = setTimeout(() => {
+    void (async () => {
+      if (!currentNoteId.value) return
+      try {
+        await window.api.notes.update(currentNoteId.value, {
+          title: editTitle.value,
+          content: editContent.value
+        })
+        await loadNotes()
+        await loadStats()
+      } catch {
+        /* ignore */
+      }
+    })()
   }, 300)
 }
 

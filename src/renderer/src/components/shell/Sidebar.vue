@@ -78,7 +78,7 @@ const isActive = (item: SidebarItem): boolean =>
 /** 模块跳转：统一在当前窗口内路由跳转，不再新开窗口 */
 const navigate = (item: SidebarItem): void => {
   if (item.moduleId) void window.api.usage.recordUse(item.moduleId)
-  router.push(item.path)
+  void router.push(item.path)
 }
 
 /** 唤起启动器胶囊窗 */

@@ -707,7 +707,7 @@ const closeCamera = (): void => {
     // 如果只有屏幕流，设置预览为屏幕流
     if (previewVideoRef.value) {
       previewVideoRef.value.srcObject = stream.value
-      previewVideoRef.value.play()
+      void previewVideoRef.value.play()
     }
   }
 }

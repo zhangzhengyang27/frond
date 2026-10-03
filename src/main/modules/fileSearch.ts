@@ -177,7 +177,7 @@ export function registerFileSearchIpc(): void {
     // 收录的仓库文件翻出来，那是设计 §5 的预期行为，但会淹没对剪枝的验收）
     const noFallback = process.env.FROND_FILE_SEARCH_NO_FALLBACK === '1'
     if ((isMac() || isWin()) && !onlyIn) {
-      fileIndex.ensureStarted()
+      void fileIndex.ensureStarted()
       const tokens = trimmed.split(/\s+/).filter(Boolean)
       const indexed = tokens.length > 0 ? fileIndex.query(tokens, mode, Number(limit) || 30) : null
       if (indexed && indexed.length > 0) {

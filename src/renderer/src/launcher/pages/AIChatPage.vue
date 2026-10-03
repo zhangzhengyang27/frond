@@ -241,7 +241,7 @@ async function loadPresets(): Promise<void> {
 }
 
 function scrollToBottom(): void {
-  nextTick(() => {
+  void nextTick(() => {
     if (scrollRef.value) scrollRef.value.scrollTop = scrollRef.value.scrollHeight
   })
 }

@@ -72,7 +72,7 @@ function init(): void {
   watch(
     () => props.content,
     (v) => {
-      nextTick(() => {
+      void nextTick(() => {
         if (editor) {
           editor.setValue(v?.value || '')
         }
@@ -83,7 +83,7 @@ function init(): void {
   watch(
     () => props.content,
     (v) => {
-      nextTick(() => {
+      void nextTick(() => {
         if (editor && v) {
           editor.setOption('mode', v.language || 'plaintext')
         }
@@ -99,7 +99,7 @@ function init(): void {
     colorBorder.value = v ? 'oklch(30% 0 0)' : 'oklch(90% 0 0)'
   })
 
-  nextTick(() => {
+  void nextTick(() => {
     initInteract()
   })
 }

@@ -424,7 +424,7 @@ const todayRecords = computed(() => store.todayRecords)
 // P1-1：详情抽屉状态
 const taskDetailId = computed(() => store.taskDetailId)
 function handleOpenTaskDetail(taskId: string): void {
-  store.openTaskDetail(taskId)
+  void store.openTaskDetail(taskId)
 }
 function handleCloseTaskDetail(): void {
   store.closeTaskDetail()
@@ -581,9 +581,9 @@ async function switchToStats(): Promise<void> {
 
 function toggleFullscreen(): void {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen()
+    void document.documentElement.requestFullscreen()
   } else {
-    document.exitFullscreen()
+    void document.exitFullscreen()
   }
 }
 

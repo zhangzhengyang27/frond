@@ -35,7 +35,10 @@ const fseventsBackend: WatchBackend = {
         if (typeof path === 'string' && path) onPath(path)
       })
     )
-    return () => stops.forEach((stop) => stop())
+    return () =>
+      stops.forEach((stop) => {
+        stop()
+      })
   }
 }
 

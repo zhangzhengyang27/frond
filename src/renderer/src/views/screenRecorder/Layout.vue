@@ -203,7 +203,7 @@ const handlePlayVideo = (videoInfo: {
     duration: videoInfo.duration,
     filePath: videoInfo.filePath
   }
-  router.push({ name: 'screenRecorderPlayback' })
+  void router.push({ name: 'screenRecorderPlayback' })
 }
 
 // 处理剪辑视频（从历史记录跳转到剪辑）
@@ -220,7 +220,7 @@ const handleClipVideo = (videoInfo: {
     duration: videoInfo.duration,
     filePath: videoInfo.filePath
   }
-  router.push({ name: 'screenRecorderClip' })
+  void router.push({ name: 'screenRecorderClip' })
 }
 
 // 关闭回放
@@ -228,13 +228,13 @@ const handleClosePlayback = (): void => {
   playbackVideoPath.value = null
   playbackRecordingId.value = null
   playbackVideoInfo.value = null
-  router.push({ name: 'screenRecorderHistory' })
+  void router.push({ name: 'screenRecorderHistory' })
 }
 
 onMounted(() => {
   // 根据当前路由设置默认 tab
   if (route.name === 'screenRecorder') {
-    router.replace('/screenRecorder/record')
+    void router.replace('/screenRecorder/record')
   }
   // loadSources 由 RecordPage 挂载时调用（composable 已是单例，
   // 这里再调一次会让带缩略图的 desktopCapturer 原生调用执行两遍）

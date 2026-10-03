@@ -35,12 +35,14 @@ function saveSettings(): void {
   if (saveTimer) {
     clearTimeout(saveTimer)
   }
-  saveTimer = setTimeout(async () => {
-    try {
-      await window.api.preferences.updateEditorSettings(settings)
-    } catch (error) {
-      console.error('保存编辑器设置失败:', error)
-    }
+  saveTimer = setTimeout(() => {
+    void (async () => {
+      try {
+        await window.api.preferences.updateEditorSettings(settings)
+      } catch (error) {
+        console.error('保存编辑器设置失败:', error)
+      }
+    })()
   }, 500)
 }
 
@@ -110,7 +112,7 @@ watch(
 
 export function useEditor() {
   onMounted(() => {
-    loadSettings()
+    void loadSettings()
   })
 
   return {

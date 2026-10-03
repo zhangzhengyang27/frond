@@ -33,7 +33,7 @@ import { markOnboardingCompleted } from '../router'
 
 const router = useRouter()
 const { theme, setTheme, initTheme } = useTheme()
-initTheme()
+void initTheme()
 
 type Step = 1 | 2 | 3 | 4 | 5
 const TOTAL_STEPS = 5

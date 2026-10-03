@@ -14,7 +14,7 @@ function openLauncher(): void {
 }
 const navigate = (m: ModuleMeta): void => {
   void window.api.usage.recordUse(m.id)
-  router.push(m.path)
+  void router.push(m.path)
 }
 
 // 常用功能（固定展示）
@@ -40,7 +40,7 @@ function onQuickAction(action: { path?: string; action?: string }): void {
     return
   }
   if (action.path) {
-    router.push(action.path)
+    void router.push(action.path)
   } else if (action.action) {
     // 唤起启动器并打开对应页面：openFirstParty 主进程侧自带 show + 冷启动缓冲（批 4），
     // 不再 setTimeout 猜时机（胶囊未就绪时动作会丢，P-产品-30）

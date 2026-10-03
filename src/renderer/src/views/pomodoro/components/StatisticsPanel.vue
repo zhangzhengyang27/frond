@@ -73,7 +73,7 @@ const rangeOptions: Array<{ value: StatsRange; label: string }> = [
 
 onMounted(() => {
   if (!taskStats.value) {
-    store.loadStats('week')
+    void store.loadStats('week')
   }
 })
 

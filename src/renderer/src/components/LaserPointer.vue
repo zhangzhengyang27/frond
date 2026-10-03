@@ -172,7 +172,7 @@ watch(
       isDrawing.value = false
       currentStroke = null
     } else {
-      nextTick(() => {
+      void nextTick(() => {
         resizeCanvas()
       })
     }

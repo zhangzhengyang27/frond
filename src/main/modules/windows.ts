@@ -121,12 +121,12 @@ export function createWindow(
     const url = route
       ? `${process.env['ELECTRON_RENDERER_URL']}#${route}`
       : process.env['ELECTRON_RENDERER_URL']
-    window.loadURL(url)
+    void window.loadURL(url)
   } else {
     const filePath = join(__dirname, '../renderer/index.html')
     // 带 hash 直接加载目标路由，避免沉浸窗先闪一帧 Hub（did-finish-load 的
     // navigate-to-route 仍保留，作为兜底）
-    window.loadFile(filePath, route ? { hash: route } : undefined)
+    void window.loadFile(filePath, route ? { hash: route } : undefined)
   }
 
   return window

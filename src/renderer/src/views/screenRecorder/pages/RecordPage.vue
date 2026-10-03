@@ -344,18 +344,18 @@ onMounted(() => {
   window.addEventListener('frond:cursor-position', cursorListener)
   window.addEventListener('frond:cursor-stop', cursorStopListener)
   // PR-7a: 全局快捷键 → 录制启停
-  window.addEventListener('frond:shortcut-recording-start', shortcutStartListener)
-  window.addEventListener('frond:shortcut-recording-togglePause', shortcutPauseListener)
+  window.addEventListener('frond:shortcut-recording-start', shortcutStartListenerVoid)
+  window.addEventListener('frond:shortcut-recording-togglePause', shortcutPauseListenerVoid)
   // PR-7b: 倒计时结束 → 真正开始录制
-  window.addEventListener('frond:recording-start-after-countdown', beginAfterCountdown)
+  window.addEventListener('frond:recording-start-after-countdown', beginAfterCountdownVoid)
 })
 
 onUnmounted(() => {
   window.removeEventListener('frond:cursor-position', cursorListener)
   window.removeEventListener('frond:cursor-stop', cursorStopListener)
-  window.removeEventListener('frond:shortcut-recording-start', shortcutStartListener)
-  window.removeEventListener('frond:shortcut-recording-togglePause', shortcutPauseListener)
-  window.removeEventListener('frond:recording-start-after-countdown', beginAfterCountdown)
+  window.removeEventListener('frond:shortcut-recording-start', shortcutStartListenerVoid)
+  window.removeEventListener('frond:shortcut-recording-togglePause', shortcutPauseListenerVoid)
+  window.removeEventListener('frond:recording-start-after-countdown', beginAfterCountdownVoid)
   const api = (
     window as unknown as {
       api?: { recording?: { countdown?: { cancel?: () => Promise<unknown> } } }
@@ -365,6 +365,18 @@ onUnmounted(() => {
 })
 
 // PR-7a: 快捷键 → start/pause toggle
+function shortcutStartListenerVoid(): void {
+  void shortcutStartListener()
+}
+
+function shortcutPauseListenerVoid(): void {
+  void shortcutPauseListener()
+}
+
+function beginAfterCountdownVoid(): void {
+  void beginAfterCountdown()
+}
+
 async function shortcutStartListener(): Promise<void> {
   if (props.isRecording) {
     // 正在录制 → 停止
@@ -624,6 +636,6 @@ const handleMarkerAdded = (marker: Marker): void => {
 }
 
 onMounted(() => {
-  loadSources()
+  void loadSources()
 })
 </script>

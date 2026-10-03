@@ -84,7 +84,7 @@ export function useSnippetSearchOverlay(getEditor: () => CodeMirror.Editor | nul
   // 监听搜索查询变化
   watch(searchQuery, () => {
     if (!getEditor()) return
-    nextTick(() => {
+    void nextTick(() => {
       updateSearchOverlay()
     })
   })

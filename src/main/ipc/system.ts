@@ -70,7 +70,7 @@ export function registerSystemInfoIpcHandlers(): void {
       log.warn('systemInfo', `openPath refused: ${String(req.p).slice(0, 200)}`)
       return false
     }
-    shell.openPath(target)
+    void shell.openPath(target)
     return true
   })
 

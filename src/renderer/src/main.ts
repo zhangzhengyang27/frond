@@ -60,6 +60,6 @@ if (typeof window !== 'undefined') {
 // 监听来自主进程的路由导航消息
 if (window.api && window.api.onNavigateToRoute) {
   window.api.onNavigateToRoute((route: string) => {
-    router.push(route)
+    void router.push(route)
   })
 }

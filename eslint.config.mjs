@@ -1,5 +1,6 @@
 import { defineConfig } from 'eslint/config'
 import tseslint from '@electron-toolkit/eslint-config-ts'
+import tseslintCore from 'typescript-eslint'
 import eslintConfigPrettier from '@electron-toolkit/eslint-config-prettier'
 import eslintPluginVue from 'eslint-plugin-vue'
 import vueParser from 'vue-eslint-parser'
@@ -14,6 +15,52 @@ export default defineConfig(
   }, // extension/：浏览器扩展独立产物，chrome 全局/JS 运行时不适用应用 TS 规则集
   tseslint.configs.recommended,
   eslintPluginVue.configs['flat/recommended'],
+  // ── 批 2c：type-aware 层（D2 收紧最后一段）──────────────────────────
+  // recommendedTypeChecked 限 TS/Vue；js/mjs（e2e 探针等）经 disableTypeChecked 关闭
+  // type-aware 规则（官方模式）。floating/misused-promises 升 error——未 await 的
+  // 异步调用在 IPC 密集的 Electron 主进程里是真 bug 温床；unsafe-* 家族（better-sqlite3
+  // 无类型行 × 11 Repository，B46）warn 过渡 + 数量棘轮测试钉「只减不增」。
+  tseslintCore.configs.recommendedTypeChecked,
+  {
+    files: ['src/**/*.{ts,tsx,vue}'],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname
+      }
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+      '@typescript-eslint/require-await': 'warn',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
+      '@typescript-eslint/no-base-to-string': 'warn',
+      '@typescript-eslint/no-redundant-type-constituents': 'warn',
+      '@typescript-eslint/unbound-method': 'warn',
+      '@typescript-eslint/prefer-promise-reject-errors': 'warn',
+      '@typescript-eslint/restrict-template-expressions': 'warn'
+    }
+  },
+  {
+    // 项目外文件（无 tsconfig 覆盖）：packages 自有工程、example 参考物、
+    // e2e 探针、根级配置件、纯声明 d.ts——全部关闭 type-aware 规则
+    files: [
+      '**/*.{js,mjs,cjs}',
+      '**/*.d.ts',
+      '**/*.mts',
+      'packages/**/*.{ts,tsx}',
+      'example-plugin/**',
+      'example-react/**',
+      'vitest.global-setup.ts',
+      'electron.vite.config.ts'
+    ],
+    ...tseslintCore.configs.disableTypeChecked
+  },
   {
     files: ['**/*.vue'],
     languageOptions: {

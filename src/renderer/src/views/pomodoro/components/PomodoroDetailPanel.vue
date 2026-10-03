@@ -45,7 +45,7 @@ const durationText = computed(() => {
 watch(
   () => props.recordId,
   (id) => {
-    if (id) store.loadRecordDetail(id)
+    if (id) void store.loadRecordDetail(id)
   },
   { immediate: true }
 )

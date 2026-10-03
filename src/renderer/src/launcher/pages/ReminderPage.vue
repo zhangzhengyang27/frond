@@ -274,7 +274,7 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
 function onQuickTimeChange(): void {
   if (quickTime.value === 'custom') return
   // 选择快捷时间后自动创建
-  if (newTitle.value.trim()) createReminder()
+  if (newTitle.value.trim()) void createReminder()
 }
 
 function computeRemindAt(): number | null {

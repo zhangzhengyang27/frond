@@ -179,7 +179,7 @@ function onPrevNext(direction: 'prev' | 'next'): void {
 }
 
 function onFullscreen(): void {
-  toggle()
+  void toggle()
 }
 
 function toggleLaserPointer(): void {
@@ -209,13 +209,13 @@ watchEffect(() => {
 watch(
   () => props.currentSnippet?.id,
   () => {
-    renderMarkdown()
+    void renderMarkdown()
   },
   { immediate: true }
 )
 
 watch(renderedContent, () => {
-  nextTick(() => {
+  void nextTick(() => {
     renderCodeBlockEditors()
     markdownRef.value?.removeEventListener('click', onLinkClick)
     markdownRef.value?.addEventListener('click', onLinkClick)

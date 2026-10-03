@@ -363,7 +363,7 @@ const startRecording = async (
     }
 
     // 显示开始录制通知
-    window.api.notification.recording('start', '屏幕录制已开始')
+    void window.api.notification.recording('start', '屏幕录制已开始')
 
     // 计时器每秒刷新显示（基于 liveDurationMs 计算秒数）
     recordingTimer = window.setInterval(() => {

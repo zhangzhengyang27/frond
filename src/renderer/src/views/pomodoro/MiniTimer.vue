@@ -122,12 +122,12 @@ onBeforeUnmount(() => {
 })
 
 function toggleMainWindow(): void {
-  window.api?.pomodoro?.mini?.hide()
+  void window.api?.pomodoro?.mini?.hide()
   // 不直接打开主窗口（renderer 端无权）。Mini 唤起只通过主进程 / dock 触发。
 }
 
 function onHide(): void {
-  window.api?.pomodoro?.mini?.hide()
+  void window.api?.pomodoro?.mini?.hide()
 }
 </script>
 

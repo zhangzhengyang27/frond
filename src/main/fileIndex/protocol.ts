@@ -46,7 +46,7 @@ export function makeRequest(
 }
 
 export function makeResponse(id: number, ok: boolean, result?: unknown, error?: string): FileIndexResponse {
-  return ok ? { id, ok, result } : { id, ok, error }
+  return ok ? { id, ok, result } : { id, ok, error: error ?? 'unknown' }
 }
 
 export function makeLogEvent(level: FileIndexWorkerLogLevel, message: string): FileIndexWorkerEvent {

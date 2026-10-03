@@ -12,7 +12,6 @@
  * - 重建：clearAll + 重跑全量（管理页触发；范围变更同样触发），watcher 随范围重启
  *   （审查 I-6：只重建不重启 watcher 会让新范围永无增量）
  */
-import { app } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import { FileIndexDb } from './db'
@@ -21,7 +20,7 @@ import type { ExcludePolicy } from './excludes'
 import { normPath, isInScope, dirsForEvents, partitionReadable } from './paths'
 import { activeBackend } from './watcher'
 import type { FileIndexHit, FileSearchMode } from './db'
-import { log } from '../../services/LogService'
+import { logFileIndex as log } from '../../fileIndex/log'
 
 export type FileIndexStatus = 'disabled' | 'scanning' | 'ready' | 'capped' | 'error'
 
@@ -119,15 +118,15 @@ class FileIndexService {
     void this.rebuild()
   }
 
-  /** 幂等启动（非 macOS 直接 disabled） */
-  async ensureStarted(): Promise<void> {
+  /** 幂等启动（非 macOS 直接 disabled）；批5 起由 worker 进程调用，userData 路径经 fork argv 传入 */
+  async ensureStarted(userDataPath: string): Promise<void> {
     if (!this.enabled) {
       this.statusValue = 'disabled'
       return
     }
     if (this.db) return
     try {
-      this.db = FileIndexDb.open(join(app.getPath('userData'), 'file-index.db'))
+      this.db = FileIndexDb.open(join(userDataPath, 'file-index.db'))
       if (!this.db.getMeta(SCOPES_KEY)) {
         // e2e 覆盖：FROND_FILE_INDEX_SCOPES（JSON 数组或单路径）优先于默认 home，
         // 让测试用可控小目录验证索引链路，同时避免 e2e 触发 home 全量扫描
@@ -353,7 +352,7 @@ class FileIndexService {
         await rescanDir(this.db, dir, policy, inScope)
       } catch (e) {
       // 批 7b 空 catch 清账（原注释：* 单目录失败不中断本轮）
-      log.debug('service', '* 单目录失败不中断本轮', e)
+      log('debug', '* 单目录失败不中断本轮', e)
     }
     }
     this.filesValue = this.db.count()
@@ -376,7 +375,7 @@ class FileIndexService {
       this.filesValue = db.count()
     } catch (e) {
       // 批 7b 空 catch 清账（原注释：* 补偿失败不影响既有索引可用（下次事件或重建会覆盖））
-      log.debug('service', '* 补偿失败不影响既有索引可用（下次事件或重建会覆盖）', e)
+      log('debug', '* 补偿失败不影响既有索引可用（下次事件或重建会覆盖）', e)
     }
   }
 

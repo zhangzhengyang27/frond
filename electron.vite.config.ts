@@ -5,6 +5,17 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   main: {
+    build: {
+      rollupOptions: {
+        // 双入口：index = 主进程；file-index-worker = 文件索引独立进程（批5 R2，
+        // utilityProcess 拉起，主进程零索引 SQL）。原生模块走 externalizeDepsPlugin
+        // 外置 + electron-builder 对 *.node 的自动 asarUnpack，无需额外配置
+        input: {
+          index: resolve('src/main/index.ts'),
+          'file-index-worker': resolve('src/main/fileIndex/worker.ts')
+        }
+      }
+    },
     plugins: [
       // include 只列「不在 package.json dependencies 里、但必须保持 external」的包。
       // 2026-09-23 清理：这里原本还列了 onnxruntime-node（include）与 p-queue / sharp-phash

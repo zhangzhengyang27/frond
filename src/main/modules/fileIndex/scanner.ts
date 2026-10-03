@@ -15,7 +15,7 @@ import { shouldExcludeDir, shouldExcludeFile, type ExcludePolicy } from './exclu
 import { skeletonize } from './skeleton'
 import { isContentEligible, contentFromBuffer } from './content'
 import { normPath, joinNorm } from './paths'
-import { log } from '../../services/LogService'
+import { logFileIndex as log } from '../../fileIndex/log'
 
 const BATCH_SIZE = 400
 /** 单批字节上限：better-sqlite3 单事务同步写，批的体积决定主进程单次阻塞时长
@@ -125,7 +125,7 @@ async function buildRow(
       content = contentFromBuffer(buf)
     } catch (e) {
       // 批 7b 空 catch 清账（原注释：* 读取失败按无正文处理）
-      log.debug('scanner', '* 读取失败按无正文处理', e)
+      log('debug', '* 读取失败按无正文处理', e)
     }
   }
   return {

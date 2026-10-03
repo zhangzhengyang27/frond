@@ -17,7 +17,7 @@ import { isAbsolute } from 'path'
 import { isMac, isWin } from '../utils/platform'
 import { safeOpenablePath } from '../utils/openPathGuard'
 import { countE2E } from '../e2eProbe'
-import { fileIndex } from './fileIndex/service'
+import { fileIndexClient } from '../fileIndex/client'
 import { nativePath } from './fileIndex/paths'
 import { typedHandle } from '../ipc/typedIpc'
 
@@ -177,9 +177,11 @@ export function registerFileSearchIpc(): void {
     // 收录的仓库文件翻出来，那是设计 §5 的预期行为，但会淹没对剪枝的验收）
     const noFallback = process.env.FROND_FILE_SEARCH_NO_FALLBACK === '1'
     if ((isMac() || isWin()) && !onlyIn) {
-      void fileIndex.ensureStarted()
+      void fileIndexClient.ensureStarted()
       const tokens = trimmed.split(/\s+/).filter(Boolean)
-      const indexed = tokens.length > 0 ? fileIndex.query(tokens, mode, Number(limit) || 30) : null
+      // 批5：索引查询已进程隔离，query 为异步 RPC（null = 未就绪/降级 → 走下方系统检索回退）
+      let indexed: Awaited<ReturnType<typeof fileIndexClient.query>> = null
+      if (tokens.length > 0) indexed = await fileIndexClient.query(tokens, mode, Number(limit) || 30)
       if (indexed && indexed.length > 0) {
         return {
           ok: true,

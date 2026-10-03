@@ -1,5 +1,5 @@
 import { app, BrowserWindow, protocol, session, Tray } from 'electron'
-import { fileIndex } from './modules/fileIndex/service'
+import { fileIndexClient } from './fileIndex/client'
 import { migrateLegacyBrandData } from './modules/brandMigration'
 
 // userData 目录显式钉回 frond-desktop：package.json 的 productName=Frond（isSelfName
@@ -422,8 +422,8 @@ void app.whenReady().then(() => {
 
   // 文件搜索通道（M5.3）
   registerFileSearchIpc()
-  // 文件索引（#9，macOS / Windows）：打开索引库 + 默认范围 home + 后台全量扫描 + FSEvents 监听
-  void fileIndex.ensureStarted()
+  // 文件索引（#9，macOS / Windows）：批5 起在独立进程运行——这里只负责拉起 worker
+  void fileIndexClient.ensureStarted()
   registerFloatingNoteIpc()
 
   // 专注护盾（应用屏蔽）：配置/上报通道 + 检测轮询

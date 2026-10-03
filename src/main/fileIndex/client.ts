@@ -12,7 +12,7 @@
  */
 import { join } from 'path'
 import { app, utilityProcess } from 'electron'
-import type { FileIndexHit, FileSearchMode } from '../modules/fileIndex/service'
+import type { FileIndexHit, FileSearchMode } from '../modules/fileIndex/db'
 import type { UnavailableRoot } from '../modules/fileIndex/scanner'
 import {
   isFileIndexResponse,

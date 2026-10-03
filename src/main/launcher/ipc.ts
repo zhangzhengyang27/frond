@@ -101,7 +101,7 @@ import { findHotkeyConflict } from './hotkeyConflicts'
 import { getShortcutConfig } from '../modules/globalShortcuts'
 import { dispatchMainAction } from './actionHandlers'
 import { setPluginSearchItems, listPluginSearchItems } from './pluginSearchIndex'
-import { fileIndex } from '../modules/fileIndex/service'
+import { fileIndexClient } from '../fileIndex/client'
 
 /** Quicklinks kv 命名空间（M2.3） */
 const QUICKLINK_NS = 'sys.quicklinks'
@@ -431,7 +431,7 @@ export function registerLauncherIpc(): void {
   typedHandle('launcher:pluginSearchItems:list', () => listPluginSearchItems())
 
   // ─────────── 文件索引（#9，macOS / Windows）───────────
-  typedHandle('fileIndex:status', () => fileIndex.getStatus())
+  typedHandle('fileIndex:status', () => fileIndexClient.getStatus())
   typedHandle('fileIndex:addScope', async (e) => {
     const { BrowserWindow, dialog } = await import('electron')
     const win = BrowserWindow.fromWebContents(e.sender)
@@ -441,20 +441,21 @@ export function registerLauncherIpc(): void {
     })
     if (canceled || filePaths.length === 0) return { ok: false, canceled: true }
     const dir = filePaths[0]! // 上行已守卫非空
-    const scopes = fileIndex.getScopes()
-    if (!scopes.includes(dir)) fileIndex.setScopes([...scopes, dir])
-    return { ok: true as const, scopes: fileIndex.getScopes() }
+    const scopes = await fileIndexClient.getScopes()
+    if (!scopes.includes(dir)) await fileIndexClient.setScopes([...scopes, dir])
+    return { ok: true as const, scopes: await fileIndexClient.getScopes() }
   })
-  typedHandle('fileIndex:removeScope', (_e, { dir }) => {
-    fileIndex.setScopes(fileIndex.getScopes().filter((s) => s !== String(dir ?? '')))
-    return { ok: true as const, scopes: fileIndex.getScopes() }
+  typedHandle('fileIndex:removeScope', async (_e, { dir }) => {
+    const scopes = await fileIndexClient.getScopes()
+    await fileIndexClient.setScopes(scopes.filter((s) => s !== String(dir ?? '')))
+    return { ok: true as const, scopes: await fileIndexClient.getScopes() }
   })
-  typedHandle('fileIndex:rebuild', () => {
-    void fileIndex.rebuild()
+  typedHandle('fileIndex:rebuild', async () => {
+    await fileIndexClient.rebuild()
     return { ok: true as const }
   })
-  typedHandle('fileIndex:setHidden', (_e, { value }) => {
-    fileIndex.setHidden(value === true)
+  typedHandle('fileIndex:setHidden', async (_e, { value }) => {
+    await fileIndexClient.setHidden(value === true)
   })
   typedHandle('launcher:hotkeys:setMain', (_e, { accelerator }) => {
     const accel = String(accelerator ?? '').trim()

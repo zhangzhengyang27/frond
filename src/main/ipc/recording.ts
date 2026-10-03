@@ -357,6 +357,12 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         if (!resolveGrantedRecordingPath(req.outputPath, ['.mp4', '.webm', '.gif'])) {
           throw new Error('导出路径未经主进程签发，已拒绝')
         }
+        // 输入路径只认录制历史登记过的文件（B48）：否则任意文件可被 ffmpeg 转码进
+        // 「合法」输出并经 video:readFile 回读 = 任意文件读取链。将来 §6 接线若需
+        // 放行分段源文件，白名单须同步扩到 rec_segments 的已登记路径
+        if (!recordingRepository.findByFilePath(req.sourcePath)) {
+          throw new Error('sourcePath 不是录制历史中记录的录像文件，已拒绝')
+        }
         const jobId = randomUUID()
         const svc = exportService
         const ac = new AbortController()
@@ -392,6 +398,9 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
             ac.signal
           )
           .then(async (result) => {
+            // 成功路径同样清账（B48）：此前只有 .catch 与 cancel 清理，常驻进程
+            // 每次成功导出泄漏一条 { AbortController, recordingId }
+            activeExports.delete(jobId)
             if (result.ok) {
               // 导出只是转码产物：只更新输出路径/大小，绝不能用 finalize 把
               // duration_ms 清零（旧实现传 duration_ms: 0 → 导出后历史时长归零）
@@ -455,6 +464,11 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   typedHandle(
     'recording.export.getInfo',
     wrap(async (req: { filePath: string }) => {
+      // 白名单守卫（B48）：ffmpeg probe 只认录制历史登记过的文件——否则任意路径
+      // 的存在性/格式都能被渲染端探测（同文件 generateThumbnail/video:readFile 同口径）
+      if (!recordingRepository.findByFilePath(req.filePath)) {
+        throw new Error('只能探测录制历史中记录的录像文件')
+      }
       const sec = await exportService.probeDurationSec(req.filePath)
       return { ok: sec !== null, durationSec: sec ?? undefined }
     })

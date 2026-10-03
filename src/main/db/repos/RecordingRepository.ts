@@ -104,6 +104,17 @@ export class RecordingRepository {
   }
 
   /**
+   * 按文件路径取一行；不存在或已软删返回 null。
+   * export 域白名单守卫的数据源（B48）：ffmpeg 的输入/probe 口只认已登记路径。
+   */
+  findByFilePath(filePath: string): RecordingRow | null {
+    const row = this.db
+      .prepare(`SELECT * FROM rec_recordings WHERE file_path = ? AND deleted_at IS NULL`)
+      .get(filePath) as RecordingRow | undefined
+    return row ?? null
+  }
+
+  /**
    * 列表 + 过滤 + 排序 + 分页
    * 默认按 started_at DESC，取最近 100 条
    */

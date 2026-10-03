@@ -184,6 +184,8 @@ const api = {
   // 代码片段相关 API
   snippet: {
     getSnippets: (filters?) => typedInvoke('snippet:getSnippets', { filters }),
+    listSnippets: (filters, limit, offset) =>
+      typedInvoke('snippet:listSnippets', { filters, limit, offset }),
     getSnippetById: (id: string) => typedInvoke('snippet:getSnippetById', { id }),
     addSnippet: (snippet) => typedInvoke('snippet:addSnippet', snippet),
     updateSnippet: (id: string, updates) => typedInvoke('snippet:updateSnippet', { id, updates }),

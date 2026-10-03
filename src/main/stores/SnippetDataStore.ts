@@ -19,6 +19,16 @@ export class SnippetDataStore {
     return snippetRepository.getSnippets(f)
   }
 
+  /** 批3：分页列表（SnippetList 专用）。默认语义与 getSnippets 一致：排除回收站，显式 isDeleted 可覆盖 */
+  listSnippets(
+    filters: SnippetFilter | undefined,
+    limit: number,
+    offset: number
+  ): { items: Snippet[]; total: number } {
+    const f: SnippetFilter = filters ? { isDeleted: false, ...filters } : { isDeleted: false }
+    return snippetRepository.listSnippets(f, limit, offset)
+  }
+
   getSnippetById(id: string): Snippet | undefined {
     return snippetRepository.getSnippetById(id)
   }

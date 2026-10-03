@@ -995,6 +995,10 @@ export interface IpcContract {
     req: { filters?: SnippetFilter }
     res: ReturnType<SnippetDataStore['getSnippets']>
   }
+  'snippet:listSnippets': {
+    req: { filters?: SnippetFilter; limit: number; offset: number }
+    res: ReturnType<SnippetDataStore['listSnippets']>
+  }
   'snippet:getSnippetById': {
     req: { id: string }
     res: ReturnType<SnippetDataStore['getSnippetById']>

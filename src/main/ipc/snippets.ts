@@ -18,6 +18,10 @@ const SNIPPET_IMPORT_MAX_BYTES = 20 * 1024 * 1024
 export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void {
   typedHandle('snippet:getSnippets', (_event, { filters }) => snippetStore.getSnippets(filters))
 
+  typedHandle('snippet:listSnippets', (_event, { filters, limit, offset }) =>
+    snippetStore.listSnippets(filters, limit, offset)
+  )
+
   typedHandle('snippet:getSnippetById', (_event, { id }) => snippetStore.getSnippetById(id))
 
   typedHandle('snippet:addSnippet', (_event, snippet) => {

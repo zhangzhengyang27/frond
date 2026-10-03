@@ -197,7 +197,11 @@ export class SnippetRepository {
 
   // ---------- CRUD ----------
 
-  getSnippets(filters?: SnippetFilter): Snippet[] {
+  /** 批3：过滤条件构建（getSnippets / listSnippets 共用），含 tagId JOIN 变体 */
+  private buildSnippetQuery(filters?: SnippetFilter): {
+    sql: string
+    params: Array<string | number>
+  } {
     const wheres: string[] = []
     const params: Array<string | number> = []
 
@@ -220,8 +224,8 @@ export class SnippetRepository {
       wheres.push(`is_favorite = ?`)
       params.push(filters.isFavorites ? 1 : 0)
     }
-    // B42：搜索下沉 SQL——search_text 是 name/description/contents 的明文投影
-    // （写入路径同步维护，迁移 032 回填存量）。LIKE 默认 ASCII 大小写不敏感
+    // B42：搜索下沉 SQL——search_text 是 name/description/trigger/contents 的明文投影
+    // （写入路径同步维护，迁移 032 建、033 补 trigger）。LIKE 默认 ASCII 大小写不敏感
     // （CJK 无大小写，语义等价旧 JS toLowerCase 比较）；通配符按字面义转义，
     // 与旧 includes 行为一致
     if (filters?.search) {
@@ -229,7 +233,6 @@ export class SnippetRepository {
       params.push(`%${filters.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`)
     }
 
-    // tagId 需要 JOIN
     let sql = `SELECT * FROM snip_snippets`
     if (filters?.tagId) {
       sql = `SELECT s.* FROM snip_snippets s
@@ -243,14 +246,32 @@ export class SnippetRepository {
     } else {
       sql += wheres.length ? ` WHERE ${wheres.join(' AND ')}` : ''
     }
+    return { sql, params }
+  }
 
-    sql += ` ORDER BY updated_at DESC, rowid DESC`
+  getSnippets(filters?: SnippetFilter): Snippet[] {
+    const { sql, params } = this.buildSnippetQuery(filters)
+    const rows = this.db
+      .prepare(`${sql} ORDER BY updated_at DESC, rowid DESC`)
+      .all(...params) as SnippetRow[]
+    return this.attachRelations(rows)
+  }
 
-    const rows = this.db.prepare(sql).all(...params) as SnippetRow[]
-
-    const snippets = this.attachRelations(rows)
-
-    return snippets
+  /** 批3：分页列表（SnippetList 专用）。total = 同过滤条件总数；写入后按已加载量重拉不跳页 */
+  listSnippets(
+    filters: SnippetFilter,
+    limit: number,
+    offset: number
+  ): { items: Snippet[]; total: number } {
+    const { sql, params } = this.buildSnippetQuery(filters)
+    // 子查询包裹：tagId JOIN 变体的 WHERE 落在别名 s 上，COUNT 直接包一层最稳
+    const total = (
+      this.db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params) as { n: number }
+    ).n
+    const rows = this.db
+      .prepare(`${sql} ORDER BY updated_at DESC, rowid DESC LIMIT ? OFFSET ?`)
+      .all(...params, limit, offset) as SnippetRow[]
+    return { items: this.attachRelations(rows), total }
   }
 
   getSnippetById(id: string): Snippet | undefined {
@@ -282,7 +303,7 @@ export class SnippetRepository {
           ts,
           ts,
           deletedAt,
-          buildSnippetSearchText(snippet.name, snippet.description, snippet.contents)
+          buildSnippetSearchText(snippet.name, snippet.description, snippet.contents, snippet.trigger)
         )
       const contentInsert = this.db.prepare(
         `INSERT INTO snip_snippet_contents (id, snippet_id, label, value, language, position, content_type)
@@ -336,7 +357,7 @@ export class SnippetRepository {
           next.trigger?.trim() || null,
           next.isFavorites ? 1 : 0,
           ts,
-          buildSnippetSearchText(next.name, next.description, next.contents),
+          buildSnippetSearchText(next.name, next.description, next.contents, next.trigger),
           id
         )
 
@@ -480,7 +501,7 @@ export class SnippetRepository {
           s.createdAt,
           s.updatedAt,
           s.isDeleted ? s.updatedAt : null,
-          buildSnippetSearchText(s.name, s.description, s.contents)
+          buildSnippetSearchText(s.name, s.description, s.contents, s.trigger)
         )
         deleteContents.run(s.id)
         s.contents.forEach((c, idx) => {
@@ -514,9 +535,10 @@ export const snippetRepository = new SnippetRepository()
 export function buildSnippetSearchText(
   name: string,
   description: string | null | undefined,
-  contents: Array<{ label?: string; value?: string }>
+  contents: Array<{ label?: string; value?: string }>,
+  trigger?: string | null | undefined
 ): string {
-  const parts: string[] = [name ?? '', description ?? '']
+  const parts: string[] = [name ?? '', description ?? '', trigger ?? '']
   for (const c of contents) {
     parts.push(c.label ?? '', c.value ?? '')
   }

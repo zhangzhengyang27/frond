@@ -156,9 +156,12 @@ describe('片段明文搜索列（B42）', () => {
     legacy.close()
   })
 
-  it('buildSnippetSearchText：纯函数拼接', () => {
+  it('buildSnippetSearchText：纯函数拼接（批3 起含 trigger）', () => {
     expect(
-      buildSnippetSearchText('名', '描述', [{ label: 'L1', value: 'V1' }, { label: 'L2' }])
-    ).toBe('名\n描述\nL1\nV1\nL2\n')
+      buildSnippetSearchText('名', '描述', [{ label: 'L1', value: 'V1' }, { label: 'L2' }], ';trg')
+    ).toBe('名\n描述\n;trg\nL1\nV1\nL2\n')
+    expect(buildSnippetSearchText('名', '描述', [{ label: 'L1', value: 'V1' }])).toBe(
+      '名\n描述\n\nL1\nV1'
+    )
   })
 })

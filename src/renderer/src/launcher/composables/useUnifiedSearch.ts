@@ -62,35 +62,25 @@ async function searchFilesAsEntries(q: string): Promise<ScoredEntry[]> {
   }
 }
 
-/** 剪贴板历史 → CommandEntry（最多 3 条；P0-3：备注关键词参与匹配） */
+/** 剪贴板历史 → CommandEntry（最多 3 条；P0-3：备注关键词参与匹配）
+ * B53-3a：过滤下沉主进程（cliphist:search）——此前每击键全量拉 200 条含全文
+ * （单条上限 512KB）再在渲染端过滤。 */
 async function searchClipboardAsEntries(q: string): Promise<ScoredEntry[]> {
   try {
-    const items = (await window.api.clipHist.list()) as Array<{
+    const items = (await window.api.clipHist.search(q, CLIP_ROW_CAP)) as Array<{
       id: string
       kind: 'text' | 'image' | 'files' | 'link'
       text?: string
-      paths?: string[]
+      firstPath?: string
       keywords?: string[]
     }>
-    const lower = q.toLowerCase()
-    const keywordHit = (item: { keywords?: string[] }): boolean =>
-      item.keywords?.some((k) => k.toLowerCase().includes(lower)) ?? false
-    const matched = items
-      .filter((item) => {
-        if (item.kind === 'text' || item.kind === 'link')
-          return item.text?.toLowerCase().includes(lower) || keywordHit(item)
-        if (item.kind === 'files')
-          return item.paths?.some((p) => p.toLowerCase().includes(lower)) || keywordHit(item)
-        return false
-      })
-      .slice(0, CLIP_ROW_CAP)
-    return matched.map((item) => ({
+    return items.map((item) => ({
       entry: {
         key: `clip:${item.id}`,
         icon: item.kind === 'image' ? 'image-line' : 'clipboard-line',
         title:
           item.kind === 'files'
-            ? (item.paths?.[0]?.split('/').pop() ?? '文件')
+            ? (item.firstPath?.split('/').pop() ?? '文件')
             : (item.text ?? '').slice(0, 60),
         subtitle: item.kind === 'link' ? '链接' : '剪贴板',
         badge: '剪贴板',
@@ -104,20 +94,21 @@ async function searchClipboardAsEntries(q: string): Promise<ScoredEntry[]> {
   }
 }
 
-/** 代码片段 → CommandEntry（最多 3 条） */
+/** 代码片段 → CommandEntry（最多 3 条）
+ * B53-3b：轻路径 quickSearch——LIMIT 内返回且不解密 contents（此前每击键全库
+ * LIKE 无 LIMIT + 逐行 AES 解密全部命中行）。 */
 async function searchSnippetsAsEntries(q: string): Promise<ScoredEntry[]> {
   try {
-    const snips = (await window.api.snippet.getSnippets({ search: q })) as Array<{
+    const snips = (await window.api.snippet.quickSearch(q, SNIP_ROW_CAP)) as Array<{
       id: string
-      title?: string
-      content?: { text?: string } | string
-      language?: string
+      name: string
+      language: string
     }>
-    return snips.slice(0, SNIP_ROW_CAP).map((s) => ({
+    return snips.map((s) => ({
       entry: {
         key: `snip:${s.id}`,
         icon: 'file-code-line',
-        title: s.title ?? '未命名片段',
+        title: s.name ?? '未命名片段',
         subtitle: s.language ?? '片段',
         badge: '片段',
         action: { type: 'snippetItem', id: s.id }

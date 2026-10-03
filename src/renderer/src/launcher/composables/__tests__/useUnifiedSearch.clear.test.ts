@@ -15,14 +15,15 @@ beforeEach(() => {
   clipDeferred = null
   ;(window as unknown as { api: unknown }).api = {
     clipHist: {
-      list: vi.fn(
+      // B53-3a 后根搜索走 cliphist:search（主进程侧过滤）
+      search: vi.fn(
         () =>
           new Promise<unknown[]>((resolve) => {
             clipDeferred = { resolve }
           })
       )
     },
-    snippet: { getSnippets: vi.fn(async () => []) },
+    snippet: { quickSearch: vi.fn(async () => []) },
     findFiles: vi.fn(async () => ({ items: [] }))
   }
 })

@@ -183,6 +183,8 @@ const api = {
   },
   // 代码片段相关 API
   snippet: {
+    quickSearch: (query: string, limit: number) =>
+      typedInvoke('snippet:quickSearch', { query, limit }),
     getSnippets: (filters?) => typedInvoke('snippet:getSnippets', { filters }),
     listSnippets: (filters, limit, offset) =>
       typedInvoke('snippet:listSnippets', { filters, limit, offset }),
@@ -680,6 +682,8 @@ const api = {
   // 剪贴板历史（阶段B：胶囊内联页数据源；主进程 1s 轮询，会话内有效）
   clipHist: {
     list: () => typedInvoke('cliphist:list'),
+    // B53-3a：主进程侧搜索（根搜索每击键），最小投影
+    search: (query: string, limit?: number) => typedInvoke('cliphist:search', { query, limit }),
     copy: (id) => typedInvoke('cliphist:copy', { id }),
     remove: (id) => typedInvoke('cliphist:remove', { id }),
     clear: () => typedInvoke('cliphist:clear'),

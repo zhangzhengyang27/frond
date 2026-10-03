@@ -1001,6 +1001,11 @@ export interface IpcContract {
     res: ReturnType<typeof notesRepository.deleteFolder>
   }
 
+  /** B53-3b：胶囊根搜索轻路径——LIMIT + 不解密 contents */
+  'snippet:quickSearch': {
+    req: { query: string; limit: number }
+    res: Array<{ id: string; name: string; language: string }>
+  }
   'snippet:getSnippets': {
     req: { filters?: SnippetFilter }
     res: ReturnType<SnippetDataStore['getSnippets']>
@@ -1242,6 +1247,17 @@ export interface IpcContract {
   'notification:closeAll': { req: void; res: void }
 
   'cliphist:list': { req: void; res: ClipboardHistoryItem[] }
+  /** B53-3a：主进程侧搜索（根搜索每击键）——最小投影，不整包发全文历史 */
+  'cliphist:search': {
+    req: { query: string; limit?: number }
+    res: Array<{
+      id: string
+      kind: ClipboardHistoryItem['kind']
+      text?: string
+      firstPath?: string
+      keywords?: string[]
+    }>
+  }
   'cliphist:copy': { req: { id: string }; res: boolean }
   'cliphist:remove': { req: { id: string }; res: boolean }
   'cliphist:clear': { req: void; res: boolean }

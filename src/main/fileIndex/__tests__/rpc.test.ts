@@ -8,7 +8,7 @@ import {
   isFileIndexResponse,
   isFileIndexWorkerEvent
 } from '../protocol'
-import { FileIndexClient, type WorkerLike } from '../client'
+import { FileIndexClient, RPC_TIMEOUT_MS, REBUILD_RPC_TIMEOUT_MS, type WorkerLike } from '../client'
 
 describe('fileIndex RPC 协议（批5）', () => {
   it('信封构造与类型守卫往返', () => {
@@ -133,5 +133,35 @@ describe('FileIndexClient 生命周期（批5）', () => {
     await vi.advanceTimersByTimeAsync(10_000)
     await expect(p).resolves.toBeNull()
     expect(workers.length).toBe(1)
+  })
+
+  it('rebuild 不受 10s 默认超时约束（分钟级全量扫描不能假失败，B47③）', async () => {
+    const { spawn, workers } = makeSpawn()
+    const client = new FileIndexClient(spawn)
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      void client.rebuild() // worker 不回包（模拟扫描仍在跑）
+      await vi.advanceTimersByTimeAsync(RPC_TIMEOUT_MS)
+      // 10s 处绝不报「rebuild 失败」——那是假失败：worker 还在扫，日志却记账失败，
+      // 诱导用户再点一次 rebuild 打断后台扫描
+      expect(errSpy).not.toHaveBeenCalledWith(expect.stringContaining('rebuild 失败'))
+      // 超时上限仍然存在（防 worker 假活挂死 IPC）：REBUILD_RPC_TIMEOUT_MS 处会报
+      await vi.advanceTimersByTimeAsync(REBUILD_RPC_TIMEOUT_MS)
+      expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('rebuild 失败'), expect.anything())
+    } finally {
+      errSpy.mockRestore()
+    }
+  })
+
+  it('ensureStarted 在 worker 已存活时不再发 RPC（fileSearch 每查询都调，不能白付一趟，B53-12）', async () => {
+    const { spawn, workers } = makeSpawn()
+    const client = new FileIndexClient(spawn)
+    const p1 = client.query(['a'], 'name', 5)
+    const sent1 = workers[0]!.sent[0] as { id: number }
+    respondOk(workers[0]!, sent1.id, [])
+    await p1
+    const sentBefore = workers[0]!.sent.length
+    await client.ensureStarted()
+    expect(workers[0]!.sent.length).toBe(sentBefore)
   })
 })

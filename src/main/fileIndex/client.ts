@@ -35,6 +35,12 @@ export type FileSearchModeAlias = FileSearchMode
 const MAX_RESTARTS = 5
 const BASE_BACKOFF_MS = 1000
 const RPC_TIMEOUT_MS = 10_000
+/**
+ * rebuild 专用超时：分钟级全量扫描（45 万文件）等不了 10s 默认值——假失败日志会
+ * 诱导用户再点一次 rebuild 打断后台扫描（B47③）。上限仍保留，防 worker 假活把
+ * IPC handler 挂死；worker 真崩溃走 exit → onWorkerExit 立刻 reject，不走这里。
+ */
+export const REBUILD_RPC_TIMEOUT_MS = 30 * 60_000
 
 const DEGRADED_STATUS: FileIndexStatusShape = {
   status: 'error',
@@ -148,7 +154,7 @@ export class FileIndexClient {
     }, delay)
   }
 
-  private rpc<T>(type: FileIndexRequestType, payload?: unknown): Promise<T> {
+  private rpc<T>(type: FileIndexRequestType, payload?: unknown, timeoutMs = RPC_TIMEOUT_MS): Promise<T> {
     this.ensureWorker()
     const worker = this.worker
     if (!worker) return Promise.reject(new Error('file-index worker unavailable'))
@@ -157,13 +163,16 @@ export class FileIndexClient {
       const timer = setTimeout(() => {
         this.pending.delete(id)
         reject(new Error(`file-index rpc ${type} timeout`))
-      }, RPC_TIMEOUT_MS)
+      }, timeoutMs)
       this.pending.set(id, { resolve: resolve as (v: unknown) => void, reject, timer })
       worker.postMessage(makeRequest(id, type, payload))
     })
   }
 
   async ensureStarted(): Promise<void> {
+    if (this.worker) return
+    // worker 已存活就免 RPC：fileSearch 每条查询都调 ensureStarted，worker 侧又幂等，
+    // 每次白付一趟 utilityProcess 往返在高频键盘查询下可观（B53-12）
     if (this.degraded) {
       // 恢复路径：调用方（index.ts 启动 / fileSearch 每次查询）给一次重新拉起的机会
       this.degraded = false
@@ -205,7 +214,8 @@ export class FileIndexClient {
 
   async rebuild(): Promise<void> {
     try {
-      await this.rpc('rebuild')
+      // 分钟级扫描用专用长超时（B47③）；崩溃仍走 exit 立刻 reject
+      await this.rpc('rebuild', undefined, REBUILD_RPC_TIMEOUT_MS)
     } catch (error) {
       console.error('[FileIndex] rebuild 失败:', (error as Error).message)
     }

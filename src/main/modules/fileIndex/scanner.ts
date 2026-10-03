@@ -217,6 +217,9 @@ export async function rescanDir(
     current.set(entry.name, { isDir: entry.isDirectory(), name: entry.name })
   }
   const dbChildren = db.listDirChildren(dir)
+  // 子项按名建 Map：下方每个现存子项都要查一次旧状态，线性 find 在万级目录
+  // 的事件批上是 O(N²)（B53-7）
+  const dbChildrenByName = new Map(dbChildren.map((c) => [c.name, c]))
   // 删除：DB 有、现读无（含被排除的旧子项）
   const missing = dbChildren.filter((c) => !current.has(c.name)).map((c) => c.path)
   if (missing.length > 0) {
@@ -230,7 +233,7 @@ export async function rescanDir(
     const childPath = joinNorm(dir, name)
     if (info.isDir) {
       if (shouldExcludeDir(name, policy)) continue
-      const existing = dbChildren.find((c) => c.name === name)
+      const existing = dbChildrenByName.get(name)
       if (
         !existing &&
         (!inScope || inScope(childPath)) &&
@@ -241,7 +244,7 @@ export async function rescanDir(
       continue
     }
     if (shouldExcludeFile(name, policy)) continue
-    const existing = dbChildren.find((c) => c.name === name)
+    const existing = dbChildrenByName.get(name)
     const { mtime } = await statEntry(childPath)
     if (
       existing &&

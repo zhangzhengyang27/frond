@@ -27,6 +27,7 @@
 
 import type Database from 'better-sqlite3'
 import { database } from '../database'
+import { sqlFacade, type SqlDb } from '../typedSql'
 import { now, mustGet, likeContains } from '../repo'
 
 export type RecordingStatus = 'recording' | 'paused' | 'completed' | 'failed' | 'recovered'
@@ -79,8 +80,9 @@ export interface ListOptions {
 export class RecordingRepository {
   constructor(private readonly _db?: Database.Database) {}
 
-  private get db(): Database.Database {
-    return this._db ?? database.handle
+  // B46：facade 化——链式 prepare 写法保持，行形状由调用点泛型给出
+  private get db(): SqlDb {
+    return sqlFacade(this._db ?? database.handle)
   }
 
   /**

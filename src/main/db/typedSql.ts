@@ -75,7 +75,7 @@ export interface SqlStmt<Row> {
 export interface SqlDb {
   prepare<Row = unknown>(sql: string): SqlStmt<Row>
   exec(sql: string): void
-  transaction<T>(fn: () => T): () => T
+  transaction<TArgs extends unknown[], T>(fn: (...args: TArgs) => T): (...args: TArgs) => T
 }
 
 /** 把裸 Database 包成泛型 facade；运行时零包装（直通原 handle） */

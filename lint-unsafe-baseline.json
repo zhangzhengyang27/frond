@@ -1,5 +1,5 @@
 {
-  "total": 2414,
+  "total": 1895,
   "files": {
     "src/main/db/__tests__/5_6b.pomodoro.test.ts": {
       "no-unsafe-assignment": 3,
@@ -256,12 +256,6 @@
       "no-unsafe-call": 6,
       "no-unsafe-member-access": 5
     },
-    "src/main/db/repos/FolderRepository.ts": {
-      "no-unsafe-return": 2,
-      "no-unsafe-call": 32,
-      "no-unsafe-member-access": 29,
-      "no-unsafe-assignment": 4
-    },
     "src/main/db/repos/MarkerRepository.ts": {
       "no-unsafe-return": 3,
       "no-unsafe-call": 18,
@@ -269,10 +263,9 @@
       "no-unsafe-assignment": 5
     },
     "src/main/db/repos/PomodoroRepository.ts": {
-      "no-unsafe-return": 5,
-      "no-unsafe-call": 64,
-      "no-unsafe-member-access": 64,
-      "no-unsafe-assignment": 6
+      "no-unsafe-call": 4,
+      "no-unsafe-member-access": 4,
+      "no-unsafe-return": 2
     },
     "src/main/db/repos/PrefRepository.ts": {
       "no-unsafe-return": 2,
@@ -286,12 +279,6 @@
       "no-unsafe-member-access": 13,
       "no-unsafe-assignment": 1
     },
-    "src/main/db/repos/RecordingRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 32,
-      "no-unsafe-member-access": 33,
-      "no-unsafe-assignment": 3
-    },
     "src/main/db/repos/RecordingSegmentRepository.ts": {
       "no-unsafe-return": 3,
       "no-unsafe-call": 16,
@@ -303,12 +290,6 @@
       "no-unsafe-call": 4,
       "no-unsafe-member-access": 4
     },
-    "src/main/db/repos/ReminderRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 26,
-      "no-unsafe-member-access": 30,
-      "no-unsafe-assignment": 4
-    },
     "src/main/db/repos/ShotIndexRepository.ts": {
       "no-unsafe-return": 1,
       "no-unsafe-assignment": 4,
@@ -316,16 +297,8 @@
       "no-unsafe-member-access": 20
     },
     "src/main/db/repos/SnippetRepository.ts": {
-      "no-unsafe-return": 6,
-      "no-unsafe-assignment": 18,
-      "no-unsafe-call": 64,
-      "no-unsafe-member-access": 65
-    },
-    "src/main/db/repos/TagRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 20,
-      "no-unsafe-member-access": 21,
-      "no-unsafe-assignment": 2
+      "no-unsafe-call": 2,
+      "no-unsafe-member-access": 2
     },
     "src/main/db/repos/UsageRepository.ts": {
       "no-unsafe-return": 1,

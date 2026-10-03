@@ -9,6 +9,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import type Database from 'better-sqlite3'
 import { database } from '../database'
+import { sqlFacade, type SqlDb } from '../typedSql'
 import { now } from '../repo'
 import { log } from '../../services/LogService'
 
@@ -52,8 +53,9 @@ interface ReminderRow {
 export class ReminderRepository {
   constructor(private readonly _db?: Database.Database) {}
 
-  private get db(): Database.Database {
-    return this._db ?? database.handle
+  // B46：facade 化——链式 prepare 写法保持，行形状由调用点泛型给出
+  private get db(): SqlDb {
+    return sqlFacade(this._db ?? database.handle)
   }
 
   private fromRow(row: ReminderRow): Reminder {

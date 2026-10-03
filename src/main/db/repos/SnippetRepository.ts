@@ -18,6 +18,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import type Database from 'better-sqlite3'
 import { database } from '../database'
+import { sqlFacade, type SqlDb } from '../typedSql'
 import { now } from '../repo'
 import { encryptText, decryptText } from '../../utils/crypto'
 
@@ -94,8 +95,9 @@ interface TagJunctionRow {
 export class SnippetRepository {
   constructor(private readonly _db?: Database.Database) {}
 
-  private get db(): Database.Database {
-    return this._db ?? database.handle
+  // B46：facade 化——链式 prepare 写法保持，行形状由调用点泛型给出
+  private get db(): SqlDb {
+    return sqlFacade(this._db ?? database.handle)
   }
 
   /** 高频单条查询的语句缓存：better-sqlite3 的 prepare 不缓存，逐次编译浪费 */

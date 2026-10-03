@@ -7,6 +7,10 @@ import plist from 'plist'
 import { md5 } from 'js-md5'
 import { typedHandle } from '../ipc/typedIpc'
 import { log } from '../services/LogService'
+import {
+  loadApplicationsCacheFile,
+  saveApplicationsCacheFile
+} from './applicationsCacheFile'
 
 export interface AppEntry {
   name: string
@@ -609,6 +613,22 @@ let inflightFetch: Promise<AppEntry[]> | null = null
 // system_profiler 冷扫要 5-15s，TTL 太短会让用户频繁白等；过期后先回旧数据再后台刷新
 const CACHE_TTL = 24 * 60 * 60 * 1000
 
+/** 读取当前缓存（函数边界防 TS 对模块级 let 的控制流收窄把 catch 路径判成 never） */
+function currentCache(): ApplicationsCache | null {
+  return applicationsCache
+}
+
+/** 统一写缓存：内存赋值 + 落盘（B53-1：下次冷启动首轮直接回旧数据，不再白等扫描） */
+function setApplicationsCache(applications: AppEntry[], timestamp = Date.now()): void {
+  applicationsCache = { applications, timestamp }
+  try {
+    saveApplicationsCacheFile(app.getPath('userData'), applications, timestamp)
+  } catch (e) {
+    // 落盘失败只影响下次冷启动（回退同步扫描），不影响本次
+    log.debug('applications', '应用索引落盘失败', e)
+  }
+}
+
 /** 并发去重：get / refresh / 后台刷新同时触发时只跑一次真实扫描 */
 function fetchApplicationsListDeduped(): Promise<AppEntry[]> {
   if (!inflightFetch) {
@@ -622,7 +642,7 @@ function fetchApplicationsListDeduped(): Promise<AppEntry[]> {
 function startBackgroundRefresh(): void {
   void fetchApplicationsListDeduped()
     .then((apps) => {
-      applicationsCache = { applications: apps, timestamp: Date.now() }
+      setApplicationsCache(apps)
     })
     .catch((err) => {
       console.error('Background applications refresh failed:', err)
@@ -630,6 +650,21 @@ function startBackgroundRefresh(): void {
 }
 
 export function registerApplicationsIpcHandlers(): void {
+  // B53-1：启动即装载磁盘缓存——首轮 get-applications 直接回旧数据（<100ms），
+  // 过期则由下方 stale-while-revalidate 后台刷新；损坏/版本不符静默回退同步扫描
+  try {
+    const disk = loadApplicationsCacheFile(app.getPath('userData'))
+    if (disk && applicationsCache === null) {
+      applicationsCache = { applications: disk.applications as AppEntry[], timestamp: disk.timestamp }
+      log.debug(
+        'applications',
+        `已装载磁盘应用索引（${disk.applications.length} 条，扫描于 ${Math.round((Date.now() - disk.timestamp) / 60000)} 分钟前）`
+      )
+    }
+  } catch (e) {
+    log.debug('applications', '磁盘应用索引装载失败', e)
+  }
+
   // 获取本地应用列表：新鲜缓存直接回；过期缓存立即回旧数据 + 后台静默刷新；无缓存才同步等待扫描
   typedHandle('get-applications', async () => {
     const now = Date.now()
@@ -642,11 +677,11 @@ export function registerApplicationsIpcHandlers(): void {
     }
     try {
       const applications = await fetchApplicationsListDeduped()
-      applicationsCache = { applications, timestamp: Date.now() }
+      setApplicationsCache(applications)
       return applications
     } catch (error) {
       console.error('Failed to get applications:', error)
-      return applicationsCache?.applications ?? []
+      return currentCache()?.applications ?? []
     }
   })
 
@@ -654,11 +689,11 @@ export function registerApplicationsIpcHandlers(): void {
   typedHandle('refresh-applications', async () => {
     try {
       const applications = await fetchApplicationsListDeduped()
-      applicationsCache = { applications, timestamp: Date.now() }
+      setApplicationsCache(applications)
       return applications
     } catch (error) {
       console.error('Failed to refresh applications:', error)
-      return applicationsCache?.applications ?? []
+      return currentCache()?.applications ?? []
     }
   })
 

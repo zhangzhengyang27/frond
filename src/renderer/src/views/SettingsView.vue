@@ -13,6 +13,8 @@ import UProgress from '@components/ui/UProgress.vue'
 import USwitch from '@components/ui/USwitch.vue'
 import UInput from '@components/ui/UInput.vue'
 import USlider from '@components/ui/USlider.vue'
+import UOptionPills from '@components/ui/UOptionPills.vue'
+import UTextarea from '@components/ui/UTextarea.vue'
 import { resetOnboardingState } from '../router'
 import { useTheme, type Theme } from '../composables/useTheme'
 import { useUserTheme } from '../composables/useUserTheme'
@@ -926,23 +928,18 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     紧凑档把行高从 38px 压到 28px；字号与图标保持原样，避免与详情面板的像素对齐打架
                   </div>
                 </div>
-                <div class="flex shrink-0 gap-1" data-testid="density-picker">
-                  <button
-                    v-for="d in DENSITY_VALUES"
-                    :key="d"
-                    type="button"
-                    class="rounded-lg px-2.5 py-1.5 text-[12px] transition-colors"
-                    :class="
-                      density === d
-                        ? 'bg-brand-500 text-white'
-                        : 'bg-surface-2 text-fg-primary hover:bg-surface-hover'
-                    "
-                    :data-density-opt="d"
-                    @click="chooseDensity(d)"
-                  >
-                    {{ d === 'comfortable' ? '宽松' : '紧凑' }}
-                  </button>
-                </div>
+                <UOptionPills
+                  :model-value="density"
+                  size="sm"
+                  data-testid="density-picker"
+                  class="shrink-0"
+                  :options="DENSITY_VALUES.map((d) => ({
+                    label: d === 'comfortable' ? '宽松' : '紧凑',
+                    value: d,
+                    attrs: { 'data-density-opt': d }
+                  }))"
+                  @update:model-value="chooseDensity"
+                />
               </div>
               <div class="flex items-center gap-3 border-t border-line-subtle px-4 py-3">
                 <div class="min-w-0 flex-1">
@@ -952,23 +949,18 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     深色/浅色自动是各自的半透明玻璃）
                   </div>
                 </div>
-                <div class="flex shrink-0 gap-1" data-testid="glass-picker">
-                  <button
-                    v-for="g in CAPSULE_GLASS_VALUES"
-                    :key="g"
-                    type="button"
-                    class="rounded-lg px-2.5 py-1.5 text-[12px] transition-colors"
-                    :class="
-                      glass === g
-                        ? 'bg-brand-500 text-white'
-                        : 'bg-surface-2 text-fg-primary hover:bg-surface-hover'
-                    "
-                    :data-glass-opt="g"
-                    @click="chooseGlass(g)"
-                  >
-                    {{ g === 'opaque' ? '不透明' : g === 'soft' ? '半透明' : '通透' }}
-                  </button>
-                </div>
+                <UOptionPills
+                  :model-value="glass"
+                  size="sm"
+                  data-testid="glass-picker"
+                  class="shrink-0"
+                  :options="CAPSULE_GLASS_VALUES.map((g) => ({
+                    label: g === 'opaque' ? '不透明' : g === 'soft' ? '半透明' : '通透',
+                    value: g,
+                    attrs: { 'data-glass-opt': g }
+                  }))"
+                  @update:model-value="chooseGlass"
+                />
               </div>
               <div class="flex items-center gap-3 border-t border-line-subtle px-4 py-3">
                 <div class="min-w-0 flex-1">
@@ -1020,23 +1012,17 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary"
                     >服务方</label
                   >
-                  <div class="flex flex-wrap gap-1.5">
-                    <button
-                      v-for="p in AI_PROVIDERS"
-                      :key="p.id"
-                      type="button"
-                      class="rounded-full px-2.5 py-1 text-[12px] transition-colors"
-                      :class="
-                        aiProvider === p.id
-                          ? 'bg-brand-500 text-white'
-                          : 'bg-surface-2 text-fg-primary hover:bg-surface-hover'
-                      "
-                      :title="p.hint || p.baseUrl"
-                      @click="pickProvider(p)"
-                    >
-                      {{ p.label }}
-                    </button>
-                  </div>
+                  <UOptionPills
+                    :model-value="aiProvider"
+                    variant="pill"
+                    size="sm"
+                    :options="AI_PROVIDERS.map((p) => ({
+                      label: p.label,
+                      value: p.id,
+                      attrs: { title: p.hint || p.baseUrl }
+                    }))"
+                    @update:model-value="(id: string) => pickProvider(AI_PROVIDERS.find((p) => p.id === id)!)"
+                  />
                   <p v-if="pickedProvider?.hint" class="mt-1.5 text-[12px] text-fg-tertiary">
                     {{ pickedProvider.hint }}
                   </p>
@@ -1075,11 +1061,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary"
                     >系统提示词</label
                   >
-                  <textarea
-                    v-model="aiSystemPrompt"
-                    rows="2"
-                    class="w-full resize-none rounded-lg bg-surface-2 px-3 py-2 text-[13px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
-                  />
+                  <UTextarea v-model="aiSystemPrompt" :rows="2" />
                 </div>
                 <div class="flex items-center gap-3">
                   <label class="shrink-0 text-[12px] font-medium text-fg-tertiary"
@@ -1098,22 +1080,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary">
                     探测到的模型（{{ aiModels.length }}）
                   </label>
-                  <div class="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
-                    <button
-                      v-for="m in aiModels"
-                      :key="m"
-                      type="button"
-                      class="rounded-full px-2.5 py-1 font-mono text-[11px] transition-colors"
-                      :class="
-                        aiModel === m
-                          ? 'bg-brand-500 text-white'
-                          : 'bg-surface-2 text-fg-primary hover:bg-surface-hover'
-                      "
-                      @click="aiModel = m"
-                    >
-                      {{ m }}
-                    </button>
-                  </div>
+                  <UOptionPills
+                    v-model="aiModel"
+                    variant="pill"
+                    size="sm"
+                    class="max-h-28 overflow-y-auto"
+                    :options="aiModels.map((m) => ({ label: m, value: m }))"
+                  />
                 </div>
                 <div class="flex items-center gap-3">
                   <UButton size="sm" variant="primary" :loading="aiSaving" @click="saveAIConfig"
@@ -1254,12 +1227,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary">
                   配置（JSON 数组）
                 </label>
-                <textarea
+                <UTextarea
                   v-model="mcpJson"
-                  rows="7"
+                  :rows="7"
+                  mono
+                  resize="y"
                   data-testid="mcp-json"
                   spellcheck="false"
-                  class="w-full resize-y rounded-lg bg-surface-2 px-3 py-2 font-mono text-[12px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
                   placeholder='[{ "id": "demo", "command": "node", "args": ["server.mjs"] }]'
                 />
                 <div class="mt-2 flex items-center gap-3">
@@ -1337,12 +1311,12 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary"
                     >屏蔽清单（应用名片段，逗号分隔）</label
                   >
-                  <textarea
+                  <UTextarea
                     v-model="shieldAppsDraft"
-                    rows="2"
+                    :rows="2"
+                    mono
                     :disabled="!shieldSupported"
                     placeholder="游戏, chrome, bilibili"
-                    class="w-full resize-none rounded-lg bg-surface-2 px-3 py-2 font-mono text-[12px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50 disabled:opacity-40"
                     @blur="saveShieldApps"
                   />
                 </div>
@@ -1353,12 +1327,12 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                       >（仅 macOS 支持）</span
                     >
                   </label>
-                  <textarea
+                  <UTextarea
                     v-model="shieldWebsitesDraft"
-                    rows="2"
+                    :rows="2"
+                    mono
                     :disabled="!shieldSupported || !shieldWebsiteSupported"
                     placeholder="youtube.com, twitter.com, bilibili.com"
-                    class="w-full resize-none rounded-lg bg-surface-2 px-3 py-2 font-mono text-[12px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50 disabled:opacity-40"
                     @blur="saveShieldWebsites"
                   />
                 </div>
@@ -1612,12 +1586,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary">
                   任务列表（JSON 数组）
                 </label>
-                <textarea
+                <UTextarea
                   v-model="autoJson"
-                  rows="8"
+                  :rows="8"
+                  mono
+                  resize="y"
                   spellcheck="false"
                   data-testid="automation-json"
-                  class="w-full resize-y rounded-lg bg-surface-2 px-3 py-2 font-mono text-[12px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
                   placeholder='[{ "id": "morning", "label": "早上问一句", "cron": "30 9 * * *", "action": { "type": "ai", "prompt": "今天有什么安排" } }]'
                 />
                 <div class="mt-2 flex items-center gap-3">

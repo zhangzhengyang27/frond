@@ -210,33 +210,13 @@
         </div>
 
         <!-- 倒计时秒数 -->
-        <div class="p-3 bg-gray-50 rounded-lg">
-          <div class="text-sm font-medium text-fg-primary mb-2">开始录制前倒数</div>
-          <div class="flex gap-2">
-            <button
-              v-for="opt in [
-                { value: 0, label: '不倒数' },
-                { value: 3, label: '3 秒' },
-                { value: 5, label: '5 秒' },
-                { value: 7, label: '7 秒' }
-              ]"
-              :key="opt.value"
-              type="button"
-              class="px-3 py-1.5 rounded-lg border text-sm transition-colors"
-              :class="
-                countdownSeconds === opt.value
-                  ? 'bg-emerald-500 border-emerald-500 text-white'
-                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-              "
-              @click="countdownSeconds = opt.value as 0 | 3 | 5 | 7"
-            >
-              {{ opt.label }}
-            </button>
+          <div class="p-3 bg-gray-50 rounded-lg">
+            <div class="text-sm font-medium text-fg-primary mb-2">开始录制前倒数</div>
+            <UOptionPills v-model="countdownSeconds" :options="countdownOptions" variant="rect" size="md" />
+            <div class="mt-3">
+              <UCheckbox v-model="countdownBeep" label="倒数结束播放提示音" />
+            </div>
           </div>
-          <div class="mt-3">
-            <UCheckbox v-model="countdownBeep" label="倒数结束播放提示音" />
-          </div>
-        </div>
       </div>
     </div>
 
@@ -258,6 +238,7 @@ import UCheckbox from '@components/ui/UCheckbox.vue'
 import URadioGroup from '@components/ui/URadioGroup.vue'
 import UInput from '@components/ui/UInput.vue'
 import USelect from '@components/ui/USelect.vue'
+import UOptionPills from '@components/ui/UOptionPills.vue'
 
 // 录制设置类型
 interface RecordingSettings {
@@ -464,6 +445,13 @@ const selectQualityPreset = async (
 const shortcutsEnabled = ref(true)
 const countdownSeconds = ref<0 | 3 | 5 | 7>(3)
 const countdownBeep = ref(true)
+
+const countdownOptions: Array<{ label: string; value: 0 | 3 | 5 | 7 }> = [
+  { label: '不倒数', value: 0 },
+  { label: '3 秒', value: 3 },
+  { label: '5 秒', value: 5 },
+  { label: '7 秒', value: 7 }
+]
 
 onMounted(() => {
   void loadShortcutAndCountdown()

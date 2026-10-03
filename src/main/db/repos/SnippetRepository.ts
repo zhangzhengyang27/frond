@@ -258,6 +258,23 @@ export class SnippetRepository {
     return this.attachRelations(rows)
   }
 
+  /**
+   * B53-3b：胶囊根搜索轻路径——只投影 id/name/language 且 LIMIT 内返回，
+   * 不做 attachRelations（逐行 AES 解密全部 contents 是每击键的主进程大头）。
+   * 匹配口径与 buildSnippetQuery 的 search 一致（search_text LIKE + 同款转义）。
+   * 注意：与 getSnippets({search}) 同口径，不加 deleted 过滤（保持既有行为）。
+   */
+  quickSearch(query: string, limit: number): Array<{ id: string; name: string; language: string }> {
+    const like = `%${query.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
+    return this.db
+      .prepare(
+        `SELECT id, title AS name, language FROM snip_snippets
+         WHERE search_text LIKE ? ESCAPE '\\'
+         ORDER BY updated_at DESC, rowid DESC LIMIT ?`
+      )
+      .all(like, limit) as Array<{ id: string; name: string; language: string }>
+  }
+
   /** 批3：分页列表（SnippetList 专用）。total = 同过滤条件总数；写入后按已加载量重拉不跳页 */
   listSnippets(
     filters: SnippetFilter,

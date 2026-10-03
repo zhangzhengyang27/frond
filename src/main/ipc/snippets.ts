@@ -16,6 +16,10 @@ import { typedHandle } from './typedIpc'
 const SNIPPET_IMPORT_MAX_BYTES = 20 * 1024 * 1024
 
 export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void {
+  // B53-3b：胶囊根搜索轻路径（LIMIT + 不解密 contents）
+  typedHandle('snippet:quickSearch', (_event, { query, limit }) =>
+    snippetRepository.quickSearch(String(query ?? ''), Math.min(Math.max(Number(limit) || 3, 1), 10))
+  )
   typedHandle('snippet:getSnippets', (_event, { filters }) => snippetStore.getSnippets(filters))
 
   typedHandle('snippet:listSnippets', (_event, { filters, limit, offset }) =>

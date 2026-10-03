@@ -225,6 +225,46 @@ export class ClipboardHistoryService {
     })
   }
 
+  /**
+   * B53-3a：主进程侧搜索（胶囊根搜索用）——按 query 过滤 + limit 截断 + 最小
+   * 投影（text 截 60 字符、files 只带 firstPath）。此前渲染端每击键 clipHist.list()
+   * 全量拉 200 条含全文（单条上限 512KB）。匹配口径与旧渲染端过滤一致：
+   * text/link → 文本包含或 keywords；files → 任一路径包含或 keywords；image 无文本不命中。
+   * 返回保持 list() 的置顶/时间倒序。
+   */
+  search(
+    query: string,
+    limit = 3
+  ): Array<{ id: string; kind: ClipboardItemKind; text?: string; firstPath?: string; keywords?: string[] }> {
+    const q = query.toLowerCase()
+    if (!q) return []
+    const out: Array<{ id: string; kind: ClipboardItemKind; text?: string; firstPath?: string; keywords?: string[] }> = []
+    for (const item of this.list()) {
+      const keywordHit = item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false
+      if (item.kind === 'text' || item.kind === 'link') {
+        if (!(item.text?.toLowerCase().includes(q) || keywordHit)) continue
+      } else if (item.kind === 'files') {
+        if (!(item.paths?.some((p) => p.toLowerCase().includes(q)) || keywordHit)) continue
+      } else {
+        continue // image：无文本可匹配
+      }
+      const row: {
+        id: string
+        kind: ClipboardItemKind
+        text?: string
+        firstPath?: string
+        keywords?: string[]
+      } = { id: item.id, kind: item.kind }
+      if (item.text !== undefined) row.text = item.text.slice(0, 60)
+      const first = item.paths?.[0]
+      if (first !== undefined) row.firstPath = first
+      if (item.keywords !== undefined) row.keywords = item.keywords
+      out.push(row)
+      if (out.length >= limit) break
+    }
+    return out
+  }
+
   togglePin(id: string): boolean {
     const item = this.items.find((i) => i.id === id)
     if (!item) return false

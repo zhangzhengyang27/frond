@@ -544,6 +544,7 @@ void app.whenReady().then(() => {
     destroyTrayTimer()
     destroyDockMenuTimer()
     // 关闭 SQLite（最后：让所有 service 完成收尾才关）
+    log.flush() // B53-11：退出前把微批里的 info 日志落库
     try {
       uninstallDatabase()
     } catch (error) {

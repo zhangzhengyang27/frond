@@ -26,6 +26,21 @@ function makeDb(): FileIndexDb {
   return FileIndexDb.openInMemory()
 }
 
+describe('FileIndexDb.upsertDirs（B53-10）', () => {
+  it('批量写入 + 冲突覆盖 mtime_epoch，与 markDir 单条语义一致', () => {
+    const db = makeDb()
+    db.upsertDirs([
+      ['/a', 100],
+      ['/b', 200]
+    ])
+    expect(db.getDirEpoch('/a')).toBe(100)
+    expect(db.getDirEpoch('/b')).toBe(200)
+    db.upsertDirs([['/a', 300]])
+    expect(db.getDirEpoch('/a')).toBe(300)
+    expect(db.getDirEpoch('/b')).toBe(200)
+  })
+})
+
 describe('fullScan', () => {
   it('递归索引嵌套文件与目录本身', async () => {
     mkdirSync(join(root, 'src'))

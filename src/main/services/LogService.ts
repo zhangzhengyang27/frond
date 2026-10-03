@@ -35,10 +35,25 @@ const DB_KEEP_ROWS = 5000
 const TRIM_EVERY_N_WRITES = 100
 const TELEMETRY_KEY = 'telemetry_mode'
 
-class LogService {
+/** B53-11：info 微批阈值——攒满一个事务落库；warn/error 绕过批立即落 */
+const LOG_BATCH_SIZE = 25
+
+export class LogService {
   private ring: LogEntry[] = []
   private mode: TelemetryMode = 'local'
   private writesSinceTrim = 0
+  /** 语句缓存：INSERT 只 prepare 一次（此前每条日志 prepare，启动装配段放大） */
+  private insertStmt: ReturnType<Database.Database['prepare']> | null = null
+  private stmtDb: Database.Database | null = null
+  /** 微批队列（db 行形状）；warn/error 即时 flush */
+  private pending: Array<{
+    ts: number
+    level: LogLevel
+    scope: string
+    msg: string
+    stack: string | null
+    meta: string | null
+  }> = []
 
   info(scope: string, msg: string): void {
     this.write('info', scope, msg)
@@ -131,19 +146,38 @@ class LogService {
 
     if (this.mode === 'off') return
     try {
-      const db = database.handle
-      db.prepare(
-        `INSERT INTO log_entries (ts, level, scope, msg, stack, meta_json) VALUES (?, ?, ?, ?, ?, ?)`
-      ).run(entry.ts, level, scope, msg, stack ?? null, meta ?? null)
-      // 每 100 条裁一次：每条日志都跑一次 5000 行 DELETE 会在日志风暴时放大风暴（B41）
-      this.writesSinceTrim += 1
-      if (this.writesSinceTrim >= TRIM_EVERY_N_WRITES) {
-        this.writesSinceTrim = 0
-        this.trim(db)
-      }
+      // B53-11：语句缓存 + 微批——info 攒满 LOG_BATCH_SIZE 一个事务落库；
+      // warn/error 立即 flush（诊断价值最高、不接受批窗口丢失，顺带带走积压）
+      this.pending.push({ ts: entry.ts, level, scope, msg, stack: stack ?? null, meta: meta ?? null })
+      if (level !== 'info' || this.pending.length >= LOG_BATCH_SIZE) this.flush()
     } catch (e) {
       // 批 7b 空 catch 清账：原注释「* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条」
       console.debug('[log-service]', '* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条', e)
+    }
+  }
+
+  /** 把微批队列落库（单个事务 + 语句缓存）；无积压时零开销 */
+  flush(): void {
+    if (this.pending.length === 0) return
+    const db = database.handle
+    if (this.insertStmt === null || this.stmtDb !== db) {
+      this.insertStmt = db.prepare(
+        `INSERT INTO log_entries (ts, level, scope, msg, stack, meta_json) VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      this.stmtDb = db
+    }
+    const rows = this.pending
+    this.pending = []
+    db.transaction(() => {
+      for (const r of rows) {
+        this.insertStmt!.run(r.ts, r.level, r.scope, r.msg, r.stack, r.meta)
+      }
+    })()
+    // 每 100 条裁一次：每条日志都跑一次 5000 行 DELETE 会在日志风暴时放大风暴（B41）
+    this.writesSinceTrim += rows.length
+    if (this.writesSinceTrim >= TRIM_EVERY_N_WRITES) {
+      this.writesSinceTrim = 0
+      this.trim(db)
     }
   }
 

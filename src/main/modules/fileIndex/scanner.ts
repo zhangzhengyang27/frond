@@ -54,15 +54,21 @@ function dirEpoch(ms: number): number {
   return Math.floor(ms / 1000)
 }
 
-/** 批量写入 + 分片 yield：行数与累计字节双阈值 */
+/** 批量写入 + 分片 yield：行数与累计字节双阈值。目录水位行（markDir）并入同一
+ * 批写节奏——此前每目录一个独立 autocommit，home 级全扫是 10 万+ 次事务（B53-10） */
 class RowBuffer {
   private batch: FileIndexRow[] = []
   private bytes = 0
+  private dirMarks: Array<[string, number]> = []
   constructor(
     private db: FileIndexDb,
     private onProgress: ((scanned: number) => void) | undefined,
     public scanned = 0
   ) {}
+
+  markDir(path: string, mtimeEpoch: number): void {
+    this.dirMarks.push([path, mtimeEpoch])
+  }
 
   async push(row: FileIndexRow | null): Promise<void> {
     if (row) {
@@ -72,6 +78,8 @@ class RowBuffer {
     }
     if (this.batch.length >= BATCH_SIZE || this.bytes >= BATCH_BYTES) {
       this.db.upsertFiles(this.batch)
+      this.db.upsertDirs(this.dirMarks)
+      this.dirMarks = []
       this.batch = []
       this.bytes = 0
       this.onProgress?.(this.scanned)
@@ -84,8 +92,10 @@ class RowBuffer {
       this.db.upsertFiles(this.batch)
       this.batch = []
       this.bytes = 0
-      this.onProgress?.(this.scanned)
     }
+    this.db.upsertDirs(this.dirMarks)
+    this.dirMarks = []
+    if (this.batch.length === 0) this.onProgress?.(this.scanned)
   }
 }
 
@@ -172,7 +182,7 @@ export async function fullScan(opts: FullScanOptions): Promise<FullScanResult> {
       buffer.scanned++
       await buffer.push(await buildRow(childPath, dir, entry.name, opts.policy))
     }
-    opts.db.markDir(dir, dirEpochValue)
+    buffer.markDir(dir, dirEpochValue)
   }
   const unavailable: UnavailableRoot[] = []
   for (const rawRoot of opts.roots) {

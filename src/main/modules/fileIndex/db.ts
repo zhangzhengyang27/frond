@@ -181,6 +181,18 @@ export class FileIndexDb {
       .run(path, mtimeEpoch)
   }
 
+  /** B53-10：批量水位写入（单个事务）；与 markDir 单条语义一致（冲突覆盖） */
+  upsertDirs(marks: Array<[string, number]>): void {
+    if (marks.length === 0) return
+    const stmt = this.db.prepare(
+      'INSERT INTO dirs (path, mtime_epoch) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET mtime_epoch = excluded.mtime_epoch'
+    )
+    const tx = this.db.transaction(() => {
+      for (const [path, epoch] of marks) stmt.run(path, epoch)
+    })
+    tx()
+  }
+
   getDirEpoch(path: string): number | null {
     const row = this.db.prepare('SELECT mtime_epoch FROM dirs WHERE path = ?').get(path) as
       { mtime_epoch: number } | undefined

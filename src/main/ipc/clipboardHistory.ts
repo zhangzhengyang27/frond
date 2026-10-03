@@ -17,6 +17,10 @@ import { typedHandle } from './typedIpc'
 
 export function registerClipboardHistoryIpc(): void {
   typedHandle('cliphist:list', () => clipboardHistory.list())
+  // B53-3a：主进程侧搜索（根搜索每击键），不再全量拉 200 条含全文
+  typedHandle('cliphist:search', (_e, { query, limit }) =>
+    clipboardHistory.search(String(query ?? ''), Number(limit) || 3)
+  )
   typedHandle('cliphist:copy', (_e, { id }) => clipboardHistory.copy(id))
   typedHandle('cliphist:remove', (_e, { id }) => clipboardHistory.remove(id))
   typedHandle('cliphist:clear', () => {

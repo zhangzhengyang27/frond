@@ -10,6 +10,9 @@ import PermissionPanel from '@components/PermissionPanel.vue'
 import UBadge from '@components/ui/UBadge.vue'
 import UButton from '@components/ui/UButton.vue'
 import UProgress from '@components/ui/UProgress.vue'
+import USwitch from '@components/ui/USwitch.vue'
+import UInput from '@components/ui/UInput.vue'
+import USlider from '@components/ui/USlider.vue'
 import { resetOnboardingState } from '../router'
 import { useTheme, type Theme } from '../composables/useTheme'
 import { useUserTheme } from '../composables/useUserTheme'
@@ -21,7 +24,7 @@ import type { TelemetryMode } from '../types/log'
 document.title = '设置'
 
 const { theme, setTheme, initTheme } = useTheme()
-initTheme()
+void initTheme()
 
 const router = useRouter()
 
@@ -669,7 +672,7 @@ const onDownload = async (): Promise<void> => {
 }
 
 const onInstall = (): void => {
-  window.api.update.install()
+  void window.api.update.install()
 }
 
 const statusText = (s: UpdateStatus): string => {
@@ -975,20 +978,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     最近搜索）不再显示，打字即恢复完整高度
                   </div>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="compactMode"
+                <USwitch
+                  :model-value="compactMode"
+                  size="sm"
+                  label="紧凑模式"
                   data-compact-toggle
-                  class="relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors"
-                  :class="compactMode ? 'bg-brand-500' : 'bg-surface-2 ring-1 ring-line-subtle'"
-                  @click="chooseCompact(!compactMode)"
-                >
-                  <span
-                    class="absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white transition-all"
-                    :class="compactMode ? 'left-[18px]' : 'left-[2px]'"
-                  ></span>
-                </button>
+                  @update:model-value="chooseCompact"
+                />
               </div>
             </div>
           </section>
@@ -1014,19 +1010,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   <div class="text-[14px] font-medium text-fg-primary">AI 助手</div>
                   <div class="mt-0.5 text-[12px] text-fg-tertiary">配置仅存本机</div>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="aiEnabled"
-                  class="relative h-[28px] w-[46px] shrink-0 rounded-full transition-colors"
-                  :class="aiEnabled ? 'bg-fg-success' : 'bg-surface-active'"
-                  @click="aiEnabled = !aiEnabled"
-                >
-                  <span
-                    class="absolute top-[2px] size-6 rounded-full bg-white shadow-sm transition-all"
-                    :class="aiEnabled ? 'left-[20px]' : 'left-[2px]'"
-                  />
-                </button>
+                <USwitch v-model="aiEnabled" label="AI 助手" />
               </div>
 
               <!-- 配置表单 -->
@@ -1067,11 +1051,10 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                       （本地端点可留空）
                     </span>
                   </label>
-                  <input
+                  <UInput
                     v-model="aiApiKey"
                     type="password"
                     :placeholder="aiHasStoredKey ? '已保存（留空保持不变）' : 'sk-...'"
-                    class="w-full rounded-lg bg-surface-2 px-3 py-2 text-[13px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
                   />
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -1079,23 +1062,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary"
                       >Base URL</label
                     >
-                    <input
-                      v-model="aiBaseUrl"
-                      type="text"
-                      placeholder="https://api.openai.com/v1"
-                      class="w-full rounded-lg bg-surface-2 px-3 py-2 font-mono text-[12px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
-                    />
+                    <UInput v-model="aiBaseUrl" placeholder="https://api.openai.com/v1" />
                   </div>
                   <div>
                     <label class="mb-1.5 block text-[12px] font-medium text-fg-tertiary"
                       >模型</label
                     >
-                    <input
-                      v-model="aiModel"
-                      type="text"
-                      placeholder="gpt-4o-mini"
-                      class="w-full rounded-lg bg-surface-2 px-3 py-2 font-mono text-[12px] text-fg-primary outline-none ring-1 ring-line-subtle transition-all focus:ring-brand-500/50"
-                    />
+                    <UInput v-model="aiModel" placeholder="gpt-4o-mini" />
                   </div>
                 </div>
                 <div>
@@ -1109,15 +1082,15 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   />
                 </div>
                 <div class="flex items-center gap-3">
-                  <label class="text-[12px] font-medium text-fg-tertiary"
+                  <label class="shrink-0 text-[12px] font-medium text-fg-tertiary"
                     >温度 {{ aiTemperature }}</label
                   >
-                  <input
-                    v-model.number="aiTemperature"
-                    type="range"
-                    min="0"
-                    max="2"
-                    step="0.1"
+                  <USlider
+                    v-model="aiTemperature"
+                    :min="0"
+                    :max="2"
+                    :step="0.1"
+                    label="AI 温度"
                     class="flex-1"
                   />
                 </div>
@@ -1321,20 +1294,12 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     工作计时进行中，清单内应用/网站切到前台即弹出全屏提醒
                   </div>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  :aria-checked="shieldEnabled"
+                <USwitch
+                  :model-value="shieldEnabled"
                   :disabled="!shieldSupported"
-                  class="relative h-[28px] w-[46px] shrink-0 rounded-full transition-colors disabled:opacity-40"
-                  :class="shieldEnabled ? 'bg-fg-success' : 'bg-surface-active'"
-                  @click="toggleShieldEnabled"
-                >
-                  <span
-                    class="absolute top-[2px] size-6 rounded-full bg-white shadow-sm transition-all"
-                    :class="shieldEnabled ? 'left-[20px]' : 'left-[2px]'"
-                  />
-                </button>
+                  label="专注护盾"
+                  @update:model-value="toggleShieldEnabled"
+                />
               </div>
 
               <!-- 拦截档位（2026-09-28 真拦截升级：应用命中才执行 hide/quit；网站命中恒为遮罩） -->
@@ -1624,19 +1589,11 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   >
                     立刻跑一次
                   </UButton>
-                  <button
-                    type="button"
-                    role="switch"
-                    :aria-checked="t.enabled"
-                    class="relative h-[24px] w-[42px] shrink-0 rounded-full transition-colors"
-                    :class="t.enabled ? 'bg-fg-success' : 'bg-surface-active'"
-                    @click="toggleAutomation(t)"
-                  >
-                    <span
-                      class="absolute top-[2px] size-5 rounded-full bg-white shadow-sm transition-all"
-                      :class="t.enabled ? 'left-[18px]' : 'left-[2px]'"
-                    />
-                  </button>
+                  <USwitch
+                    :model-value="t.enabled"
+                    label="自动化开关"
+                    @update:model-value="toggleAutomation(t)"
+                  />
                 </div>
                 <div v-if="t.lastFiredAt" class="mt-1 text-[11px] text-fg-tertiary">
                   上次 {{ new Date(t.lastFiredAt).toLocaleString('zh-CN', { hour12: false }) }} ·

@@ -113,6 +113,7 @@
 import { computed, onMounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import type { RecordingHistory } from '@preload/index.d'
+import { confirm } from '@composables/useConfirm'
 
 /**
  * B26（2026-09-28 审计）：Layout 的 router-view 监听 @play-video / @clip-video，
@@ -202,14 +203,26 @@ function reveal(item: RecordingHistory): void {
 
 async function remove(item: RecordingHistory): Promise<void> {
   // 只删记录不删文件：文件在用户磁盘上，删文件的决定权不该在这个列表里
-  if (!window.confirm(`删除「${item.filename}」的记录？文件本身会留在磁盘上。`)) return
+  const ok = await confirm({
+    title: `删除「${item.filename}」的记录？`,
+    message: '文件本身会留在磁盘上。',
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
   if (await window.api.recordingHistory.deleteHistory(item.id)) {
     items.value = items.value.filter((i) => i.id !== item.id)
   }
 }
 
 async function clearAll(): Promise<void> {
-  if (!window.confirm(`清空全部 ${items.value.length} 条记录？文件本身会留在磁盘上。`)) return
+  const ok = await confirm({
+    title: `清空全部 ${items.value.length} 条记录？`,
+    message: '文件本身会留在磁盘上。',
+    confirmText: '清空',
+    danger: true
+  })
+  if (!ok) return
   await window.api.recordingHistory.clearHistory()
   items.value = []
 }

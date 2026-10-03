@@ -83,6 +83,7 @@
 /** 2026-09-23 重建件（原件全盘无副本，按 index.vue 的用法与 props/emits 契约重建）。 */
 import { computed } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import { confirm } from '@composables/useConfirm'
 import type { PomodoroProject, PomodoroTask } from '../../../stores/pomodoro'
 
 interface Props {
@@ -122,8 +123,14 @@ function estimateLabel(task: PomodoroTask): string {
   return pomodoros < 10 ? pomodoros.toFixed(1).replace(/\.0$/, '') : String(Math.round(pomodoros))
 }
 
-function removeTask(task: PomodoroTask): void {
-  if (!window.confirm(`删除任务「${task.title}」？此操作不可撤销。`)) return
+  async function removeTask(task: PomodoroTask): Promise<void> {
+  const ok = await confirm({
+    title: `删除任务「${task.title}」？`,
+    message: '此操作不可撤销。',
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
   emit('delete', task.id)
 }
 </script>

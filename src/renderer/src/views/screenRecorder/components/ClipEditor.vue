@@ -11,6 +11,7 @@ import ExportDialog from '@views/screenRecorder/components/ExportDialog.vue'
 import ClipTimeline from '@views/screenRecorder/components/ClipTimeline.vue'
 import { useVideoClip } from '@composables/useVideoClip'
 import { useToast } from '@composables/useToast'
+import { confirm } from '@composables/useConfirm'
 import type { Clip, ExportOptions, VideoInfo } from '@composables/useVideoClip'
 
 interface Props {
@@ -212,7 +213,12 @@ const handleSaveClip = async (): Promise<void> => {
 
 // 删除剪辑
 const handleRemoveClip = async (clipId: string): Promise<void> => {
-  if (confirm('确定要删除这个片段吗？')) {
+  const ok = await confirm({
+    title: '删除这个片段？',
+    confirmText: '删除',
+    danger: true
+  })
+  if (ok) {
     try {
       await removeClip(clipId)
     } catch (error) {
@@ -224,7 +230,12 @@ const handleRemoveClip = async (clipId: string): Promise<void> => {
 
 // 清空剪辑
 const handleClearClips = async (): Promise<void> => {
-  if (confirm('确定要清空所有片段吗？')) {
+  const ok = await confirm({
+    title: '清空所有片段？',
+    confirmText: '清空',
+    danger: true
+  })
+  if (ok) {
     try {
       await clearClips()
     } catch (error) {

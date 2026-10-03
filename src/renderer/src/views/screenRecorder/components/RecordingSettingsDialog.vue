@@ -1,492 +1,263 @@
 <template>
-  <div
-    v-if="show"
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-    @click.self="$emit('close')"
-  >
-    <div
-      class="bg-surface-1 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
-    >
-      <!-- 头部 -->
-      <div class="flex items-center justify-between p-6 border-b border-gray-200">
-        <h2 class="text-2xl font-bold text-gray-800">录制设置</h2>
-        <button class="p-2 rounded-lg hover:bg-gray-100 transition-colors" @click="$emit('close')">
-          <AppIcon icon="ri-close-line" :size="24" />
-        </button>
-      </div>
-
-      <!-- 内容 -->
-      <div class="flex-1 overflow-y-auto p-6 scrollbar-thin">
-        <!-- 质量预设 -->
-        <div class="mb-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">质量预设</h3>
-          <div class="grid grid-cols-3 gap-3">
-            <button
-              v-for="preset in qualityPresets"
-              :key="preset.value"
-              :class="[
-                'px-4 py-3 rounded-lg border-2 transition-all',
-                localSettings.quality === preset.value
-                  ? 'border-brand-500 bg-brand-50 text-brand-500 font-semibold'
-                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-              ]"
-              @click="selectQualityPreset(preset.value)"
-            >
-              <div class="font-medium">{{ preset.label }}</div>
-              <div class="text-xs mt-1 opacity-70">{{ preset.description }}</div>
-            </button>
-          </div>
-        </div>
-
-        <!-- 编码器设置 -->
-        <div class="mb-6">
-          <h3 class="text-lg font-semibold text-gray-800 mb-4">编码器</h3>
-          <div class="space-y-3">
-            <label
-              class="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 transition-colors"
-            >
-              <input
-                v-model="localSettings.encoder"
-                type="radio"
-                value="vp9"
-                class="w-4 h-4 text-brand-500"
-              />
-              <div class="flex-1">
-                <div class="font-medium text-gray-800">VP9</div>
-                <div class="text-sm text-gray-500">高质量，文件较小（推荐）</div>
-              </div>
-            </label>
-            <label
-              class="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 transition-colors"
-            >
-              <input
-                v-model="localSettings.encoder"
-                type="radio"
-                value="vp8"
-                class="w-4 h-4 text-brand-500"
-              />
-              <div class="flex-1">
-                <div class="font-medium text-gray-800">VP8</div>
-                <div class="text-sm text-gray-500">兼容性好，文件较大</div>
-              </div>
-            </label>
-            <label
-              class="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-200 cursor-pointer hover:border-gray-300 transition-colors"
-            >
-              <input
-                v-model="localSettings.encoder"
-                type="radio"
-                value="h264"
-                class="w-4 h-4 text-brand-500"
-              />
-              <div class="flex-1">
-                <div class="font-medium text-gray-800">H.264</div>
-                <div class="text-sm text-gray-500">通用格式，兼容性最好</div>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- 高级设置 -->
-        <div class="mb-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-800">高级设置</h3>
-            <button
-              class="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
-              @click="showAdvanced = !showAdvanced"
-            >
-              <AppIcon :icon="showAdvanced ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'" />
-              <span>{{ showAdvanced ? '收起' : '展开' }}</span>
-            </button>
-          </div>
-
-          <div v-if="showAdvanced" class="space-y-4">
-            <!-- 帧率 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">帧率 (FPS)</label>
-              <div class="flex gap-3">
-                <label
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors"
-                  :class="
-                    localSettings.fps === 30
-                      ? 'border-brand-500 bg-brand-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  "
-                >
-                  <input
-                    v-model="localSettings.fps"
-                    type="radio"
-                    :value="30"
-                    class="w-4 h-4 text-brand-500"
-                  />
-                  <span class="font-medium">30 FPS</span>
-                </label>
-                <label
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors"
-                  :class="
-                    localSettings.fps === 60
-                      ? 'border-brand-500 bg-brand-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  "
-                >
-                  <input
-                    v-model="localSettings.fps"
-                    type="radio"
-                    :value="60"
-                    class="w-4 h-4 text-brand-500"
-                  />
-                  <span class="font-medium">60 FPS</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- 分辨率 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">分辨率</label>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="block text-xs text-gray-600 mb-1">宽度</label>
-                  <input
-                    v-model.number="localSettings.resolution.width"
-                    type="number"
-                    min="640"
-                    max="3840"
-                    step="160"
-                    class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500"
-                    :disabled="localSettings.quality !== 'custom'"
-                  />
-                </div>
-                <div>
-                  <label class="block text-xs text-gray-600 mb-1">高度</label>
-                  <input
-                    v-model.number="localSettings.resolution.height"
-                    type="number"
-                    min="480"
-                    max="2160"
-                    step="90"
-                    class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500"
-                    :disabled="localSettings.quality !== 'custom'"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- 比特率 -->
-            <div v-if="localSettings.quality === 'custom'">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                视频比特率 (kbps)
-              </label>
-              <input
-                v-model.number="localSettings.bitrate"
-                type="number"
-                min="1000"
-                max="50000"
-                step="500"
-                class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500"
-              />
-              <div class="mt-1 text-xs text-gray-500">
-                建议值：低质量 2000，中等质量 5000，高质量 10000
-              </div>
-            </div>
-
-            <!-- 音频设置 -->
-            <div class="pt-4 border-t border-gray-200">
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input
-                  v-model="localSettings.audioEnabled"
-                  type="checkbox"
-                  class="w-5 h-5 text-brand-500 rounded"
-                />
-                <span class="font-medium text-gray-800">启用音频录制</span>
-              </label>
-              <div v-if="localSettings.audioEnabled" class="mt-4 ml-8 space-y-3">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">音频编码器</label>
-                  <div class="flex gap-3">
-                    <label
-                      class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors"
-                      :class="
-                        localSettings.audioCodec === 'opus'
-                          ? 'border-brand-500 bg-brand-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      "
-                    >
-                      <input
-                        v-model="localSettings.audioCodec"
-                        type="radio"
-                        value="opus"
-                        class="w-4 h-4 text-brand-500"
-                      />
-                      <span class="font-medium">Opus</span>
-                    </label>
-                    <label
-                      class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors"
-                      :class="
-                        localSettings.audioCodec === 'aac'
-                          ? 'border-brand-500 bg-brand-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      "
-                    >
-                      <input
-                        v-model="localSettings.audioCodec"
-                        type="radio"
-                        value="aac"
-                        class="w-4 h-4 text-brand-500"
-                      />
-                      <span class="font-medium">AAC</span>
-                    </label>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2"
-                    >音频比特率 (kbps)</label
-                  >
-                  <input
-                    v-model.number="localSettings.audioBitrate"
-                    type="number"
-                    min="64"
-                    max="320"
-                    step="32"
-                    class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- 文件格式 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">文件格式</label>
-              <div class="flex gap-3">
-                <label
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors"
-                  :class="
-                    localSettings.format === 'webm'
-                      ? 'border-brand-500 bg-brand-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  "
-                >
-                  <input
-                    v-model="localSettings.format"
-                    type="radio"
-                    value="webm"
-                    class="w-4 h-4 text-brand-500"
-                  />
-                  <span class="font-medium">WebM</span>
-                </label>
-                <label
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-pointer transition-colors"
-                  :class="
-                    localSettings.format === 'mp4'
-                      ? 'border-brand-500 bg-brand-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  "
-                >
-                  <input
-                    v-model="localSettings.format"
-                    type="radio"
-                    value="mp4"
-                    class="w-4 h-4 text-brand-500"
-                  />
-                  <span class="font-medium">MP4</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 性能提示 -->
-        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div class="flex items-start gap-3">
-            <AppIcon icon="ri-information-line" class="text-blue-600 shrink-0 mt-0.5" />
-            <div class="text-sm text-blue-800">
-              <div class="font-medium mb-1">性能提示</div>
-              <div>高分辨率和帧率会增加 CPU 使用率。如果录制时出现卡顿，建议降低分辨率或帧率。</div>
-            </div>
-          </div>
-
-          <!-- PR-5a: 系统音频 -->
-          <div class="pt-4 border-t border-gray-200">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-sm font-semibold text-gray-800">系统音频（录制应用声音）</h4>
-              <button
-                class="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-                :disabled="probingAudio"
-                data-test="btn-probe-system-audio"
-                @click="probeSystemAudio"
-              >
-                <AppIcon :icon="probingAudio ? 'ri-loader-4-line' : 'ri-refresh-line'" />
-                <span>{{ probingAudio ? '探测中…' : '重新探测' }}</span>
-              </button>
-            </div>
-
-            <div
-              v-if="systemAudioResult?.available"
-              class="space-y-3"
-              data-test="system-audio-available"
-            >
-              <div
-                class="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm"
-              >
-                <AppIcon icon="ri-checkbox-circle-line" :size="20" class="shrink-0 mt-0.5" />
-                <div>
-                  <div class="font-medium">检测到系统音频设备</div>
-                  <div class="text-xs opacity-80 mt-1">
-                    启用后将录制电脑内部声音（代替/叠加麦克风）。
-                  </div>
-                </div>
-              </div>
-
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input
-                  v-model="systemAudioEnabled"
-                  type="checkbox"
-                  class="w-5 h-5 text-brand-500 rounded"
-                  data-test="cb-system-audio-enabled"
-                  @change="onSystemAudioToggle"
-                />
-                <span class="text-sm font-medium text-gray-800">启用系统音频</span>
-              </label>
-
-              <div v-if="systemAudioEnabled">
-                <label class="block text-sm font-medium text-gray-700 mb-2">输出设备</label>
-                <select
-                  v-model="systemAudioDeviceId"
-                  class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-brand-500"
-                  data-test="select-system-audio-device"
-                  @change="onSystemAudioDeviceChange"
-                >
-                  <option
-                    v-for="dev in systemAudioDevices"
-                    :key="dev.deviceId"
-                    :value="dev.deviceId"
-                  >
-                    {{ dev.label }}
-                  </option>
-                </select>
-                <div class="mt-3">
-                  <label class="flex items-center gap-3 cursor-pointer">
-                    <input
-                      v-model="keepMicrophone"
-                      type="checkbox"
-                      class="w-4 h-4 text-brand-500 rounded"
-                      @change="onKeepMicrophoneToggle"
-                    />
-                    <span class="text-sm text-gray-700">同时保留麦克风（双声道）</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-else-if="systemAudioResult && !systemAudioResult.available"
-              class="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm"
-              data-test="system-audio-unavailable"
-            >
-              <AppIcon icon="ri-information-line" :size="20" class="shrink-0 mt-0.5" />
-              <div>
-                <div class="font-medium">未检测到系统音频 loopback 设备</div>
-                <div class="text-xs opacity-80 mt-1">
-                  macOS: 安装 BlackHole 2ch；Windows: 安装 VB-Cable；Linux: 使用 PulseAudio monitor
-                  sink。安装后点击"重新探测"。
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- PR-7a/b: 快捷键 + 倒计时 -->
-          <div class="space-y-4 mt-6 pt-6 border-t border-gray-200">
-            <h3 class="text-base font-semibold text-gray-800">快捷键 / 倒计时</h3>
-
-            <!-- 启用全局快捷键 -->
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <div class="text-sm font-medium text-gray-800">启用全局快捷键</div>
-                <div class="text-xs text-gray-500 mt-0.5">
-                  启动 / 停止：<kbd class="px-1.5 py-0.5 bg-white rounded border"
-                    >⌘/Ctrl + Alt + Shift + R</kbd
-                  ><br />
-                  暂停 / 恢复：<kbd class="px-1.5 py-0.5 bg-white rounded border"
-                    >⌘/Ctrl + Alt + Shift + P</kbd
-                  >
-                </div>
-              </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input v-model="shortcutsEnabled" type="checkbox" class="sr-only peer" />
-                <div
-                  class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-emerald-500 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300 transition-colors"
-                ></div>
-                <div
-                  class="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"
-                ></div>
-              </label>
-            </div>
-
-            <!-- 倒计时秒数 -->
-            <div class="p-3 bg-gray-50 rounded-lg">
-              <div class="text-sm font-medium text-gray-800 mb-2">开始录制前倒数</div>
-              <div class="flex gap-2">
-                <button
-                  v-for="opt in [
-                    { value: 0, label: '不倒数' },
-                    { value: 3, label: '3 秒' },
-                    { value: 5, label: '5 秒' },
-                    { value: 7, label: '7 秒' }
-                  ]"
-                  :key="opt.value"
-                  type="button"
-                  class="px-3 py-1.5 rounded-lg border text-sm transition-colors"
-                  :class="
-                    countdownSeconds === opt.value
-                      ? 'bg-emerald-500 border-emerald-500 text-white'
-                      : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
-                  "
-                  @click="countdownSeconds = opt.value as 0 | 3 | 5 | 7"
-                >
-                  {{ opt.label }}
-                </button>
-              </div>
-              <div class="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  id="countdown-beep"
-                  v-model="countdownBeep"
-                  type="checkbox"
-                  class="rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
-                />
-                <label for="countdown-beep">倒数结束播放提示音</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 底部按钮 -->
-      <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+  <UModal :model-value="show" title="录制设置" size="lg" @update:model-value="onModalVisibility">
+    <!-- 质量预设 -->
+    <div class="mb-6">
+      <h3 class="text-lg font-semibold text-fg-primary mb-4">质量预设</h3>
+      <div class="grid grid-cols-3 gap-3">
         <button
-          class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          @click="handleReset"
+          v-for="preset in qualityPresets"
+          :key="preset.value"
+          :class="[
+            'px-4 py-3 rounded-lg border-2 transition-all',
+            localSettings.quality === preset.value
+              ? 'border-brand-500 bg-brand-50 text-brand-500 font-semibold'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+          ]"
+          @click="selectQualityPreset(preset.value)"
         >
-          重置默认
-        </button>
-        <button
-          class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          @click="$emit('close')"
-        >
-          取消
-        </button>
-        <button
-          class="px-6 py-2 bg-gradient-primary text-white rounded-lg font-medium hover:shadow-lg transition-all"
-          @click="handleSave"
-        >
-          保存
+          <div class="font-medium">{{ preset.label }}</div>
+          <div class="text-xs mt-1 opacity-70">{{ preset.description }}</div>
         </button>
       </div>
     </div>
-  </div>
+
+    <!-- 编码器设置 -->
+    <div class="mb-6">
+      <h3 class="text-lg font-semibold text-fg-primary mb-4">编码器</h3>
+      <URadioGroup v-model="localSettings.encoder" :options="encoderOptions" />
+    </div>
+
+    <!-- 高级设置 -->
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-fg-primary">高级设置</h3>
+        <UButton variant="ghost" size="sm" @click="showAdvanced = !showAdvanced">
+          <AppIcon :icon="showAdvanced ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'" />
+          <span>{{ showAdvanced ? '收起' : '展开' }}</span>
+        </UButton>
+      </div>
+
+      <div v-if="showAdvanced" class="space-y-4">
+        <!-- 帧率 -->
+        <div>
+          <label class="mb-2 block text-sm font-medium text-fg-primary">帧率 (FPS)</label>
+          <URadioGroup
+            v-model="localSettings.fps"
+            :options="fpsOptions"
+            direction="horizontal"
+          />
+        </div>
+
+        <!-- 分辨率 -->
+        <div>
+          <label class="mb-2 block text-sm font-medium text-fg-primary">分辨率</label>
+          <div class="grid grid-cols-2 gap-3">
+            <UInput
+              v-model.number="localSettings.resolution.width"
+              type="number"
+              label="宽度"
+              :disabled="localSettings.quality !== 'custom'"
+            />
+            <UInput
+              v-model.number="localSettings.resolution.height"
+              type="number"
+              label="高度"
+              :disabled="localSettings.quality !== 'custom'"
+            />
+          </div>
+        </div>
+
+        <!-- 比特率 -->
+        <div v-if="localSettings.quality === 'custom'">
+          <UInput
+            v-model.number="localSettings.bitrate"
+            type="number"
+            label="视频比特率 (kbps)"
+          />
+          <div class="mt-1 text-xs text-fg-tertiary">
+            建议值：低质量 2000，中等质量 5000，高质量 10000
+          </div>
+        </div>
+
+        <!-- 音频设置 -->
+        <div class="pt-4 border-t border-line-subtle">
+          <UCheckbox v-model="localSettings.audioEnabled" label="启用音频录制" />
+          <div v-if="localSettings.audioEnabled" class="mt-4 ml-8 space-y-3">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-fg-primary">音频编码器</label>
+              <URadioGroup
+                v-model="localSettings.audioCodec"
+                :options="audioCodecOptions"
+                direction="horizontal"
+              />
+            </div>
+            <UInput
+              v-model.number="localSettings.audioBitrate"
+              type="number"
+              label="音频比特率 (kbps)"
+            />
+          </div>
+        </div>
+
+        <!-- 文件格式 -->
+        <div>
+          <label class="mb-2 block text-sm font-medium text-fg-primary">文件格式</label>
+          <URadioGroup
+            v-model="localSettings.format"
+            :options="formatOptions"
+            direction="horizontal"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- 性能提示 -->
+    <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-start gap-3">
+        <AppIcon icon="ri-information-line" class="text-blue-600 shrink-0 mt-0.5" />
+        <div class="text-sm text-blue-800">
+          <div class="font-medium mb-1">性能提示</div>
+          <div>高分辨率和帧率会增加 CPU 使用率。如果录制时出现卡顿，建议降低分辨率或帧率。</div>
+        </div>
+      </div>
+
+      <!-- PR-5a: 系统音频 -->
+      <div class="pt-4 border-t border-gray-200">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-semibold text-fg-primary">系统音频（录制应用声音）</h4>
+          <UButton
+            variant="ghost"
+            size="sm"
+            :disabled="probingAudio"
+            data-test="btn-probe-system-audio"
+            @click="probeSystemAudio"
+          >
+            <AppIcon :icon="probingAudio ? 'ri-loader-4-line' : 'ri-refresh-line'" />
+            <span>{{ probingAudio ? '探测中…' : '重新探测' }}</span>
+          </UButton>
+        </div>
+
+        <div
+          v-if="systemAudioResult?.available"
+          class="space-y-3"
+          data-test="system-audio-available"
+        >
+          <div
+            class="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm"
+          >
+            <AppIcon icon="ri-checkbox-circle-line" :size="20" class="shrink-0 mt-0.5" />
+            <div>
+              <div class="font-medium">检测到系统音频设备</div>
+              <div class="text-xs opacity-80 mt-1">
+                启用后将录制电脑内部声音（代替/叠加麦克风）。
+              </div>
+            </div>
+          </div>
+
+          <UCheckbox
+            v-model="systemAudioEnabled"
+            label="启用系统音频"
+            data-test="cb-system-audio-enabled"
+          />
+
+          <div v-if="systemAudioEnabled">
+            <label class="mb-1.5 block text-sm font-medium text-fg-primary">输出设备</label>
+            <USelect
+              v-model="systemAudioDeviceId"
+              :options="systemAudioDevices.map((d) => ({ label: d.label, value: d.deviceId }))"
+              data-test="select-system-audio-device"
+            />
+            <div class="mt-3">
+              <UCheckbox v-model="keepMicrophone" label="同时保留麦克风（双声道）" />
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-else-if="systemAudioResult && !systemAudioResult.available"
+          class="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm"
+          data-test="system-audio-unavailable"
+        >
+          <AppIcon icon="ri-information-line" :size="20" class="shrink-0 mt-0.5" />
+          <div>
+            <div class="font-medium">未检测到系统音频 loopback 设备</div>
+            <div class="text-xs opacity-80 mt-1">
+              macOS: 安装 BlackHole 2ch；Windows: 安装 VB-Cable；Linux: 使用 PulseAudio monitor
+              sink。安装后点击"重新探测"。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PR-7a/b: 快捷键 + 倒计时 -->
+      <div class="space-y-4 mt-6 pt-6 border-t border-gray-200">
+        <h3 class="text-base font-semibold text-fg-primary">快捷键 / 倒计时</h3>
+
+        <!-- 启用全局快捷键 -->
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div>
+            <div class="text-sm font-medium text-fg-primary">启用全局快捷键</div>
+            <div class="text-xs text-fg-tertiary mt-0.5">
+              启动 / 停止：<kbd class="px-1.5 py-0.5 bg-white rounded border"
+                >⌘/Ctrl + Alt + Shift + R</kbd
+              ><br />
+              暂停 / 恢复：<kbd class="px-1.5 py-0.5 bg-white rounded border"
+                >⌘/Ctrl + Alt + Shift + P</kbd
+              >
+            </div>
+          </div>
+          <USwitch v-model="shortcutsEnabled" label="启用全局快捷键" />
+        </div>
+
+        <!-- 倒计时秒数 -->
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="text-sm font-medium text-fg-primary mb-2">开始录制前倒数</div>
+          <div class="flex gap-2">
+            <button
+              v-for="opt in [
+                { value: 0, label: '不倒数' },
+                { value: 3, label: '3 秒' },
+                { value: 5, label: '5 秒' },
+                { value: 7, label: '7 秒' }
+              ]"
+              :key="opt.value"
+              type="button"
+              class="px-3 py-1.5 rounded-lg border text-sm transition-colors"
+              :class="
+                countdownSeconds === opt.value
+                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-100'
+              "
+              @click="countdownSeconds = opt.value as 0 | 3 | 5 | 7"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+          <div class="mt-3">
+            <UCheckbox v-model="countdownBeep" label="倒数结束播放提示音" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <template #footer>
+      <UButton variant="ghost" @click="handleReset">重置默认</UButton>
+      <UButton variant="ghost" @click="$emit('close')">取消</UButton>
+      <UButton variant="primary" @click="handleSave">保存</UButton>
+    </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import UModal from '@components/ui/UModal.vue'
+import UButton from '@components/ui/UButton.vue'
+import USwitch from '@components/ui/USwitch.vue'
+import UCheckbox from '@components/ui/UCheckbox.vue'
+import URadioGroup from '@components/ui/URadioGroup.vue'
+import UInput from '@components/ui/UInput.vue'
+import USelect from '@components/ui/USelect.vue'
 
 // 录制设置类型
 interface RecordingSettings {
@@ -541,7 +312,31 @@ const emit = defineEmits<{
   save: [settings: RecordingSettings]
 }>()
 
+// UModal 显隐 ←→ close 事件转接（show 是单向 prop）
+const onModalVisibility = (v: boolean): void => {
+  if (!v) emit('close')
+}
+
 const showAdvanced = ref(false)
+
+// 单选选项（value 类型对齐 RecordingSettings 字段，保 URadioGroup 泛型推断）
+const encoderOptions: Array<{ label: string; value: RecordingSettings['encoder']; description: string }> = [
+  { label: 'VP9', value: 'vp9', description: '高质量，文件较小（推荐）' },
+  { label: 'VP8', value: 'vp8', description: '兼容性好，文件较大' },
+  { label: 'H.264', value: 'h264', description: '通用格式，兼容性最好' }
+]
+const fpsOptions: Array<{ label: string; value: RecordingSettings['fps'] }> = [
+  { label: '30 FPS', value: 30 },
+  { label: '60 FPS', value: 60 }
+]
+const audioCodecOptions: Array<{ label: string; value: RecordingSettings['audioCodec'] }> = [
+  { label: 'Opus', value: 'opus' },
+  { label: 'AAC', value: 'aac' }
+]
+const formatOptions: Array<{ label: string; value: RecordingSettings['format'] }> = [
+  { label: 'WebM', value: 'webm' },
+  { label: 'MP4', value: 'mp4' }
+]
 
 // PR-5a: 系统音频探测与启用状态
 const probingAudio = ref(false)
@@ -591,19 +386,6 @@ async function probeSystemAudio(): Promise<void> {
   } finally {
     probingAudio.value = false
   }
-}
-
-function onSystemAudioToggle(): void {
-  // 父组件通过 ref 暴露读取 systemAudioEnabled 状态后调用 streamManager；
-  // 这里只是 UI 反馈占位（无业务逻辑）
-}
-
-function onSystemAudioDeviceChange(): void {
-  /* 同样由父组件 watch */
-}
-
-function onKeepMicrophoneToggle(): void {
-  /* 同样由父组件 watch */
 }
 
 // 暴露状态给父组件（template ref + defineExpose）
@@ -791,7 +573,7 @@ watch(
   () => props.show,
   (newVal) => {
     if (newVal) {
-      loadSettings()
+      void loadSettings()
     }
   }
 )

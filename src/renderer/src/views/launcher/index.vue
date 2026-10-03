@@ -558,6 +558,7 @@ import UBadge from '@components/ui/UBadge.vue'
 import UButton from '@components/ui/UButton.vue'
 import UEmpty from '@components/ui/UEmpty.vue'
 import { useToast } from '@composables/useToast'
+import { confirm } from '@composables/useConfirm'
 import { builtinStaticRows } from '@renderer/commands/BuiltinCommandProvider'
 import type { CommandHotkeySpec } from '@preload/index.d'
 
@@ -1138,6 +1139,11 @@ function eventToAccelerator(e: KeyboardEvent): string | null {
   return [...parts, key].join('+')
 }
 
+/** 批 2c：事件监听要求 void 返回，异步实现经包装收口（add/remove 共用同一引用） */
+function onRecordingKeydownVoid(e: KeyboardEvent): void {
+  void onRecordingKeydown(e)
+}
+
 async function onRecordingKeydown(e: KeyboardEvent): Promise<void> {
   if (!recording.value) return
   e.preventDefault()
@@ -1247,7 +1253,13 @@ async function onToggle(p: LauncherPlugin): Promise<void> {
 }
 
 async function onRemove(p: LauncherPlugin): Promise<void> {
-  if (!window.confirm(`确定卸载插件「${p.name}」？其数据目录将被删除。`)) return
+  const ok = await confirm({
+    title: `卸载插件「${p.name}」？`,
+    message: '其数据目录将被删除。',
+    confirmText: '卸载',
+    danger: true
+  })
+  if (!ok) return
   const result = await window.api.launcher.removePlugin(p.id)
   if (result.success) {
     toast.success(`已卸载 ${p.name}`)
@@ -1294,7 +1306,7 @@ onMounted(async () => {
   void refreshHotkeys()
   void refreshExpansion()
   void refreshDevPlugins()
-  window.addEventListener('keydown', onRecordingKeydown, true)
+  window.addEventListener('keydown', onRecordingKeydownVoid, true)
   // 开发热重载推送（watcher 自动重装成功/失败）→ toast + 列表刷新
   const devApi = devChannels()
   if (devApi && typeof devApi.onDevPluginsChanged === 'function') {
@@ -1319,7 +1331,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onRecordingKeydown, true)
+  window.removeEventListener('keydown', onRecordingKeydownVoid, true)
   offDevChanged?.()
   offDevChanged = null
 })
@@ -1354,7 +1366,13 @@ async function onSyncTest(): Promise<void> {
 }
 
 async function onSyncRestore(): Promise<void> {
-  if (!window.confirm('恢复将用云端快照覆盖本地全部插件数据，确定继续？')) return
+  const ok = await confirm({
+    title: '恢复云端快照？',
+    message: '将用云端快照覆盖本地全部插件数据。',
+    confirmText: '恢复',
+    danger: true
+  })
+  if (!ok) return
   syncRestoring.value = true
   try {
     const result = await window.api.launcher.syncRestore()

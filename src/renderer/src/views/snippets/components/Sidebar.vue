@@ -7,6 +7,7 @@
  */
 import { computed, onMounted } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import { confirm } from '@composables/useConfirm'
 
 interface FolderLike {
   id: string
@@ -79,7 +80,13 @@ async function renameFolder(folder: FolderLike): Promise<void> {
 }
 
 async function removeFolder(folder: FolderLike): Promise<void> {
-  if (!window.confirm(`删除文件夹「${folder.name}」？其中的片段会回到收件箱。`)) return
+  const ok = await confirm({
+    title: `删除文件夹「${folder.name}」？`,
+    message: '其中的片段会回到收件箱。',
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
   await window.api.folder.deleteFolder(folder.id)
   if (props.selectedFolderId === folder.id) emit('update:selectedFolderId', null)
   await reload()

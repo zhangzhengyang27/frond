@@ -7,6 +7,7 @@
 import { onMounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import { useToast } from '@composables/useToast'
+import { confirm } from '@composables/useConfirm'
 import { formatDateTime, formatDuration } from '@utils/format'
 import type { RecordingHistory } from '@preload/index.d'
 
@@ -37,7 +38,13 @@ const handleReveal = async (item: RecordingHistory): Promise<void> => {
 }
 
 const handleDelete = async (target: RecordingHistory): Promise<void> => {
-  if (!confirm(`确定删除「${target.filename}」及其视频文件吗？此操作不可撤销。`)) return
+  const ok = await confirm({
+    title: `删除「${target.filename}」？`,
+    message: '其视频文件将一并删除，此操作不可撤销。',
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
   // 以下 12 行为原件存留（删除走 recording.remove，失败再回退旧 JSON 历史）
   const recordingApi = window.api.recording
   let removed = false

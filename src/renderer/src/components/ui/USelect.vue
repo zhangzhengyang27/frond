@@ -1,7 +1,10 @@
 <script setup lang="ts">
 /**
  * USelect · 下拉选择（原生 select 样式化，保证可访问性）
+ * attrs 透传到原生 select（data-test 等可命中真实控件）
  */
+defineOptions({ inheritAttrs: false })
+
 interface Option {
   label: string
   value: string | number
@@ -39,6 +42,7 @@ const onChange = (e: Event): void => {
     <label v-if="label" class="text-xs font-medium text-fg-secondary">{{ label }}</label>
     <div class="relative flex h-9 items-center">
       <select
+        v-bind="$attrs"
         :value="String(modelValue)"
         :disabled="disabled"
         class="h-full w-full appearance-none rounded-md border border-line-default bg-surface-1 px-3 pr-8 text-sm text-fg-primary transition-all duration-fast focus:outline-none focus-visible:border-brand-500/50 focus-visible:shadow-ring-focus disabled:cursor-not-allowed disabled:opacity-50"

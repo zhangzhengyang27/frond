@@ -9,6 +9,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import UEmpty from '@components/ui/UEmpty.vue'
 import { useFolders } from '@composables/useFolders'
+import { confirm } from '@composables/useConfirm'
 import { formatSmartDate } from '@utils/format'
 import type { Snippet } from '@preload/index.d'
 
@@ -186,7 +187,13 @@ async function restore(snippet: Snippet): Promise<void> {
 }
 
 async function destroyForever(snippet: Snippet): Promise<void> {
-  if (!confirm(`彻底删除「${snippet.name}」？该操作不可撤销。`)) return
+  const ok = await confirm({
+    title: `彻底删除「${snippet.name}」？`,
+    message: '该操作不可撤销。',
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
   try {
     await window.api.snippet.permanentlyDeleteSnippet(snippet.id)
     if (props.selectedSnippet?.id === snippet.id) emit('update:selectedSnippet', null)
@@ -198,7 +205,13 @@ async function destroyForever(snippet: Snippet): Promise<void> {
 }
 
 async function emptyTrash(): Promise<void> {
-  if (!confirm('清空回收站？其中的片段将不可撤销地删除。')) return
+  const ok = await confirm({
+    title: '清空回收站？',
+    message: '其中的片段将不可撤销地删除。',
+    confirmText: '清空',
+    danger: true
+  })
+  if (!ok) return
   try {
     await window.api.snippet.emptyTrash()
     emit('update:selectedSnippet', null)

@@ -53,6 +53,10 @@ const showContextMenu = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
 
 const loading = ref(false)
+const loadingMore = ref(false)
+const total = ref(0)
+
+const hasMore = computed(() => snippets.value.length < total.value)
 const contextTarget = ref<Snippet | null>(null)
 
 const TITLE: Record<'all' | 'inbox' | 'favorites' | 'trash', string> = {
@@ -87,39 +91,42 @@ function firstLine(snippet: Snippet): string {
   return value.split('\n').find((l) => l.trim() !== '') ?? ''
 }
 
-const filteredSnippets = computed(() => {
-  const keyword = debouncedSearch.value.trim().toLowerCase()
-  if (!keyword) return snippets.value
-  return snippets.value.filter((snippet) =>
-    [
-      snippet.name,
-      snippet.description ?? '',
-      snippet.trigger ?? '',
-      (snippet.contents ?? []).map((content) => content.value ?? '').join('\n')
-    ]
-      .join('\n')
-      .toLowerCase()
-      .includes(keyword)
-  )
-})
+// 批3：列表数据整体来自 listSnippets 分页契约（搜索下沉 SQL LIKE），客户端不再二次过滤
+const PAGE_SIZE = 200
+type LoadMode = 'reset' | 'refresh' | 'append'
 
-async function loadSnippets(): Promise<void> {
-  loading.value = true
+async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
+  if (mode === 'append') loadingMore.value = true
+  else loading.value = true
   try {
     const isTrash = props.libraryFilter === 'trash'
-    snippets.value = await window.api.snippet.getSnippets({
-      folderId: props.folderId ?? undefined,
-      isDeleted: isTrash,
-      isFavorites: props.libraryFilter === 'favorites' ? true : undefined,
-      isInbox: props.libraryFilter === 'inbox' ? true : undefined,
-      search: props.searchQuery || undefined
-    })
+    const res = await window.api.snippet.listSnippets(
+      {
+        folderId: props.folderId ?? undefined,
+        isDeleted: isTrash,
+        isFavorites: props.libraryFilter === 'favorites' ? true : undefined,
+        isInbox: props.libraryFilter === 'inbox' ? true : undefined,
+        search: debouncedSearch.value || undefined
+      },
+      mode === 'refresh' ? Math.max(PAGE_SIZE, snippets.value.length) : PAGE_SIZE,
+      mode === 'append' ? snippets.value.length : 0
+    )
+    snippets.value = mode === 'append' ? [...snippets.value, ...res.items] : res.items
+    total.value = res.total
   } catch (error) {
     console.error('[SnippetList] 读取片段列表失败:', error)
-    snippets.value = []
+    if (mode !== 'append') snippets.value = []
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
+}
+
+/** 滚动接近底部自动追加下一页 */
+function onListScroll(e: Event): void {
+  const el = e.target as HTMLElement
+  if (loading.value || loadingMore.value || !hasMore.value) return
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 120) void loadSnippets('append')
 }
 
 function select(snippet: Snippet): void {
@@ -230,11 +237,12 @@ watch(searchInput, (value) => {
   }, 200)
 })
 
+// 批3：debouncedSearch 加入重拉源——搜索真正下沉 SQL（此前仅前端过滤，SQL search 是死代码）
 watch(
-  () => [props.folderId, props.libraryFilter],
+  () => [props.folderId, props.libraryFilter, debouncedSearch.value],
   () => {
     closeContextMenu()
-    void loadSnippets()
+    void loadSnippets('reset')
   }
 )
 
@@ -242,7 +250,7 @@ onMounted(() => {
   searchInput.value = props.searchQuery
   debouncedSearch.value = props.searchQuery
   document.addEventListener('click', closeContextMenu)
-  void loadSnippets()
+  void loadSnippets('reset')
 })
 
 onBeforeUnmount(() => {
@@ -262,7 +270,7 @@ onBeforeUnmount(() => {
     <div class="shrink-0 px-3 pb-2 pt-3">
       <div class="mb-2 flex items-center gap-2">
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium text-fg-primary">{{ listTitle }}</h2>
-        <span class="shrink-0 text-xs text-fg-tertiary">{{ filteredSnippets.length }}</span>
+        <span class="shrink-0 text-xs text-fg-tertiary">{{ total }}</span>
         <button
           v-if="libraryFilter === 'trash' && snippets.length > 0"
           type="button"
@@ -295,11 +303,11 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- 列表 -->
-    <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+    <!-- 列表（滚动接近底部自动加载下一页，页大小 200） -->
+    <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" @scroll="onListScroll">
       <p v-if="loading" class="px-2 py-6 text-center text-xs text-fg-muted">加载中…</p>
       <UEmpty
-        v-else-if="filteredSnippets.length === 0"
+        v-else-if="snippets.length === 0"
         :title="debouncedSearch ? '没有匹配的片段' : '这里还没有片段'"
         :description="debouncedSearch ? '换个关键词试试' : '新建一个片段，或从其它文件夹移动过来'"
       >
@@ -309,7 +317,7 @@ onBeforeUnmount(() => {
       </UEmpty>
       <div v-else class="flex flex-col gap-1">
         <div
-          v-for="snippet in filteredSnippets"
+          v-for="snippet in snippets"
           :key="snippet.id"
           class="cursor-pointer rounded-md px-2.5 py-2 transition-colors"
           :class="
@@ -346,6 +354,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </div>
+      <p v-if="loadingMore" class="py-2 text-center text-xs text-fg-muted">加载中…</p>
     </div>
 
     <!-- 右键菜单 -->

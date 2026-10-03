@@ -20,7 +20,7 @@ interface Props {
   resize?: 'none' | 'y'
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   placeholder: '',
   label: '',
   disabled: false,

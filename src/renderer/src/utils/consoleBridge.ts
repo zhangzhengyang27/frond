@@ -47,7 +47,7 @@ function serialize(args: unknown[]): { message: string; error?: ConsoleError } {
   const parts: string[] = []
   for (const a of args) {
     if (a instanceof Error) {
-      if (!error) error = { message: a.message, stack: a.stack }
+      if (!error) error = a.stack ? { message: a.message, stack: a.stack } : { message: a.message }
       parts.push(`${a.name}: ${a.message}`)
       continue
     }
@@ -62,7 +62,8 @@ function serialize(args: unknown[]): { message: string; error?: ConsoleError } {
     }
   }
   const message = parts.join(' ').slice(0, MESSAGE_CAP)
-  return { message, error }
+  // EOPT：可选字段不显式带 undefined
+  return error ? { message, error } : { message }
 }
 
 function forward(level: 'debug' | 'info' | 'warn' | 'error', args: unknown[]): void {
@@ -85,7 +86,9 @@ function forward(level: 'debug' | 'info' | 'warn' | 'error', args: unknown[]): v
   windowCount += 1
   const { message, error } = serialize(args)
   try {
-    add(level, 'renderer', message, error)
+    // EOPT：可选参数不显式传 undefined
+    if (error) add(level, 'renderer', message, error)
+    else add(level, 'renderer', message)
   } catch {
     /* 桥绝不把调用方带崩 */
   }
@@ -107,17 +110,17 @@ export function installConsoleBridge(): void {
   }
   const c = console as unknown as Record<string, (...a: unknown[]) => void>
   originals = [
-    ['debug', c.debug],
-    ['log', c.log],
-    ['info', c.info],
-    ['warn', c.warn],
-    ['error', c.error]
+    ['debug', c.debug!],
+    ['log', c.log!],
+    ['info', c.info!],
+    ['warn', c.warn!],
+    ['error', c.error!]
   ]
-  c.debug = patch('debug', originals[0][1].bind(console))
-  c.log = patch('info', originals[1][1].bind(console))
-  c.info = patch('info', originals[2][1].bind(console))
-  c.warn = patch('warn', originals[3][1].bind(console))
-  c.error = patch('error', originals[4][1].bind(console))
+  c.debug = patch('debug', originals[0]![1].bind(console))
+  c.log = patch('info', originals[1]![1].bind(console))
+  c.info = patch('info', originals[2]![1].bind(console))
+  c.warn = patch('warn', originals[3]![1].bind(console))
+  c.error = patch('error', originals[4]![1].bind(console))
 }
 
 /** 测试用：摘桥（恢复原生 console） */

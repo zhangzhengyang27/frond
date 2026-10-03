@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import type { Snippet, SnippetContent, Tag } from '@preload/index.d'
 import CodeMirror from 'codemirror'
 import { useDark, useCssVar } from '@vueuse/core'
 import { useEditor } from '@composables/useEditor'
+import { useDismissablePopup } from '@composables/useDismissablePopup'
 import { useSnippetUpdate, enqueueContentsWrite } from '@composables/useSnippetUpdate'
 import { useTags } from '@composables/useTags'
 import TagInput from '@components/TagInput.vue'
@@ -646,19 +647,13 @@ function endEditTab(): void {
   editingTabIndex.value = null
 }
 
-// Tab 右键菜单的 document 监听句柄（B12：卸载时清理，避免残留监听）
-let closeTabMenuHandler: (() => void) | null = null
-
-function removeTabMenuListener(): void {
-  if (closeTabMenuHandler) {
-    document.removeEventListener('click', closeTabMenuHandler)
-    closeTabMenuHandler = null
-  }
+// Tab 右键菜单关闭语义（B54）：Esc + 外点收口进 useDismissablePopup，
+// 手写 document click 监听机（B12 时代的手工清理）退役
+const tabMenuRef = ref<HTMLElement | null>(null)
+function closeTabMenu(): void {
+  showContextMenu.value = false
 }
-
-onBeforeUnmount(() => {
-  removeTabMenuListener()
-})
+useDismissablePopup(tabMenuRef, showContextMenu, closeTabMenu)
 
 // 显示 Tab 右键菜单
 function showTabContextMenu(event: MouseEvent, index: number): void {
@@ -667,17 +662,6 @@ function showTabContextMenu(event: MouseEvent, index: number): void {
   contextMenuPosition.value = { x: event.clientX, y: event.clientY }
   contextMenuTabIndex.value = index
   showContextMenu.value = true
-
-  // 点击其他地方时关闭菜单
-  removeTabMenuListener()
-  const closeMenu = (): void => {
-    showContextMenu.value = false
-    removeTabMenuListener()
-  }
-  closeTabMenuHandler = closeMenu
-  setTimeout(() => {
-    document.addEventListener('click', closeMenu)
-  }, 0)
 }
 
 // 处理重命名标签
@@ -1160,13 +1144,18 @@ onMounted(() => {
       <!-- Tab 右键菜单 -->
       <div
         v-if="showContextMenu"
+        ref="tabMenuRef"
+        role="menu"
+        aria-label="标签操作菜单"
         class="fixed z-[1000] min-w-36 overflow-hidden rounded-md border border-line-subtle bg-surface-3 py-1 shadow-lg"
         :style="{ left: contextMenuPosition.x + 'px', top: contextMenuPosition.y + 'px' }"
         @click.stop
+        @contextmenu.prevent
       >
         <button
           type="button"
           class="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] text-fg-secondary transition-colors duration-instant hover:bg-surface-hover hover:text-fg-primary"
+          role="menuitem"
           @click="handleRenameTab"
         >
           <AppIcon icon="ri-edit-line" :size="14" />
@@ -1176,6 +1165,7 @@ onMounted(() => {
         <button
           type="button"
           class="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[13px] text-danger transition-colors duration-instant hover:bg-danger/8"
+          role="menuitem"
           @click="handleDeleteTab"
         >
           <AppIcon icon="ri-delete-bin-line" :size="14" />

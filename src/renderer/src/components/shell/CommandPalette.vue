@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppIcon from '@components/AppIcon.vue'
 import { useCommandPalette } from '../../composables/useCommandPalette'
+import { useFocusTrap } from '@composables/useFocusTrap'
 import { searchEntries, type ScoredEntry } from '@shared/search'
 import { evaluateExpression } from '@shared/calculator'
 import { useUsageBoost } from '@renderer/composables/useUsageBoost'
@@ -16,6 +17,9 @@ const palette = useCommandPalette()
 const query = ref('')
 const inputRef = ref<HTMLInputElement | null>(null)
 const activeIdx = ref(0)
+// B54：面板容器 + 焦点陷阱——Tab 循环不出弹层（此前 Tab 可走进背景页面）
+const panelRef = ref<HTMLElement | null>(null)
+useFocusTrap(panelRef, () => palette.isOpen.value)
 
 /**
  * P-7②：命令源与胶囊共用同一个 composable。
@@ -180,7 +184,12 @@ onBeforeUnmount(() => {
       @click.self="palette.close()"
     >
       <div
-        class="relative w-[600px] max-w-[92vw] overflow-hidden rounded-lg border border-glass-border bg-glass-bg-strong shadow-lg backdrop-blur-[var(--glass-blur)]"
+        ref="panelRef"
+        role="dialog"
+        aria-modal="true"
+        aria-label="命令面板"
+        tabindex="-1"
+        class="relative w-[600px] max-w-[92vw] overflow-hidden rounded-lg border border-glass-border bg-glass-bg-strong shadow-lg backdrop-blur-[var(--glass-blur)] focus:outline-none"
       >
         <!-- 顶部 1px 内高光 -->
         <div

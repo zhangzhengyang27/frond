@@ -156,6 +156,7 @@
             <AppIcon icon="ri-fullscreen-line" />
           </button>
           <button
+            ref="specialBreakToggleRef"
             type="button"
             class="zf-tool-btn"
             :class="{ active: isSpecialBreak }"
@@ -165,6 +166,7 @@
             <AppIcon icon="ri-restaurant-line" />
           </button>
           <button
+            ref="soundscapeToggleRef"
             type="button"
             class="zf-tool-btn"
             :class="{ active: soundscape.current.value !== 'none' }"
@@ -201,13 +203,14 @@
         </div>
 
         <!-- 特殊休息时长浮层 -->
-        <div v-if="specialBreakOpen" class="zf-sound-pop">
+        <div v-if="specialBreakOpen" ref="specialBreakPopRef" role="menu" aria-label="特殊休息时长" class="zf-sound-pop">
           <div class="zf-sound-grid">
             <button
               v-for="m in SPECIAL_BREAK_OPTIONS"
               :key="m"
               type="button"
               class="zf-sound-chip"
+              role="menuitem"
               @click="handleSpecialBreak(m)"
             >
               <AppIcon icon="ri-time-line" />
@@ -217,7 +220,7 @@
         </div>
 
         <!-- 声景选择浮层 -->
-        <div v-if="soundscapeOpen" class="zf-sound-pop">
+        <div v-if="soundscapeOpen" ref="soundscapePopRef" role="menu" aria-label="声景白噪音" class="zf-sound-pop">
           <div class="zf-sound-grid">
             <button
               v-for="sc in SOUNDSCAPES"
@@ -225,6 +228,7 @@
               type="button"
               class="zf-sound-chip"
               :class="{ active: soundscape.current.value === sc.id }"
+              role="menuitem"
               @click="pickSoundscape(sc.id)"
             >
               <AppIcon :icon="sc.icon" />
@@ -379,6 +383,7 @@ import {
   subscribeStrictFail
 } from '../../composables/usePomodoroAppBridge'
 import { SOUNDSCAPES, useSoundscapes, type SoundscapeId } from './composables/useSoundscapes'
+import { useDismissablePopup } from '@composables/useDismissablePopup'
 import AppIcon from '@components/AppIcon.vue'
 import SettingsDialog from '@views/pomodoro/components/SettingsDialog.vue'
 import TimerRing from '@views/pomodoro/components/TimerRing.vue'
@@ -618,6 +623,19 @@ const soundscapeOpen = ref(false)
 // ─── P2-8：特殊休息 ───
 const SPECIAL_BREAK_OPTIONS = [15, 30, 45, 60]
 const specialBreakOpen = ref(false)
+
+// B54：两个浮层接 Esc + 外点关闭；ignore 各自的开关按钮——否则「外点关掉 →
+// 按钮的 click 又把浮层打开」永远关不上（pointerdown 捕获先于 click 触发）
+const specialBreakPopRef = ref<HTMLElement | null>(null)
+const specialBreakToggleRef = ref<HTMLElement | null>(null)
+const soundscapePopRef = ref<HTMLElement | null>(null)
+const soundscapeToggleRef = ref<HTMLElement | null>(null)
+useDismissablePopup(specialBreakPopRef, specialBreakOpen, () => (specialBreakOpen.value = false), {
+  ignore: [specialBreakToggleRef]
+})
+useDismissablePopup(soundscapePopRef, soundscapeOpen, () => (soundscapeOpen.value = false), {
+  ignore: [soundscapeToggleRef]
+})
 const isSpecialBreak = computed(() => focusedTimerState.value?.specialBreak === true)
 
 function handleSpecialBreak(minutes: number): void {
@@ -814,18 +832,6 @@ onBeforeUnmount(() => {
   unsubStrictFail()
 })
 
-// 点击空白关闭项目选择器（已移除 picker UI，保留空函数避免引用报错）
-function onDocumentClick(_e: MouseEvent): void {
-  // no-op
-}
-
-onMounted(() => {
-  document.addEventListener('click', onDocumentClick, true)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onDocumentClick, true)
-})
 </script>
 
 <style scoped>

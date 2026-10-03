@@ -5,11 +5,12 @@
  * folderId / libraryFilter / folders），数据一律走 preload 里既有的 window.api.snippet.*。
  * 待核：模板整体重建，右键菜单条目按存留的 showContextMenu / contextMenuPosition 反推。
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import UEmpty from '@components/ui/UEmpty.vue'
 import { useFolders } from '@composables/useFolders'
 import { useAsyncGuard } from '@composables/useAsyncGuard'
+import { useDismissablePopup } from '@composables/useDismissablePopup'
 import { confirm } from '@composables/useConfirm'
 import { formatSmartDate } from '@utils/format'
 import type { Snippet } from '@preload/index.d'
@@ -52,6 +53,9 @@ let searchDebounceTimer: number | null = null
 // 右键菜单相关状态
 const showContextMenu = ref(false)
 const contextMenuPosition = ref({ x: 0, y: 0 })
+// B54：菜单容器——Esc 关闭 + 外点关闭 + role=menu 语义（此前只靠 click 冒泡、无 Esc）
+const contextMenuRef = ref<HTMLElement | null>(null)
+useDismissablePopup(contextMenuRef, showContextMenu, closeContextMenu)
 
 const loading = ref(false)
 const loadingMore = ref(false)
@@ -148,10 +152,21 @@ function closeContextMenu(): void {
   contextTarget.value = null
 }
 
-function openContextMenu(snippet: Snippet, event: MouseEvent): void {
+async function openContextMenu(snippet: Snippet, event: MouseEvent): Promise<void> {
   contextTarget.value = snippet
   contextMenuPosition.value = { x: event.clientX, y: event.clientY }
   showContextMenu.value = true
+  // 视口钳制：渲染后按实际尺寸夹回可视区（fixed + clientX/Y 靠右/下缘会被裁剪）
+  await nextTick()
+  const el = contextMenuRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  const maxX = window.innerWidth - rect.width - 8
+  const maxY = window.innerHeight - rect.height - 8
+  contextMenuPosition.value = {
+    x: Math.max(8, Math.min(contextMenuPosition.value.x, maxX)),
+    y: Math.max(8, Math.min(contextMenuPosition.value.y, maxY))
+  }
 }
 
 async function applyUpdate(snippet: Snippet, updates: Partial<Snippet>): Promise<void> {
@@ -381,6 +396,9 @@ onBeforeUnmount(() => {
     <!-- 右键菜单 -->
     <div
       v-if="showContextMenu && contextTarget"
+      ref="contextMenuRef"
+      role="menu"
+      aria-label="片段操作菜单"
       class="fixed z-[900] min-w-44 rounded-md border border-line-subtle bg-surface-3 py-1 shadow-lg"
       :style="{ left: `${contextMenuPosition.x}px`, top: `${contextMenuPosition.y}px` }"
       @click.stop
@@ -390,6 +408,7 @@ onBeforeUnmount(() => {
         v-if="libraryFilter !== 'trash'"
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-fg-secondary hover:bg-surface-hover"
+        role="menuitem"
         @click="toggleFavorite(contextTarget)"
       >
         <AppIcon :icon="contextTarget.isFavorites ? 'star-line' : 'star-fill'" :size="13" />
@@ -399,6 +418,7 @@ onBeforeUnmount(() => {
         v-if="libraryFilter !== 'trash'"
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-fg-secondary hover:bg-surface-hover"
+        role="menuitem"
         @click="duplicate(contextTarget)"
       >
         <AppIcon icon="file-copy-line" :size="13" />
@@ -408,6 +428,7 @@ onBeforeUnmount(() => {
         v-if="contextTarget.folderId"
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-fg-secondary hover:bg-surface-hover"
+        role="menuitem"
         @click="moveToInbox(contextTarget)"
       >
         <AppIcon icon="inbox-line" :size="13" />
@@ -427,6 +448,7 @@ onBeforeUnmount(() => {
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-fg-secondary hover:bg-surface-hover"
         :style="{ paddingLeft: `${12 + folder.depth * 12}px` }"
+        role="menuitem"
         @click="moveToFolder(contextTarget, folder.id)"
       >
         <AppIcon icon="folder-line" :size="13" />
@@ -438,6 +460,7 @@ onBeforeUnmount(() => {
         v-if="libraryFilter === 'trash'"
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-fg-secondary hover:bg-surface-hover"
+        role="menuitem"
         @click="restore(contextTarget)"
       >
         <AppIcon icon="arrow-go-back-line" :size="13" />
@@ -447,6 +470,7 @@ onBeforeUnmount(() => {
         v-if="libraryFilter === 'trash'"
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-danger hover:bg-surface-hover"
+        role="menuitem"
         @click="destroyForever(contextTarget)"
       >
         <AppIcon icon="delete-bin-line" :size="13" />
@@ -456,6 +480,7 @@ onBeforeUnmount(() => {
         v-else
         type="button"
         class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-danger hover:bg-surface-hover"
+        role="menuitem"
         @click="trash(contextTarget)"
       >
         <AppIcon icon="delete-bin-line" :size="13" />

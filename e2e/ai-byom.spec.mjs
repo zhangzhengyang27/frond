@@ -86,11 +86,11 @@ test('1. 进入设置 → AI，provider 芯片把表填对', async () => {
   const modelInput = page.getByPlaceholder('gpt-4o-mini')
   await expect(baseUrlInput).toBeVisible({ timeout: 10000 })
 
-  await page.getByRole('button', { name: 'OpenRouter' }).click()
+  await page.getByRole('radio', { name: 'OpenRouter' }).click()
   await expect(baseUrlInput).toHaveValue('https://openrouter.ai/api/v1')
   await expect(modelInput).toHaveValue('openai/gpt-4o-mini')
 
-  await page.getByRole('button', { name: 'Ollama（本地）' }).click()
+  await page.getByRole('radio', { name: 'Ollama（本地）' }).click()
   await expect(baseUrlInput).toHaveValue('http://127.0.0.1:11434/v1')
   await expect(page.getByText('本地端点不需要 API Key')).toBeVisible()
 })
@@ -106,8 +106,8 @@ test('2. 探测本机端点：模型清单回来并可点选回填', async () =>
     timeout: 20000
   })
   // 清单按字典序给出，点一个就把模型名回填进输入框
-  await expect(page.getByRole('button', { name: 'alpha-4b', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'alpha-4b', exact: true }).click()
+  await expect(page.getByRole('radio', { name: 'alpha-4b', exact: true })).toBeVisible()
+  await page.getByRole('radio', { name: 'alpha-4b', exact: true }).click()
   await expect(page.getByPlaceholder('gpt-4o-mini')).toHaveValue('alpha-4b')
 })
 

@@ -75,7 +75,7 @@ describe('FileIndexService watcher 启动竞态（B47-①）', () => {
 
     // 改范围：stopWatcher（此时 watch#1 仍未 resolve，无处可停）→ rebuild → startWatcher（watch#2 pending）
     const other = join(root, 'gone')
-    await svc.setScopes([other])
+    svc.setScopes([other]) // 同步接口；rebuild 是内部 void 链，下方 waitFor 等它的收尾
     await vi.waitFor(() => expect(watchCalls.length).toBe(2))
     expect(watchCalls[1]!.scopes).toEqual([normPath(other)])
 

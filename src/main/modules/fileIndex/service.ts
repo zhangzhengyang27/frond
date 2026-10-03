@@ -32,7 +32,7 @@ const REARM_MS = 60_000
 /** 条目上限（设计 §4 磁盘保护；触顶停扫并置 capped，管理页提示） */
 export const FILE_INDEX_MAX_ENTRIES = 500_000
 
-class FileIndexService {
+export class FileIndexService {
   private db: FileIndexDb | null = null
   private stopWatch: (() => void) | null = null
   private statusValue: FileIndexStatus = 'disabled'
@@ -253,22 +253,32 @@ class FileIndexService {
       this.errorValue = null
     }
     console.error('[FileIndex] 范围重新可读，补扫：', ready.join('、'))
-    this.unavailableRoots = this.unavailableRoots.filter((u) => still.includes(u.root))
     const generation = this.scanGeneration
-    const result = await fullScan({
-      roots: ready,
-      db,
-      policy: this.policy(),
-      maxEntries: FILE_INDEX_MAX_ENTRIES,
-      signal: this.signalFor(generation)
-    })
-    if (generation !== this.scanGeneration) return // 期间被重建/改范围接管
-    this.unavailableRoots = [...this.unavailableRoots, ...result.unavailable]
-    this.filesValue = db.count()
-    // 新回来的范围此前不在 watcher 的监听集里：整组重启（与 setScopes 同一手法）
-    this.stopWatcher()
-    this.startWatcher()
-    this.scheduleRearm()
+    try {
+      const result = await fullScan({
+        roots: ready,
+        db,
+        policy: this.policy(),
+        maxEntries: FILE_INDEX_MAX_ENTRIES,
+        signal: this.signalFor(generation)
+      })
+      if (generation !== this.scanGeneration) return // 期间被重建/改范围接管
+      // 补扫成功才把已可读的范围移出账单；失败原样保留等下轮重试（不能静默丢账）
+      this.unavailableRoots = this.unavailableRoots.filter((u) => still.includes(u.root))
+      this.unavailableRoots = [...this.unavailableRoots, ...result.unavailable]
+      this.filesValue = db.count()
+      // 新回来的范围此前不在 watcher 的监听集里：整组重启（与 setScopes 同一手法）
+      this.stopWatcher()
+      this.startWatcher()
+      this.scheduleRearm()
+    } catch (error) {
+      if (generation === this.scanGeneration) {
+        // 补扫失败绝不能打死 worker（这里 unhandledRejection = utilityProcess 退出 →
+        // 客户端退避重启 5 次后整体降级 mdfind，全库索引作废）：记账下轮重试，
+        // 状态保持 ready（其余范围照常可搜）
+        log('error', '范围补扫失败，下轮重试', error)
+      }
+    }
   }
 
   /** 扫描中止标志：generation 过期（重建/范围变更后）即中止旧扫描 */
@@ -285,6 +295,9 @@ class FileIndexService {
     return { hidden: this.getHidden() }
   }
 
+  /** watcher 启动轮次：stopWatcher 或新一轮 startWatcher 都会让 pending 中的启动作废（B47 竞态） */
+  private watchEpoch = 0
+
   /** 事件源按平台取后端（darwin=fsevents，win32=@parcel/watcher）；无后端时索引仍可用 */
   private startWatcher(): void {
     if (this.stopWatch) return
@@ -292,14 +305,18 @@ class FileIndexService {
     if (scopes.length === 0) return
     const backend = activeBackend()
     if (!backend) return
+    const epoch = ++this.watchEpoch
     void backend
       .watch(scopes, (path) => {
         this.pendingPaths.add(path)
         this.scheduleFlush()
       })
       .then((stop) => {
-        // 启动期间被 stopWatcher 掉过（改范围/重建）：立刻反注册，不留僵尸句柄
-        if (this.stopWatch) stop()
+        // 启动期间轮次已过期（被 stopWatcher 掉，或新一轮 startWatcher 已发起）：
+        // 立刻反注册，不留僵尸句柄。判「轮次」而不是判 this.stopWatch——后者在
+        // 「被取消」与「从未收养」时同为 null，条件写反会把旧范围 watcher 收养为
+        // 当前句柄、再杀掉下一个 pending 的新 watcher（B47）
+        if (epoch !== this.watchEpoch) stop()
         else this.stopWatch = stop
       })
       .catch((error: unknown) => {
@@ -311,6 +328,7 @@ class FileIndexService {
   }
 
   private stopWatcher(): void {
+    this.watchEpoch++ // 让 pending 中的 watch() resolve 后自反注册
     this.stopWatch?.()
     this.stopWatch = null
     if (this.flushTimer) {

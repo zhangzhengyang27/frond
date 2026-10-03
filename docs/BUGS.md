@@ -779,7 +779,23 @@
 - **B53-5 已修**（9f8f2e3）：启动备份按 7 天节流（最新备份未满跳过整库拷贝 +
   quick_check；滚动 3 份历史仍在）。回归钉五条。
 - 门禁终态：typecheck 0 / lint 0 error / unit 1275（批7 后 +17）/ file-index e2e 全绿。
-- **B53 余账**：3 根搜索下沉 / 6 胶囊包体（sanitize-html 378KB + pinyin-pro 452KB）/
+### 2026-10-03 批9 修复核销（同晚，3 commit）——B53 全清
+- **B53-3 已修**（260bc4e）：根搜索下沉——cliphist:search（主进程侧过滤+LIMIT 3+
+  text 截 60 字符+files 只带 firstPath）+ snippet:quickSearch（LIMIT+只投影
+  id/title/language，不做逐行 AES 解密）；每击键不再整包拉 200 条含 512KB 全文。
+  回归钉 6（均先 RED）。
+- **B53-6 已修**（9d4a270）：sanitize-html 378KB 动态 import 移出胶囊启动关键图
+  （DetailPanel+PluginListPage 两处；异步渲染+轮次守卫+空闲预热）；pinyin-pro
+  452KB 拼音 enrich 延到 requestIdleCallback（用户自定义别名仍即时）。实测：
+  launcher.html 对 sanitize chunk 的引用归零。
+- **B53-10/11 已修**（389e687）：dirs 水位行并入 RowBuffer 批事务（home 级全扫
+  10 万+ autocommit 消失）；log_entries INSERT 语句缓存 + info 微批 25 条/事务、
+  warn/error 即时落、退出前 flush。回归钉 5。
+- 门禁终态：typecheck 0 / lint 0 error / unit 1286（批8 后 +11）/ **e2e 全量
+  101/101 全绿**（含此前两个已知抖动位）。
+- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、
+  WindowSwitcher id）、B44（重建件 UI 断言）、B46（Repository 类型化 2447 条，
+  重塑批 2c/7 推进）、globalKeys 全聋窗口（审计 P2）。- **B53 余账**：3 根搜索下沉 / 6 胶囊包体（sanitize-html 378KB + pinyin-pro 452KB）/
   8 notes 列表投影 / 9 惰性主窗（省 80-150MB，代价中高）/ 10 markDir 批事务 /
   11 LogService 批落。- **未动**：B53 性能账大件（1 应用索引持久化 / 2 剪贴板 osascript 前移 / 3 根搜索
   下沉 / 4 mdfind 并行 / 5 DB 备份节流 / 6 胶囊包体 / 8 notes 投影 / 9 惰性主窗 /

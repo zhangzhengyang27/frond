@@ -822,7 +822,17 @@
   dataSync.test 127 / preload 122 / RecordingRepository 69 / FolderRepository 67 …），
   棘轮保证只减不增；全部清零后可把 no-unsafe-* 升为 error（B46 完成判据）。
 - 门禁终态：typecheck 0 / lint 0 error / unit 1298（批10 后 +4）/ 棘轮 2414。
+### 2026-10-03 批12 推进核销（六仓 facade 化，1 commit）
+- **B46 推进**（c735be1）：六仓 facade 化——SnippetRepository 153 / PomodoroRepository
+  139 / RecordingRepository 69 / FolderRepository 67 / ReminderRepository 61 /
+  TagRepository 44 全部归零；SqlDb.transaction 签名补参数透传（对齐
+  better-sqlite3 泛型）。**棘轮 2414 → 1895（累计 2564 起净降 26%）**，
+  单测 1298 全绿。
+- 剩余大头：dataSync.test 127 / preload 122 / dataMigrations 63 / docStore 49 /
+  database.ts 48 / ShotIndexRepository 47 / dataSync.ts 47 / MarkerRepository 49 /
+  migrations 若干。facade+typedSql 模式已覆盖全部形态，逐文件机械推进即可。
 - **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
+  （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
   类型化 2447 条，重塑批 2c/7 范围）。- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、
   WindowSwitcher id）、B44（重建件 UI 断言）、B46（Repository 类型化 2447 条，

@@ -749,6 +749,25 @@
   ensureStarted worker 存活即短路。
 - 未动：B52（渲染端日志通道）、B54（散装弹层 a11y）、B53-1~6/8~11（性能账大件）——
   留下批按性价比推进。
+### 2026-10-03 批7 修复核销（同晚，2 commit）
+- **B52 已修**（b5b8ffc）：log:add 主进程 handler（四级别路由+未知级别拒绝）+
+  preload 暴露 + consoleBridge（console 五方法 → 主进程 LogService 环形缓冲；
+  5s/40 条限流、Error 序列化、幂等可摘），主应用+胶囊双入口接线——172 处既有
+  console.* 从此随诊断包导出，不必逐点改写。comment-only catch 热点收口：
+  SettingsView 7 处裸 /* ignore */ 与 router 引导态查询升 console.debug（经桥进通道；
+  AI 域冻结部分按账缓办）。回归钉 7（logIpc 3 + consoleBridge 4）。
+- **B54 已修**（f0a469a）：useFocusTrap（Tab 循环+焦点保存/归还，从 UModal/UDrawer
+  手写陷阱提炼；UModal/UDrawer 本体暂不回迁——行为已被现有测试钉死，回迁留重构批）
+  + useDismissablePopup（Esc+外点+ignore 开关按钮）；迁移 CommandPalette
+  （role=dialog/aria-modal/焦点陷阱）、SnippetList 与 Editor 两处右键菜单
+  （Esc/外点/role=menu/menuitem/视口钳制；Editor 手写监听机退役）、pomodoro 两浮层
+  （外点+Esc；no-op onDocumentClick 存根移除）。回归钉 7（原语 6+ignore 1）。
+- 门禁终态：typecheck 0；lint 0 error；unit 1258 passed（+14）；e2e 全量 100 过 +
+  capsule-animation 1 条时序抖动（独立复跑 3/3 绿，同一文件套跑时 :90/:144 交替抖，
+  与 B51 时代归因一致：负载敏感，非代码回归）。
+- **未动**：B53 性能账大件（1 应用索引持久化 / 2 剪贴板 osascript 前移 / 3 根搜索
+  下沉 / 4 mdfind 并行 / 5 DB 备份节流 / 6 胶囊包体 / 8 notes 投影 / 9 惰性主窗 /
+  10 markDir 批事务 / 11 LogService 批落）。
 - 门禁终态：typecheck 0；lint 0 error；unit 1244 passed（+24）；e2e 全量 99 过 +
   capsule-animation / plugin-arg-slots 各 1 条时序抖动（已知负载敏感域，spec 头注
   明失败签名；独立/重跑均绿，file-index 全绿；当晚机器有 PyCase dev 全套 + ZCode

@@ -11,9 +11,12 @@
  * 文档标题写着 37（含已随 §11 删除的截图批），实测是 34。
  *
  * 本文件把台账变成可执行的门禁：
- *   1. 数量精确等于 34 —— 新增或删除重建件都必须显式改这里，不许静默漂
- *   2. 34 个已知路径逐个存在 —— 防止「删一个、误标一个」把数量凑回 34
+ *   1. 数量精确等于 33 —— 新增或删除重建件都必须显式改这里，不许静默漂
+ *   2. 33 个已知路径逐个存在 —— 防止「删一个、误标一个」把数量凑回 33
  *   3. 每个文件都带「2026-09-2X 重建」标记 —— 标记丢了，后来者就会当原件信
+ *
+ * 变更记录：2026-10-03 删除 RecordingHistory.vue（死代码，全仓零引用，随批 2 清理），
+ * 台账 34 → 33。
  *
  * ⚠ 重建件 ≠ 坏代码。它们只是「未验证的推断」，所以改动时要比改普通文件更谨慎。
  * 这个台账的作用是让这件事在 review 时**可见**，而不是禁止改动。
@@ -48,7 +51,7 @@ const REPO_ROOT = join(__dirname, '..', '..', '..')
 const REBUILD_MARKER = /2026-09-2[23]\s*重建/
 
 /**
- * 34 个重建件的权威清单（相对 src/）。
+ * 33 个重建件的权威清单（相对 src/）。
  * 这份清单就是「台账」，加一个或删一个都必须同时改上面的数字断言。
  */
 const KNOWN_REBUILD_FILES = [
@@ -81,7 +84,6 @@ const KNOWN_REBUILD_FILES = [
   'renderer/src/views/screenRecorder/components/SourceSelector.vue',
   'renderer/src/views/screenRecorder/components/ClipEditor.vue',
   'renderer/src/views/screenRecorder/components/ClipTimeline.vue',
-  'renderer/src/views/screenRecorder/components/RecordingHistory.vue',
   'renderer/src/views/screenRecorder/components/ExportDialog.vue',
   'renderer/src/views/screenRecorder/components/PreviewPanel.vue',
 
@@ -186,12 +188,12 @@ describe('重建件台账', () => {
     expect(all.length).toBeGreaterThan(300)
   })
 
-  it('重建件数量精确等于 34（新增/删除都必须显式改这里，不许静默漂）', () => {
+  it('重建件数量精确等于 33（新增/删除都必须显式改这里，不许静默漂）', () => {
     const found = rebuildFiles()
-    expect(found).toHaveLength(34)
+    expect(found).toHaveLength(33)
   })
 
-  it('34 个已知路径逐个存在（防止「删一个、误标一个」把数量凑回来）', () => {
+  it('33 个已知路径逐个存在（防止「删一个、误标一个」把数量凑回来）', () => {
     const found = new Set(rebuildFiles())
 
     const missing = KNOWN_REBUILD_FILES.filter((rel) => !existsSync(join(SRC_DIR, rel)))
@@ -200,9 +202,9 @@ describe('重建件台账', () => {
     const lostMarker = KNOWN_REBUILD_FILES.filter((rel) => !found.has(rel))
     expect(lostMarker, '这些文件丢了重建件标记（后来者会当原件信）').toEqual([])
 
-    // 清单本身不能有重复项，否则「34」是假的
+    // 清单本身不能有重复项，否则「33」是假的
     expect(new Set(KNOWN_REBUILD_FILES).size).toBe(KNOWN_REBUILD_FILES.length)
-    expect(KNOWN_REBUILD_FILES).toHaveLength(34)
+    expect(KNOWN_REBUILD_FILES).toHaveLength(33)
   })
 
   it('没有清单外的文件被标成重建件（防漏登记）', () => {

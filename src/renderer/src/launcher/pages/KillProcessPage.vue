@@ -1,15 +1,15 @@
 <template>
   <div class="kill-process">
     <div v-if="killError" class="kp-error">{{ killError }}</div>
-    <div class="kp-scroll">
+    <div v-bind="containerProps" class="kp-scroll">
       <div v-if="loading" class="kp-loading">
         <AppIcon icon="loader-4" :size="18" class="spin" />
         <span>读取进程列表…</span>
       </div>
       <div v-else-if="filteredProcesses.length === 0" class="kp-empty">没有匹配的进程</div>
-      <div v-else class="kp-list">
+      <div v-else v-bind="wrapperProps" class="kp-list">
         <div
-          v-for="(proc, index) in filteredProcesses"
+          v-for="{ data: proc, index } in list"
           :key="proc.pid"
           class="kp-item"
           :class="{ selected: index === selectedIndex }"
@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import PageFooterBar from './PageFooterBar.vue'
 import AppIcon from '@components/AppIcon.vue'
 
@@ -62,8 +63,18 @@ const filteredProcesses = computed(() => {
   )
 })
 
+// 虚拟滚动：行高固定 50px（.kp-item 含内边距）；键盘选中联动滚动到可视区
+const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(filteredProcesses, {
+  itemHeight: 50,
+  overscan: 8
+})
+
 watch(filteredProcesses, () => {
   selectedIndex.value = 0
+})
+
+watch(selectedIndex, (i) => {
+  scrollTo(i)
 })
 
 async function refresh(): Promise<void> {
@@ -168,6 +179,8 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 10px;
+  height: 50px;
+  box-sizing: border-box;
   padding: 7px 16px;
   cursor: pointer;
 }

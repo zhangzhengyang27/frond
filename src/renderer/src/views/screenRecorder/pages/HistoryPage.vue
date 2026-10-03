@@ -40,67 +40,70 @@
       </router-link>
     </div>
 
-    <ul v-else class="flex-1 overflow-y-auto px-6 py-4">
-      <li
-        v-for="item in items"
-        :key="item.id"
-        class="mb-3 flex items-center gap-4 rounded-lg border border-line-subtle bg-surface-0 p-3"
-      >
+    <!-- 虚拟滚动：录制数无上限（行高固定 96 + 12 间距 = 108） -->
+    <div v-else v-bind="containerProps" class="flex-1 px-6 py-4">
+      <div v-bind="wrapperProps">
         <div
-          class="flex h-16 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-surface-1"
-          title="播放"
-          @click="emit('play-video', toVideo(item))"
+          v-for="{ data: item } in list"
+          :key="item.id"
+          class="mb-3 box-border flex h-24 items-center gap-4 rounded-lg border border-line-subtle bg-surface-0 p-3"
         >
-          <img
-            v-if="thumbOf(item)"
-            :src="thumbOf(item)"
-            :alt="item.filename"
-            class="h-full w-full object-cover"
-            loading="lazy"
-          />
-          <AppIcon v-else icon="ri-film-line" :size="20" class="text-fg-tertiary" />
+          <div
+            class="flex h-16 w-28 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-surface-1"
+            title="播放"
+            @click="emit('play-video', toVideo(item))"
+          >
+            <img
+              v-if="thumbOf(item)"
+              :src="thumbOf(item)"
+              :alt="item.filename"
+              class="h-full w-full object-cover"
+              loading="lazy"
+            />
+            <AppIcon v-else icon="ri-film-line" :size="20" class="text-fg-tertiary" />
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium text-fg-primary">{{ item.filename }}</p>
+            <p class="mt-1 text-xs text-fg-muted">
+              {{ dateLabel(item.createdAt) }} · {{ durationLabel(item.duration) }} ·
+              {{ sizeLabel(item.fileSize) }}
+            </p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              class="rounded-md px-2.5 py-1.5 text-xs text-fg-secondary hover:bg-surface-hover"
+              title="用系统默认程序打开"
+              @click="openItem(item)"
+            >
+              打开
+            </button>
+            <button
+              type="button"
+              class="rounded-md px-2.5 py-1.5 text-xs text-fg-secondary hover:bg-surface-hover"
+              title="在访达中显示"
+              @click="reveal(item)"
+            >
+              显示
+            </button>
+            <button
+              type="button"
+              class="rounded-md px-2.5 py-1.5 text-xs text-fg-brand hover:bg-surface-hover"
+              @click="emit('clip-video', toVideo(item))"
+            >
+              剪辑
+            </button>
+            <button
+              type="button"
+              class="rounded-md px-2.5 py-1.5 text-xs text-fg-danger hover:bg-surface-hover"
+              @click="remove(item)"
+            >
+              删除
+            </button>
+          </div>
         </div>
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-sm font-medium text-fg-primary">{{ item.filename }}</p>
-          <p class="mt-1 text-xs text-fg-muted">
-            {{ dateLabel(item.createdAt) }} · {{ durationLabel(item.duration) }} ·
-            {{ sizeLabel(item.fileSize) }}
-          </p>
-        </div>
-        <div class="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1.5 text-xs text-fg-secondary hover:bg-surface-hover"
-            title="用系统默认程序打开"
-            @click="openItem(item)"
-          >
-            打开
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1.5 text-xs text-fg-secondary hover:bg-surface-hover"
-            title="在访达中显示"
-            @click="reveal(item)"
-          >
-            显示
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1.5 text-xs text-fg-brand hover:bg-surface-hover"
-            @click="emit('clip-video', toVideo(item))"
-          >
-            剪辑
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1.5 text-xs text-fg-danger hover:bg-surface-hover"
-            @click="remove(item)"
-          >
-            删除
-          </button>
-        </div>
-      </li>
-    </ul>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -111,6 +114,7 @@
  * preload 的 recordingHistory / recording 两组 API。
  */
 import { computed, onMounted, ref } from 'vue'
+import { useVirtualList } from '@vueuse/core'
 import AppIcon from '@components/AppIcon.vue'
 import type { RecordingHistory } from '@preload/index.d'
 import { confirm } from '@composables/useConfirm'
@@ -146,6 +150,12 @@ const toVideo = (
 })
 
 const items = ref<RecordingHistory[]>([])
+
+// 虚拟滚动：行高固定 96px（h-24 box-border）+ 12px 间距 = 108px 槽位
+const { list, containerProps, wrapperProps } = useVirtualList(items, {
+  itemHeight: 108,
+  overscan: 6
+})
 const loading = ref(true)
 
 const totalBytes = computed(() => items.value.reduce((s, i) => s + (i.fileSize || 0), 0))

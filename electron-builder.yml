@@ -24,6 +24,10 @@ files:
   - '!draft_*'
 asarUnpack:
   - resources/**
+  # 批5：file-index-worker 经 utilityProcess.fork 拉起，fork 不支持 asar 内路径——
+  # 入口解包后其对共享 chunk 的相对 require 也必须落在解包树内，故 chunks 一并解包
+  - out/main/file-index-worker.js
+  - out/main/chunks/**
   - node_modules/@ffmpeg-installer/**
   - node_modules/uiohook-napi/**
   # better-sqlite3 是原生模块（NAPI 预编译 prebuilds/*.node），.node 不能从 asar 内加载

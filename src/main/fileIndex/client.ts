@@ -52,14 +52,26 @@ export interface WorkerLike {
   on(event: 'message', listener: (m: unknown) => void): unknown
   on(event: 'exit', listener: (code: number) => void): unknown
   kill(): void
+  /** utilityProcess 实际带有 stdio 流（piped）；打包版里 worker stdout 经此可见 */
+  readonly stdout?: NodeJS.ReadableStream | null
+  readonly stderr?: NodeJS.ReadableStream | null
 }
 
 type SpawnFn = () => WorkerLike
 
+/** worker 入口路径：utilityProcess.fork 不支持 asar 内路径，打包态须走 asar.unpacked */
+function workerEntryPath(): string {
+  const base = join(__dirname, 'file-index-worker.js')
+  if (!app.isPackaged) return base
+  return base.replace('app.asar', 'app.asar.unpacked')
+}
+
 /** 主进程默认实现：userData 路径在这里取（worker 自身不依赖 electron app） */
 function defaultSpawn(): WorkerLike {
-  const child = utilityProcess.fork(join(__dirname, 'file-index-worker.js'), [app.getPath('userData')], {
-    serviceName: 'file-index-worker'
+  const child = utilityProcess.fork(workerEntryPath(), [app.getPath('userData')], {
+    serviceName: 'file-index-worker',
+    // worker 输出直通主进程 stdio（排查启动问题必需；量极低：仅日志行）
+    stdio: 'inherit'
   })
   return child as unknown as WorkerLike
 }
@@ -104,10 +116,16 @@ export class FileIndexClient {
       if (m.ok) p.resolve(m.result)
       else p.reject(new Error(m.error ?? 'file-index worker error'))
     })
-    worker.on('exit', () => {
+    worker.on('exit', (code: number) => {
+      console.error('[FileIndex] 索引进程退出 code=' + code)
       this.worker = null
       this.onWorkerExit()
     })
+    // worker stdout/stderr 转发主进程控制台（utilityProcess 默认 piped 且不可见）
+    worker.stderr?.on?.('data', (d: Buffer) =>
+      console.error('[file-index-worker]', String(d).trim())
+    )
+    worker.stdout?.on?.('data', (d: Buffer) => console.log('[file-index-worker]', String(d).trim()))
     this.worker = worker
   }
 

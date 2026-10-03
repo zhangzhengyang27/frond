@@ -731,3 +731,25 @@
   无 pending-stop 串行化，stop 进行期间新订阅者聋到下次重订。
 - 横切面健康：src 内 TODO/FIXME 0 条（挂账全部集中本文件）；@ts-ignore 全仓 2 处；
   eslint-disable 14 处全部带理由；no-floating-promises 已是 error 门禁且 0 豁免。
+
+### 2026-10-03 批6 修复核销（当晚，8 commit）
+- **B51 已修**（5425cbf）：ignores 补 test-results/playwright-report；顺带清掉被崩溃
+  掩盖的 watcher.ts floating promise。lint 实证 0 error。
+- **B47 已修**（73a3127 + 728ab5f）：watcher 启动竞态改「轮次」判定；rearmOnce
+  try/catch 记账下轮重试、账单补扫成功后才移出；rebuild 专用 30min 超时。
+  回归钉四条（service.test.ts + rpc.test.ts）。
+- **B48 已修**（e04ba7a）：activeExports 成功路径补 delete；getInfo + export.start
+  sourcePath 挂录制历史白名单（RecordingRepository.findByFilePath 新增）。回归钉四条。
+- **B49 已修**（becd9ee）：whenReady 链尾 .catch + showErrorBox + app.exit(1)。
+- **B50/B50a-c 已修**（ee2c7e0）：useAsyncGuard 原语 + 四处迁移（SnippetList/
+  PlaybackPanel/useMarkers/useUnifiedSearch 清空）；FloatingNote 切换前 flush 防抖；
+  useFolders 守卫提模块级；录屏启动 claimRecordingStart 防重入闸；useEditor 加载挂闸；
+  getScreenStream epoch 收 video 轨。回归钉 9 条，四个组件级用例先 RED 实证后修。
+- **B53-7 已修**（9758158）：rescanDir 子项比对 O(N²)→Map。**B53-12 已修**（728ab5f）：
+  ensureStarted worker 存活即短路。
+- 未动：B52（渲染端日志通道）、B54（散装弹层 a11y）、B53-1~6/8~11（性能账大件）——
+  留下批按性价比推进。
+- 门禁终态：typecheck 0；lint 0 error；unit 1244 passed（+24）；e2e 全量 99 过 +
+  capsule-animation / plugin-arg-slots 各 1 条时序抖动（已知负载敏感域，spec 头注
+  明失败签名；独立/重跑均绿，file-index 全绿；当晚机器有 PyCase dev 全套 + ZCode
+  会话两路额外负载）。

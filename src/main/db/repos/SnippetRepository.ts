@@ -3,10 +3,11 @@
  *
  * 取代 SnippetDataStore（271 行）。
  *
- * Schema: snip_folders / snip_snippets + snip_snippets_fts / snip_snippet_contents / snip_tags
+ * Schema: snip_folders / snip_snippets / snip_snippet_contents / snip_tags
+ * （批4 迁移 034 已删除只写不读的 snip_snippets_fts 镜像）
  *
  * Snippet.contents[] 已拆到 snip_snippet_contents 子表（migration 004）。
- * FTS5 用 external content 方式 + 手动同步（当前 schema 缺 trigger，写入时手动 upsert）。
+ * 搜索走 search_text 明文列（032 建、033 补 trigger）的 SQL LIKE。
  *
  * 业务接口（兼容旧 SnippetDataStore）：
  * - getSnippets(filters) 支持 folder/tag/favorite/trash/search/folderId null (inbox)
@@ -325,7 +326,6 @@ export class SnippetRepository {
         `INSERT INTO snip_tags (snippet_id, tag_id, created_at) VALUES (?, ?, ?)`
       )
       snippet.tagIds.forEach((tagId) => tagInsert.run(id, tagId, ts))
-      // FTS 同步由 trigger 自动完成（migration 005）
     })
     tx()
     return this.hydrate(id)
@@ -387,8 +387,6 @@ export class SnippetRepository {
         )
         updates.tagIds.forEach((tagId) => ins.run(id, tagId, ts))
       }
-
-      // FTS 同步由 trigger 自动完成
     })
     tx()
     return this.hydrate(id)
@@ -536,7 +534,7 @@ export function buildSnippetSearchText(
   name: string,
   description: string | null | undefined,
   contents: Array<{ label?: string; value?: string }>,
-  trigger?: string | null | undefined
+  trigger?: string | null
 ): string {
   const parts: string[] = [name ?? '', description ?? '', trigger ?? '']
   for (const c of contents) {

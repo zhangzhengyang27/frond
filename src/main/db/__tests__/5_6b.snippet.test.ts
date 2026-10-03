@@ -10,8 +10,12 @@ import { SnippetRepository, type SnippetContent } from '../repos/SnippetReposito
  * Frond · SnippetRepository 存储测试
  *
  * ⚠ 恢复说明：本文件随 2026-09-22 删除事故被切成 254 行、其中 219 行是
- * 「第 N 行未留存」占位。留下的是头部与一条 FTS 用例（下面按原文保留）；
- * beforeEach 与其余用例按当前仓库层 API 重写，不代表原用例的断言集合。
+ * 「第 N 行未留存」占位。留下的是头部与一条 FTS 用例；beforeEach 与其余用例
+ * 按当前仓库层 API 重写，不代表原用例的断言集合。
+ *
+ * 批4（2026-10-03）：FTS5 死重删除（迁移 034），原「FTS search 命中」用例改写为
+ * search_text LIKE 断言——同一写入链路的等价防回归钉（snippetSearchText.test.ts
+ * 是 search_text 的专项回归，此处保留一条轻量口径）。
  *
  * 这段 electron mock 是必需而非样板：contents.value 走 utils/crypto 的加密落盘，
  * 密钥文件写在 app.getPath('userData')/.frond-key；加密失败时它**故意**抛错
@@ -71,7 +75,7 @@ describe('SnippetRepository', () => {
     ...over
   })
 
-  it('FTS search 命中', () => {
+  it('search 命中：写入即可被 SQL 搜索（原 FTS 用例的等价改写，迁移 034 删 FTS）', () => {
     repo.addSnippet({
       name: 'uniqueword-alpha',
       contents: [{ id: 'c1', label: 'first', value: 'some basic code', language: 'txt' }],
@@ -88,9 +92,7 @@ describe('SnippetRepository', () => {
       isDeleted: false,
       isFavorites: false
     })
-    const hits = db
-      .prepare(`SELECT rowid FROM snip_snippets_fts WHERE snip_snippets_fts MATCH ?`)
-      .all('uniqueword') as Array<{ rowid: number }>
+    const hits = repo.getSnippets({ search: 'uniqueword' })
     expect(hits.length).toBeGreaterThan(0)
   })
 

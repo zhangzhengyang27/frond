@@ -232,6 +232,9 @@ export function useUnifiedSearch(options: {
   function scheduleForQuery(q: string): void {
     if (unifiedSearchTimer) clearTimeout(unifiedSearchTimer)
     if (!q.trim()) {
+      // 作废在飞轮次（B50）：上一轮 runUnifiedSearch 的 Promise.all 可能还在飞，
+      // 不递增 token 的话旧文件/剪贴板/片段行会把建议列表顶掉
+      unifiedSearchToken++
       results.value = options.suggestions.value
       return
     }
@@ -240,6 +243,7 @@ export function useUnifiedSearch(options: {
 
   /** 回到建议列表（唤起 / Pop to Root / 空查询） */
   function resetToSuggestions(): void {
+    unifiedSearchToken++ // 同上：作废在飞轮次
     results.value = options.suggestions.value
   }
 

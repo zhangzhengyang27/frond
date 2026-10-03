@@ -93,6 +93,14 @@ async function loadRecentNotes(): Promise<void> {
 }
 
 async function selectNote(id: string): Promise<void> {
+  // 切换前先把挂着的防抖保存落账（B50）：此时 currentNote/title/content 都还是
+  // 旧笔记的，saveNote 正好写回旧笔记——否则挂起定时器随后把新内容写进新笔记，
+  // 旧笔记的最后一笔编辑永久丢失
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+    await saveNote()
+  }
   try {
     const note = (await window.api.notes.get(id)) as Note | null
     if (note) {

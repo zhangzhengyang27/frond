@@ -17,6 +17,9 @@ type FolderWithChildren = Folder & { children: FolderWithChildren[] }
 
 const folders = ref<Folder[]>([])
 const folderTree = ref<FolderWithChildren[]>([])
+/** 模块级：与 folders/folderTree 同寿命。曾写在 useFolders() 函数体内，每次调用
+ * 都重置，守卫形同虚设——每个组件 setup 都重拉两个 IPC（B50a） */
+let loaded = false
 
 export function useFolders() {
   async function loadFolders(): Promise<void> {
@@ -28,11 +31,15 @@ export function useFolders() {
   }
 
   /** 首次用到时拉一次；已有数据就复用（多个入口同时 setup 时不重复打 IPC） */
-  let loaded = false
   async function ensureLoaded(): Promise<void> {
     if (loaded) return
     loaded = true
-    await Promise.all([loadFolders(), loadFolderTree()])
+    try {
+      await Promise.all([loadFolders(), loadFolderTree()])
+    } catch (error) {
+      loaded = false // 拉取失败允许下次进入时重试；不外抛（void 调用无接手方）
+      console.error('[useFolders] 文件夹数据加载失败:', error)
+    }
   }
   void ensureLoaded()
 

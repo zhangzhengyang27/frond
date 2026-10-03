@@ -209,9 +209,13 @@ const videoSrc = computed(() => {
 })
 
 // 监听视频路径变化，通过 IPC 读取文件并创建 blob URL
+// 竞态守卫（B50）：快速换片时旧 readFile 晚到会覆盖新 URL，且其开头的 revoke
+// 可能把新换片正在播的 URL 掉（黑屏）——每轮 watch 领 epoch，过期回调只早退
+let videoLoadEpoch = 0
 watch(
   () => props.videoPath,
   async (newPath, oldPath) => {
+    const epoch = ++videoLoadEpoch
     // 如果路径变化，先清空视频源，避免触发错误
     if (newPath !== oldPath && videoRef.value) {
       videoRef.value.pause()
@@ -240,6 +244,7 @@ watch(
       try {
         // 通过 IPC 读取文件
         const arrayBuffer = await window.api.video.readFile(newPath)
+        if (epoch !== videoLoadEpoch) return // 期间又换了片：丢弃本次结果
 
         // 获取文件扩展名以确定 MIME 类型
         const ext = newPath.toLowerCase().substring(newPath.lastIndexOf('.'))
@@ -258,6 +263,7 @@ watch(
         const blob = new Blob([arrayBuffer], { type: mimeType })
         blobUrl.value = URL.createObjectURL(blob)
       } catch (error) {
+        if (epoch !== videoLoadEpoch) return
         console.error('读取视频文件失败:', error)
         loading.value = false
       }

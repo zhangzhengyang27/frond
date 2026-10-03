@@ -96,7 +96,9 @@ const {
   togglePause,
   selectSavePath,
   setRecorderOptions,
-  formatTime
+  formatTime,
+  claimRecordingStart,
+  releaseRecordingStart
 } = useScreenRecorder()
 
 const {
@@ -454,10 +456,20 @@ const handleCloseCamera = (): void => {
 
 // 处理开始录制
 const handleStartRecording = async (): Promise<void> => {
-  if (!canRecord.value) {
+  // 防重入闸（B50b）：启动链最长 10s 全异步，isRecording 要到 startRecorder 内才
+  // 置 true——双击/快捷键+点击并发进入时第二次的 combineStreams epoch 作废路径
+  // 会返回已 stop 的轨道，录出空/坏文件
+  if (!canRecord.value || !claimRecordingStart()) {
     return
   }
+  try {
+    await startRecordingFlow()
+  } finally {
+    releaseRecordingStart()
+  }
+}
 
+const startRecordingFlow = async (): Promise<void> => {
   // 启动前从持久化设置（JSON store，设置对话框的写入源）读配置并应用：
   // 编码器/码率 → MediaRecorder；fps → captureStream；麦克风/系统音频 → 音频输入
   try {

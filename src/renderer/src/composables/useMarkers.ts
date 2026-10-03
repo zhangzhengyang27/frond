@@ -4,6 +4,8 @@ import type { Marker } from '../../../preload/index.d'
 export function useMarkers(recordingId: Ref<string | null> | string | null = null) {
   const markers = ref<Marker[]>([])
   const loading = ref(false)
+  // 竞态守卫（B50）：换片后旧请求晚到不得覆盖新列表
+  let loadSeq = 0
 
   // 获取当前的 recordingId
   const getRecordingId = (): string | null => {
@@ -21,14 +23,18 @@ export function useMarkers(recordingId: Ref<string | null> | string | null = nul
       return
     }
 
+    const seq = ++loadSeq
     loading.value = true
     try {
-      markers.value = await window.api.marker.getMarkers(targetId)
+      const rows = await window.api.marker.getMarkers(targetId)
+      if (seq !== loadSeq) return // 期间又有新加载发起：丢弃本次回写
+      markers.value = rows
     } catch (error) {
+      if (seq !== loadSeq) return
       console.error('加载标记失败:', error)
       markers.value = []
     } finally {
-      loading.value = false
+      if (seq === loadSeq) loading.value = false
     }
   }
 

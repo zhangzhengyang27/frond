@@ -59,6 +59,21 @@ const canRecord = computed(() => {
   return !loading.value && !isRecording.value
 })
 
+// ── 启动防重入闸（B50b）────────────────────────────────────
+// 启动链（设置读取 + combineStreams 最长 10s ready-wait + sleep）全异步，isRecording
+// 要到 startRecorder 内才置 true——期间二次触发（双击/快捷键+点击）会让 combineStreams
+// 的 epoch 作废路径返回已 stop 的轨道，录出空/坏文件。模块级原子 test-and-set：
+// 与录制状态同寿命（所有组件共享同一份），成功启动/取消由调用方 release。
+let startClaimed = false
+export const claimRecordingStart = (): boolean => {
+  if (startClaimed || isRecording.value || isPaused.value) return false
+  startClaimed = true
+  return true
+}
+export const releaseRecordingStart = (): void => {
+  startClaimed = false
+}
+
 /** 当前显示时间 = 累计 committed + 本段已录制（毫秒转秒，向下取整） */
 const liveDurationMs = computed(() => {
   if (!isRecording.value) return 0
@@ -524,6 +539,8 @@ export interface ScreenRecorderComposable {
   selectSavePath: () => Promise<string | null>
   formatTime: (seconds: number) => string
   cleanup: () => void
+  claimRecordingStart: () => boolean
+  releaseRecordingStart: () => void
 }
 
 export function useScreenRecorder(): ScreenRecorderComposable {
@@ -551,6 +568,8 @@ export function useScreenRecorder(): ScreenRecorderComposable {
     togglePause,
     selectSavePath,
     formatTime,
-    cleanup
+    cleanup,
+    claimRecordingStart,
+    releaseRecordingStart
   }
 }

@@ -9,6 +9,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import UEmpty from '@components/ui/UEmpty.vue'
 import { useFolders } from '@composables/useFolders'
+import { useAsyncGuard } from '@composables/useAsyncGuard'
 import { confirm } from '@composables/useConfirm'
 import { formatSmartDate } from '@utils/format'
 import type { Snippet } from '@preload/index.d'
@@ -95,7 +96,12 @@ function firstLine(snippet: Snippet): string {
 const PAGE_SIZE = 200
 type LoadMode = 'reset' | 'refresh' | 'append'
 
+// 竞态守卫（B50）：切文件夹/切过滤/键入搜索后，慢的旧 IPC 响应晚到会把旧结果
+// 覆盖（或经 append 拼进）新列表——每次 loadSnippets 领轮次，回写前验轮次
+const loadGuard = useAsyncGuard()
+
 async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
+  const mine = loadGuard.begin()
   if (mode === 'append') loadingMore.value = true
   else loading.value = true
   try {
@@ -111,14 +117,18 @@ async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
       mode === 'refresh' ? Math.max(PAGE_SIZE, snippets.value.length) : PAGE_SIZE,
       mode === 'append' ? snippets.value.length : 0
     )
+    if (!loadGuard.isCurrent(mine)) return // 期间有新一轮拉取：丢弃本次回写
     snippets.value = mode === 'append' ? [...snippets.value, ...res.items] : res.items
     total.value = res.total
   } catch (error) {
+    if (!loadGuard.isCurrent(mine)) return
     console.error('[SnippetList] 读取片段列表失败:', error)
     if (mode !== 'append') snippets.value = []
   } finally {
-    loading.value = false
-    loadingMore.value = false
+    if (loadGuard.isCurrent(mine)) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
 

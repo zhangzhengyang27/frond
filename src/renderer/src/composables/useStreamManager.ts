@@ -216,7 +216,13 @@ const addAudioToStream = async (videoStream: MediaStream): Promise<MediaStream> 
 }
 
 // 获取屏幕流
+// 竞态守卫（B50）：「停旧流」读的是同步的 stream.value（此刻还是 null），两次快速
+// 换源时两个 getUserMedia 并发在飞，先返回者赋 stream.value 后被后返回者覆盖，
+// 先到的 MediaStream 无人 stop——屏幕捕获灯常驻。epoch 过期即收 video 轨防泄漏
+// （audio 轨是共享麦克风轨道的引用，绝不能 stop）
+let screenStreamEpoch = 0
 const getScreenStream = async (source: DesktopCapturerSource): Promise<MediaStream> => {
+  const epoch = ++screenStreamEpoch
   // 停止之前的屏幕流
   if (stream.value) {
     stream.value.getTracks().forEach((track) => track.stop())
@@ -239,6 +245,12 @@ const getScreenStream = async (source: DesktopCapturerSource): Promise<MediaStre
 
   // 添加音频轨道
   await addAudioToStream(newStream)
+
+  if (epoch !== screenStreamEpoch) {
+    // 本轮已过期：立即收轨防泄漏，流不赋给共享状态（调用方已过期会丢弃返回值）
+    newStream.getVideoTracks().forEach((track) => track.stop())
+    return newStream
+  }
 
   stream.value = newStream
   return newStream

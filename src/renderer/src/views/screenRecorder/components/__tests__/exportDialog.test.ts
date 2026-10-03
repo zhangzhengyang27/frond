@@ -42,7 +42,8 @@ const clip = (over: Partial<Clip> = {}): Clip => ({
 function setup(props: Record<string, unknown> = {}) {
   return mount(ExportDialog, {
     props: { clips: [clip()], ...props },
-    global: { stubs: { TransitionSelector: true } }
+    // teleport 就地渲染：弹窗壳已换 UModal（Teleport 到 body），wrapper 查询才能命中
+    global: { stubs: { TransitionSelector: true, teleport: true } }
   })
 }
 
@@ -152,7 +153,7 @@ describe('ExportDialog · 关闭与进度', () => {
     const w = setup()
     await w.get('div.fixed').trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
-    await w.get('.w-\\[520px\\]').trigger('click')
+    await w.get('[role=dialog]').trigger('click')
     expect(w.emitted('close')).toHaveLength(1) // 仍是 1，没被内部点击多算一次
   })
 

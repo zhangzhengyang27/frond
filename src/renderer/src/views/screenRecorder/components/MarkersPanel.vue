@@ -182,74 +182,34 @@
     </button>
 
     <!-- 添加/编辑标记对话框 -->
-    <div
-      v-if="showAddMarkerDialog || showEditMarkerDialog"
-      class="fixed inset-0 bg-black/60 flex justify-center items-center z-[2000] p-5"
-      @click.self="closeMarkerDialog"
+    <UModal
+      :model-value="showAddMarkerDialog || showEditMarkerDialog"
+      :title="editingMarker ? '编辑标记' : '添加标记'"
+      size="sm"
+      @update:model-value="closeMarkerDialog"
     >
-      <div class="bg-white rounded-lg p-6 max-w-[400px] w-full shadow-lg">
-        <h3 class="m-0 mb-4 text-lg font-semibold text-gray-800">
-          {{ editingMarker ? '编辑标记' : '添加标记' }}
-        </h3>
-        <input
-          ref="markerLabelInput"
-          v-model="markerLabel"
-          type="text"
-          class="w-full px-3 py-2.5 border border-gray-300 rounded text-sm mb-4 box-border focus:outline-none focus:border-blue-500"
-          placeholder="请输入标记名称（可选）"
-          @keyup.enter="confirmSaveMarker"
-          @keyup.esc="closeMarkerDialog"
-        />
-        <div class="flex gap-3 justify-end">
-          <button
-            class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            @click="closeMarkerDialog"
-          >
-            取消
-          </button>
-          <button
-            class="px-4 py-2 text-sm text-white bg-gradient-primary rounded-lg hover:opacity-90 transition-opacity"
-            @click="confirmSaveMarker"
-          >
-            确定
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 确认删除对话框 -->
-    <div
-      v-if="showDeleteConfirm"
-      class="fixed inset-0 bg-black/60 flex justify-center items-center z-[2000] p-5"
-      @click.self="showDeleteConfirm = false"
-    >
-      <div class="bg-white rounded-lg p-6 max-w-[400px] w-full shadow-lg">
-        <h3 class="m-0 mb-4 text-lg font-semibold text-gray-800">确认删除</h3>
-        <p class="m-0 mb-6 text-sm text-gray-600">
-          {{ deleteConfirmMessage }}
-        </p>
-        <div class="flex gap-3 justify-end">
-          <button
-            class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-            @click="showDeleteConfirm = false"
-          >
-            取消
-          </button>
-          <button
-            class="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-            @click="confirmDelete"
-          >
-            删除
-          </button>
-        </div>
-      </div>
-    </div>
+      <input
+        ref="markerLabelInput"
+        v-model="markerLabel"
+        type="text"
+        class="w-full px-3 py-2.5 border border-gray-300 rounded text-sm mb-4 box-border focus:outline-none focus:border-blue-500"
+        placeholder="请输入标记名称（可选）"
+        @keyup.enter="confirmSaveMarker"
+      />
+      <template #footer>
+        <UButton variant="ghost" @click="closeMarkerDialog">取消</UButton>
+        <UButton variant="primary" @click="confirmSaveMarker">确定</UButton>
+      </template>
+    </UModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import UModal from '@components/ui/UModal.vue'
+import UButton from '@components/ui/UButton.vue'
+import { confirm } from '@composables/useConfirm'
 import { useMarkers } from '@composables/useMarkers'
 import type { Marker } from '@preload/index.d'
 
@@ -290,11 +250,6 @@ const showEditMarkerDialog = ref(false)
 const markerLabel = ref('标记')
 const markerLabelInput = ref<HTMLInputElement | null>(null)
 const editingMarker = ref<Marker | null>(null)
-
-const showDeleteConfirm = ref(false)
-const deleteConfirmMessage = ref('')
-const pendingDeleteMarkerId = ref<string | null>(null)
-const pendingClearAll = ref(false)
 
 // 监听 recordingId 变化，重新加载标记
 watch(
@@ -373,24 +328,11 @@ const handleEditMarker = (marker: Marker): void => {
   showEditMarkerDialog.value = true
 }
 
-// 删除标记（显示确认对话框）
-const handleRemoveMarker = (markerId: string): void => {
-  pendingDeleteMarkerId.value = markerId
-  pendingClearAll.value = false
-  deleteConfirmMessage.value = '确定要删除这个标记吗？'
-  showDeleteConfirm.value = true
-}
-
-// 确认删除
-const confirmDelete = async (): Promise<void> => {
-  if (pendingClearAll.value) {
-    await clearMarkers()
-  } else if (pendingDeleteMarkerId.value) {
-    await removeMarker(pendingDeleteMarkerId.value)
-  }
-  showDeleteConfirm.value = false
-  pendingDeleteMarkerId.value = null
-  pendingClearAll.value = false
+// 删除标记（useConfirm 二次确认后执行）
+const handleRemoveMarker = async (markerId: string): Promise<void> => {
+  const ok = await confirm({ title: '删除这个标记？', confirmText: '删除', danger: true })
+  if (!ok) return
+  await removeMarker(markerId)
 }
 
 // 跳转到标记时间点
@@ -418,12 +360,16 @@ const handleJumpToMarker = (marker: Marker): void => {
   emit('jumpToMarker', marker.timestamp)
 }
 
-// 清空所有标记（显示确认对话框）
-const handleClearAll = (): void => {
-  pendingClearAll.value = true
-  pendingDeleteMarkerId.value = null
-  deleteConfirmMessage.value = '确定要清空所有标记吗？此操作不可撤销。'
-  showDeleteConfirm.value = true
+// 清空所有标记（useConfirm 二次确认后执行）
+const handleClearAll = async (): Promise<void> => {
+  const ok = await confirm({
+    title: '清空所有标记？',
+    message: '此操作不可撤销。',
+    confirmText: '清空',
+    danger: true
+  })
+  if (!ok) return
+  await clearMarkers()
 }
 
 // 导出 CSV

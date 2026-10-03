@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import AppIcon from '@components/AppIcon.vue'
+import UModal from '@components/ui/UModal.vue'
+import UButton from '@components/ui/UButton.vue'
 import TransitionSelector from '@views/screenRecorder/components/TransitionSelector.vue'
 import { useToast } from '@composables/useToast'
 import type { Clip, ExportOptions } from '@composables/useVideoClip'
@@ -103,26 +104,9 @@ const handleExport = (): void => {
   对应底部进度条。布局沿用 ClipEditor 的弹窗壳（遮罩 + 卡片）。
 -->
 <template>
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/45"
-    @click.self="emit('close')"
-  >
-    <div class="w-[520px] max-w-[92vw] rounded-xl border border-line-subtle bg-surface-0 shadow-lg">
-      <header class="flex items-center gap-2 border-b border-line-subtle px-5 py-3.5">
-        <AppIcon icon="ri-movie-line" :size="16" class="text-fg-muted" />
-        <h3 class="text-sm font-semibold text-fg-primary">导出剪辑</h3>
-        <span class="ml-auto text-xs text-fg-muted">{{ clips.length }} 个片段</span>
-        <button
-          type="button"
-          class="rounded p-1 text-fg-muted hover:bg-surface-hover hover:text-fg-primary"
-          title="关闭"
-          @click="emit('close')"
-        >
-          <AppIcon icon="ri-close-line" :size="16" />
-        </button>
-      </header>
-
-      <div class="space-y-4 px-5 py-4">
+  <UModal :model-value="true" title="导出剪辑" size="md" @update:model-value="emit('close')">
+    <p class="mb-4 text-xs text-fg-muted">{{ clips.length }} 个片段</p>
+    <div class="space-y-4">
         <div class="flex items-center gap-6">
           <label class="flex items-center gap-2 text-xs text-fg-muted">
             分辨率
@@ -244,24 +228,15 @@ const handleExport = (): void => {
         </div>
       </div>
 
-      <footer class="flex items-center justify-end gap-2 border-t border-line-subtle px-5 py-3.5">
-        <button
-          type="button"
-          class="rounded-md px-3 py-1.5 text-xs text-fg-secondary hover:bg-surface-hover"
-          :disabled="exporting"
-          @click="emit('close')"
-        >
-          取消
-        </button>
-        <button
-          type="button"
-          class="rounded-md bg-brand-500 px-3.5 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+      <template #footer>
+        <UButton variant="ghost" :disabled="exporting" @click="emit('close')">取消</UButton>
+        <UButton
+          variant="primary"
           :disabled="exporting || clips.length === 0"
           @click="handleExport"
         >
           {{ exporting ? '导出中…' : '开始导出' }}
-        </button>
-      </footer>
-    </div>
-  </div>
+        </UButton>
+      </template>
+  </UModal>
 </template>

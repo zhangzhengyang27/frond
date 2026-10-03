@@ -1,14 +1,6 @@
 <template>
-  <div v-if="show" class="settings-mask" @click.self="emit('close')">
-    <div class="settings-dialog" role="dialog" aria-modal="true" aria-label="番茄钟设置">
-      <header class="dialog-head">
-        <h3>番茄钟设置</h3>
-        <button type="button" class="dialog-close" title="关闭" @click="emit('close')">
-          <AppIcon icon="close" />
-        </button>
-      </header>
-
-      <div class="dialog-body">
+  <UModal :model-value="show" title="番茄钟设置" @update:model-value="emit('close')">
+    <div class="dialog-body">
         <section class="group">
           <h4 class="group-title">时长（分钟）</h4>
           <div class="number-grid">
@@ -90,19 +82,18 @@
         </section>
       </div>
 
-      <footer class="dialog-foot">
+      <template #footer>
         <span v-if="dirtyCount > 0" class="dirty-hint">{{ dirtyCount }} 项改动</span>
         <button type="button" class="btn btn--ghost" @click="emit('close')">取消</button>
         <button type="button" class="btn btn--primary" @click="save">保存</button>
-      </footer>
-    </div>
-  </div>
+      </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
 /** 2026-09-23 重建件（原件全盘无副本，按 index.vue 的用法与 props/emits 契约重建）。 */
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import AppIcon from '@components/AppIcon.vue'
+import { computed, ref, watch } from 'vue'
+import UModal from '@components/ui/UModal.vue'
 import { usePomodoroStore, type PomodoroSettings } from '../../../stores/pomodoro'
 import { SOUNDSCAPES } from '../composables/useSoundscapes'
 
@@ -195,20 +186,12 @@ const dirtyCount = computed(() => {
 watch(
   () => props.show,
   (visible) => {
-    if (!visible) {
-      document.removeEventListener('keydown', onKeydown)
-      return
-    }
+    if (!visible) return
     base.value = normalize(store.settings)
     form.value = { ...base.value }
-    document.addEventListener('keydown', onKeydown)
   },
   { immediate: true }
 )
-
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onKeydown)
-})
 
 function clampNumbers(target: PomodoroSettings): void {
   for (const key of Object.keys(NUMERIC_LIMITS) as FormKey[]) {
@@ -240,76 +223,9 @@ function save(): void {
   emit('close')
 }
 
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') emit('close')
-}
 </script>
 
 <style scoped>
-.settings-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--overlay-bg);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  animation: mask-fade 0.2s ease-out;
-}
-
-.settings-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: min(520px, 100%);
-  max-height: 88vh;
-  overflow: hidden;
-  padding: 18px 20px;
-  background: var(--pomo-dialog-bg);
-  border: 1px solid var(--pomo-dialog-border);
-  border-radius: 18px;
-  box-shadow: var(--pomo-shadow-elevated);
-  color: var(--pomo-dialog-text);
-}
-
-.dialog-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.dialog-head h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.dialog-close {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  font-size: 15px;
-  color: var(--pomo-dialog-muted);
-  transition:
-    background 0.16s,
-    color 0.16s;
-}
-
-.dialog-close:hover {
-  background: var(--pomo-input-bg);
-  color: var(--pomo-dialog-text);
-}
-
 .dialog-body {
   flex: 1;
   min-height: 0;

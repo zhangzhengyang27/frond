@@ -12,6 +12,8 @@ import ClipTimeline from '@views/screenRecorder/components/ClipTimeline.vue'
 import { useVideoClip } from '@composables/useVideoClip'
 import { useToast } from '@composables/useToast'
 import { confirm } from '@composables/useConfirm'
+import UModal from '@components/ui/UModal.vue'
+import UButton from '@components/ui/UButton.vue'
 import type { Clip, ExportOptions, VideoInfo } from '@composables/useVideoClip'
 
 interface Props {
@@ -416,13 +418,12 @@ const togglePlay = (): void => {
     </div>
 
     <!-- 片段表单 -->
-    <div v-if="showClipDialog" class="fixed inset-0 z-[1000] flex items-center p-6">
-      <div class="absolute inset-0 bg-overlay" @click="showClipDialog = false" />
-      <div class="relative mx-auto w-full max-w-md rounded-xl bg-white p-6 shadow-lg">
-        <h3 class="m-0 mb-4 text-base font-semibold text-gray-800">
-          {{ editingClip ? '编辑片段' : '新增片段' }}
-        </h3>
-        <div class="flex flex-col gap-3">
+    <UModal
+      v-model="showClipDialog"
+      :title="editingClip ? '编辑片段' : '新增片段'"
+      size="md"
+    >
+      <div class="flex flex-col gap-3">
           <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
             <span>开始（秒）</span>
             <input
@@ -450,25 +451,12 @@ const togglePlay = (): void => {
               placeholder="可选"
             />
           </label>
-        </div>
-        <div class="mt-6 flex justify-end gap-2">
-          <button
-            class="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600"
-            type="button"
-            @click="showClipDialog = false"
-          >
-            取消
-          </button>
-          <button
-            class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white"
-            type="button"
-            @click="handleSaveClip"
-          >
-            保存
-          </button>
-        </div>
       </div>
-    </div>
+      <template #footer>
+        <UButton variant="ghost" @click="showClipDialog = false">取消</UButton>
+        <UButton variant="primary" @click="handleSaveClip">保存</UButton>
+      </template>
+    </UModal>
 
     <ExportDialog
       v-if="showExportDialog"

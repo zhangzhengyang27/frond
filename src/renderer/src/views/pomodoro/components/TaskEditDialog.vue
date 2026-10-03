@@ -1,14 +1,6 @@
 <template>
-  <div class="task-dialog-mask" @click.self="emit('close')">
-    <div class="task-dialog" role="dialog" aria-modal="true" :aria-label="title">
-      <header class="dialog-head">
-        <h3>{{ title }}</h3>
-        <button type="button" class="dialog-close" title="关闭" @click="emit('close')">
-          <AppIcon icon="close" />
-        </button>
-      </header>
-
-      <div class="dialog-body">
+  <UModal :model-value="true" :title="title" @update:model-value="emit('close')">
+    <div class="dialog-body">
         <label class="field">
           <span class="field-label">标题</span>
           <input
@@ -72,7 +64,7 @@
         </div>
       </div>
 
-      <footer class="dialog-foot">
+      <template #footer>
         <button type="button" class="btn btn--ghost" @click="emit('close')">取消</button>
         <template v-if="isCreate">
           <button type="button" class="btn" :disabled="!canSubmit" @click="submitCreate(false)">
@@ -96,15 +88,15 @@
         >
           保存
         </button>
-      </footer>
-    </div>
-  </div>
+      </template>
+  </UModal>
 </template>
 
 <script setup lang="ts">
 /** 2026-09-23 重建件（原件全盘无副本，按 index.vue 的用法与 props/emits 契约重建）。 */
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import UModal from '@components/ui/UModal.vue'
 import type { PomodoroProject, PomodoroTask } from '../../../stores/pomodoro'
 
 interface Props {
@@ -218,86 +210,12 @@ function submitCreate(startAfter: boolean): void {
   })
 }
 
-function onKeydown(event: KeyboardEvent): void {
-  if (event.key === 'Escape') emit('close')
-}
-
 onMounted(() => {
-  document.addEventListener('keydown', onKeydown)
   void nextTick(() => titleInput.value?.focus())
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onKeydown)
 })
 </script>
 
 <style scoped>
-.task-dialog-mask {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: var(--overlay-bg);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  animation: dialog-fade 0.2s ease-out;
-}
-
-.task-dialog {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: min(520px, 100%);
-  max-height: 90vh;
-  overflow: hidden;
-  padding: 18px 20px;
-  background: var(--pomo-dialog-bg);
-  border: 1px solid var(--pomo-dialog-border);
-  border-radius: 18px;
-  box-shadow: var(--pomo-shadow-elevated);
-  color: var(--pomo-dialog-text);
-}
-
-.dialog-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.dialog-head h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--pomo-dialog-text);
-}
-
-.dialog-close {
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  font-size: 15px;
-  color: var(--pomo-dialog-muted);
-  transition:
-    background 0.16s,
-    color 0.16s;
-}
-
-.dialog-close:hover {
-  background: var(--pomo-input-bg);
-  color: var(--pomo-dialog-text);
-}
-
 .dialog-body {
   flex: 1;
   min-height: 0;
@@ -399,13 +317,6 @@ onBeforeUnmount(() => {
 
 .swatch.active {
   border-color: var(--pomo-dialog-text);
-}
-
-.dialog-foot {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .btn {

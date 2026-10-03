@@ -179,7 +179,9 @@ async function init(): Promise<void> {
     const retryEl = editorRef.value
     if (!retryEl || retryEl.offsetWidth === 0 || retryEl.offsetHeight === 0) {
       // 如果还是没有尺寸，延迟初始化
-      setTimeout(() => init(), 100)
+      setTimeout(() => {
+        void init()
+      }, 100)
       return
     }
   }
@@ -199,7 +201,7 @@ async function init(): Promise<void> {
   })
 
   // 确保编辑器可以接收输入
-  nextTick(() => {
+  void nextTick(() => {
     if (editor) {
       editor.refresh()
       // 不自动聚焦，让用户点击时自然聚焦
@@ -230,27 +232,27 @@ async function init(): Promise<void> {
   editor.setOption('extraKeys', {
     'Cmd-F': () => {
       isFocusedSearch.value = true
-      nextTick(() => {
+      void nextTick(() => {
         searchInputRef.value?.focus()
       })
     },
     'Ctrl-F': () => {
       isFocusedSearch.value = true
-      nextTick(() => {
+      void nextTick(() => {
         searchInputRef.value?.focus()
       })
     },
     'Cmd-Shift-F': () => {
-      formatCode()
+      void formatCode()
     },
     'Ctrl-Shift-F': () => {
-      formatCode()
+      void formatCode()
     },
     'Cmd-Alt-F': () => {
-      formatCode()
+      void formatCode()
     },
     'Ctrl-Alt-F': () => {
-      formatCode()
+      void formatCode()
     }
   })
 }
@@ -258,7 +260,7 @@ async function init(): Promise<void> {
 // 监听 selectedSnippetContent 变化，更新编辑器内容
 watch(selectedSnippetContent, (v, oldV) => {
   if (!editor) return
-  nextTick(() => {
+  void nextTick(() => {
     const isNewValue = v?.id !== oldV?.id
     setValue(v?.value || '', true, !isNewValue)
     if (searchQuery.value) {
@@ -270,7 +272,7 @@ watch(selectedSnippetContent, (v, oldV) => {
 // 监听 selectedSnippetContent 变化，更新语言模式
 watch(selectedSnippetContent, (v) => {
   if (!editor) return
-  nextTick(() => {
+  void nextTick(() => {
     if (!v) return
     setLanguage(v.language)
   })
@@ -279,7 +281,7 @@ watch(selectedSnippetContent, (v) => {
 // 监听搜索查询变化
 watch(searchQuery, () => {
   if (!editor) return
-  nextTick(() => {
+  void nextTick(() => {
     updateSearchOverlay()
   })
 })
@@ -300,7 +302,7 @@ watch(
   () => {
     if (!editor) return
     fontSize.value = `${settings.fontSize}px`
-    nextTick(() => {
+    void nextTick(() => {
       editor?.refresh()
     })
   }
@@ -348,8 +350,8 @@ watch(
       if (props.snippet && !props.snippet.description) {
         isShowDescription.value = false
       }
-      loadTags()
-      nextTick(() => {
+      void loadTags()
+      void nextTick(() => {
         if (editor && selectedSnippetContent.value) {
           setValue(selectedSnippetContent.value.value || '', true, false)
           setLanguage(selectedSnippetContent.value.language)
@@ -370,7 +372,7 @@ watch(
 watch(
   () => props.snippet?.tagIds,
   () => {
-    loadTags()
+    void loadTags()
   }
 )
 
@@ -391,7 +393,7 @@ function switchContent(index: number): void {
   currentContentIndex.value = index
 
   // 确保编辑器内容同步更新
-  nextTick(() => {
+  void nextTick(() => {
     if (editor && selectedSnippetContent.value) {
       setValue(selectedSnippetContent.value.value || '', true, false)
       setLanguage(selectedSnippetContent.value.language)
@@ -425,7 +427,7 @@ async function addContent(): Promise<void> {
       currentContentIndex.value = updated.contents.length - 1
 
       // 确保编辑器内容同步更新
-      nextTick(() => {
+      void nextTick(() => {
         if (editor && selectedSnippetContent.value) {
           setValue(selectedSnippetContent.value.value || '', true, false)
           setLanguage(selectedSnippetContent.value.language)
@@ -458,7 +460,7 @@ async function removeContent(index: number): Promise<void> {
       }
 
       // 确保编辑器内容同步更新
-      nextTick(() => {
+      void nextTick(() => {
         if (editor && selectedSnippetContent.value) {
           setValue(selectedSnippetContent.value.value || '', true, false)
           setLanguage(selectedSnippetContent.value.language)
@@ -505,7 +507,7 @@ async function updateLanguage(language: string): Promise<void> {
     if (updated) {
       emit('update:snippet', updated)
       // 确保编辑器内容与更新后的内容同步
-      nextTick(() => {
+      void nextTick(() => {
         if (editor && selectedSnippetContent.value) {
           const updatedContent = updated.contents.find(
             (c) => c.id === selectedSnippetContent.value!.id
@@ -541,7 +543,7 @@ async function updateContentType(contentType: 'text' | 'rich'): Promise<void> {
     const updated = await enqueueContentsWrite(props.snippet.id, newContents)
     if (updated) {
       emit('update:snippet', updated)
-      nextTick(() => {
+      void nextTick(() => {
         setLanguage(language)
       })
     }
@@ -630,7 +632,7 @@ async function loadTags(): Promise<void> {
 // 开始编辑标签
 function startEditTab(index: number): void {
   editingTabIndex.value = index
-  nextTick(() => {
+  void nextTick(() => {
     const input = document.querySelector(`.tab-label-input-${index}`) as HTMLInputElement
     if (input) {
       input.focus()
@@ -689,7 +691,7 @@ function handleRenameTab(): void {
 // 处理删除标签
 function handleDeleteTab(): void {
   if (contextMenuTabIndex.value !== null && props.snippet) {
-    removeContent(contextMenuTabIndex.value)
+    void removeContent(contextMenuTabIndex.value)
     showContextMenu.value = false
   }
 }
@@ -801,50 +803,32 @@ async function saveEditorContent(): Promise<void> {
   const contentValue = selectedSnippetContent.value.value || ''
 
   // 如果内容有变化，立即保存
-  if (currentValue !== contentValue) {
-    // 创建干净的、可序列化的内容数组
-    const updatedContents = props.snippet.contents.map((c) => {
-      if (c.id === selectedSnippetContent.value!.id) {
-        return {
-          id: c.id,
-          label: c.label,
-          value: currentValue,
-          language: c.language,
-          contentType: c.contentType
-        }
-      }
+  if (currentValue === contentValue) return
+
+  // 创建干净的、可序列化的内容数组（当前编辑项替换为新值）
+  const updatedContents = props.snippet.contents.map((c) => {
+    if (c.id === selectedSnippetContent.value!.id) {
       return {
         id: c.id,
         label: c.label,
-        value: c.value,
+        value: currentValue,
         language: c.language,
         contentType: c.contentType
       }
-    })
-
-    // 创建干净的、可序列化的 snippet 对象
-    const updatedSnippet: Snippet = {
-      id: props.snippet.id,
-      name: props.snippet.name,
-      description: props.snippet.description || '',
-      contents: updatedContents,
-      folderId: props.snippet.folderId || null,
-      tagIds: props.snippet.tagIds || [],
-      isDeleted: props.snippet.isDeleted || false,
-      isFavorites: props.snippet.isFavorites || false,
-      createdAt: props.snippet.createdAt,
-      updatedAt: props.snippet.updatedAt
     }
+    return {
+      id: c.id,
+      label: c.label,
+      value: c.value,
+      language: c.language,
+      contentType: c.contentType
+    }
+  })
 
-    emit('update:snippet', updatedSnippet)
-
-    // 保存到数据库
-    addToUpdateContentQueue(props.snippet.id, selectedSnippetContent.value.id, {
-      label: selectedSnippetContent.value.label,
-      value: currentValue,
-      language: selectedSnippetContent.value.language
-    })
-  }
+  // 批4：走与防抖 flush 同一条按 snippetId 串行的写入链，await 服务端新对象再 emit——
+  // 旧实现先 emit 本地拼的旧 updatedAt 对象、真值被丢弃，列表顺序因此陈旧
+  const updated = await enqueueContentsWrite(props.snippet.id, updatedContents)
+  if (updated) emit('update:snippet', updated)
 }
 
 // 切换 JSON 可视化
@@ -973,7 +957,7 @@ const isEditorVisible = computed(() => {
 watch(isEditorVisible, (visible) => {
   if (visible) {
     // 当编辑器应该显示时，确保编辑器已初始化
-    nextTick(() => {
+    void nextTick(() => {
       if (!editorRef.value) return
 
       // 检查编辑器实例是否存在且有效
@@ -981,7 +965,7 @@ watch(isEditorVisible, (visible) => {
 
       if (!editorExists && selectedSnippetContent.value) {
         // 编辑器不存在或无效，重新初始化
-        init()
+        void init()
       } else if (editor && selectedSnippetContent.value) {
         // 编辑器已存在，确保内容是最新的
         const currentValue = editor.getValue()
@@ -999,10 +983,10 @@ watch(isEditorVisible, (visible) => {
 })
 
 onMounted(() => {
-  nextTick(() => {
-    init()
+  void nextTick(() => {
+    void init()
     if (props.snippet) {
-      loadTags()
+      void loadTags()
     }
   })
 })

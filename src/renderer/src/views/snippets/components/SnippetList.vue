@@ -246,6 +246,17 @@ watch(
   }
 )
 
+// 批4③：编辑器保存（id 不变而 updatedAt 变化）→ 按已加载量重拉，服务端按 updated_at 重排；
+// id 变化是用户切换选中，不触发（避免每次点选都发请求）
+watch(
+  () => props.selectedSnippet,
+  (now, prev) => {
+    if (now && prev && now.id === prev.id && now.updatedAt !== prev.updatedAt) {
+      void loadSnippets('refresh')
+    }
+  }
+)
+
 onMounted(() => {
   searchInput.value = props.searchQuery
   debouncedSearch.value = props.searchQuery

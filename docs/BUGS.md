@@ -807,7 +807,23 @@
   回归钉三条（聋窗复现 / 不驻留 / 正常周期），textExpansion/hotkeys 域 141 用例全绿。
 - 门禁终态：typecheck 0 / lint 0 error / unit 1294（批9 后 +8）/ e2e 全量 100 过 +
   a11y.spec:78 一条负载抖动（独立复跑 3/3 绿）。
-- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
+### 2026-10-03 批11 修复核销（B46 战役开打，3 commit）
+- **B46 棘轮落地**（4e3fce3）：scripts/unsafe-ratchet.mjs + lint-unsafe-baseline.json
+  （2564 条基线，115 文件，按文件×规则计数，任何上涨 exit 1；`pnpm lint:ratchet`
+  校验 / `--update` 钉新低 / `--report` 看分布）。**实测根源**：better-sqlite3 v13
+  无 bundled types 且 @types 未跟进——TS 从 lib/*.js 推断，prepare/run/get/all 全 any。
+- **战役核心件 typedSql**（40845a3）：裸转换全仓收口到一个文件（eslint 豁免 +
+  理由 + 4 条行为测试：错误照抛/undefined/语句缓存/语句错用照抛），两种形态——
+  prepareRun/Get/All 直调 + prepareStmt/runStmt/getStmt/allStmt 语句缓存 +
+  sqlFacade（Repository 的 this.db 整体替换，链式写法保持，泛型在调用点标注）。
+  首仓迁移 fileIndex/db.ts（84→0）。
+- **NotesRepository**（832b288）：facade 化（87→0）。基线 2564 → 2414。
+- 剩余 2414 条按分布推进（SnippetRepository 153 / PomodoroRepository 139 /
+  dataSync.test 127 / preload 122 / RecordingRepository 69 / FolderRepository 67 …），
+  棘轮保证只减不增；全部清零后可把 no-unsafe-* 升为 error（B46 完成判据）。
+- 门禁终态：typecheck 0 / lint 0 error / unit 1298（批10 后 +4）/ 棘轮 2414。
+- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
+  （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
   类型化 2447 条，重塑批 2c/7 范围）。- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、
   WindowSwitcher id）、B44（重建件 UI 断言）、B46（Repository 类型化 2447 条，
   重塑批 2c/7 推进）、globalKeys 全聋窗口（审计 P2）。- **B53 余账**：3 根搜索下沉 / 6 胶囊包体（sanitize-html 378KB + pinyin-pro 452KB）/

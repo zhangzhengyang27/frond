@@ -10,8 +10,19 @@ export default defineConfig(
   // .gitignore 与 vitest 的 exclude 都已排除它，但这里此前漏了 —— 于是 `pnpm lint`
   // 会对第三方源码报 6 条错（5 条解析错 + 1 条 no-unused-expressions），
   // 而 CONTRIBUTING 又要求「提交前 pnpm lint 无 error」。
+  // test-results/、playwright-report/：playwright 运行产物（e2e 残留的第三方插件
+  // 模板是 .tsx，会被 typed-lint 规则扫到直接崩 lint）——B51，跑过 e2e 的本地必踩
   {
-    ignores: ['**/node_modules', '**/dist', '**/out', 'scripts/**', 'extension/**', 'references/**']
+    ignores: [
+      '**/node_modules',
+      '**/dist',
+      '**/out',
+      'scripts/**',
+      'extension/**',
+      'references/**',
+      'test-results/**',
+      'playwright-report/**'
+    ]
   }, // extension/：浏览器扩展独立产物，chrome 全局/JS 运行时不适用应用 TS 规则集
   tseslint.configs.recommended,
   eslintPluginVue.configs['flat/recommended'],

@@ -37,7 +37,7 @@ const fseventsBackend: WatchBackend = {
     )
     return () =>
       stops.forEach((stop) => {
-        stop()
+        void stop()
       })
   }
 }

@@ -186,8 +186,9 @@ router.beforeEach((to, _from, next) => {
         next({ path: '/onboarding', replace: true })
         return
       }
-    } catch {
-      // IPC 失败不阻断
+    } catch (e) {
+      // IPC 失败不阻断（B52②：不再纯静默，进渲染端日志通道可排查）
+      console.debug('[router] 引导态查询失败，按已引导处理:', e)
       if (settled) return
       settled = true
       clearTimeout(timer)

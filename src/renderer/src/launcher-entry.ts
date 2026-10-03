@@ -14,6 +14,10 @@ import 'remixicon/fonts/remixicon.css'
 import { createApp } from 'vue'
 import LauncherApp from './launcher/LauncherApp.vue'
 import { useTheme } from './composables/useTheme'
+import { installConsoleBridge } from './utils/consoleBridge'
+
+// B52①：胶囊窗的 console 同样进主进程日志通道（bootstrap 前挂好）
+installConsoleBridge()
 
 async function bootstrap(): Promise<void> {
   // 主题先行：与主窗口共享同一持久化主题（html.dark / data-theme）。

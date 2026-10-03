@@ -261,6 +261,16 @@ export interface IpcContract {
   // ─────────── 日志与遥测（log:*）───────────
   'log:getMode': { req: void; res: TelemetryMode }
   'log:setMode': { req: { mode: TelemetryMode }; res: TelemetryMode }
+  /** B52①：渲染端日志进主进程环形缓冲（console 桥走这条，fire-and-forget 语义） */
+  'log:add': {
+    req: {
+      level: 'debug' | 'info' | 'warn' | 'error'
+      scope: string
+      message: string
+      error?: { message: string; stack?: string } | undefined
+    }
+    res: { ok: boolean }
+  }
 
   // ─────────── 自动更新其余通道（update:*）───────────
   'update:getStatus': { req: void; res: UpdateStatus }

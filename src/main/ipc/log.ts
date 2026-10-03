@@ -38,4 +38,25 @@ export function registerLogIpcHandlers(): void {
     log.setMode(req.mode)
     return log.getMode()
   })
+
+  // B52①：渲染端日志落主进程（console 桥经此写入环形缓冲，导出诊断包时可见）
+  typedHandle('log:add', (_e, req): { ok: boolean } => {
+    const error = req.error ?? undefined
+    switch (req.level) {
+      case 'debug':
+        log.debug(req.scope, req.message, error)
+        return { ok: true }
+      case 'info':
+        log.info(req.scope, req.message)
+        return { ok: true }
+      case 'warn':
+        log.warn(req.scope, req.message)
+        return { ok: true }
+      case 'error':
+        log.error(req.scope, req.message, error)
+        return { ok: true }
+      default:
+        return { ok: false }
+    }
+  })
 }

@@ -13,6 +13,10 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { installConsoleBridge } from './utils/consoleBridge'
+
+// B52①：console 桥最先挂——后续任何模块的 console.* 都会进主进程日志通道
+installConsoleBridge()
 
 // 改名前（Leaf）写在 localStorage 的键搬到新前缀：侧栏展开态、任务与 Todoist 的
 // 对应关系都是按键名取的，认不出旧键就静默回到默认值。反向遍历边搬边删，跑完不再有 leaf.*。

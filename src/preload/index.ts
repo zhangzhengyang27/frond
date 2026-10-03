@@ -442,7 +442,14 @@ const api = {
   log: {
     export: () => typedInvoke('log:export'),
     getMode: () => typedInvoke('log:getMode'),
-    setMode: (mode: TelemetryMode) => typedInvoke('log:setMode', { mode })
+    setMode: (mode: TelemetryMode) => typedInvoke('log:setMode', { mode }),
+    // B52①：渲染端日志进主进程环形缓冲（console 桥调用，fire-and-forget）
+    add: (
+      level: 'debug' | 'info' | 'warn' | 'error',
+      scope: string,
+      message: string,
+      error?: { message: string; stack?: string }
+    ) => typedInvoke('log:add', { level, scope, message, error })
   },
   // 主进程菜单 / dock / tray 跳转订阅
   onAppOpenModule: (cb: (e: { moduleId: string; path: string }) => void): (() => void) => {

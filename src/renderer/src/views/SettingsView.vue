@@ -148,8 +148,8 @@ watch(searchQuery, () => {
 const onRestartOnboarding = async (): Promise<void> => {
   try {
     await window.api.preferences.resetOnboarding()
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.debug('[settings] 重置引导失败:', e)
   }
   resetOnboardingState()
   await router.push('/onboarding')
@@ -549,8 +549,8 @@ async function saveShieldApps(): Promise<void> {
   try {
     const cfg = await window.api.focusShield.setConfig({ apps })
     shieldAppsDraft.value = cfg.apps.join(', ')
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.debug('[settings] 护盾应用保存失败:', e)
   }
 }
 
@@ -563,21 +563,21 @@ async function saveShieldWebsites(): Promise<void> {
   try {
     const cfg = await window.api.focusShield.setConfig({ websites })
     shieldWebsitesDraft.value = (cfg.websites ?? []).join(', ')
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.debug('[settings] 护盾网站保存失败:', e)
   }
 }
 
 onMounted(async () => {
   try {
     appVersion.value = await window.api.update.getCurrentVersion()
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.debug('[settings] 取应用版本失败:', e)
   }
   try {
     systemInfo.value = await window.api.system.info()
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.debug('[settings] 取系统信息失败:', e)
   }
   void loadShieldConfig()
   void loadAIConfig()
@@ -601,8 +601,8 @@ const telemetryMode = ref<TelemetryMode>('local')
 onMounted(async () => {
   try {
     telemetryMode.value = await window.api.log.getMode()
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.debug('[settings] 取遥测模式失败:', e)
   }
 })
 
@@ -656,8 +656,8 @@ onMounted(() => {
   window.api.update
     .getStatus()
     .then((s) => (updateStatus.value = s))
-    .catch(() => {
-      /* ignore */
+    .catch((e: unknown) => {
+      console.debug('[settings] 取更新状态失败:', e)
     })
 })
 

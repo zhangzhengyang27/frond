@@ -58,3 +58,27 @@ export function allStmt<Row>(stmt: unknown, ...params: unknown[]): Row[] {
 export function prepareStmt(db: unknown, sql: string): unknown {
   return (db as AnyDatabase).prepare(sql)
 }
+
+// ── facade 形态：Repository 的 this.db 直接换成它，链式写法保持、泛型在调用点 ──
+
+export interface SqlRunResult {
+  changes: number
+  lastInsertRowid: number | bigint
+}
+
+export interface SqlStmt<Row> {
+  run(...params: unknown[]): SqlRunResult
+  get(...params: unknown[]): Row | undefined
+  all(...params: unknown[]): Row[]
+}
+
+export interface SqlDb {
+  prepare<Row = unknown>(sql: string): SqlStmt<Row>
+  exec(sql: string): void
+  transaction<T>(fn: () => T): () => T
+}
+
+/** 把裸 Database 包成泛型 facade；运行时零包装（直通原 handle） */
+export function sqlFacade(db: unknown): SqlDb {
+  return db as SqlDb
+}

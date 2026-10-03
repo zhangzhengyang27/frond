@@ -14,6 +14,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import type Database from 'better-sqlite3'
 import { database } from '../database'
+import { sqlFacade, type SqlDb } from '../typedSql'
 import { now, likeContains } from '../repo'
 
 export interface Note {
@@ -64,8 +65,9 @@ interface FolderRow {
 export class NotesRepository {
   constructor(private readonly _db?: Database.Database) {}
 
-  private get db(): Database.Database {
-    return this._db ?? database.handle
+  // B46：facade 化——链式 prepare 写法保持，行形状由各调用点泛型给出
+  private get db(): SqlDb {
+    return sqlFacade(this._db ?? database.handle)
   }
 
   private fromRow(row: NoteRow): Note {
@@ -144,12 +146,12 @@ export class NotesRepository {
     // 置顶优先，然后按更新时间倒序
     sql += ` ORDER BY is_pinned DESC, updated_at DESC, rowid DESC`
 
-    const rows = this.db.prepare(sql).all(...params) as NoteRow[]
+    const rows = this.db.prepare<NoteRow>(sql).all(...params)
     return rows.map((r) => this.fromRow(r))
   }
 
   getNoteById(id: string): Note | undefined {
-    const row = this.db.prepare(`SELECT * FROM notes WHERE id = ?`).get(id) as NoteRow | undefined
+    const row = this.db.prepare<NoteRow>(`SELECT * FROM notes WHERE id = ?`).get(id)
     return row ? this.fromRow(row) : undefined
   }
 
@@ -236,15 +238,15 @@ export class NotesRepository {
 
   getStatistics(): { total: number; trash: number; pinned: number } {
     const total = (
-      this.db.prepare(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0`).get() as { n: number }
+      this.db.prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0`).get()!
     ).n
     const trash = (
-      this.db.prepare(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 1`).get() as { n: number }
+      this.db.prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 1`).get()!
     ).n
     const pinned = (
       this.db
-        .prepare(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0 AND is_pinned = 1`)
-        .get() as { n: number }
+        .prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0 AND is_pinned = 1`)
+        .get()!
     ).n
     return { total, trash, pinned }
   }
@@ -253,8 +255,8 @@ export class NotesRepository {
 
   getFolders(): NoteFolder[] {
     const rows = this.db
-      .prepare(`SELECT * FROM note_folders ORDER BY position ASC, created_at ASC`)
-      .all() as FolderRow[]
+      .prepare<FolderRow>(`SELECT * FROM note_folders ORDER BY position ASC, created_at ASC`)
+      .all()
     return rows.map((r) => this.folderFromRow(r))
   }
 
@@ -263,9 +265,7 @@ export class NotesRepository {
     const id = uuidv4()
     // position = 当前最大 + 1
     const maxPos = (
-      this.db.prepare(`SELECT COALESCE(MAX(position), -1) AS p FROM note_folders`).get() as {
-        p: number
-      }
+      this.db.prepare<{ p: number }>(`SELECT COALESCE(MAX(position), -1) AS p FROM note_folders`).get()!
     ).p
     this.db
       .prepare(

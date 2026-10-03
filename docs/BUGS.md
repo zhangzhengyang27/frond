@@ -765,7 +765,23 @@
 - 门禁终态：typecheck 0；lint 0 error；unit 1258 passed（+14）；e2e 全量 100 过 +
   capsule-animation 1 条时序抖动（独立复跑 3/3 绿，同一文件套跑时 :90/:144 交替抖，
   与 B51 时代归因一致：负载敏感，非代码回归）。
-- **未动**：B53 性能账大件（1 应用索引持久化 / 2 剪贴板 osascript 前移 / 3 根搜索
+### 2026-10-03 批8 修复核销（同晚，3 commit）
+- **B53-2 已修**（f7ec359）：剪贴板 poll 指纹先行——内容不变不 spawn osascript
+  （≈8.6 万次/天子进程消失）；屏蔽语义保持（P1-6），指纹记为已见与「同内容重复
+  复制不重复入账」一致。回归钉三条。**注**：B41 的「大图驻留每秒 readImage」
+  仍在（需 changeCount 级方案，独立于本条）。
+- **B53-1 已修**（e3a4800）：应用索引落盘 userData/applications-cache.json +
+  启动装载——应用行从「每次冷启动 5-15s system_profiler 后才可搜」降到 <100ms，
+  过期走既有 stale-while-revalidate。回归钉六条（纯函数 load/save）。
+- **B53-4 已修**（9f8f2e3）：文件搜索并行回退——mdfind 与索引同时起跑，
+  延迟从串行之和降到 max（短查询 450-540ms 的等待大头吃掉）；NO_FALLBACK
+  钩子纯索引口径不变。回归钉三条。
+- **B53-5 已修**（9f8f2e3）：启动备份按 7 天节流（最新备份未满跳过整库拷贝 +
+  quick_check；滚动 3 份历史仍在）。回归钉五条。
+- 门禁终态：typecheck 0 / lint 0 error / unit 1275（批7 后 +17）/ file-index e2e 全绿。
+- **B53 余账**：3 根搜索下沉 / 6 胶囊包体（sanitize-html 378KB + pinyin-pro 452KB）/
+  8 notes 列表投影 / 9 惰性主窗（省 80-150MB，代价中高）/ 10 markDir 批事务 /
+  11 LogService 批落。- **未动**：B53 性能账大件（1 应用索引持久化 / 2 剪贴板 osascript 前移 / 3 根搜索
   下沉 / 4 mdfind 并行 / 5 DB 备份节流 / 6 胶囊包体 / 8 notes 投影 / 9 惰性主窗 /
   10 markDir 批事务 / 11 LogService 批落）。
 - 门禁终态：typecheck 0；lint 0 error；unit 1244 passed（+24）；e2e 全量 99 过 +

@@ -613,3 +613,121 @@
 - 修法：各 Repository 以泛型 `db.prepare<Row>().get/all` 或手写 Row 接口逐个类型化，
   随批 2c 启用 no-unsafe-* 为 error；启用前以 warn + 数量棘轮测试钉住「只减不增」
 - 【未修】【重塑批 2c/7 推进】
+
+## 2026-10-03 发现（全库调研：主进程 / 渲染端 / 横切 / 性能四路并行审计）
+
+> 方法：4 路 Explore 并行扫描 + 对全部 P1 逐条到代码人工复核（行号均已核实）。
+> 基线：typecheck 0 错；lint 在跑过 e2e 的本地会崩（见 B51）；e2e 101/101（前次）。
+
+### B47 fileIndex watcher 启动竞态 + rearmOnce 裸奔（worker 可整体退出）【P1】【未修】
+- ① 竞态：`service.ts:300-304` 的 `.then((stop) => { if (this.stopWatch) stop(); else this.stopWatch = stop })`
+  条件写反——`stopWatcher()`（:313-315）先 stop 再把 stopWatch 置 null，故「启动期间被取消」
+  与「从未启动」在 then 里同为 null，走 else 把**旧范围 watcher 收养为当前**；随后第二个
+  pending watcher 的 then 见 stopWatch 非空，把**新范围 watcher 杀掉**。交错序列
+  startWatcher#1 → stopWatcher → startWatcher#2 → then#1 收养旧 → then#2 杀新，改范围/
+  重建/rearmOnce（:269-270 stop 后立即 start）叠加即可触达。修法：watch() 前捕获局部
+  cancelled 标志，stopWatcher 置位，then 里按 cancelled 分流。
+- ② 裸奔：`rearmOnce`（:244-272）由 setInterval `void this.rearmOnce()`（:233）驱动，
+  `await fullScan(...)`（:258）无 try/catch，fullScan 末尾 buffer.flush 在 per-root catch
+  之外（scanner.ts:188）；worker 未安装 unhandledRejection 处理器，DB/磁盘故障 =
+  utilityProcess 退出 → 客户端退避重启 5 次后整体降级 mdfind（全库索引作废）。
+  同文件 runFullScan/compensateMissed/flushPending 均有兜底，唯独 rearmOnce 漏。
+- 关联：rebuild RPC 10s 超时 vs 分钟级扫描（client.ts:37 RPC_TIMEOUT_MS；worker 侧
+  await 扫描完才回包）——管理页 10 秒后被告知成功、日志留假错误，用户再点一次会
+  scanGeneration++ 打断后台仍在跑的那趟。修法：worker 侧 rebuild 立即回包、状态轮询。
+
+### B48 录屏导出：activeExports 成功路径泄漏 + getInfo 探测口未挂白名单【P1/P2】【未修】
+- 泄漏：`recording.ts:363` set 后，`.then` 成功分支（:394-424）从不 delete，仅 .catch
+  （:428）与 cancel（:450）清——常驻进程每次成功导出泄漏一条 {AbortController, recordingId}。
+- 探测口：`recording.export.getInfo`（:455-461）对任意 filePath 跑 ffmpeg probe，同文件
+  generateThumbnail 有 isKnownRecordingPath 守卫、video:readFile/showInFolder 只认历史行，
+  此条漏网（任意路径存在性/格式探测）。修法：同一守卫。
+
+### B49 whenReady 回调无 catch 且 installDatabase 裸奔：迁移失败 = 半初始化僵尸【P2】【未修】
+- `index.ts:280` `void app.whenReady().then(...)` 无 .catch；:295 `installDatabase()` 无
+  try/catch（下方 runDataMigrations 反而有）。schema 迁移失败时 ensureOpen 刻意重抛
+  （database.ts:81 防带伤运行），异常被全局兜底只写一行日志——应用活着但无窗口无托盘
+  无 IPC。修法：whenReady 整体 try/catch + dialog.showErrorBox + app.exit(1)。
+
+### B50 渲染端异步回调缺 seq/token 守卫（家族账）【P1】【未修】
+- 已逐条证实：SnippetList.vue:98-123 loadSnippets 无请求序号（切文件夹/搜索时旧响应覆盖
+  新结果，append 可拼进新列表尾）；PlaybackPanel.vue:212-269 watch(videoPath) 无 token
+  （旧 readFile 回写覆盖新选，且可 revoke 掉正在播放的 blob URL → 黑屏）；
+  FloatingNote.vue:95-107 selectNote 不 flush 800ms 防抖 saveTimer（:121-127）→ A 的最后
+  一笔编辑静默丢失（真数据丢失）；useMarkers.ts:17-33 loadMarkers 无守卫，快速换片乱序回写。
+- 相关已知：useUnifiedSearch.ts:232-239 清空查询不递增 token；useStreamManager.ts:219-245
+  getScreenStream 并发泄漏屏幕捕获轨道。
+- 修法方向：抽 useAsyncGuard（递增 seq + 过期丢弃）一次性收口，四处模式完全一致。
+
+### B50a-c 渲染端三处独立小 bug【P2】【未修】
+- a. useFolders.ts:31-37 「只拉一次」守卫 `let loaded = false` 写在函数体内，每次 setup
+  重置——每次进页都重拉 getFolders+getFolderTree 两个 IPC，与注释意图相反。loaded 提模块级。
+- b. useScreenRecorder.ts:32,58-60 `loading` 声明后从未置 true，启动无防重入：
+  RecordPage.vue:456-586 长异步链（设置读取+combineStreams 最长 10s ready-wait+200ms sleep）
+  内二次触发，epoch 作废路径返回已 stop 的轨道，可录出空/坏文件。入口加同步 starting 标志。
+- c. useEditor.ts:23-30 loadSettings 的 Object.assign 触发 9 个 watch → 防抖后把刚读到的
+  值原样写回（每次挂载多一次 IPC 写）。加 isLoading 标志，watcher 内跳过。
+
+### B51 lint 门禁在 e2e 过的本地必崩【P1（工程门禁）】【未修】
+- eslint.config.mjs:14 ignores 缺 `test-results/**`：跑过 e2e 后该目录下第三方插件模板
+  （com.frond.example-react/src/main.tsx 等）被 typed-lint 规则扫到 →
+  `pnpm lint` exit 2（Error while loading rule '@typescript-eslint/await-thenable'）。
+  CI fresh clone 不复现，本地跑完 e2e 必踩。修法：ignores 补 `test-results/**`（连同
+  `playwright-report/**` 如有）。
+
+### B52 渲染端日志通道缺失 + comment-only catch 残余【P2】【未修】
+- 渲染端 172 处裸 console.*（约 50 文件）全部蒸发：preload 的 log 命名空间只有
+  export/getMode/setMode（preload/index.ts:442-445），无 renderer→main 转发，主进程
+  LogService 环形缓冲+导出对渲染端不可见。修法：补一条 log IPC + console 桥接。
+- 批 7b 只清了 main：renderer 域 74 处「仅注释、连默认值都不赋」的 catch（热点
+  SettingsView.vue 6 处裸 /* ignore */、AIChatPage 8、launcher/index 7）——升 log.debug
+  与 main 口径对齐（AI 域冻结部分可缓）。
+
+### B53 性能优化账（按性价比排序，均有代码证据）【未修】
+1. 应用索引零磁盘持久化：每次冷启动 5-15s system_profiler（applications.ts:607-651），
+   胶囊内应用行每次启动都「5-15s 后才可搜」→ 持久化 + stale-while-revalidate
+2. 剪贴板 poll 每秒无条件 spawn osascript 查前台应用（ClipboardHistoryService.ts:444），
+   指纹没变也查 → 先比对指纹、变了才查（省 ~8.6 万次/天子进程）
+3. 根搜索每击键全量拉剪贴板历史（200 条含全文，单条上限 512KB）+ 全库片段（含逐行 AES
+   解密全部命中行，无 LIMIT）（useUnifiedSearch.ts:68,110；SnippetRepository.ts:237,253-258）
+   → 主进程侧过滤 + LIMIT 3 + 不投影 contents
+4. 文件搜索零结果才串行回退 mdfind（fileSearch.ts:184→203），自家实测短查询 450-540ms
+   → 索引与 mdfind 并行发起，命中即弃后者
+5. DB ≥50MB 后每次启动整库 copyFileSync+quick_check 无任何节流（database.ts:59,87-119）
+   → 按时间/版本节流，挪到 whenReady 后 idle 时点
+6. 胶囊启动关键图含 sanitize-html 378KB（DetailPanel.vue:9 静态 import）+ pinyin-pro
+   452KB（enrichAliases onMounted 即触发，useCommandSources.ts:71-89）→ 动态 import/延后
+7. scanner.ts:233,244 rescanDir 子项比对 O(N²)（循环内 dbChildren.find）→ 建 Map，5 行改
+8. notes:list 全量返回正文（NotesRepository.ts:142 SELECT *）+ 每次防抖保存后全列表重拉
+   重渲（NotesPage.vue:257-271）→ 列表投影掉 content + 保存后原地更新该行
+9. 主窗口启动即创建隐藏常驻（index.ts:488），首屏交互只在胶囊窗 → 惰性建窗省 ~80-150MB
+   （代价中高，核对所有直接持 mainWindow 的路径，建议后置）
+10. scanner.ts:175 全量扫描逐目录 markDir 独立事务（10 万+ 次）→ 并入 RowBuffer 批事务
+11. LogService.ts:134-137 每条日志同步 prepare+run 无语句缓存 → stmt 缓存 + 批量落库
+12. fileSearch.ts:180 每查询无条件 ensureStarted 且 client 无「已启动」短路 = 每查询 2 条
+    RPC（client.ts:166-173）→ 已启动即短路
+
+### B54 散装弹层 a11y/交互一致性（家族账）【P2】【未修】
+- CommandPalette.vue:176-206：无 role=dialog/aria-modal，Tab 可走进背景页面
+- SnippetList.vue:372-454 与 Editor.vue:664-681 两处自建右键菜单：无 Esc 关闭、无
+  role=menu、fixed+clientX 定位无视口翻转（靠右/下缘被裁剪）——UDropdown 的
+  computePlacement 没有复用
+- pomodoro/index.vue:204-245 两个声景/特殊休息浮层：无外点关闭无 Esc，
+  :817-828 onDocumentClick 是明确 no-op 存根却仍挂摘 document 捕获监听
+- 修法方向：抽 useDismissablePopup（Esc + 外点 + 焦点陷阱 + 视口翻转）与 B50 的
+  useAsyncGuard 同批收口
+
+### 旧账核销与再确认（2026-10-03）
+- **B45 划账**：scripts/recovery/ 5 脚本全在，4 个可执行脚本实测 exit 0
+  （snapshot-readings 441 源文件/156 测试/34 迁移/433 IPC 通道；scan-vue-imports 0 缺；
+  scan-main-imports 剩 1 条 ?asset 已记录；scan-doc-citations exit 0），文档引用路径
+  逐一比对全部对得上，恢复工具链健康，本条目过时。HANDOFF.md「剩下的账」四条过期
+  （entitlements 四件套已在/release:preflight 已接 package.json:34/根 LICENSE 已在/
+  三杂文件已不在 git），仅「docs/modules/INDEX.md 缺」一条仍成立。
+- **B41 再确认（均未恶化）**：剪贴板大图驻留期间每秒全量 readImage 仍在
+  （ClipboardHistoryService.ts:472-474，指纹侧已缩略图化属半改善）；WindowSwitcher
+  id `${appName}-${pid}-${title}` 同名窗口必撞（WindowSwitcherService.ts:75）仍在。
+- **globalKeys 全聋窗口仍在**：ensureStarted（globalKeys.ts:66-76）只单飞并发 start，
+  无 pending-stop 串行化，stop 进行期间新订阅者聋到下次重订。
+- 横切面健康：src 内 TODO/FIXME 0 条（挂账全部集中本文件）；@ts-ignore 全仓 2 处；
+  eslint-disable 14 处全部带理由；no-floating-promises 已是 error 门禁且 0 豁免。

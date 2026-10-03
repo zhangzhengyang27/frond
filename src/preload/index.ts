@@ -414,7 +414,8 @@ const api = {
   // 窗口切换（阶段3.3b）
   windows: {
     list: () => typedInvoke('windows:list'),
-    activate: (pid: number, title: string) => typedInvoke('windows:activate', { pid, title })
+    activate: (pid: number, title: string, occurrence?: number) =>
+      typedInvoke('windows:activate', { pid, title, occurrence })
   },
   // 进程查杀（Kill Process，Raycast parity）
   process: {

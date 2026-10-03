@@ -35,6 +35,8 @@ export interface WindowInfo {
   title: string
   /** 进程 ID */
   pid: number
+  /** B41-2：同 pid+title 的第几个窗口（1 起）；activateWindow 据此 AXRaise 第 N 个 */
+  occurrence?: number
   /** 应用图标（可选，通过 bundle id 获取） */
   icon?: string
 }
@@ -44,6 +46,29 @@ export interface WindowInfo {
  * 通过 AppleScript 遍历 System Events 中的进程和窗口。
  * 用 \x00 作为分隔符，避免窗口标题中包含 || 或换行导致解析错误。
  */
+/**
+ * B41-2：窗口 id 去重——原 `${appName}-${pid}-${title}` 对同应用同名窗口（如两个
+ * Untitled）必撞 id → 渲染端 :key 重复 + 选中歧义。重复窗口追加 #2/#3，并带
+ * occurrence（第几个同名窗口）供 activateWindow 精确 AXRaise。
+ */
+export function assignUniqueIds(
+  rows: Array<{ appName: string; pid: number; title: string }>
+): WindowInfo[] {
+  const seen = new Map<string, number>()
+  return rows.map((r) => {
+    const base = `${r.appName}-${r.pid}-${r.title}`
+    const n = (seen.get(base) ?? 0) + 1
+    seen.set(base, n)
+    return {
+      id: n === 1 ? base : `${base}#${n}`,
+      appName: r.appName,
+      title: r.title,
+      pid: r.pid,
+      occurrence: n
+    }
+  })
+}
+
 export async function getWindows(): Promise<WindowInfo[]> {
   try {
     // 用 AppleScript 的 linefeed 作为真实换行，\x00 作为字段分隔符
@@ -66,18 +91,16 @@ export async function getWindows(): Promise<WindowInfo[]> {
     ].join('\n')
     const stdout = await runOsa(script)
     const lines = stdout.trim().split('\n').filter(Boolean)
-    return lines.map((line) => {
-      const parts = line.split('\x00')
-      const appName = parts[0] ?? ''
-      const pid = parseInt(parts[1] ?? '0', 10) || 0
-      const title = parts.slice(2).join('\x00')
-      return {
-        id: `${appName}-${pid}-${title}`,
-        appName,
-        title,
-        pid
-      }
-    })
+    return assignUniqueIds(
+      lines.map((line) => {
+        const parts = line.split('\x00')
+        return {
+          appName: parts[0] ?? '',
+          pid: parseInt(parts[1] ?? '0', 10) || 0,
+          title: parts.slice(2).join('\x00')
+        }
+      })
+    )
   } catch (err) {
     console.warn('[WindowSwitcher] getWindows failed:', err)
     return []
@@ -89,7 +112,11 @@ export async function getWindows(): Promise<WindowInfo[]> {
  * pid 必须为正整数；标题经转义后嵌入 AppleScript 字符串字面量
  * （execFile 不经 shell，无需防 $()/反引号，只需防 AppleScript 引号逃逸）。
  */
-export async function activateWindow(pid: number, title: string): Promise<boolean> {
+export async function activateWindow(
+  pid: number,
+  title: string,
+  occurrence = 1
+): Promise<boolean> {
   if (!Number.isInteger(pid) || pid <= 0) return false
   try {
     const escapedTitle = title.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
@@ -97,10 +124,14 @@ export async function activateWindow(pid: number, title: string): Promise<boolea
       'tell application "System Events"',
       `  set targetProc to first process whose unix id is ${pid}`,
       '  set frontmost of targetProc to true',
+      '  set matchCount to 0',
       '  repeat with w in (every window of targetProc)',
       `    if name of w is "${escapedTitle}" then`,
-      '      perform action "AXRaise" of w',
-      '      exit repeat',
+      '      set matchCount to matchCount + 1',
+      `      if matchCount is ${Math.max(1, Math.floor(occurrence))} then`,
+      '        perform action "AXRaise" of w',
+      '        exit repeat',
+      '      end if',
       '    end if',
       '  end repeat',
       'end tell'
@@ -120,6 +151,10 @@ export function registerWindowSwitcherIpc(): void {
   })
 
   typedHandle('windows:activate', async (_e, req) => {
-    return activateWindow(Number(req.pid), typeof req.title === 'string' ? req.title : '')
+    return activateWindow(
+      Number(req.pid),
+      typeof req.title === 'string' ? req.title : '',
+      typeof req.occurrence === 'number' && Number.isFinite(req.occurrence) ? req.occurrence : 1
+    )
   })
 }

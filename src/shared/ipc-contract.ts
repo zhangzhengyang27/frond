@@ -1466,7 +1466,10 @@ export interface IpcContract {
   'dictionary:query': { req: { word: string }; res: DictionaryDefinition[] }
 
   'windows:list': { req: void; res: WindowInfo[] }
-  'windows:activate': { req: { pid: number; title: string }; res: boolean }
+  'windows:activate': {
+    req: { pid: number; title: string; /** B41-2：同 pid+title 的第 N 个窗口 */ occurrence?: number }
+    res: boolean
+  }
 
   // Kill Process（Raycast parity，2026-09-28；macOS，Windows 未验证由 handler 平台守卫）
   'process:list': { req: void; res: ProcessInfo[] }

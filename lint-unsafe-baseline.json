@@ -1,5 +1,5 @@
 {
-  "total": 2564,
+  "total": 2501,
   "files": {
     "src/main/db/__tests__/5_6b.pomodoro.test.ts": {
       "no-unsafe-assignment": 3,
@@ -387,9 +387,9 @@
       "no-unsafe-member-access": 3
     },
     "src/main/modules/fileIndex/db.ts": {
-      "no-unsafe-assignment": 7,
-      "no-unsafe-call": 41,
-      "no-unsafe-member-access": 36
+      "no-unsafe-assignment": 4,
+      "no-unsafe-call": 11,
+      "no-unsafe-member-access": 6
     },
     "src/main/services/AIService.ts": {
       "no-unsafe-assignment": 1,

@@ -10,6 +10,7 @@
  * 中缀那一档补在这里：≥3 字符可命中，2 字中文仍是盲区（由上层回退系统检索承接）。
  */
 import Database from 'better-sqlite3'
+import { prepareRun, prepareGet, prepareAll, prepareStmt, runStmt, allStmt } from '../../db/typedSql'
 
 export interface FileIndexRow {
   path: string
@@ -128,7 +129,7 @@ export class FileIndexDb {
 
   /** 批量 upsert（单事务）；FTS 由触发器同步 */
   upsertFiles(rows: FileIndexRow[]): void {
-    const stmt = this.db.prepare(`
+    const stmt = prepareStmt(this.db, `
       INSERT INTO files (path, parent, name, ext, size, mtime, is_dir, skeleton, content)
       VALUES (@path, @parent, @name, @ext, @size, @mtime, @isDir, @skeleton, @content)
       ON CONFLICT(path) DO UPDATE SET
@@ -138,7 +139,7 @@ export class FileIndexDb {
     `)
     const tx = this.db.transaction((batch: FileIndexRow[]) => {
       for (const r of batch) {
-        stmt.run({
+        runStmt(stmt, {
           path: r.path,
           parent: r.parent,
           name: r.name,
@@ -155,9 +156,9 @@ export class FileIndexDb {
   }
 
   deleteByPaths(paths: string[]): void {
-    const stmt = this.db.prepare('DELETE FROM files WHERE path = ?')
+    const stmt = prepareStmt(this.db, 'DELETE FROM files WHERE path = ?')
     const tx = this.db.transaction((batch: string[]) => {
-      for (const p of batch) stmt.run(p)
+      for (const p of batch) runStmt(stmt, p)
     })
     tx(paths)
   }
@@ -168,59 +169,58 @@ export class FileIndexDb {
    * 误删无关目录的索引行（审查 I-2 已实证）；范围扫描更快且无转义问题。
    */
   deleteByPrefix(prefix: string): void {
-    this.db
-      .prepare('DELETE FROM files WHERE path = ? OR (path > ? AND path < ?)')
-      .run(prefix, prefix, `${prefix}\uffff`)
+    prepareRun(this.db, 'DELETE FROM files WHERE path = ? OR (path > ? AND path < ?)', prefix, prefix, `${prefix}\uffff`)
   }
 
   markDir(path: string, mtimeEpoch: number): void {
-    this.db
-      .prepare(
-        'INSERT INTO dirs (path, mtime_epoch) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET mtime_epoch = excluded.mtime_epoch'
-      )
-      .run(path, mtimeEpoch)
+    prepareRun(
+      this.db,
+      'INSERT INTO dirs (path, mtime_epoch) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET mtime_epoch = excluded.mtime_epoch',
+      path,
+      mtimeEpoch
+    )
   }
 
   /** B53-10：批量水位写入（单个事务）；与 markDir 单条语义一致（冲突覆盖） */
   upsertDirs(marks: Array<[string, number]>): void {
     if (marks.length === 0) return
-    const stmt = this.db.prepare(
+    const stmt = prepareStmt(
+      this.db,
       'INSERT INTO dirs (path, mtime_epoch) VALUES (?, ?) ON CONFLICT(path) DO UPDATE SET mtime_epoch = excluded.mtime_epoch'
     )
     const tx = this.db.transaction(() => {
-      for (const [path, epoch] of marks) stmt.run(path, epoch)
+      for (const [path, epoch] of marks) runStmt(stmt, path, epoch)
     })
     tx()
   }
 
   getDirEpoch(path: string): number | null {
-    const row = this.db.prepare('SELECT mtime_epoch FROM dirs WHERE path = ?').get(path) as
-      { mtime_epoch: number } | undefined
+    const row = prepareGet<{ mtime_epoch: number }>(this.db, 'SELECT mtime_epoch FROM dirs WHERE path = ?', path)
     return row ? row.mtime_epoch : null
   }
 
   /** 全部目录水位（启动期补偿扫描的输入） */
   listDirs(): Array<{ path: string; mtimeEpoch: number }> {
-    const rows = this.db.prepare('SELECT path, mtime_epoch FROM dirs').all() as Array<{
-      path: string
-      mtime_epoch: number
-    }>
+    const rows = prepareAll<{ path: string; mtime_epoch: number }>(
+      this.db,
+      'SELECT path, mtime_epoch FROM dirs'
+    )
     return rows.map((r) => ({ path: r.path, mtimeEpoch: r.mtime_epoch }))
   }
 
   /** 清掉某目录自身及其子孙的水位行（目录消失时连同索引行一起清，防水位表只增不减） */
   deleteDirsAt(path: string): void {
     const prefix = `${path}/`
-    this.db
-      .prepare('DELETE FROM dirs WHERE path = ? OR (path > ? AND path < ?)')
-      .run(path, prefix, `${prefix}\uffff`)
+    prepareRun(this.db, 'DELETE FROM dirs WHERE path = ? OR (path > ? AND path < ?)', path, prefix, `${prefix}\uffff`)
   }
 
   /** 目录子项（增量 diff 用：DB 视角的现存子文件） */
   listDirChildren(parent: string): Array<{ path: string; name: string; mtime: number | null }> {
-    return this.db
-      .prepare('SELECT path, name, mtime FROM files WHERE parent = ?')
-      .all(parent) as Array<{ path: string; name: string; mtime: number | null }>
+    return prepareAll<{ path: string; name: string; mtime: number | null }>(
+      this.db,
+      'SELECT path, name, mtime FROM files WHERE parent = ?',
+      parent
+    )
   }
 
   /**
@@ -238,13 +238,12 @@ export class FileIndexDb {
       ORDER BY rank
       LIMIT ${Math.max(1, Math.min(200, Math.floor(opts.limit)))}
     `
-    return this.db
-      .prepare(sql.replace('@match', '?'))
-      .all(`${columns} : (${match})`) as unknown as FileIndexHit[]
+    // is_dir 运行时是 0/1：沿用原直调 + cast 的既有口径（消费方按真值判断）
+    return allStmt<FileIndexHit>(prepareStmt(this.db, sql.replace('@match', '?')), `${columns} : (${match})`)
   }
 
   count(): number {
-    return (this.db.prepare('SELECT COUNT(*) AS n FROM files').get() as { n: number }).n
+    return prepareGet<{ n: number }>(this.db, 'SELECT COUNT(*) AS n FROM files')!.n
   }
 
   /**
@@ -258,13 +257,15 @@ export class FileIndexDb {
       .map((t) => `"${t}"`)
     if (phrases.length === 0) return []
     const cap = Math.max(1, Math.min(200, Math.floor(limit)))
-    return this.db
-      .prepare(
+    return allStmt<FileIndexHit>(
+      prepareStmt(
+        this.db,
         `SELECT f.path, f.name, f.parent, f.is_dir AS isDir, f.mtime
          FROM files_tri ft JOIN files f ON f.rowid = ft.rowid
          WHERE files_tri MATCH ? ORDER BY rank LIMIT ${cap}`
-      )
-      .all(`{name path} : (${phrases.join(' ')})`) as unknown as FileIndexHit[]
+      ),
+      `{name path} : (${phrases.join(' ')})`
+    )
   }
 
   /**
@@ -273,20 +274,20 @@ export class FileIndexDb {
    * 跑 rebuild：实测 50 万条目要 2.4s，卡在启动就是白屏）。
    */
   triPopulated(): boolean {
-    return this.db.prepare('SELECT rowid FROM files_tri LIMIT 1').get() !== undefined
+    return prepareGet<unknown>(this.db, 'SELECT rowid FROM files_tri LIMIT 1') !== undefined
   }
 
   setMeta(key: string, value: string): void {
-    this.db
-      .prepare(
-        'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'
-      )
-      .run(key, value)
+    prepareRun(
+      this.db,
+      'INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      key,
+      value
+    )
   }
 
   getMeta(key: string): string | null {
-    const row = this.db.prepare('SELECT value FROM meta WHERE key = ?').get(key) as
-      { value: string } | undefined
+    const row = prepareGet<{ value: string }>(this.db, 'SELECT value FROM meta WHERE key = ?', key)
     return row ? row.value : null
   }
 

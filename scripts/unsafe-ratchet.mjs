@@ -32,11 +32,11 @@ const UPDATE = argv.includes('--update')
 const REPORT = argv.includes('--report')
 
 function runEslint() {
-  const raw = execFileSync(
-    'pnpm',
-    ['exec', 'eslint', 'src', '--format', 'json'],
-    { cwd: ROOT, encoding: 'utf-8', maxBuffer: 256 * 1024 * 1024, shell: true }
-  )
+  const raw = execFileSync('pnpm', ['exec', 'eslint', 'src', '--format', 'json'], {
+    cwd: ROOT,
+    encoding: 'utf-8',
+    maxBuffer: 256 * 1024 * 1024
+  })
   return JSON.parse(raw)
 }
 

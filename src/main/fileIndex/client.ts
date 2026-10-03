@@ -34,7 +34,7 @@ export type FileSearchModeAlias = FileSearchMode
 
 const MAX_RESTARTS = 5
 const BASE_BACKOFF_MS = 1000
-const RPC_TIMEOUT_MS = 10_000
+export const RPC_TIMEOUT_MS = 10_000
 /**
  * rebuild 专用超时：分钟级全量扫描（45 万文件）等不了 10s 默认值——假失败日志会
  * 诱导用户再点一次 rebuild 打断后台扫描（B47③）。上限仍保留，防 worker 假活把

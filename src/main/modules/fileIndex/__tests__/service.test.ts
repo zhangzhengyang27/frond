@@ -71,19 +71,19 @@ describe('FileIndexService watcher 启动竞态（B47-①）', () => {
     fullScanMock.mockImplementation(async (opts) => realFullScan({ ...opts, roots: [root] }))
     await svc.ensureStarted(root)
     await vi.waitFor(() => expect(watchCalls.length).toBe(1))
-    expect(watchCalls[0].scopes).toEqual([normPath(root)])
+    expect(watchCalls[0]!.scopes).toEqual([normPath(root)])
 
     // 改范围：stopWatcher（此时 watch#1 仍未 resolve，无处可停）→ rebuild → startWatcher（watch#2 pending）
     const other = join(root, 'gone')
     await svc.setScopes([other])
     await vi.waitFor(() => expect(watchCalls.length).toBe(2))
-    expect(watchCalls[1].scopes).toEqual([normPath(other)])
+    expect(watchCalls[1]!.scopes).toEqual([normPath(other)])
 
     const stopOld = vi.fn()
     const stopNew = vi.fn()
-    watchCalls[0].resolve(stopOld) // 旧 pending 此刻才 resolve
+    watchCalls[0]!.resolve(stopOld) // 旧 pending 此刻才 resolve
     await flush()
-    watchCalls[1].resolve(stopNew)
+    watchCalls[1]!.resolve(stopNew)
     await flush()
 
     // 正确语义：旧 watcher 立刻反注册（其范围已过时），新一轮 watcher 被收养

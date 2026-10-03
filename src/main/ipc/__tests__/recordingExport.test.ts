@@ -18,8 +18,8 @@ const exportServiceMock = vi.hoisted(() => ({
 }))
 
 const repoMock = vi.hoisted(() => ({
-  findById: vi.fn(() => null),
-  findByFilePath: vi.fn(() => null),
+  findById: vi.fn((): { id: string } | null => null),
+  findByFilePath: vi.fn((): { id: string; file_path: string } | null => null),
   list: vi.fn(() => []),
   count: vi.fn(() => 0),
   softDelete: vi.fn(),
@@ -27,7 +27,7 @@ const repoMock = vi.hoisted(() => ({
 }))
 
 const resolveGrantedMock = vi.hoisted(() => ({
-  resolve: vi.fn<(p: unknown, ext?: string[]) => string | null>(() => null)
+  resolve: vi.fn((_p: unknown, _ext?: string[]) => null as string | null)
 }))
 
 vi.mock('electron', () => ({
@@ -79,7 +79,7 @@ vi.mock('../../services/recording/systemAudioPatterns', () => ({
   probeSystemAudio: vi.fn(() => ({ available: false, matches: [] }))
 }))
 vi.mock('../recordingSavePathGrants', () => ({
-  resolveGrantedRecordingPath: (...args: Array<unknown>) => resolveGrantedMock.resolve(...args)
+  resolveGrantedRecordingPath: (p: unknown, ext?: string[]) => resolveGrantedMock.resolve(p, ext)
 }))
 
 import { registerRecordingIpcHandlers } from '../recording'

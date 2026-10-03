@@ -136,7 +136,7 @@ describe('FileIndexClient 生命周期（批5）', () => {
   })
 
   it('rebuild 不受 10s 默认超时约束（分钟级全量扫描不能假失败，B47③）', async () => {
-    const { spawn, workers } = makeSpawn()
+    const { spawn } = makeSpawn()
     const client = new FileIndexClient(spawn)
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     try {

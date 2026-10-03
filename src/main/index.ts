@@ -1,4 +1,4 @@
-import { app, BrowserWindow, protocol, session, Tray } from 'electron'
+import { app, BrowserWindow, dialog, protocol, session, Tray } from 'electron'
 import { fileIndexClient } from './fileIndex/client'
 import { migrateLegacyBrandData } from './modules/brandMigration'
 
@@ -555,6 +555,20 @@ void app.whenReady().then(() => {
     }
   })
 })
+  .catch((error: unknown) => {
+    // 启动装配失败必须当场退出（B49）：半初始化进程无窗口无托盘无 IPC，用户只会
+    // 看到「进程在跑但什么都不响应」。典型失败 = schema 迁移抛错（ensureOpen 刻意
+    // 重抛防带伤运行），此前只被全局兜底记一行日志，应用却继续活着
+    console.error('[Main] 启动装配失败，即将退出:', error)
+    try {
+      dialog.showErrorBox(
+        'Frond 启动失败',
+        `应用初始化失败，即将退出。\n\n${(error as Error)?.stack ?? String(error)}`
+      )
+    } finally {
+      app.exit(1)
+    }
+  })
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

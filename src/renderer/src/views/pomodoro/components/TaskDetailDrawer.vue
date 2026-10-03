@@ -1,7 +1,6 @@
 <template>
-  <Transition name="drawer">
-    <aside v-if="open" class="task-drawer" role="dialog" aria-label="任务详情">
-      <div class="drawer-header">
+  <UDrawer :model-value="open" aria-label="任务详情" @update:model-value="onVisibility">
+    <div class="drawer-header">
         <div class="drawer-eyebrow">
           <span>任务详情</span>
           <ProjectChip v-if="detail?.project" :project="detail.project" />
@@ -164,17 +163,12 @@
           </ol>
         </section>
       </div>
-    </aside>
-  </Transition>
-
-  <!-- 背景遮罩 -->
-  <Transition name="fade">
-    <div v-if="open" class="drawer-overlay" @click="close" />
-  </Transition>
+  </UDrawer>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import UDrawer from '@components/ui/UDrawer.vue'
 import AppIcon from '@components/AppIcon.vue'
 import ProjectChip from './ProjectChip.vue'
 import PomodoroDetailPanel from './PomodoroDetailPanel.vue'
@@ -224,6 +218,11 @@ function close(): void {
   selectedRecordIdLocal.value = null
 }
 
+// UDrawer 内建关闭（Esc/遮罩）统一回传 close
+function onVisibility(v: boolean): void {
+  if (!v) close()
+}
+
 /**
  * 真的开始一次截图。以前这里是 `window.location.hash = '#/screenshot'`，
  * 而截图模块 2026-09-17 已下线、路由表里没有这条 → 主内容区整块空白。
@@ -241,7 +240,7 @@ function goRecordingView(): void {
 
 function selectRecord(id: string): void {
   selectedRecordIdLocal.value = id
-  store.loadRecordDetail(id)
+  void store.loadRecordDetail(id)
 }
 
 function modeLabel(type: 'work' | 'shortBreak' | 'longBreak'): string {
@@ -320,27 +319,6 @@ function showExportResult(ok: boolean, msg: string): void {
 </script>
 
 <style scoped>
-.task-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(480px, 92vw);
-  background: var(--pomodoro-drawer-bg);
-  color: var(--pomodoro-drawer-text);
-  box-shadow: var(--pomo-shadow-sidebar);
-  display: flex;
-  flex-direction: column;
-  z-index: 1001;
-}
-
-.drawer-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--overlay-bg);
-  z-index: 1000;
-}
-
 .drawer-header {
   padding: 20px 22px 14px;
   border-bottom: 1px solid var(--pomodoro-drawer-border, rgba(0, 0, 0, 0.06));

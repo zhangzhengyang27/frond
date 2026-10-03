@@ -4,9 +4,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { marked } from 'marked'
-import sanitizeHtml from '@renderer/utils/sanitize-html-wrapper'
 
 interface Props {
   title?: string | undefined
@@ -18,29 +17,61 @@ const props = withDefaults(defineProps<Props>(), {
   format: 'markdown'
 })
 
-const renderedContent = computed(() => {
+// B53-6：sanitize-html（378KB）动态 import——它是胶囊启动关键图里最大的一块，
+// 且只有打开插件详情时才真正需要。渲染改异步 + 轮次守卫（快速切换详情时旧渲染
+// 不得覆盖新内容）；挂载后空闲预热，首份详情不付 chunk 拉取延迟。
+const renderedContent = ref('')
+let renderSeq = 0
+
+const SANITIZE_OPTIONS = {
+  // 白名单过滤（与 PluginListPage 一致）：手写正则可被 <svg/onload=、
+  // 实体化 javascript: 等形态绕过，胶囊窗持全量 window.api 不能冒险
+  allowedTags: ['img', 'del'] as string[], // 与 defaults 合并在调用侧表达
+  allowedAttributes: {
+    a: ['href', 'title', 'target', 'rel'],
+    img: ['src', 'alt', 'width', 'height'],
+    code: ['class'],
+    span: ['class']
+  }
+}
+
+async function render(): Promise<void> {
+  const seq = ++renderSeq
   if (props.format === 'text') {
-    return `<pre>${escapeHtml(props.content)}</pre>`
+    renderedContent.value = `<pre>${escapeHtml(props.content)}</pre>`
+    return
   }
   try {
     const html = marked.parse(props.content, { async: false }) as string
-    // 白名单过滤（与 PluginListPage 一致）：手写正则可被 <svg/onload=、
-    // 实体化 javascript: 等形态绕过，胶囊窗持全量 window.api 不能冒险
-    return sanitizeHtml(html, {
-      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'del']),
-      allowedAttributes: {
-        a: ['href', 'title', 'target', 'rel'],
-        img: ['src', 'alt', 'width', 'height'],
-        code: ['class'],
-        span: ['class']
-      },
+    const { default: sanitizeHtml } = await import('@renderer/utils/sanitize-html-wrapper')
+    if (seq !== renderSeq) return
+    renderedContent.value = sanitizeHtml(html, {
+      allowedTags: [...sanitizeHtml.defaults.allowedTags, ...SANITIZE_OPTIONS.allowedTags],
+      allowedAttributes: SANITIZE_OPTIONS.allowedAttributes,
       transformTags: {
         a: sanitizeHtml.simpleTransform('a', { target: '_blank', rel: 'noopener' })
       }
     })
   } catch {
-    return escapeHtml(props.content)
+    if (seq !== renderSeq) return
+    renderedContent.value = escapeHtml(props.content)
   }
+}
+
+watch(
+  () => [props.content, props.format] as const,
+  () => {
+    void render()
+  },
+  { immediate: true }
+)
+
+onMounted(() => {
+  const warm = (): void => {
+    void import('@renderer/utils/sanitize-html-wrapper')
+  }
+  if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 3000 })
+  else setTimeout(warm, 1500)
 })
 
 function escapeHtml(text: string): string {

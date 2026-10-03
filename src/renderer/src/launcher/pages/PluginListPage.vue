@@ -55,7 +55,6 @@ import { computed, ref, watch } from 'vue'
 import { marked } from 'marked'
 import AppIcon from '@components/AppIcon.vue'
 import CapsulePage from './CapsulePage.vue'
-import sanitizeHtml from '@renderer/utils/sanitize-html-wrapper'
 import type { PluginListItem } from '@shared/plugin-protocol'
 
 const props = defineProps<{
@@ -75,12 +74,23 @@ const selected = computed(() => props.items[selectedIndex.value] ?? null)
  * markdown 详情的净化 HTML（detailFormat === 'markdown' 时）。
  * 白名单风格与 MarkdownPresentation.vue 一致（含 img/del，allowedSchemes 仅 http/https），
  * 链接强制 target=_blank + rel=noopener；事件属性/脚本不在白名单，sanitize 后才进 v-html。
+ * B53-6：sanitize-html（378KB）动态 import——渲染改异步 + 轮次守卫（快速换选中项时
+ * 旧渲染不得覆盖新内容），chunk 移出胶囊启动关键图。
  */
-const detailHtml = computed<string>(() => {
+const detailHtml = ref('')
+let detailSeq = 0
+
+const renderDetail = async (): Promise<void> => {
+  const seq = ++detailSeq
   const item = selected.value
-  if (!item?.detail || item.detailFormat !== 'markdown') return ''
+  if (!item?.detail || item.detailFormat !== 'markdown') {
+    detailHtml.value = ''
+    return
+  }
   const raw = marked.parse(item.detail, { async: false })
-  return sanitizeHtml(raw, {
+  const { default: sanitizeHtml } = await import('@renderer/utils/sanitize-html-wrapper')
+  if (seq !== detailSeq) return
+  detailHtml.value = sanitizeHtml(raw, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'del']),
     allowedAttributes: {
       '*': [
@@ -106,7 +116,18 @@ const detailHtml = computed<string>(() => {
       a: sanitizeHtml.simpleTransform('a', { target: '_blank', rel: 'noopener' })
     }
   })
+}
+
+watch(selected, () => {
+  void renderDetail()
 })
+watch(
+  () => props.items,
+  () => {
+    void renderDetail()
+  }
+)
+void renderDetail()
 
 const hints = computed(() => {
   const actions = selected.value?.actions ?? []

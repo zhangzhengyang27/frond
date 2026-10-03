@@ -188,6 +188,28 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
   }
 
   /** 别名惰性补齐（M1.1 + P2-8）：拼音首字母 + 用户自定义别名 */
+  // B53-6：pinyin-pro 词典 452KB 别挤进胶囊启动窗口——拼音别名延到空闲补齐
+  // （requestIdleCallback，无则 1.5s）；用户自定义别名仍即时生效。多次 enrich
+  // 合并调度，最新集合覆盖旧集合；补齐后 aliasEpoch++ 触发消费方重跑查询
+  let pinyinPending: CommandEntry[] | null = null
+  let pinyinScheduled = false
+  function schedulePinyinEnrich(entries: CommandEntry[]): void {
+    pinyinPending = entries
+    if (pinyinScheduled) return
+    pinyinScheduled = true
+    const run = (): void => {
+      pinyinScheduled = false
+      const list = pinyinPending
+      pinyinPending = null
+      if (!list || list.length === 0) return
+      void addPinyinAliases(list).then(() => {
+        aliasEpoch.value++
+      })
+    }
+    if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 3000 })
+    else setTimeout(run, 1500)
+  }
+
   async function enrichAliases(): Promise<void> {
     // 动态源也要补别名：合一之前主窗面板单独给 Quicklink / 系统命令做过 addPinyinAliases，
     // 中文命名的 Quicklink 打首字母搜得到，合一后漏了就搜不到了
@@ -197,7 +219,7 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
       ...mcpCommands.value,
       ...dynamicCommands.value
     ]
-    await addPinyinAliases(all)
+    schedulePinyinEnrich(all)
     // P2-8：合并用户自定义别名（key = 命令 key）
     try {
       const userAliases = (await window.api.alias.getAll()) as Record<string, string[]>

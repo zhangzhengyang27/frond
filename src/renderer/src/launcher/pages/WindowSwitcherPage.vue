@@ -40,6 +40,8 @@ interface WindowInfo {
   appName: string
   title: string
   pid: number
+  /** B41-2：同 pid+title 的第 N 个窗口（服务端生成，缺省 1） */
+  occurrence?: number
 }
 
 const props = defineProps<{ query?: string }>()
@@ -62,7 +64,7 @@ watch(filteredWindows, () => {
 
 async function activate(win: WindowInfo): Promise<void> {
   try {
-    await window.api.windows.activate(win.pid, win.title)
+    await window.api.windows.activate(win.pid, win.title, win.occurrence ?? 1)
   } catch (err) {
     console.warn('WindowSwitcher: activate failed', err)
   }

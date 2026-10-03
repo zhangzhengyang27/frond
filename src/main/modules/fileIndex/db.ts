@@ -69,6 +69,12 @@ CREATE TABLE IF NOT EXISTS dirs (
 );
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 
+-- 扫描器每扫完一个目录都会 listDirChildren(parent) 比对子项（scanner L219），
+-- watcher 事件同样走这里。parent 没索引时该查询对 files 全表扫——45 万行
+-- 规模下主进程主线程被持续占满（CPU 剖析 99.5% 在 sqlite3BtreeNext，
+-- 即整机「一启动就卡」的根因，2026-10-03）。
+CREATE INDEX IF NOT EXISTS idx_files_parent ON files(parent);
+
 -- 中缀兜底索引（trigram）。unicode61 把连续 CJK 串当成**一个** token，前缀只从
 -- token 头匹配 → 「目计划」搜不到「项目计划.md」（审查 I-3 实证过这类退化）。
 -- trigram 对 ≥3 字符的任意中缀有效命中，实测 50 万条目建索引 2.4s、查询 <1ms；

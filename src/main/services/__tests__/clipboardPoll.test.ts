@@ -12,18 +12,37 @@ import { join } from 'node:path'
  * 轮询同样不再查前台应用——与「同内容重复复制不重复入账」的既有语义一致）。
  */
 
-const { clipboardMock, execFileMock } = vi.hoisted(() => ({
-  clipboardMock: {
+const { clipboardMock, execFileMock } = vi.hoisted(() => {
+  let imageSeq = 0
+  const clipboardMock = {
     readText: vi.fn((): string => ''),
     availableFormats: vi.fn((): string[] => []),
-    readImage: vi.fn(() => ({ isEmpty: () => true, getSize: () => ({ width: 0, height: 0 }) }))
-  },
-  execFileMock: vi.fn(
-    (_cmd: string, _args: string[], _opts: unknown, cb: (e: Error | null, out: string) => void) => {
-      cb(null, 'Finder')
-    }
-  )
-}))
+    readImage: vi.fn(() => {
+      const seq = ++imageSeq
+      return {
+        isEmpty: () => false,
+        getSize: () => ({ width: 10, height: 10 }),
+        // 每次内容不同 → 指纹不同（模拟不同图片）
+        resize: () => ({ toDataURL: () => `data:image/png;base64,IMG${seq}` }),
+        toPNG: () => Buffer.alloc(8)
+      }
+    })
+  }
+  return {
+    clipboardMock,
+    execFileMock: vi.fn(
+      (
+        _cmd: string,
+        _args: string[],
+        _opts: unknown,
+        cb: (e: Error | null, out: string) => void
+      ) => {
+        cb(null, 'Finder')
+      }
+    )
+  }
+})
+void execFileMock
 
 vi.mock('electron', () => ({
   app: { getPath: vi.fn(() => '/tmp/frond-test-userdata') },
@@ -39,13 +58,13 @@ let svc: InstanceType<typeof ClipboardHistoryService>
 let dir: string
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'frond-clip-'))
-  rmSync(dir, { recursive: true, force: true }) // 只借名字
+  dir = mkdtempSync(join(tmpdir(), 'frond-clip-')) // saveImage 要往里写 PNG，目录必须真实存在
   svc = new ClipboardHistoryService()
   ;(svc as unknown as { dir: string }).dir = dir
   execFileMock.mockClear()
   clipboardMock.readText.mockReturnValue('')
   clipboardMock.availableFormats.mockReturnValue([])
+  clipboardMock.readImage.mockClear()
 })
 
 const poll = (): Promise<void> =>
@@ -74,5 +93,28 @@ describe('剪贴板 poll 指纹先行（B53-2）', () => {
     await poll()
     await poll()
     expect(execFileMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('剪贴板大图 readImage 节流（B41-1）', () => {
+  it('大图驻留：formats 不变时 readImage 按 5s 节流（5 次轮询最多 2 次，此前 5 次）', async () => {
+    vi.useFakeTimers()
+    clipboardMock.availableFormats.mockReturnValue(['image/png', 'text/plain'])
+    for (let i = 0; i < 5; i++) {
+      await poll()
+      vi.advanceTimersByTime(1000)
+    }
+    expect(clipboardMock.readImage.mock.calls.length).toBeLessThanOrEqual(2)
+    vi.useRealTimers()
+  })
+
+  it('formats 签名变化（text→image）→ 立即 readImage 并入账', async () => {
+    clipboardMock.readText.mockReturnValue('')
+    clipboardMock.availableFormats.mockReturnValue([])
+    await poll()
+    clipboardMock.availableFormats.mockReturnValue(['image/png'])
+    await poll()
+    expect(clipboardMock.readImage).toHaveBeenCalledTimes(1)
+    expect(svc.list().some((i) => i.kind === 'image')).toBe(true)
   })
 })

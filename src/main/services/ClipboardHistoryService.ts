@@ -69,6 +69,9 @@ const MAX_TEXT_CHARS = 512 * 1024
 const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 
 const URL_RE = /^https?:\/\/\S+$/i
+/** B41-1：formats 签名不变时，图片指纹复查的最小间隔（大图驻留从每秒一次全量
+ * 拷贝降到 1/5；Electron 剪贴板无 changeCount，这是不引原生依赖下的务实节流） */
+const IMAGE_RECHECK_MS = 5000
 
 export class ClipboardHistoryService {
   private items: ClipboardHistoryItem[] = []
@@ -76,6 +79,9 @@ export class ClipboardHistoryService {
   private lastTextFingerprint = ''
   private lastImageFingerprint = ''
   private lastFilesFingerprint = ''
+  /** B41-1：图片轮询节流状态（formats 签名 + 上次真实 readImage 时刻） */
+  private lastImageFormatsKey = ''
+  private lastImageReadAt = 0
   private dir = ''
   private enabled = true
   /** P1-6：依次粘贴的当前索引（从选中条目开始，每次 ⌘V 后递增） */
@@ -517,9 +523,18 @@ export class ClipboardHistoryService {
         })
         return
       }
-      // 3) 图片
+      // 3) 图片——B41-1：formats 签名变了立即重读；没变则按 IMAGE_RECHECK_MS 节流
       const formats = clipboard.availableFormats() as string[]
-      if (!formats.some((f) => f.startsWith('image'))) return
+      if (!formats.some((f) => f.startsWith('image'))) {
+        this.lastImageFormatsKey = ''
+        return
+      }
+      const formatsKey = formats.join(',')
+      if (formatsKey === this.lastImageFormatsKey && Date.now() - this.lastImageReadAt < IMAGE_RECHECK_MS) {
+        return
+      }
+      this.lastImageReadAt = Date.now()
+      this.lastImageFormatsKey = formatsKey
       const img = clipboard.readImage()
       if (img.isEmpty()) return
       const fingerprint = this.fingerprintImage(img)

@@ -2,11 +2,12 @@
 import TopBar from './TopBar.vue'
 import CommandPalette from './CommandPalette.vue'
 import UToastProvider from '../ui/UToastProvider.vue'
+import UConfirmProvider from '../ui/UConfirmProvider.vue'
 import { useModuleShortcuts } from '../../composables/useModuleShortcuts'
 import { useTheme } from '../../composables/useTheme'
 
 useModuleShortcuts()
-useTheme().initTheme()
+void useTheme().initTheme()
 </script>
 
 <template>
@@ -20,5 +21,7 @@ useTheme().initTheme()
     <CommandPalette />
     <!-- 全局 Toast 容器 -->
     <UToastProvider />
+    <!-- 全局确认弹窗容器（useConfirm） -->
+    <UConfirmProvider />
   </div>
 </template>

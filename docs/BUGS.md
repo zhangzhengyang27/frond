@@ -793,7 +793,22 @@
   warn/error 即时落、退出前 flush。回归钉 5。
 - 门禁终态：typecheck 0 / lint 0 error / unit 1286（批8 后 +11）/ **e2e 全量
   101/101 全绿**（含此前两个已知抖动位）。
-- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、
+### 2026-10-03 批10 修复核销（同晚，4 commit）
+- **B41-2 已修**（c20d5d5 + 2990669）：窗口 id 去重（assignUniqueIds：重复窗口
+  追加 #2/#3，回归钉 3）+ WindowInfo.occurrence → windows:activate 第 N 参 +
+  AppleScript matchCount 精确 AXRaise 第 N 个同名窗口（渲染端已接线）。
+- **B41-1 已修**（ee80cc3）：大图 readImage 轮询节流——Electron 无 changeCount，
+  formats 签名变化立即重读、签名不变按 5s 节流（静态大图全量拷贝 1/s → ≤0.2/s，
+  同格式换图入账延迟最坏 5s）。回归钉两条。**节流非根治**：真 changeCount 需
+  原生依赖，1.0 内不做。
+- **globalKeys 全聋窗口已修**（8bb1ec0）：start/stop 串行过单操作队列，到队首
+  重查状态——①stop 在飞 + 新订阅不再误判已启动（新监听器不再全聋）；②start
+  在飞期间订阅者全退订 → 完成后立即 stop（无人监听的系统级钩子不驻留）。
+  回归钉三条（聋窗复现 / 不驻留 / 正常周期），textExpansion/hotkeys 域 141 用例全绿。
+- 门禁终态：typecheck 0 / lint 0 error / unit 1294（批9 后 +8）/ e2e 全量 100 过 +
+  a11y.spec:78 一条负载抖动（独立复跑 3/3 绿）。
+- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
+  类型化 2447 条，重塑批 2c/7 范围）。- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、
   WindowSwitcher id）、B44（重建件 UI 断言）、B46（Repository 类型化 2447 条，
   重塑批 2c/7 推进）、globalKeys 全聋窗口（审计 P2）。- **B53 余账**：3 根搜索下沉 / 6 胶囊包体（sanitize-html 378KB + pinyin-pro 452KB）/
   8 notes 列表投影 / 9 惰性主窗（省 80-150MB，代价中高）/ 10 markDir 批事务 /

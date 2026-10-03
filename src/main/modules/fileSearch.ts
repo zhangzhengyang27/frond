@@ -176,7 +176,17 @@ export function registerFileSearchIpc(): void {
     // —— file-index e2e 的「node_modules 剪枝」断言需要纯索引口径（回退会把 Spotlight
     // 收录的仓库文件翻出来，那是设计 §5 的预期行为，但会淹没对剪枝的验收）
     const noFallback = process.env.FROND_FILE_SEARCH_NO_FALLBACK === '1'
-    if ((isMac() || isWin()) && !onlyIn) {
+    const onMac = isMac()
+    // B53-4：系统检索与索引**并行**发起——索引命中即弃系统检索结果（延迟 = 索引），
+    // 索引零结果时系统检索已在飞（延迟 ≈ max(索引, 系统) 而非两者之和，
+    // 吃掉自家注释实测的 450-540ms 串行等待）。mdfind/windowsSearch 均 resolve-only，
+    // 命中分支弃置的在飞 Promise 不会 unhandledRejection。
+    const systemPromise: Promise<FileHit[]> | null = noFallback
+      ? null
+      : onMac
+        ? mdfind(trimmed, Number(limit) || 30, searchOpts)
+        : windowsSearch(trimmed, Number(limit) || 30, searchOpts)
+    if (!onlyIn) {
       void fileIndexClient.ensureStarted()
       const tokens = trimmed.split(/\s+/).filter(Boolean)
       // 批5：索引查询已进程隔离，query 为异步 RPC（null = 未就绪/降级 → 走下方系统检索回退）
@@ -200,10 +210,7 @@ export function registerFileSearchIpc(): void {
     if (noFallback) {
       return { ok: true, supported: true, items: [], source: 'index' as const }
     }
-    const onMac = isMac()
-    const items = onMac
-      ? await mdfind(trimmed, Number(limit) || 30, searchOpts)
-      : await windowsSearch(trimmed, Number(limit) || 30, searchOpts)
+    const items = await systemPromise!
     // source 让调用方能区分「自建索引命中」与「回退系统检索」——没有它，验收只能
     // 靠 DB 计数间接推断（设计 §6 早写过这个字段）
     return {

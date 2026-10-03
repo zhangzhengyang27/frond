@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { copyFileSync, existsSync, statSync, readdirSync, unlinkSync } from 'node:fs'
 import { migrations, type Migration } from './migrations'
 import { log } from '../services/LogService'
+import { shouldBackup } from './backupThrottle'
 
 const DB_FILE = 'frond.db'
 const BACKUP_THRESHOLD_BYTES = 50 * 1024 * 1024 // 50 MB
@@ -89,6 +90,9 @@ class FrondDatabase {
       if (size < BACKUP_THRESHOLD_BYTES) return
 
       const dir = join(app.getPath('userData'))
+      // B53-5：按时间节流——最新备份未满 7 天就跳过（滚动历史仍有 3 份可恢复），
+      // 大库用户不必每次启动付 0.2-1s 的整库拷贝 + quick_check
+      if (!shouldBackup(readdirSync(dir), DB_FILE, Date.now())) return
       const ts = Date.now()
       const bak = join(dir, `${DB_FILE}.bak.${ts}`)
       // 打开前先截断 WAL：只拷主库文件时，未 checkpoint 的 WAL 内容不会进备份。

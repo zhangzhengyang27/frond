@@ -70,7 +70,7 @@ const RETENTION_MS = 90 * 24 * 60 * 60 * 1000
 
 const URL_RE = /^https?:\/\/\S+$/i
 
-class ClipboardHistoryService {
+export class ClipboardHistoryService {
   private items: ClipboardHistoryItem[] = []
   private timer: ReturnType<typeof setInterval> | null = null
   private lastTextFingerprint = ''
@@ -440,19 +440,23 @@ class ClipboardHistoryService {
     if (this.pollBusy) return
     this.pollBusy = true
     try {
-      // 前台应用只取一次：既做敏感应用屏蔽判断，又作为新条目的来源应用
-      const frontApp = await this.getFrontmostAppName()
-      // P1-6：敏感应用屏蔽——前台为密码管理器等时不记录
-      if (frontApp && this.isAppBlocked(frontApp)) return
-      const sourceApp = frontApp ?? undefined
+      // B53-2 重排：指纹先行——内容没变就 return，**不 spawn** 前台应用查询
+      // （osascript 子进程此前每秒一次 ≈ 8.6 万次/天；只在即将入账时才需要
+      // frontApp 做屏蔽判断 + 来源应用）
       // 1) 文件（复制文件时通常也带文本格式，须先于文本检测）
       const files = this.readFilesFromClipboard()
       if (files) {
         const fingerprint = this.fingerprintFiles(files)
-        if (fingerprint !== this.lastFilesFingerprint) {
+        if (fingerprint === this.lastFilesFingerprint) return
+        const frontApp = await this.getFrontmostAppName()
+        // P1-6：敏感应用屏蔽——不入历史；指纹记为已见，同内容后续轮询同样
+        // 不再查前台应用（与「同内容重复复制不重复入账」的既有语义一致）
+        if (frontApp && this.isAppBlocked(frontApp)) {
           this.lastFilesFingerprint = fingerprint
-          this.push({ kind: 'files', paths: files, sourceApp })
+          return
         }
+        this.lastFilesFingerprint = fingerprint
+        this.push({ kind: 'files', paths: files, sourceApp: frontApp ?? undefined })
         return
       }
       // 2) 文本（http(s) URL 记为 link）
@@ -460,11 +464,16 @@ class ClipboardHistoryService {
       if (text) {
         const fingerprint = this.fingerprintText(text)
         if (fingerprint === this.lastTextFingerprint) return
+        const frontApp = await this.getFrontmostAppName()
+        if (frontApp && this.isAppBlocked(frontApp)) {
+          this.lastTextFingerprint = fingerprint
+          return
+        }
         this.lastTextFingerprint = fingerprint
         this.push({
           kind: URL_RE.test(text.trim()) ? 'link' : 'text',
           text,
-          sourceApp
+          sourceApp: frontApp ?? undefined
         })
         return
       }
@@ -475,6 +484,11 @@ class ClipboardHistoryService {
       if (img.isEmpty()) return
       const fingerprint = this.fingerprintImage(img)
       if (fingerprint === this.lastImageFingerprint) return
+      const frontApp = await this.getFrontmostAppName()
+      if (frontApp && this.isAppBlocked(frontApp)) {
+        this.lastImageFingerprint = fingerprint
+        return
+      }
       this.lastImageFingerprint = fingerprint
       const size = img.getSize()
       const filePath = this.saveImage(img)
@@ -486,7 +500,7 @@ class ClipboardHistoryService {
           width: size.width,
           height: size.height,
           createdAt: Date.now(),
-          sourceApp,
+          sourceApp: frontApp ?? undefined,
           ocrStatus: 'pending'
         }
         this.pushItem(item)

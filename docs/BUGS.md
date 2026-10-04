@@ -955,7 +955,15 @@
   旧值回填）；软删/收藏 bump updated_at 污染排序；列表无 ↑↓/Enter 键盘导航；
   错误态渲染成空态（catch 后 snippets=[]）。
 
-### B56-12【P2 族】周边三件
+### B56 修复核销（批20/21，两轮 3 commit）
+- **批20**（1200d57）：P0×4 全修 + P1×8 + P2×7，共 19 条（详见上）。
+- **批21**（1cfe1a8）：剩余 5 条全清——键盘导航（↑↓ 选择 Enter 复制，容器级监听）、
+  触发词冲突检测（findTriggerConflict + Editor 提示）、updated_at 语义分离
+  （归档动作不 bump，内容修改保留）、IPC 入参校验（白名单 + 验型 + isDeleted 强制）、
+  snippets:changed 失效广播（全部变异通道推双窗，胶囊片段页订阅即时重拉）。
+  **B56 全部 24 条清账**。回归钉：repo 10 + composable 5 + inbox/键盘 6 + IPC 校验随域。
+- ⚠️ 全量 e2e 的 plugin-arg-slots 仍有轮转失败（本批跑两次各红一条不同用例）——
+  已知负载敏感抖动位（见 memory），独立复跑各自绿。### B56-12【P2 族】周边三件
 - 胶囊 SnippetsPage 非 immediately 回根模式下陈旧数据（无失效广播）；
   触发词冲突无检测（命中方随 updatedAt 抖动，expansionBuffer.ts:95-107）；
   死代码（useSnippetViewModes/useSnippetSearchOverlay 零引用）与双关闭通道。
@@ -985,6 +993,12 @@
 > 背景：用户反馈「录屏的功能一堆的 bug」。三路并行（核心状态机自查 + 主进程
 > services/ipc 全量 + 渲染层页面组件全量）+ 单测基线确认（录屏相关 4 文件 13 测试
 > 全绿 → 下列全部处于测试盲区），B57 编号。
+> **修复进展（2026-10-04 同日）**：B57-5 ✅（丢尾竞态 → 在途链确定性收尾 + draining
+> 直写 + 会话复位，附带修掉跨会话缓冲污染；useScreenRecorder.chunkFlush.test.ts 2 钉）；
+> B57-10 ✅（预览产物 openPath 打开 + 防重入 + toast；跳转录制中隐藏入口、无视频时
+> toast 指引；clipEditor.preview 2 钉 + markersPanel 2 钉）；B57-12 部分 ✅（win32
+> 误开麦克风设置页 → openPermissionSettingsOutcome 平台分支纯函数，不再打开无关
+> 面板；screenRecorderPermission 2 钉。kiosk 跨屏与混合 DPI 待真机验证后修）。
 > 系统性根因四个：① MediaRecorder 只产 webm → 转码/授权/恢复/契约链连锁病灶；
 > ② 共享音轨所有权无单一真相（addTrack 进多流，任一方全轨 stop 即互毁）；
 > ③ 双 finalize 双真相（主进程 segments 算时长 vs 渲染端自报，互踩）；

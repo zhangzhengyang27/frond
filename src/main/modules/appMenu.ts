@@ -76,14 +76,26 @@ export type MenuTarget = import('electron').Tray | null
 function withMainWindow(ctx: AppMenuContext, run: (win: BrowserWindow) => void): void {
   const win = ctx.getMainWindow()
   if (win && !win.isDestroyed()) {
+    // tray/dock 菜单动作全部推给主窗渲染端——窗口隐藏时先带出来，否则动作
+    // 在后台窗口里执行、用户面前毫无反应（2026-10-04 实测：菜单点击「不生效」
+    // 的真因就是 sendToRenderer 打进隐藏窗口）
+    if (!win.isVisible()) {
+      win.show()
+      win.focus()
+    }
     run(win)
     return
   }
   const recreated = ctx.recreateWindow?.()
-  if (recreated) run(recreated)
+  if (recreated) {
+    recreated.show()
+    recreated.focus()
+    run(recreated)
+  }
 }
 
 function sendToRenderer(ctx: AppMenuContext, channel: string, payload?: unknown): void {
+  log.info('app-menu', `click -> ${channel}`)
   withMainWindow(ctx, (win) => win.webContents.send(channel, payload))
 }
 

@@ -462,6 +462,12 @@ const api = {
     ipcRenderer.on('app:openModule', l)
     return () => ipcRenderer.removeListener('app:openModule', l)
   },
+  // B56-5：片段变更广播（主进程所有变异通道后推给全部窗口）
+  onSnippetsChanged: (cb: () => void): (() => void) => {
+    const l = (): void => cb()
+    ipcRenderer.on('snippets:changed', l)
+    return () => ipcRenderer.removeListener('snippets:changed', l)
+  },
   onAppOpenCommandPalette: (cb: () => void): (() => void) => {
     const l = (): void => cb()
     ipcRenderer.on('app:openCommandPalette', l)

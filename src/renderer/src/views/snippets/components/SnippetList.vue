@@ -60,6 +60,7 @@ useDismissablePopup(contextMenuRef, showContextMenu, closeContextMenu)
 const loading = ref(false)
 const loadingMore = ref(false)
 const loadError = ref(false)
+const listRef = ref<HTMLElement | null>(null)
 const total = ref(0)
 
 const hasMore = computed(() => snippets.value.length < total.value)
@@ -302,6 +303,41 @@ watch(searchInput, (value) => {
 })
 
 // 批3：debouncedSearch 加入重拉源——搜索真正下沉 SQL（此前仅前端过滤，SQL search 是死代码）
+// B56 键盘导航：↑↓ 移动选中（输入框焦点时不抢）、Enter 复制选中项首个内容
+function onListKeydown(e: KeyboardEvent): void {
+  console.log('[probe] key:', e.key, 'len:', snippets.value.length, 'target:', (e.target as HTMLElement)?.className?.slice?.(0, 30))
+  const t = e.target as HTMLElement | null
+  if (
+    t &&
+    (t instanceof HTMLInputElement ||
+      t instanceof HTMLTextAreaElement ||
+      t.isContentEditable)
+  ) {
+    return
+  }
+  if (snippets.value.length === 0) return
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return
+  e.preventDefault()
+  const currentId = props.selectedSnippet?.id
+  const idx = snippets.value.findIndex((x) => x.id === currentId)
+  if (e.key === 'Enter') {
+    const item = props.selectedSnippet
+    const first = item?.contents?.[0]
+    if (first) void navigator.clipboard.writeText(first.value)
+    return
+  }
+  const base = idx === -1 ? (e.key === 'ArrowDown' ? -1 : 0) : idx
+  const next = e.key === 'ArrowDown' ? Math.min(base + 1, snippets.value.length - 1) : Math.max(base - 1, 0)
+  const item = snippets.value[next]
+  if (!item) return
+  emit('update:selectedSnippet', item)
+  void nextTick(() => {
+    listRef.value
+      ?.querySelector(`[data-snippet-id="${item.id}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
+  })
+}
+
 watch(
   () => [props.folderId, props.libraryFilter, debouncedSearch.value],
   () => {
@@ -390,7 +426,13 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- 列表（滚动接近底部自动加载下一页，页大小 200） -->
-    <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" @scroll="onListScroll">
+    <div
+      ref="listRef"
+      class="min-h-0 flex-1 overflow-y-auto px-2 pb-3 outline-none"
+      tabindex="-1"
+      @scroll="onListScroll"
+      @keydown="onListKeydown"
+    >
       <p v-if="loading" class="px-2 py-6 text-center text-xs text-fg-muted">加载中…</p>
       <UEmpty
         v-else-if="loadError"
@@ -414,6 +456,7 @@ onBeforeUnmount(() => {
         <div
           v-for="snippet in snippets"
           :key="snippet.id"
+          :data-snippet-id="snippet.id"
           class="cursor-pointer rounded-md px-2.5 py-2 transition-colors"
           :class="
             selectedSnippet?.id === snippet.id

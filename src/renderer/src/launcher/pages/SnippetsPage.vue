@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import CapsulePage from './CapsulePage.vue'
 import { searchEntries, type ScoredEntry, type SearchEntryBase } from '@shared/search'
@@ -157,6 +157,9 @@ defineExpose({ handleKey })
 onMounted(() => {
   void load()
   window.addEventListener('focus', () => void load())
+  // B56-5：主窗片段变更广播 → 胶囊页即时失效重拉（替代单纯依赖唤起时机）
+  const offChanged = window.api.onSnippetsChanged(() => void load())
+  onUnmounted(() => offChanged())
 })
 
 /** B56-12：胶囊非 immediately 回根模式不重挂载——唤起（window focus）时重拉，

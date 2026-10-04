@@ -11,8 +11,9 @@ import SnippetList from '../SnippetList.vue'
 
 let lastReq: Record<string, unknown> | null = null
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- 测试域 mock 收型 */
 const listSnippets = vi.fn(
-  (req: Record<string, unknown>) => {
+  (req: Record<string, unknown>): Promise<any> => {
     lastReq = req
     return Promise.resolve({ items: [], total: 0 })
   }
@@ -62,6 +63,63 @@ describe('收件箱过滤契约（B56-2）', () => {
     await Promise.resolve()
     expect(lastReq).toMatchObject({ isFavorites: true, isDeleted: false })
     expect(lastReq!.folderId).toBeUndefined()
+    w.unmount()
+  })
+})
+
+describe('列表键盘导航（B56 键盘）', () => {
+  const items = [
+    { id: 'a', name: '第一', description: '', language: 'js', contents: [{ id: 'ca', label: 'l', value: 'A', language: 'js' }], folderId: null, isDeleted: false, isFavorites: false, createdAt: 1, updatedAt: 1 },
+    { id: 'b', name: '第二', description: '', language: 'js', contents: [{ id: 'cb', label: 'l', value: 'B', language: 'js' }], folderId: null, isDeleted: false, isFavorites: false, createdAt: 2, updatedAt: 2 },
+    { id: 'c', name: '第三', description: '', language: 'js', contents: [{ id: 'cc', label: 'l', value: 'C', language: 'js' }], folderId: null, isDeleted: false, isFavorites: false, createdAt: 3, updatedAt: 3 }
+  ]
+  const press = (w: ReturnType<typeof mount>, key: string): Promise<void> =>
+    w.find('.min-h-0.flex-1').trigger('keydown', { key })
+
+  it('ArrowDown 依次选择下一项，ArrowUp 返回', async () => {
+    listSnippets.mockResolvedValueOnce({ items, total: 3 })
+    const w = mountList('all')
+    await new Promise((r) => setTimeout(r, 0))
+    // 镜像真实父级行为：emit 回写 props（否则每次按键都从无选中起算）
+    const sync = async (): Promise<void> => {
+      const last = w.emitted('update:selectedSnippet')!.at(-1)![0] as { id: string }
+      await w.setProps({ selectedSnippet: last as never })
+    }
+    await press(w, 'ArrowDown')
+    await sync()
+    expect(w.emitted('update:selectedSnippet')!.at(-1)![0]).toMatchObject({ id: 'a' })
+    await press(w, 'ArrowDown')
+    await sync()
+    expect(w.emitted('update:selectedSnippet')!.at(-1)![0]).toMatchObject({ id: 'b' })
+    await press(w, 'ArrowUp')
+    await sync()
+    expect(w.emitted('update:selectedSnippet')!.at(-1)![0]).toMatchObject({ id: 'a' })
+    w.unmount()
+  })
+
+  it('Enter 复制当前选中项的首个内容', async () => {
+    const writeText = vi.fn(async () => undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    })
+    listSnippets.mockResolvedValueOnce({ items, total: 3 })
+    const w = mountList('all')
+    await new Promise((r) => setTimeout(r, 0))
+    await press(w, 'ArrowDown')
+    const last = w.emitted('update:selectedSnippet')!.at(-1)![0] as never
+    await w.setProps({ selectedSnippet: last })
+    await press(w, 'Enter')
+    expect(writeText).toHaveBeenCalledWith('A')
+    w.unmount()
+  })
+
+  it('焦点在输入框时按键不抢（搜索框正常打字）', async () => {
+    listSnippets.mockResolvedValueOnce({ items, total: 3 })
+    const w = mountList('all')
+    await new Promise((r) => setTimeout(r, 0))
+    await w.find('input[type="text"]').trigger('keydown', { key: 'ArrowDown' })
+    expect(w.emitted('update:selectedSnippet')).toBeUndefined()
     w.unmount()
   })
 })

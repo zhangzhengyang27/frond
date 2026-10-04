@@ -15,6 +15,30 @@ import { typedHandle } from './typedIpc'
 /** 导入文件大小上限：超大 JSON 在主进程同步 JSON.parse 会冻结全应用 */
 const SNIPPET_IMPORT_MAX_BYTES = 20 * 1024 * 1024
 
+/** B56-4：contents 入参验型——非数组/缺 value 的条目剔除，id 由 repo 生成 */
+function sanitizeContents(raw: unknown): Array<{ id: string; label: string; value: string; language: string; contentType: 'rich' | 'text' }> {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as { value?: unknown }).value === 'string')
+    .map((c) => {
+      const contentType = (c as { contentType?: unknown }).contentType === 'rich' ? ('rich' as const) : ('text' as const)
+      return {
+        id: typeof (c as { id?: unknown }).id === 'string' ? (c as { id: string }).id : '',
+        label: typeof (c as { label?: unknown }).label === 'string' ? (c as { label: string }).label : '代码',
+        value: (c as { value: string }).value,
+        language: typeof (c as { language?: unknown }).language === 'string' ? (c as { language: string }).language : 'plaintext',
+        contentType
+      }
+    })
+}
+
+/** B56-5：片段变更广播（所有窗口的胶囊片段页/列表即时失效） */
+function broadcastSnippetsChanged(): void {
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (!w.isDestroyed()) w.webContents.send('snippets:changed', null)
+  }
+}
+
 export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void {
   // B53-3b：胶囊根搜索轻路径（LIMIT + 不解密 contents）
   typedHandle('snippet:quickSearch', (_event, { query, limit }) =>
@@ -34,15 +58,35 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
 
   typedHandle('snippet:getSnippetById', (_event, { id }) => snippetStore.getSnippetById(id))
 
-  typedHandle('snippet:addSnippet', (_event, snippet) => {
-    const result = snippetStore.addSnippet(snippet)
+  typedHandle('snippet:addSnippet', (_event, raw) => {
+    // B56-4：入参白名单——isDeleted 强制 false（渲染端不能直落回收站）、
+    // contents 验型；id/createdAt/updatedAt 由 repo 生成
+    const req = (raw ?? {}) as Record<string, unknown>
+    const result = snippetStore.addSnippet({
+      name: typeof req.name === 'string' && req.name.trim() ? req.name : '未命名片段',
+      description: typeof req.description === 'string' ? req.description : '',
+      trigger: typeof req.trigger === 'string' ? req.trigger : undefined,
+      folderId: typeof req.folderId === 'string' ? req.folderId : null,
+      tagIds: Array.isArray(req.tagIds) ? req.tagIds.filter((t): t is string => typeof t === 'string') : [],
+      isFavorites: req.isFavorites === true,
+      isDeleted: false,
+      contents: sanitizeContents(req.contents)
+    } as Parameters<typeof snippetStore.addSnippet>[0])
     textExpansion.invalidateTriggers()
+    broadcastSnippetsChanged()
     return result
   })
 
-  typedHandle('snippet:updateSnippet', (_event, { id, updates }) => {
-    const result = snippetStore.updateSnippet(id, updates)
+  typedHandle('snippet:updateSnippet', (_event, raw) => {
+    const { id, updates } = (raw ?? {}) as { id?: unknown; updates?: Record<string, unknown> }
+    if (typeof id !== 'string' || !id) return undefined
+    // B56-4：updates.contents/tagIds 必须是数组（此前非数组直传 repo 会 forEach 抛 500）
+    const clean = { ...updates } as Record<string, unknown>
+    if ('contents' in clean && !Array.isArray(clean.contents)) delete clean.contents
+    if ('tagIds' in clean && !Array.isArray(clean.tagIds)) delete clean.tagIds
+    const result = snippetStore.updateSnippet(id, clean as Parameters<typeof snippetStore.updateSnippet>[1])
     textExpansion.invalidateTriggers()
+    broadcastSnippetsChanged()
     return result
   })
 
@@ -50,6 +94,7 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
     const result = snippetStore.deleteSnippet(id)
     textExpansion.invalidateTriggers()
     return result
+    broadcastSnippetsChanged()
   })
 
   typedHandle('snippet:permanentlyDeleteSnippet', (_event, { id }) =>
@@ -60,13 +105,22 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
     const result = snippetStore.restoreSnippet(id)
     textExpansion.invalidateTriggers()
     return result
+    broadcastSnippetsChanged()
   })
 
-  typedHandle('snippet:duplicateSnippet', (_event, { id }) => snippetStore.duplicateSnippet(id))
+  typedHandle('snippet:duplicateSnippet', (_event, { id }) => {
+    const result = snippetStore.duplicateSnippet(id)
+    broadcastSnippetsChanged()
+    return result
+  })
 
   typedHandle('snippet:getStatistics', () => snippetStore.getStatistics())
 
-  typedHandle('snippet:emptyTrash', () => snippetStore.emptyTrash())
+  typedHandle('snippet:emptyTrash', () => {
+    const result = snippetStore.emptyTrash()
+    broadcastSnippetsChanged()
+    return result
+  })
 
   // B3：导入导出（对话框绑定发起方窗口；无窗口时走 windowless 重载）。
   // 纯逻辑（构建负载 / 解析校验 / 去重切分）在 services/SnippetTransferService.ts。

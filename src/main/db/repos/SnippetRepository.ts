@@ -279,6 +279,21 @@ export class SnippetRepository {
       .all(like, limit) as Array<{ id: string; name: string; language: string }>
   }
 
+  /** B56：触发词冲突查询——同触发词的其它在册片段（排除自身与回收站）；无冲突返回 undefined */
+  findTriggerConflict(trigger: string, excludeId: string): { id: string; name: string } | undefined {
+    const trimmed = trigger.trim()
+    if (!trimmed) return undefined
+    return (
+      this.db
+        .prepare(
+          `SELECT id, title AS name FROM snip_snippets
+           WHERE trigger = ? AND id != ? AND deleted_at IS NULL
+           ORDER BY updated_at DESC, rowid DESC LIMIT 1`
+        )
+        .get(trimmed, excludeId) as { id: string; name: string } | undefined
+    )
+  }
+
   /** 批3：分页列表（SnippetList 专用）。total = 同过滤条件总数；写入后按已加载量重拉不跳页 */
   listSnippets(
     filters: SnippetFilter,
@@ -356,7 +371,15 @@ export class SnippetRepository {
     const existing = this.getSnippetById(id)
     if (!existing) return undefined
 
-    const ts = now()
+    // B56：updated_at 语义 = 「内容修改时间」。contents/name/description/trigger
+    // 变更才 bump；folderId/isFavorites 等归档动作保持原值（否则收藏一下就把
+    // 老片段顶到「最近修改」首位）
+    const contentTouched =
+      updates.contents !== undefined ||
+      updates.name !== undefined ||
+      updates.description !== undefined ||
+      updates.trigger !== undefined
+    const ts = contentTouched ? now() : existing.updatedAt
     const next: Snippet = {
       ...existing,
       ...updates,
@@ -421,8 +444,8 @@ export class SnippetRepository {
   deleteSnippet(id: string): boolean {
     const ts = now()
     const r = this.db
-      .prepare(`UPDATE snip_snippets SET deleted_at = ?, updated_at = ? WHERE id = ?`)
-      .run(ts, ts, id)
+      .prepare(`UPDATE snip_snippets SET deleted_at = ? WHERE id = ?`)
+      .run(ts, id)
     return r.changes > 0
   }
 
@@ -438,10 +461,9 @@ export class SnippetRepository {
 
   /** 恢复 */
   restoreSnippet(id: string): boolean {
-    const ts = now()
     const r = this.db
-      .prepare(`UPDATE snip_snippets SET deleted_at = NULL, updated_at = ? WHERE id = ?`)
-      .run(ts, id)
+      .prepare(`UPDATE snip_snippets SET deleted_at = NULL WHERE id = ?`)
+      .run(id)
     return r.changes > 0
   }
 

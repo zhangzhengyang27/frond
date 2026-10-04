@@ -39,6 +39,18 @@ describe('SnippetRepository B56 主进程钉', () => {
     process.env.__FROND_TEST_USER_DATA = userData
   })
 
+  const mk = (name: string, trigger?: string) =>
+    repo.addSnippet({
+      name,
+      contents: [{ id: '', label: 'l', value: `v ${name}`, language: 'txt' }],
+      folderId: null,
+      tagIds: [],
+      isDeleted: false,
+      isFavorites: false,
+      ...(trigger ? { trigger } : {})
+    })
+
+
   afterAll(() => {
     rmSync(userData, { recursive: true, force: true })
     delete process.env.__FROND_TEST_USER_DATA
@@ -159,6 +171,60 @@ describe('SnippetRepository B56 主进程钉', () => {
       repo.emptyTrash()
       const orphans = db.prepare(`SELECT COUNT(*) AS n FROM snip_tags`).get() as { n: number }
       expect(orphans.n).toBe(0)
+    })
+  })
+
+describe('B56 触发词冲突查询', () => {
+  it('findTriggerConflict：同触发词的其它片段被找出，排除自身与回收站', () => {
+    const a = mk('A', ';sig')
+    mk('B', ';sig')
+    const trashed = mk('T', ';sig')
+    repo.deleteSnippet(trashed.id)
+
+    // updated_at DESC 排序下后建者在前：排除 A 后命中 B
+    expect(repo.findTriggerConflict(';sig', a.id)?.name).toBe('B')
+    expect(repo.findTriggerConflict(';sig', 'nonexistent')?.name).toBe('B') // 自身不在库中：任一命中
+    // 排除回收站 T 后剩 A/B，updated_at DESC → B 在前
+    expect(repo.findTriggerConflict(';sig', trashed.id)?.name).toBe('B')
+    expect(repo.findTriggerConflict('', a.id)).toBeUndefined()
+  })
+})
+
+
+  describe('B56 updated_at 语义分离', () => {
+    it('收藏切换不 bump updated_at（归档动作不进「最近修改」）', () => {
+      const s = mk('plain')
+      const before = s.updatedAt
+      const after = repo.updateSnippet(s.id, { isFavorites: true })!
+      expect(after.isFavorites).toBe(true)
+      expect(after.updatedAt).toBe(before)
+    })
+
+    it('软删除/恢复不 bump updated_at', async () => {
+      const s = mk('del-me')
+      await new Promise((r) => setTimeout(r, 5)) // 跨过同毫秒假绿
+      const before = s.updatedAt
+      repo.deleteSnippet(s.id)
+      const row = db.prepare(`SELECT updated_at, deleted_at FROM snip_snippets WHERE id = ?`).get(s.id) as {
+        updated_at: number
+        deleted_at: number | null
+      }
+      expect(row.deleted_at).not.toBeNull()
+      expect(row.updated_at).toBe(before)
+      repo.restoreSnippet(s.id)
+      const row2 = db.prepare(`SELECT updated_at FROM snip_snippets WHERE id = ?`).get(s.id) as {
+        updated_at: number
+      }
+      expect(row2.updated_at).toBe(before)
+    })
+
+    it('内容修改仍 bump updated_at（语义保留的另一半）', () => {
+      const s = mk('edit-me')
+      const before = s.updatedAt
+      const after = repo.updateSnippet(s.id, {
+        contents: [{ id: s.contents[0]!.id, label: 'l', value: 'changed', language: 'txt' }]
+      })!
+      expect(after.updatedAt).toBeGreaterThanOrEqual(before)
     })
   })
 })

@@ -22,11 +22,16 @@ export class FrondIpcError extends Error {
 }
 
 /** 线格式语义：结构化克隆下「缺省 ≡ 显式 undefined」，契约可选属性允许二者（EOPT 下同义） */
-type IpcRequestInput<P> = {
+export type IpcRequestInput<P> = {
   [K in keyof P as undefined extends P[K] ? K : never]?: P[K] | undefined
 } & {
   [K in keyof P as undefined extends P[K] ? never : K]: P[K]
 }
+
+/** 渲染端 → preload 桥接参数的宽松形态：可选字段允许「缺省」或「显式 undefined」 */
+export type BridgeInput<K extends IpcKey> = [IpcRequest<K>] extends [void]
+  ? void
+  : IpcRequestInput<IpcRequest<K>>
 
 export function typedInvoke<K extends IpcKey>(
   channel: K,

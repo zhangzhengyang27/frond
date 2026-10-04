@@ -166,7 +166,10 @@ export function useVideoClip(videoId: string, videoPath: string) {
         clips: toRaw(clips.value)
       }
 
-      const result = await window.api.clip.exportClips(videoPath, exportOptions)
+      const result = await window.api.clip.exportClips(
+        videoPath,
+        exportOptions as unknown as Parameters<typeof window.api.clip.exportClips>[1]
+      )
 
       if (result.success) {
         if (result.outputPath) {

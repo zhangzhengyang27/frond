@@ -305,7 +305,7 @@ export function themeToCssVars(theme: ThemeDefinition): Record<string, string> {
   const out: Record<string, string> = {}
   for (const table of SEMANTIC_TABLES) {
     for (const [key, value] of Object.entries(theme[table])) {
-      out[`--${key}`] = value
+      out[`--${key}`] = String(value)
     }
   }
   return Object.assign(out, launcherThemeVars(theme.core))

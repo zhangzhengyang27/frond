@@ -64,7 +64,7 @@ export class RecordingHistoryService {
     if (existsSync(this.historyPath)) {
       try {
         const data = readFileSync(this.historyPath, 'utf-8')
-        this.history = JSON.parse(data)
+        this.history = JSON.parse(data) as typeof this.history
         // 验证并过滤无效记录
         this.history = this.history.filter((item) => {
           // 检查文件是否存在

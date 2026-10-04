@@ -34,7 +34,7 @@ describe('内置插件清单审计', () => {
 
       let m: Record<string, unknown>
       try {
-        m = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+        m = JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, unknown>
       } catch (e) {
         problems.push(`${rel}: plugin.json 解析失败（${(e as Error).message}）`)
         continue

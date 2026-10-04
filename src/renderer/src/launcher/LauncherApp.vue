@@ -1369,7 +1369,7 @@ onUnmounted(() => {
  * 那是另一格 Raycast 对齐拍板过的东西，不能被这个开关悄悄推翻，所以做成可选项。 */
 const { compactModePref, start: startCapsuleAppearance } = useCapsuleAppearance({
   barOnly: () => barOnlyMode.value,
-  barHeight: () => searchBarRef.value?.barHeight() ?? 0
+  barHeight: () => (searchBarRef.value as unknown as { barHeight(): number } | null)?.barHeight() ?? 0
 })
 const compactIdle = computed(
   () =>

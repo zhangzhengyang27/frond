@@ -57,7 +57,7 @@ describe('assertAiEndpointAllowed', () => {
       expect(
         await assertAiEndpointAllowed(`http://${host}/v1`, noopLookup),
         `${host} 应被拒绝`
-      ).toEqual({ ok: false, reason: expect.stringContaining('受限') })
+      ).toEqual({ ok: false, reason: expect.stringContaining('受限') }) // eslint-disable-line @typescript-eslint/no-unsafe-assignment -- vitest 匹配器泛型摩擦（断言域）
     }
   })
 

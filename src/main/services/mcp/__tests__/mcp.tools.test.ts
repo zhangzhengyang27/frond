@@ -196,7 +196,7 @@ describe('工具清单缓存 → 命令表', () => {
     saveMcpServers([{ id: 'other', command: 'node' }])
     markConfirmed()
     expect(mcpToolCommands()).toEqual([])
-    expect(JSON.parse(prefRepository.get('mcp.toolCache') ?? '{}').fx).toBeUndefined()
+    expect((JSON.parse(prefRepository.get('mcp.toolCache') ?? '{}') as { fx?: unknown }).fx).toBeUndefined()
   })
 })
 

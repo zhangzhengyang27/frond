@@ -14,6 +14,7 @@ import type { WindowInfo as ScreenshotWindowInfo } from '../main/services/window
 import type { Density } from '../shared/density'
 import type { CapsuleGlass } from '../shared/capsuleGlass'
 import { typedInvoke } from './typedIpc'
+import type { IpcRequest } from '../shared/ipc-contract'
 import type { CommandHotkeySpec } from '../main/launcher/hotkeys'
 import type { ExpansionConfig } from '../main/modules/textExpansion'
 import type { PluginStateSnapshot } from '../shared/plugin-protocol'
@@ -53,20 +54,20 @@ const api = {
   pomodoro: {
     // 任务管理
     getTasks: () => typedInvoke('pomodoro:getTasks'),
-    addTask: (title: string, options?) => typedInvoke('pomodoro:addTask', { title, options }),
-    updateTask: (id: string, updates) => typedInvoke('pomodoro:updateTask', { id, updates }),
+    addTask: (title: string, options?: IpcRequest<'pomodoro:addTask'>['options']) => typedInvoke('pomodoro:addTask', { title, options }),
+    updateTask: (id: string, updates: IpcRequest<'pomodoro:updateTask'>['updates']) => typedInvoke('pomodoro:updateTask', { id, updates }),
     deleteTask: (id: string) => typedInvoke('pomodoro:deleteTask', { id }),
     completeTask: (id: string) => typedInvoke('pomodoro:completeTask', { id }),
     // 项目管理
     projects: {
       getAll: () => typedInvoke('pomodoro:projects:getAll'),
       add: (name: string, color?: string) => typedInvoke('pomodoro:projects:add', { name, color }),
-      update: (id: string, updates) => typedInvoke('pomodoro:projects:update', { id, updates }),
+      update: (id: string, updates: IpcRequest<'pomodoro:projects:update'>['updates']) => typedInvoke('pomodoro:projects:update', { id, updates }),
       delete: (id: string) => typedInvoke('pomodoro:projects:delete', { id }),
       settings: {
         get: (projectId: string) => typedInvoke('pomodoro:projects:settings:get', { projectId }),
         all: () => typedInvoke('pomodoro:projects:settings:all'),
-        save: (projectId: string, overrides) =>
+        save: (projectId: string, overrides: IpcRequest<'pomodoro:projects:settings:save'>['overrides']) =>
           typedInvoke('pomodoro:projects:settings:save', { projectId, overrides }),
         delete: (projectId: string) =>
           typedInvoke('pomodoro:projects:settings:delete', { projectId })
@@ -76,12 +77,12 @@ const api = {
     timerState: {
       getAll: () => typedInvoke('pomodoro:timerState:getAll'),
       get: (projectId: string) => typedInvoke('pomodoro:timerState:get', { projectId }),
-      save: (projectId: string, state) =>
+      save: (projectId: string, state: IpcRequest<'pomodoro:timerState:save'>['state']) =>
         typedInvoke('pomodoro:timerState:save', { projectId, state }),
       delete: (projectId: string) => typedInvoke('pomodoro:timerState:delete', { projectId })
     },
     // 记录管理
-    addRecord: (record) => typedInvoke('pomodoro:addRecord', { record }),
+    addRecord: (record: IpcRequest<'pomodoro:addRecord'>['record']) => typedInvoke('pomodoro:addRecord', { record }),
     getRecords: () => typedInvoke('pomodoro:getRecords'),
     getTodayRecords: () => typedInvoke('pomodoro:getTodayRecords'),
     getFreeRecords: () => typedInvoke('pomodoro:getFreeRecords'),
@@ -93,7 +94,7 @@ const api = {
     // P1-1：详情页
     task: {
       detail: (taskId: string) => typedInvoke('pomodoro:task:detail', { taskId }),
-      export: (format: 'csv' | 'markdown', fileBaseName: string, payload) =>
+      export: (format: 'csv' | 'markdown', fileBaseName: string, payload: IpcRequest<'pomodoro:task:export'>['payload']) =>
         typedInvoke('pomodoro:task:export', { format, fileBaseName, payload })
     },
     record: {
@@ -120,7 +121,7 @@ const api = {
       setShortcut: (action: 'toggle' | 'skip' | 'reset', accelerator: string) =>
         typedInvoke('pomodoro:integration:setShortcut', { action, accelerator }),
       resetShortcuts: () => typedInvoke('pomodoro:integration:resetShortcuts'),
-      updateTraySnapshot: (patch) =>
+      updateTraySnapshot: (patch: IpcRequest<'pomodoro:integration:updateTraySnapshot'>['patch']) =>
         typedInvoke('pomodoro:integration:updateTraySnapshot', { patch }),
       getTraySnapshot: () => typedInvoke('pomodoro:integration:getTraySnapshot'),
       // B5 修复：主进程只有收到 subscribeSnapshot 才开始推送 traySnapshot
@@ -131,7 +132,7 @@ const api = {
       setFocusMode: (enabled: boolean) =>
         typedInvoke('pomodoro:integration:setFocusMode', { enabled }),
       getFocusMode: () => typedInvoke('pomodoro:integration:getFocusMode'),
-      onTraySnapshot: (cb) => {
+      onTraySnapshot: (cb: (payload: PomodoroTraySnapshot) => void) => {
         const listener = (_e: Electron.IpcRendererEvent, payload: PomodoroTraySnapshot): void =>
           cb(payload)
         ipcRenderer.on('pomodoro:integration:traySnapshot', listener)
@@ -179,18 +180,18 @@ const api = {
     },
     // 设置管理
     getSettings: () => typedInvoke('pomodoro:getSettings'),
-    saveSettings: (settings) => typedInvoke('pomodoro:saveSettings', { settings })
+    saveSettings: (settings: IpcRequest<'pomodoro:saveSettings'>['settings']) => typedInvoke('pomodoro:saveSettings', { settings })
   },
   // 代码片段相关 API
   snippet: {
     quickSearch: (query: string, limit: number) =>
       typedInvoke('snippet:quickSearch', { query, limit }),
-    getSnippets: (filters?) => typedInvoke('snippet:getSnippets', { filters }),
-    listSnippets: (filters, limit, offset) =>
+    getSnippets: (filters?: IpcRequest<'snippet:getSnippets'>['filters']) => typedInvoke('snippet:getSnippets', { filters }),
+    listSnippets: (filters: IpcRequest<'snippet:listSnippets'>['filters'], limit: IpcRequest<'snippet:listSnippets'>['limit'], offset: IpcRequest<'snippet:listSnippets'>['offset']) =>
       typedInvoke('snippet:listSnippets', { filters, limit, offset }),
     getSnippetById: (id: string) => typedInvoke('snippet:getSnippetById', { id }),
-    addSnippet: (snippet) => typedInvoke('snippet:addSnippet', snippet),
-    updateSnippet: (id: string, updates) => typedInvoke('snippet:updateSnippet', { id, updates }),
+    addSnippet: (snippet: IpcRequest<'snippet:addSnippet'>) => typedInvoke('snippet:addSnippet', snippet),
+    updateSnippet: (id: string, updates: IpcRequest<'snippet:updateSnippet'>['updates']) => typedInvoke('snippet:updateSnippet', { id, updates }),
     deleteSnippet: (id: string) => typedInvoke('snippet:deleteSnippet', { id }),
     permanentlyDeleteSnippet: (id: string) =>
       typedInvoke('snippet:permanentlyDeleteSnippet', { id }),
@@ -207,8 +208,8 @@ const api = {
   tag: {
     getTags: () => typedInvoke('tag:getTags'),
     getTagById: (id: string) => typedInvoke('tag:getTagById', { id }),
-    addTag: (name: string, opts?) => typedInvoke('tag:addTag', { name, opts }),
-    updateTag: (id: string, updates) => typedInvoke('tag:updateTag', { id, updates }),
+    addTag: (name: string, opts?: IpcRequest<'tag:addTag'>['opts']) => typedInvoke('tag:addTag', { name, opts }),
+    updateTag: (id: string, updates: IpcRequest<'tag:updateTag'>['updates']) => typedInvoke('tag:updateTag', { id, updates }),
     deleteTag: (id: string) => typedInvoke('tag:deleteTag', { id }),
     getTagsByIds: (ids: string[]) => typedInvoke('tag:getTagsByIds', { ids })
   },
@@ -231,7 +232,7 @@ const api = {
   // 偏好设置 API
   preferences: {
     getEditorSettings: () => typedInvoke('preferences:getEditorSettings'),
-    updateEditorSettings: (updates) => typedInvoke('preferences:updateEditorSettings', updates),
+    updateEditorSettings: (updates: IpcRequest<'preferences:updateEditorSettings'>) => typedInvoke('preferences:updateEditorSettings', updates),
     getTheme: () => typedInvoke('preferences:getTheme'),
     setTheme: (theme: 'light' | 'dark' | 'auto') => typedInvoke('preferences:setTheme', { theme }),
     // B4 修复：订阅主进程的主题广播（多窗口主题同步）
@@ -336,8 +337,8 @@ const api = {
   shotIndex: {
     status: () => typedInvoke('shotidx:status'),
     scan: () => typedInvoke('shotidx:scan'),
-    search: (query, ensure?) => typedInvoke('shotidx:search', { query, ensure }),
-    pastePath: (filePath) => typedInvoke('shotidx:pastePath', { filePath }),
+    search: (query: IpcRequest<'shotidx:search'>['query'], ensure?: IpcRequest<'shotidx:search'>['ensure']) => typedInvoke('shotidx:search', { query, ensure }),
+    pastePath: (filePath: IpcRequest<'shotidx:pastePath'>['filePath']) => typedInvoke('shotidx:pastePath', { filePath }),
     pasteLatest: () => typedInvoke('shotidx:pasteLatest'),
     onChanged: (cb: () => void) => {
       const listener = (): void => cb()
@@ -386,7 +387,7 @@ const api = {
     install: () => typedInvoke('update:install'),
     getStatus: () => typedInvoke('update:getStatus'),
     getCurrentVersion: () => typedInvoke('update:getCurrentVersion'),
-    onEvent: (cb) => {
+    onEvent: (cb: (payload: UpdateEvent) => void) => {
       const listener = (_e: unknown, payload: UpdateEvent): void => cb(payload)
       ipcRenderer.on('update:event', listener)
       return () => ipcRenderer.removeListener('update:event', listener)
@@ -396,8 +397,8 @@ const api = {
   system: {
     info: () => typedInvoke('system:info'),
     hardware: () => typedInvoke('system:hardware'),
-    openPath: (p) => typedInvoke('system:openPath', { p }),
-    openExternal: (url) => typedInvoke('system:openExternal', { url }),
+    openPath: (p: IpcRequest<'system:openPath'>['p']) => typedInvoke('system:openPath', { p }),
+    openExternal: (url: IpcRequest<'system:openExternal'>['url']) => typedInvoke('system:openExternal', { url }),
     frontmostApp: () => typedInvoke('system:frontmostApp')
   },
   // platform 命名空间已删（2026-09-25）：三条通道（setDockBadge/setProgressBar/
@@ -627,8 +628,8 @@ const api = {
     selectPluginFolder: () => typedInvoke('launcher:selectPluginFolder'),
     openPluginsDir: () => ipcRenderer.send('launcher:openPluginsDir'),
     syncGetConfig: () => typedInvoke('launcher:syncGetConfig'),
-    syncSetConfig: (config) => typedInvoke('launcher:syncSetConfig', { config }),
-    syncTest: (configOverride) => typedInvoke('launcher:syncTest', { configOverride }),
+    syncSetConfig: (config: IpcRequest<'launcher:syncSetConfig'>['config']) => typedInvoke('launcher:syncSetConfig', { config }),
+    syncTest: (configOverride: IpcRequest<'launcher:syncTest'>['configOverride']) => typedInvoke('launcher:syncTest', { configOverride }),
     syncBackup: () => typedInvoke('launcher:syncBackup'),
     syncRestore: () => typedInvoke('launcher:syncRestore'),
     onShown: (cb: () => void): (() => void) => {
@@ -670,7 +671,7 @@ const api = {
   },
   // 统一动作执行端（#4：与窗口无关的动作由 main 注册表分发，胶囊/⌘K/热键/托盘共用）
   action: {
-    invoke: (action) => typedInvoke('action:invoke', { action })
+    invoke: (action: IpcRequest<'action:invoke'>['action']) => typedInvoke('action:invoke', { action })
   },
   // 文件索引（#9，macOS / Windows）：状态 / 范围管理 / 重建
   fileIndex: {
@@ -685,26 +686,26 @@ const api = {
     list: () => typedInvoke('cliphist:list'),
     // B53-3a：主进程侧搜索（根搜索每击键），最小投影
     search: (query: string, limit?: number) => typedInvoke('cliphist:search', { query, limit }),
-    copy: (id) => typedInvoke('cliphist:copy', { id }),
-    remove: (id) => typedInvoke('cliphist:remove', { id }),
+    copy: (id: IpcRequest<'cliphist:copy'>['id']) => typedInvoke('cliphist:copy', { id }),
+    remove: (id: IpcRequest<'cliphist:remove'>['id']) => typedInvoke('cliphist:remove', { id }),
     clear: () => typedInvoke('cliphist:clear'),
-    togglePin: (id) => typedInvoke('cliphist:togglePin', { id }),
+    togglePin: (id: IpcRequest<'cliphist:togglePin'>['id']) => typedInvoke('cliphist:togglePin', { id }),
     // 条目备注关键词（P0-3：补充索引，搜索可命中）
-    setKeywords: (id, keywords) => typedInvoke('cliphist:setKeywords', { id, keywords }),
+    setKeywords: (id: IpcRequest<'cliphist:setKeywords'>['id'], keywords: IpcRequest<'cliphist:setKeywords'>['keywords']) => typedInvoke('cliphist:setKeywords', { id, keywords }),
     getEnabled: () => typedInvoke('cliphist:getEnabled'),
-    setEnabled: (on) => typedInvoke('cliphist:setEnabled', { on }),
-    pasteBack: (id) => typedInvoke('cliphist:pasteBack', { id }),
+    setEnabled: (on: IpcRequest<'cliphist:setEnabled'>['on']) => typedInvoke('cliphist:setEnabled', { on }),
+    pasteBack: (id: IpcRequest<'cliphist:pasteBack'>['id']) => typedInvoke('cliphist:pasteBack', { id }),
     // 识别图片条目中的二维码，文本回填剪贴板（V4 P1-12 批次3）
-    decodeQr: (id) => typedInvoke('cliphist:decodeQr', { id }),
+    decodeQr: (id: IpcRequest<'cliphist:decodeQr'>['id']) => typedInvoke('cliphist:decodeQr', { id }),
     getBlockedApps: () => typedInvoke('cliphist:getBlockedApps'),
-    setBlockedApps: (apps) => typedInvoke('cliphist:setBlockedApps', { apps }),
-    startPasteSequence: (id) => typedInvoke('cliphist:startPasteSequence', { id }),
+    setBlockedApps: (apps: IpcRequest<'cliphist:setBlockedApps'>['apps']) => typedInvoke('cliphist:setBlockedApps', { apps }),
+    startPasteSequence: (id: IpcRequest<'cliphist:startPasteSequence'>['id']) => typedInvoke('cliphist:startPasteSequence', { id }),
     pasteNext: () => typedInvoke('cliphist:pasteNext')
   },
   // AI 服务（P0-3：OpenAI 兼容 API + 流式响应 + 对话历史 + 模型预设）
   ai: {
     getConfig: () => typedInvoke('ai:getConfig'),
-    setConfig: (patch) => typedInvoke('ai:setConfig', { patch }),
+    setConfig: (patch: IpcRequest<'ai:setConfig'>['patch']) => typedInvoke('ai:setConfig', { patch }),
     isConfigured: () => typedInvoke('ai:isConfigured'),
     /** BYOM：探测当前端点并拉模型列表（P-4①） */
     listModels: () => typedInvoke('ai:listModels'),
@@ -726,7 +727,7 @@ const api = {
     automationRunNow: (id: string) => typedInvoke('automation:runNow', { id }),
     automationSetEnabled: (id: string, enabled: boolean) =>
       typedInvoke('automation:setEnabled', { id, enabled }),
-    chat: (sessionId, messages) => typedInvoke('ai:chat', { sessionId, messages }),
+    chat: (sessionId: IpcRequest<'ai:chat'>['sessionId'], messages: IpcRequest<'ai:chat'>['messages']) => typedInvoke('ai:chat', { sessionId, messages }),
     onStreamChunk: (
       cb: (payload: { sessionId: string; delta: string; done: boolean; error?: string }) => void
     ): (() => void) => {
@@ -738,21 +739,21 @@ const api = {
     // 对话历史
     listSessions: () => typedInvoke('ai:listSessions'),
     getSession: (id: string) => typedInvoke('ai:getSession', { id }),
-    saveSession: (session) => typedInvoke('ai:saveSession', session),
+    saveSession: (session: IpcRequest<'ai:saveSession'>) => typedInvoke('ai:saveSession', session),
     deleteSession: (id: string) => typedInvoke('ai:deleteSession', { id }),
     clearSessions: () => typedInvoke('ai:clearSessions'),
     // 模型预设
     listPresets: () => typedInvoke('ai:listPresets'),
-    savePreset: (preset) => typedInvoke('ai:savePreset', { preset }),
+    savePreset: (preset: IpcRequest<'ai:savePreset'>['preset']) => typedInvoke('ai:savePreset', { preset }),
     deletePreset: (id: string) => typedInvoke('ai:deletePreset', { id }),
     applyPreset: (id: string) => typedInvoke('ai:applyPreset', { id })
   },
   // 轻量笔记（Notes）
   notes: {
-    list: (filter) => typedInvoke('notes:list', { filter }),
+    list: (filter: IpcRequest<'notes:list'>['filter']) => typedInvoke('notes:list', { filter }),
     get: (id: string) => typedInvoke('notes:get', { id }),
-    create: (data) => typedInvoke('notes:create', data),
-    update: (id, updates) => typedInvoke('notes:update', { id, updates }),
+    create: (data: IpcRequest<'notes:create'>) => typedInvoke('notes:create', data),
+    update: (id: IpcRequest<'notes:update'>['id'], updates: IpcRequest<'notes:update'>['updates']) => typedInvoke('notes:update', { id, updates }),
     trash: (id: string) => typedInvoke('notes:trash', { id }),
     restore: (id: string) => typedInvoke('notes:restore', { id }),
     delete: (id: string) => typedInvoke('notes:delete', { id }),
@@ -761,15 +762,15 @@ const api = {
     stats: () => typedInvoke('notes:stats'),
     folders: () => typedInvoke('notes:folders'),
     createFolder: (name: string) => typedInvoke('notes:createFolder', { name }),
-    renameFolder: (id, name) => typedInvoke('notes:renameFolder', { id, name }),
+    renameFolder: (id: IpcRequest<'notes:renameFolder'>['id'], name: IpcRequest<'notes:renameFolder'>['name']) => typedInvoke('notes:renameFolder', { id, name }),
     deleteFolder: (id: string) => typedInvoke('notes:deleteFolder', { id })
   },
   // 提醒事项
   reminders: {
-    list: (filter) => typedInvoke('reminders:list', { filter }),
+    list: (filter: IpcRequest<'reminders:list'>['filter']) => typedInvoke('reminders:list', { filter }),
     get: (id: string) => typedInvoke('reminders:get', { id }),
-    create: (data) => typedInvoke('reminders:create', data),
-    update: (id, patch) => typedInvoke('reminders:update', { id, patch }),
+    create: (data: IpcRequest<'reminders:create'>) => typedInvoke('reminders:create', data),
+    update: (id: IpcRequest<'reminders:update'>['id'], patch: IpcRequest<'reminders:update'>['patch']) => typedInvoke('reminders:update', { id, patch }),
     complete: (id: string) => typedInvoke('reminders:complete', { id }),
     uncomplete: (id: string) => typedInvoke('reminders:uncomplete', { id }),
     remove: (id: string) => typedInvoke('reminders:remove', { id }),
@@ -799,7 +800,7 @@ const api = {
   // 浏览器标签（P1-5：Chrome/Safari 标签搜索与切换，macOS）
   browserTabs: {
     list: () => typedInvoke('browser:tabs:list'),
-    activate: (tab) => typedInvoke('browser:tabs:activate', { tab })
+    activate: (tab: IpcRequest<'browser:tabs:activate'>['tab']) => typedInvoke('browser:tabs:activate', { tab })
   },
   // 系统命令 / 窗口管理（M2）
   sysCmd: {
@@ -823,11 +824,11 @@ const api = {
   // 专注护盾（应用屏蔽）
   focusShield: {
     getConfig: () => typedInvoke('focus-shield:getConfig'),
-    setConfig: (patch) => typedInvoke('focus-shield:setConfig', patch),
-    setActive: (active) => typedInvoke('focus-shield:setActive', { active }),
+    setConfig: (patch: IpcRequest<'focus-shield:setConfig'>) => typedInvoke('focus-shield:setConfig', patch),
+    setActive: (active: IpcRequest<'focus-shield:setActive'>['active']) => typedInvoke('focus-shield:setActive', { active }),
     temporaryAllow: () => typedInvoke('focus-shield:temporaryAllow'),
     currentState: () => typedInvoke('focus-shield:currentState'),
-    onInfo: (callback) => {
+    onInfo: (callback: (payload: { appName: string; pattern: string; kind: string; url?: string }) => void) => {
       // 载荷形状由 API 声明（现为 focusShield.currentState 派生）决定，这里不再抄一份
       const listener = (
         _e: Electron.IpcRendererEvent,
@@ -847,13 +848,14 @@ const api = {
     getFoldersByParentId: (parentId: string | null) =>
       typedInvoke('folder:getFoldersByParentId', { parentId }),
     // 通用另存为对话框（导出类通道的写盘路径由此签发）
-    selectSavePath: (req?) => typedInvoke('folder:selectSavePath', req ?? {}),
-    addFolder: (folder) => typedInvoke('folder:addFolder', folder),
-    updateFolder: (id, updates) => typedInvoke('folder:updateFolder', { id, updates }),
+    selectSavePath: (req?: IpcRequest<'folder:selectSavePath'>) =>
+    typedInvoke('folder:selectSavePath', req ?? {}),
+    addFolder: (folder: IpcRequest<'folder:addFolder'>) => typedInvoke('folder:addFolder', folder),
+    updateFolder: (id: IpcRequest<'folder:updateFolder'>['id'], updates: IpcRequest<'folder:updateFolder'>['updates']) => typedInvoke('folder:updateFolder', { id, updates }),
     deleteFolder: (id: string) => typedInvoke('folder:deleteFolder', { id }),
-    updateFolderOrder: (folderId, newParentId, newOrderIndex) =>
+    updateFolderOrder: (folderId: IpcRequest<'folder:updateFolderOrder'>['folderId'], newParentId: IpcRequest<'folder:updateFolderOrder'>['newParentId'], newOrderIndex: IpcRequest<'folder:updateFolderOrder'>['newOrderIndex']) =>
       typedInvoke('folder:updateFolderOrder', { folderId, newParentId, newOrderIndex }),
-    canMoveFolder: (folderId, targetParentId) =>
+    canMoveFolder: (folderId: IpcRequest<'folder:canMoveFolder'>['folderId'], targetParentId: IpcRequest<'folder:canMoveFolder'>['targetParentId']) =>
       typedInvoke('folder:canMoveFolder', { folderId, targetParentId })
   },
   // 创建新窗口
@@ -887,81 +889,81 @@ const api = {
   },
   // 录制新通道（SQLite rec_recordings 链路）：与 index.d.ts 的 RecordingAPI 对应
   recording: {
-    list: (req) => typedInvoke('recording.list', req ?? {}),
-    get: (req) => typedInvoke('recording.get', req),
-    remove: (req) => typedInvoke('recording.delete', req),
-    deleteOne: (req) => typedInvoke('recording.delete', req),
-    start: (req) => typedInvoke('recording.start', req),
-    finalize: (req) => typedInvoke('recording.finalize', req),
+    list: (req?: IpcRequest<'recording.list'>) => typedInvoke('recording.list', req ?? {}),
+    get: (req: IpcRequest<'recording.get'>) => typedInvoke('recording.get', req),
+    remove: (req: IpcRequest<'recording.delete'>) => typedInvoke('recording.delete', req),
+    deleteOne: (req: IpcRequest<'recording.delete'>) => typedInvoke('recording.delete', req),
+    start: (req: IpcRequest<'recording.start'>) => typedInvoke('recording.start', req),
+    finalize: (req: IpcRequest<'recording.finalize'>) => typedInvoke('recording.finalize', req),
     togglePause: () => typedInvoke('recording.togglePause'),
     settings: {
       get: () => typedInvoke('recording.settings.get'),
-      patch: (req) => typedInvoke('recording.settings.patch', req),
+      patch: (req: IpcRequest<'recording.settings.patch'>) => typedInvoke('recording.settings.patch', req),
       reset: () => typedInvoke('recording.settings.reset')
     },
     recovery: {
       scan: () => typedInvoke('recording.recovery.scan'),
-      recover: (req) => typedInvoke('recording.recovery.recover', req),
-      discard: (req) => typedInvoke('recording.recovery.discard', req)
+      recover: (req: IpcRequest<'recording.recovery.recover'>) => typedInvoke('recording.recovery.recover', req),
+      discard: (req: IpcRequest<'recording.recovery.discard'>) => typedInvoke('recording.recovery.discard', req)
     },
     segments: {
-      open: (req) => typedInvoke('recording.segments.open', req),
-      close: (req) => typedInvoke('recording.segments.close', req),
-      list: (req) => typedInvoke('recording.segments.list', req),
-      totalDuration: (req) => typedInvoke('recording.segments.totalDuration', req)
+      open: (req: IpcRequest<'recording.segments.open'>) => typedInvoke('recording.segments.open', req),
+      close: (req: IpcRequest<'recording.segments.close'>) => typedInvoke('recording.segments.close', req),
+      list: (req: IpcRequest<'recording.segments.list'>) => typedInvoke('recording.segments.list', req),
+      totalDuration: (req: IpcRequest<'recording.segments.totalDuration'>) => typedInvoke('recording.segments.totalDuration', req)
     },
     region: {
       open: () => typedInvoke('recording.region.open'),
-      openForDisplay: (req) => typedInvoke('recording.region.openForDisplay', req),
+      openForDisplay: (req: IpcRequest<'recording.region.openForDisplay'>) => typedInvoke('recording.region.openForDisplay', req),
       openCrossDisplay: () => typedInvoke('recording.region.openCrossDisplay'),
       listDisplays: () => typedInvoke('recording.region.listDisplays'),
       cancel: () => typedInvoke('recording.region.cancel')
     },
     systemAudio: {
-      probe: (req) => typedInvoke('recording.systemAudio.probe', req)
+      probe: (req: IpcRequest<'recording.systemAudio.probe'>) => typedInvoke('recording.systemAudio.probe', req)
     },
     cursor: {
       start: () => typedInvoke('recording.cursor.start'),
       stop: () => typedInvoke('recording.cursor.stop')
     },
     export: {
-      start: (req) => typedInvoke('recording.export.start', req),
-      cancel: (req) => typedInvoke('recording.export.cancel', req),
-      getInfo: (req) => typedInvoke('recording.export.getInfo', req)
+      start: (req: IpcRequest<'recording.export.start'>) => typedInvoke('recording.export.start', req),
+      cancel: (req: IpcRequest<'recording.export.cancel'>) => typedInvoke('recording.export.cancel', req),
+      getInfo: (req: IpcRequest<'recording.export.getInfo'>) => typedInvoke('recording.export.getInfo', req)
     },
     shortcut: {
       getConfig: () => typedInvoke('recording.shortcut.getConfig'),
-      setConfig: (req) => typedInvoke('recording.shortcut.setConfig', req),
+      setConfig: (req: IpcRequest<'recording.shortcut.setConfig'>) => typedInvoke('recording.shortcut.setConfig', req),
       registered: () => typedInvoke('recording.shortcut.registered'),
       attach: () => typedInvoke('recording.shortcut.attach'),
       detach: () => typedInvoke('recording.shortcut.detach')
     },
     countdown: {
-      start: (req) => typedInvoke('recording.countdown.start', req),
+      start: (req: IpcRequest<'recording.countdown.start'>) => typedInvoke('recording.countdown.start', req),
       cancel: () => typedInvoke('recording.countdown.cancel')
     }
   },
   // 录制历史相关 API
   recordingHistory: {
     getHistory: () => typedInvoke('recording-history:getHistory'),
-    getHistoryByDateRange: (start, end) =>
+    getHistoryByDateRange: (start: IpcRequest<'recording-history:getHistoryByDateRange'>['start'], end: IpcRequest<'recording-history:getHistoryByDateRange'>['end']) =>
       typedInvoke('recording-history:getHistoryByDateRange', { start, end }),
-    addHistory: (recording) => typedInvoke('recording-history:addHistory', recording),
-    deleteHistory: (id) => typedInvoke('recording-history:deleteHistory', { id }),
+    addHistory: (recording: IpcRequest<'recording-history:addHistory'>) => typedInvoke('recording-history:addHistory', recording),
+    deleteHistory: (id: IpcRequest<'recording-history:deleteHistory'>['id']) => typedInvoke('recording-history:deleteHistory', { id }),
     clearHistory: () => typedInvoke('recording-history:clearHistory'),
-    generateThumbnail: (videoPath) =>
+    generateThumbnail: (videoPath: IpcRequest<'recording-history:generateThumbnail'>['videoPath']) =>
       typedInvoke('recording-history:generateThumbnail', { videoPath }),
-    updateThumbnail: (id) => typedInvoke('recording-history:updateThumbnail', { id }),
+    updateThumbnail: (id: IpcRequest<'recording-history:updateThumbnail'>['id']) => typedInvoke('recording-history:updateThumbnail', { id }),
     getStatistics: () => typedInvoke('recording-history:getStatistics'),
-    openFile: (filePath) => typedInvoke('recording-history:openFile', { filePath }),
-    showInFolder: (filePath) => typedInvoke('recording-history:showInFolder', { filePath })
+    openFile: (filePath: IpcRequest<'recording-history:openFile'>['filePath']) => typedInvoke('recording-history:openFile', { filePath }),
+    showInFolder: (filePath: IpcRequest<'recording-history:showInFolder'>['filePath']) => typedInvoke('recording-history:showInFolder', { filePath })
   },
   // 录制设置相关 API
   recordingSettings: {
     getSettings: () => typedInvoke('recording-settings:getSettings'),
-    updateSettings: (updates) => typedInvoke('recording-settings:updateSettings', updates),
+    updateSettings: (updates: IpcRequest<'recording-settings:updateSettings'>) => typedInvoke('recording-settings:updateSettings', updates),
     resetToDefaults: () => typedInvoke('recording-settings:resetToDefaults'),
-    getQualityPreset: (quality) => typedInvoke('recording-settings:getQualityPreset', { quality })
+    getQualityPreset: (quality: IpcRequest<'recording-settings:getQualityPreset'>['quality']) => typedInvoke('recording-settings:getQualityPreset', { quality })
   },
   // 标记相关 API
   marker: {
@@ -970,7 +972,7 @@ const api = {
     removeMarker: (recordingId: string, markerId: string) =>
       typedInvoke('marker:removeMarker', { recordingId, markerId }),
     getMarkers: (recordingId: string) => typedInvoke('marker:getMarkers', { recordingId }),
-    updateMarker: (recordingId: string, markerId: string, updates) =>
+    updateMarker: (recordingId: string, markerId: string, updates: IpcRequest<'marker:updateMarker'>['updates']) =>
       typedInvoke('marker:updateMarker', { recordingId, markerId, updates }),
     clearMarkers: (recordingId: string) => typedInvoke('marker:clearMarkers', { recordingId }),
     exportToCSV: (recordingId: string) => typedInvoke('marker:exportToCSV', { recordingId })
@@ -982,16 +984,16 @@ const api = {
   },
   // 视频剪辑相关 API
   clip: {
-    addClip: (videoId, startTime, endTime, label) =>
+    addClip: (videoId: IpcRequest<'clip:addClip'>['videoId'], startTime: IpcRequest<'clip:addClip'>['startTime'], endTime: IpcRequest<'clip:addClip'>['endTime'], label: IpcRequest<'clip:addClip'>['label']) =>
       typedInvoke('clip:addClip', { videoId, startTime, endTime, label }),
-    removeClip: (videoId, clipId) => typedInvoke('clip:removeClip', { videoId, clipId }),
-    updateClip: (videoId, clipId, updates) =>
+    removeClip: (videoId: IpcRequest<'clip:removeClip'>['videoId'], clipId: IpcRequest<'clip:removeClip'>['clipId']) => typedInvoke('clip:removeClip', { videoId, clipId }),
+    updateClip: (videoId: IpcRequest<'clip:updateClip'>['videoId'], clipId: IpcRequest<'clip:updateClip'>['clipId'], updates: IpcRequest<'clip:updateClip'>['updates']) =>
       typedInvoke('clip:updateClip', { videoId, clipId, updates }),
-    getClips: (videoId) => typedInvoke('clip:getClips', { videoId }),
-    clearClips: (videoId) => typedInvoke('clip:clearClips', { videoId }),
-    previewClip: (videoPath, clip) => typedInvoke('clip:previewClip', { videoPath, clip }),
-    exportClips: (videoPath, options) => typedInvoke('clip:exportClips', { videoPath, options }),
-    getVideoInfo: (videoPath) => typedInvoke('clip:getVideoInfo', { videoPath }),
+    getClips: (videoId: IpcRequest<'clip:getClips'>['videoId']) => typedInvoke('clip:getClips', { videoId }),
+    clearClips: (videoId: IpcRequest<'clip:clearClips'>['videoId']) => typedInvoke('clip:clearClips', { videoId }),
+    previewClip: (videoPath: IpcRequest<'clip:previewClip'>['videoPath'], clip: IpcRequest<'clip:previewClip'>['clip']) => typedInvoke('clip:previewClip', { videoPath, clip }),
+    exportClips: (videoPath: IpcRequest<'clip:exportClips'>['videoPath'], options: IpcRequest<'clip:exportClips'>['options']) => typedInvoke('clip:exportClips', { videoPath, options }),
+    getVideoInfo: (videoPath: IpcRequest<'clip:getVideoInfo'>['videoPath']) => typedInvoke('clip:getVideoInfo', { videoPath }),
     // 监听导出进度；返回退订函数（removeAllListeners 会误杀同通道的其他订阅者）
     onExportProgress: (
       callback: (progress: {
@@ -1026,7 +1028,7 @@ const api = {
   // 通知相关 API
   notification: {
     // 通用通知
-    show: (type, title: string, body: string, options?) =>
+    show: (type: IpcRequest<'notification:show'>['type'], title: string, body: string, options?: IpcRequest<'notification:show'>['options']) =>
       typedInvoke('notification:show', { type, title, body, options }),
     // 番茄钟通知
     pomodoro: (type: 'start' | 'break' | 'complete' | 'pause' | 'remind', message?: string) =>
@@ -1035,16 +1037,16 @@ const api = {
     recording: (type: 'start' | 'stop' | 'error', message?: string) =>
       typedInvoke('notification:recording', { type, message }),
     // 信息通知
-    info: (title: string, body: string, options?) =>
+    info: (title: string, body: string, options?: IpcRequest<'notification:info'>['options']) =>
       typedInvoke('notification:info', { title, body, options }),
     // 成功通知
-    success: (title: string, body: string, options?) =>
+    success: (title: string, body: string, options?: IpcRequest<'notification:success'>['options']) =>
       typedInvoke('notification:success', { title, body, options }),
     // 警告通知
-    warning: (title: string, body: string, options?) =>
+    warning: (title: string, body: string, options?: IpcRequest<'notification:warning'>['options']) =>
       typedInvoke('notification:warning', { title, body, options }),
     // 错误通知
-    error: (title: string, body: string, options?) =>
+    error: (title: string, body: string, options?: IpcRequest<'notification:error'>['options']) =>
       typedInvoke('notification:error', { title, body, options }),
     // 关闭通知
     close: (id: number) => typedInvoke('notification:close', { id }),

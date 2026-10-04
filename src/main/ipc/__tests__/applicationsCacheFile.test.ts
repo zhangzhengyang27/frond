@@ -35,9 +35,9 @@ describe('applicationsCacheFile（B53-1）', () => {
     expect(loaded!.timestamp).toBe(1727900000000)
     expect(loaded!.applications).toEqual(apps)
     // 落盘的是合法 JSON
-    expect(() =>
+    expect(() => {
       JSON.parse(readFileSync(join(dir, 'applications-cache.json'), 'utf-8'))
-    ).not.toThrow()
+    }).not.toThrow()
   })
 
   it('文件缺失 → null（回退同步扫描）', () => {

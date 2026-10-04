@@ -299,7 +299,7 @@ async function saveAIConfig(): Promise<void> {
       systemPrompt: aiSystemPrompt.value,
       temperature: Number(aiTemperature.value),
       provider: aiProvider.value || undefined
-    })
+    } as unknown as Parameters<NonNullable<(typeof window.api)['ai']>['setConfig']>[0])
     aiSaveMsg.value = '已保存'
     setTimeout(() => {
       aiSaveMsg.value = ''

@@ -44,7 +44,7 @@ const manifests = dirs.map((dir) => {
   return { dir, manifest: raw }
 })
 
-const marketRaw = (JSON.parse(readFileSync(MARKET_FILE, 'utf8')).plugins ?? []) as Array<{
+const marketRaw = ((JSON.parse(readFileSync(MARKET_FILE, 'utf8')) as { plugins?: unknown }).plugins ?? []) as Array<{
   id: string
   name?: string
   version?: string

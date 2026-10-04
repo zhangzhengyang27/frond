@@ -1,47 +1,4 @@
 {
-  "total": 137,
-  "files": {
-    "src/main/ipc/__tests__/applicationsCacheFile.test.ts": {
-      "no-unsafe-return": 1
-    },
-    "src/main/launcher/__tests__/market.test.ts": {
-      "no-unsafe-assignment": 4
-    },
-    "src/main/launcher/__tests__/pluginManifestAudit.test.ts": {
-      "no-unsafe-member-access": 1
-    },
-    "src/main/launcher/dataSync.ts": {
-      "no-unsafe-return": 1
-    },
-    "src/main/services/DictionaryService.ts": {
-      "no-unsafe-assignment": 1
-    },
-    "src/main/services/RecordingHistoryService.ts": {
-      "no-unsafe-assignment": 1
-    },
-    "src/main/services/mcp/__tests__/mcp.tools.test.ts": {
-      "no-unsafe-member-access": 1
-    },
-    "src/main/utils/__tests__/aiEndpointGuard.test.ts": {
-      "no-unsafe-assignment": 1
-    },
-    "src/preload/index.ts": {
-      "no-unsafe-assignment": 86,
-      "no-unsafe-return": 3,
-      "no-unsafe-call": 3,
-      "no-unsafe-argument": 30
-    },
-    "src/renderer/src/launcher/LauncherApp.vue": {
-      "no-unsafe-return": 1
-    },
-    "src/renderer/src/views/screenRecorder/pages/RecordPage.vue": {
-      "no-unsafe-call": 1
-    },
-    "src/shared/__tests__/plugin-manifest.test.ts": {
-      "no-unsafe-assignment": 1
-    },
-    "src/shared/themeFile.ts": {
-      "no-unsafe-assignment": 1
-    }
-  }
+  "total": 0,
+  "files": {}
 }

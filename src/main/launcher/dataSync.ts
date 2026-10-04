@@ -482,7 +482,7 @@ function decryptBundle(buf: Buffer, password: string): SyncBundle {
   const data = buf.subarray(12, buf.length - 16)
   const decipher = createDecipheriv('aes-256-gcm', deriveKey(password), iv)
   decipher.setAuthTag(tag)
-  return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8'))
+  return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8')) as SyncBundle
 }
 
 async function syncClient(config: SyncConfig): Promise<{ client: WebDAVClient; password: string }> {

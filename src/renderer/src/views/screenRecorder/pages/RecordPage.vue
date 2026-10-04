@@ -447,7 +447,7 @@ const handleCloseCamera = (): void => {
   // 如果之前有屏幕流，恢复屏幕预览
   if (stream.value && previewPanelRef.value?.previewVideoRef) {
     previewPanelRef.value.previewVideoRef.srcObject = stream.value
-    previewPanelRef.value.previewVideoRef.play()
+    void (previewPanelRef.value.previewVideoRef as HTMLVideoElement).play()
   } else if (previewPanelRef.value?.previewVideoRef) {
     // 如果没有屏幕流，清空预览
     previewPanelRef.value.previewVideoRef.srcObject = null

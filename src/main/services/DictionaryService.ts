@@ -41,7 +41,7 @@ export function queryDictionary(word: string): Promise<DictionaryDefinition[]> {
       res.on('data', (chunk) => (data += chunk))
       res.on('end', () => {
         try {
-          const parsed = JSON.parse(data)
+          const parsed = JSON.parse(data) as unknown
           if (Array.isArray(parsed)) {
             resolve(parsed as DictionaryDefinition[])
           } else {

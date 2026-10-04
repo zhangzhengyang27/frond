@@ -181,7 +181,9 @@ const handleSaveSettings = async (settings: RecordingSettings): Promise<void> =>
       // PR-5a
       systemAudio: settings.systemAudio
     }
-    await window.api.recordingSettings.updateSettings(settingsToSave)
+    await window.api.recordingSettings.updateSettings(
+      settingsToSave as unknown as Parameters<NonNullable<(typeof window.api)['recordingSettings']>['updateSettings']>[0]
+    )
     showSettingsDialog.value = false
   } catch (error) {
     console.error('保存设置失败:', error)

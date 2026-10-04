@@ -117,7 +117,7 @@ async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
         isFavorites: props.libraryFilter === 'favorites' ? true : undefined,
         isInbox: props.libraryFilter === 'inbox' ? true : undefined,
         search: debouncedSearch.value || undefined
-      },
+      } as unknown as Parameters<typeof window.api.snippet.listSnippets>[0],
       mode === 'refresh' ? Math.max(PAGE_SIZE, snippets.value.length) : PAGE_SIZE,
       mode === 'append' ? snippets.value.length : 0
     )
@@ -171,7 +171,10 @@ async function openContextMenu(snippet: Snippet, event: MouseEvent): Promise<voi
 
 async function applyUpdate(snippet: Snippet, updates: Partial<Snippet>): Promise<void> {
   try {
-    await window.api.snippet.updateSnippet(snippet.id, updates)
+    await window.api.snippet.updateSnippet(
+      snippet.id,
+      updates as unknown as Parameters<typeof window.api.snippet.updateSnippet>[1]
+    )
     await loadSnippets()
   } catch (error) {
     console.error('[SnippetList] 更新片段失败:', error)

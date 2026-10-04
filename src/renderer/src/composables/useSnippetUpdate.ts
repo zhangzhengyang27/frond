@@ -51,7 +51,7 @@ export function enqueueContentsWrite(
     const cleanContents = JSON.parse(JSON.stringify(contents)) as SnippetContent[]
     return window.api.snippet.updateSnippet(snippetId, {
       contents: cleanContents
-    } as Partial<Snippet>)
+    } as unknown as Parameters<typeof window.api.snippet.updateSnippet>[1])
   })
 }
 
@@ -95,7 +95,7 @@ function updateContentDebounced(snippetId: string, contentId: string): void {
           const cleanContents = JSON.parse(JSON.stringify(updatedContents)) as typeof updatedContents
           await window.api.snippet.updateSnippet(update.snippetId, {
             contents: cleanContents
-          } as Partial<Snippet>)
+          } as unknown as Parameters<typeof window.api.snippet.updateSnippet>[1])
         }).catch((e) => console.warn('[useSnippetUpdate] content flush failed:', e))
         updateContentQueue.value.delete(key)
       }

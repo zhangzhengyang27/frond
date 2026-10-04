@@ -831,7 +831,19 @@
 - 剩余大头：dataSync.test 127 / preload 122 / dataMigrations 63 / docStore 49 /
   database.ts 48 / ShotIndexRepository 47 / dataSync.ts 47 / MarkerRepository 49 /
   migrations 若干。facade+typedSql 模式已覆盖全部形态，逐文件机械推进即可。
-- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
+### 2026-10-03 批13 修复核销（B46 关账，2 commit）
+- **B46 完成**（6acd26a）：根源修复 = 项目内 better-sqlite3 ambient 声明
+  （src/main/types/better-sqlite3.d.ts，形状按运行时实测；Result 默认 unknown，
+  cast 合法不触发 no-unsafe）——**一次净降 1647 条**；typedSql 语句类型对齐真实
+  Statement；ensureOpen 改返回非空句柄（真类型启用可空检查后暴露的窄化缺口，
+  严格性收益）；Marker/ShotIndex 两仓 facade。**11 个 Repository + fileIndex db +
+  database.ts 全部类型化——B46 字面范围完成**。棘轮 1895 → 248（自 2564 累计
+  -90%），单测 1298 全绿。
+- **新增 B55（承接 B46 残余）**：全仓 no-unsafe-* 清零并升 error——余 248 条
+  （preload 122：桥接函数参数需逐通道从 ipc-contract 取型；dataMigrationsRecording
+  22；其余为 renderer v-html/window API/marked 等 ≤10 条的散点，与 sqlite 无关）。
+  棘轮脚本守门不变。
+- **B 系列活账**：B44（重塑批 7）、B55（新开，见上）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
   类型化 2447 条，重塑批 2c/7 范围）。- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、

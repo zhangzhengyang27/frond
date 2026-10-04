@@ -18,6 +18,7 @@ import { isMac, toAccelerator } from '../utils/platform'
 import { usageRepository } from '../db/repos/UsageRepository'
 import { pomodoroIntegrationService } from '../services/PomodoroIntegrationService'
 import { log } from '../services/LogService'
+import { showLauncherWindow } from '../launcher/window'
 
 // ─── 事件驱动菜单自动刷新（tray / dock 共用）───
 
@@ -142,7 +143,7 @@ function byIdList(
 
 function frondItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] {
   return [
-    { label: '启动台', click: () => sendToRenderer(ctx, 'app:goHome') },
+    { label: '启动台', click: () => showLauncherWindow() },
     { label: '命令面板…', click: () => sendToRenderer(ctx, 'app:openCommandPalette') },
     {
       label: '偏好设置',
@@ -252,7 +253,7 @@ export function installApplicationMenu(ctx: AppMenuContext): void {
     {
       label: '前往',
       submenu: [
-        { label: '启动台', click: () => sendToRenderer(ctx, 'app:goHome') },
+        { label: '启动台', click: () => showLauncherWindow() },
         { label: '命令面板…', click: () => sendToRenderer(ctx, 'app:openCommandPalette') },
         { type: 'separator' },
         ...MODULES.map((m) => moduleItem(ctx, m))

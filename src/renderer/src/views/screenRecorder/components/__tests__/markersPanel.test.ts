@@ -22,6 +22,14 @@ vi.mock('@composables/useConfirm', () => ({
   confirm: confirmMock
 }))
 
+const toastMock = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn()
+}))
+vi.mock('@composables/useToast', () => ({ useToast: () => toastMock }))
+
 const apiMarker = vi.hoisted(() => ({
   getMarkers: vi.fn(async (): Promise<unknown[]> => []),
   removeMarker: vi.fn(async () => true),
@@ -42,15 +50,31 @@ beforeEach(() => {
   ;(window as unknown as { api: unknown }).api = { marker: apiMarker }
 })
 
-const setup = async (list: Array<{ id: string; label: string; timestamp: number; color?: string }>): Promise<ReturnType<typeof mount>> => {
+const setup = async (
+  list: Array<{ id: string; label: string; timestamp: number; color?: string }>,
+  opts: { isRecording?: boolean; videoRef?: HTMLVideoElement | null } = {}
+): Promise<ReturnType<typeof mount>> => {
   apiMarker.getMarkers.mockResolvedValue(list)
   const w = mount(MarkersPanel, {
-    props: { recordingId: 'r1', isRecording: false, recordingTime: 0, duration: 100 }
+    props: {
+      recordingId: 'r1',
+      isRecording: opts.isRecording ?? false,
+      recordingTime: 0,
+      duration: 100,
+      videoRef: opts.videoRef ?? null
+    }
   })
   await new Promise((r) => setTimeout(r, 0))
   await new Promise((r) => setTimeout(r, 0))
   return w
 }
+
+/** 回放页形态的假视频元素（真跳转分支会写 currentTime / 读 paused / 调 play） */
+const fakeVideo = {
+  currentTime: 0,
+  paused: true,
+  play: async (): Promise<void> => {}
+} as unknown as HTMLVideoElement
 
 describe('MarkersPanel 契约（B44）', () => {
   it('拉取并渲染标记列表，按时间戳排序', async () => {
@@ -66,12 +90,28 @@ describe('MarkersPanel 契约（B44）', () => {
   })
 
   it('点击标记行发出 jumpToMarker(timestamp)', async () => {
-    const w = await setup(markers)
+    const w = await setup(markers, { videoRef: fakeVideo })
     const row = w.findAll('.space-y-2 > div').find((r) => r.text().includes('开场'))!
     // 跳转是行内独立的播放按钮（行本体无点击语义）
     const jumpBtn = row.findAll('button').find((b) => b.attributes('title') === '跳转到标记时间点')!
     await jumpBtn.trigger('click')
     expect(w.emitted('jumpToMarker')![0]![0]).toBe(5)
+  })
+
+  it('录制中不渲染跳转按钮（实时流无可跳转目标，B57-10b）', async () => {
+    const w = await setup(markers, { isRecording: true, videoRef: fakeVideo })
+    expect(w.findAll('button').some((b) => b.attributes('title') === '跳转到标记时间点')).toBe(
+      false
+    )
+  })
+
+  it('无视频可跳时点跳转：给出指引提示且不发无效事件（B57-10b）', async () => {
+    const w = await setup(markers)
+    const row = w.findAll('.space-y-2 > div').find((r) => r.text().includes('开场'))!
+    const jumpBtn = row.findAll('button').find((b) => b.attributes('title') === '跳转到标记时间点')!
+    await jumpBtn.trigger('click')
+    expect(toastMock.warning).toHaveBeenCalled()
+    expect(w.emitted('jumpToMarker')).toBeUndefined()
   })
 
   it('删除标记：调用 removeMarker 且列表刷新', async () => {

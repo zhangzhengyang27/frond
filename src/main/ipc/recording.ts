@@ -11,6 +11,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
+import { existsSync, statSync, unlinkSync } from 'node:fs'
 import {
   recordingRepository,
   type RecordingFilter,
@@ -25,7 +26,10 @@ import { segmentService } from '../services/recording/SegmentService'
 import { RegionOverlay, listDisplays } from '../services/recording/RegionOverlay'
 import { CursorTracker } from '../services/recording/CursorTracker'
 import { probeSystemAudio } from '../services/recording/systemAudioPatterns'
-import { RecordingExportService } from '../services/recording/RecordingExportService'
+import {
+  RecordingExportService,
+  ensureExtension
+} from '../services/recording/RecordingExportService'
 import {
   GlobalShortcutService,
   SettingsRepoShortcutsStore
@@ -130,12 +134,22 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   typedHandle(
     'recording.delete',
     wrap((req: { id: string; hard?: boolean; deleteFile?: boolean }) => {
+      // 先取行（softDelete 后 findById 因 deleted_at 过滤取不到），再删行删文件
+      const row = req.deleteFile ? recordingRepository.findById(req.id) : null
       if (req.hard) {
         recordingRepository.hardDelete(req.id)
       } else {
         recordingRepository.softDelete(req.id)
       }
-      // 物理文件删除留由调用方（渲染层 / 后台调度器）决定；此处不引入 fs
+      // B57-14：兑现契约承诺的 deleteFile——物理文件一并删除（行已删，文件幂等）
+      if (req.deleteFile && row?.file_path && existsSync(row.file_path)) {
+        try {
+          unlinkSync(row.file_path)
+        } catch (e) {
+          // 行已删；文件删不掉（占用/权限）只告警，不回滚行
+          console.warn('[recording.delete] unlink failed:', e)
+        }
+      }
       return { ok: true }
     })
   )
@@ -174,16 +188,21 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
     })
   )
 
-  // 恢复对话框的两个动作。实现一直在 RecoveryManager 里（recover 认「DB 有行/没行」两种崩法，
-  // discard 只删临时片），注册被恢复事故吞掉后：scan 列得出来、按钮按下去永远 reject。
+  // 恢复对话框的两个动作。实现一直在 RecoveryManager 里（D4：孤儿行扫描 +
+  // fMP4 原地截断恢复 + 行级精确 discard），注册被恢复事故吞掉后：
+  // scan 列得出来、按钮按下去永远 reject。
   typedHandle(
     'recording.recovery.recover',
-    wrap(async (req: { filePath: string }) => getRecoveryManager().recover(req.filePath))
+    wrap(async (req: { filePath: string; recordingId?: string }) =>
+      getRecoveryManager().recover({ filePath: req.filePath, recordingId: req.recordingId })
+    )
   )
 
   typedHandle(
     'recording.recovery.discard',
-    wrap((req: { filePath: string }) => getRecoveryManager().discard(req.filePath))
+    wrap((req: { filePath?: string; recordingId?: string }) =>
+      getRecoveryManager().discard({ filePath: req.filePath, recordingId: req.recordingId })
+    )
   )
 
   // ── Segments（PR-3 暂停/恢复） ──────────────────────────────
@@ -251,10 +270,24 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         fileSize: number
         durationMs: number
       }) => {
+        // B57-2 后半：时长单一真相 = segments 聚合（含暂停扣除）。渲染端自报
+        // durationMs 只作无段遗留路径的兜底——cleanup 路径自报 0 不得覆盖
+        // segments 已算出的正确时长（双 finalize 互踩封死）。文件大小同理以
+        // 磁盘 statSync 为准（渲染端字节数统计可能缺失）
+        const row = recordingRepository.findById(req.recordingId)
+        const segmentsMs = recordingSegmentRepository.totalDurationMs(req.recordingId)
+        const durationMs = segmentsMs > 0 ? segmentsMs : row?.duration_ms || req.durationMs || 0
+        let fileSize = req.fileSize
+        try {
+          const statPath = req.finalFilePath || row?.file_path
+          if (statPath && existsSync(statPath)) fileSize = statSync(statPath).size
+        } catch (e) {
+          console.warn('[recording.finalize] stat size failed:', e)
+        }
         recordingRepository.finalize(req.recordingId, {
-          file_path: req.finalFilePath,
-          file_size: req.fileSize,
-          duration_ms: req.durationMs,
+          file_path: req.finalFilePath || row?.file_path || '',
+          file_size: fileSize,
+          duration_ms: durationMs,
           ended_at: Date.now(),
           status: 'completed'
         })
@@ -271,8 +304,14 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   typedHandle(
     'recording.region.open',
     wrap(async () => {
-      const region = await RegionOverlay.open()
-      return { region }
+      try {
+        const region = await RegionOverlay.open()
+        return { region }
+      } catch (e) {
+        // 取消统一转 { canceled: true }（B57-14：不再抛 Error 信封）
+        if ((e as Error)?.message === 'canceled') return { canceled: true as const }
+        throw e
+      }
     })
   )
 
@@ -280,7 +319,12 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   typedHandle(
     'recording.region.openForDisplay',
     wrap(async (req: { displayId: number }) => {
-      return await RegionOverlay.openForDisplay(req.displayId)
+      try {
+        return await RegionOverlay.openForDisplay(req.displayId)
+      } catch (e) {
+        if ((e as Error)?.message === 'canceled') return { canceled: true as const }
+        throw e
+      }
     })
   )
 
@@ -288,7 +332,12 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
   typedHandle(
     'recording.region.openCrossDisplay',
     wrap(async () => {
-      return await RegionOverlay.openCrossDisplay()
+      try {
+        return await RegionOverlay.openCrossDisplay()
+      } catch (e) {
+        if ((e as Error)?.message === 'canceled') return { canceled: true as const }
+        throw e
+      }
     })
   )
 
@@ -353,8 +402,11 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         gifPreset?: 'compact' | 'standard' | 'high' | undefined
       }) => {
         // 输出路径必须由主进程签发（selectSavePath / getDefaultSavePath），否则
-        // ffmpeg -y 可被用来覆盖任意文件——与 clip:exportClips 同一口径
-        if (!resolveGrantedRecordingPath(req.outputPath, ['.mp4', '.webm', '.gif'])) {
+        // ffmpeg -y 可被用来覆盖任意文件——与 clip:exportClips 同一口径。
+        // B57-4b：校验对象是 ensureExtension 之后的**实际写盘路径**——旧实现校验
+        // 原始路径、service 内部改扩展名，签发校验可被「a.mp4 + format=gif」绕过
+        const exportOutputPath = ensureExtension(req.outputPath, req.format)
+        if (!resolveGrantedRecordingPath(exportOutputPath, ['.mp4', '.webm', '.gif'])) {
           throw new Error('导出路径未经主进程签发，已拒绝')
         }
         // 输入路径只认录制历史登记过的文件（B48）：否则任意文件可被 ffmpeg 转码进
@@ -362,6 +414,31 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
         // 放行分段源文件，白名单须同步扩到 rec_segments 的已登记路径
         if (!recordingRepository.findByFilePath(req.sourcePath)) {
           throw new Error('sourcePath 不是录制历史中记录的录像文件，已拒绝')
+        }
+        // B57-4a：intro/outro/BGM 走同一条任意文件读取链（ffmpeg -i 拼进产物回读），
+        // 只认登记录像或主进程签发路径（当前无 UI 挂载，收紧无 UX 影响；未来 UI
+        // 须经文件对话框签发后再传入）
+        const mediaInputs = [req.introPath, req.outroPath, req.backgroundMusic?.path]
+        for (const p of mediaInputs) {
+          if (!p) continue
+          if (
+            !recordingRepository.findByFilePath(p) &&
+            !resolveGrantedRecordingPath(p, ['.mp4', '.webm'])
+          ) {
+            throw new Error('intro/outro/BGM 只能引用登记的录像文件或主进程签发的路径，已拒绝')
+          }
+        }
+        // B57-14：数值运行时校验——负数/NaN 码率会被拼进 ffmpeg 参数（-5k）致导出失败
+        const positiveOpt = (n: number | undefined): boolean =>
+          n === undefined || (Number.isFinite(n) && n > 0)
+        if (!positiveOpt(req.videoBitrateKbps) || !positiveOpt(req.audioBitrateKbps)) {
+          throw new Error('码率必须为正数')
+        }
+        if (req.fps !== 30 && req.fps !== 60) {
+          throw new Error('fps 仅支持 30/60')
+        }
+        if (![720, 1080, 1440, 2160].includes(req.resolution)) {
+          throw new Error('分辨率仅支持 720/1080/1440/2160')
         }
         const jobId = randomUUID()
         const svc = exportService
@@ -371,7 +448,7 @@ export function registerRecordingIpcHandlers(getMainWindow?: () => BrowserWindow
           .export(
             {
               sourcePath: req.sourcePath,
-              outputPath: req.outputPath,
+              outputPath: exportOutputPath,
               format: req.format,
               resolution: req.resolution,
               fps: req.fps,

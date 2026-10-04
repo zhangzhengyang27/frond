@@ -7,13 +7,20 @@ export interface RecordingState {
   savePath: string | null
 }
 
-/** 供 RecordPage 在 startRecording 前注入的编码参数（来自录制设置） */
-export interface RecorderOptions {
-  /** 期望的 mimeType 候选（按序降级，isTypeSupported 探测） */
-  mimeTypeCandidates?: string[]
-  videoBitsPerSecond?: number
-  audioBitsPerSecond?: number
-}
+// RecorderOptions 已随引擎核心迁至 useRecordingPipeline.ts（体量棘轮拆分件）
+import {
+  configurePipeline,
+  pipelineEngineActive,
+  hasActivePipelineSession,
+  startPipelineRecording,
+  stopPipelineRecording,
+  pausePipeline,
+  resumePipeline,
+  abortPipelineStart,
+  type RecorderOptions,
+  type PipelineHost
+} from './useRecordingPipeline'
+export type { RecorderOptions } from './useRecordingPipeline'
 
 // 检查窗口/API 是否可用
 function isApiAvailable(): boolean {
@@ -54,6 +61,13 @@ const CHUNK_FLUSH_BYTES = 512 * 1024
 const CHUNK_FLUSH_MS = 500
 let chunkFlushTimer: number | null = null
 let chunkWriteError: string | null = null
+// 在途异步链（arrayBuffer 解码 + appendChunk IPC）统一挂在这里：onstop 收尾
+// 循环等它清空后才 endWrite——否则最后一批分片晚于 endWrite 到达，永久丢尾
+// （B57-5）。promise 已 catch 兜底，永远不会 reject
+let inFlightWrites: Promise<void>[] = []
+// onstop 已开始收尾：此后到达的迟到分片直写，不再进缓冲攒批
+//（攒批只会卡进无人消费的 500ms 定时器）
+let draining = false
 
 const canRecord = computed(() => {
   return !loading.value && !isRecording.value
@@ -91,6 +105,15 @@ function ensureWebmPath(path: string): string {
   return path.toLowerCase().endsWith('.webm') ? path : `${path}.webm`
 }
 
+/** 把不含 .mp4 后缀的保存路径强制补上（webcodecs 引擎直出 mp4 容器） */
+function ensureMp4Path(path: string): string {
+  return path.toLowerCase().endsWith('.mp4') ? path : `${path}.mp4`
+}
+
+// ── WebCodecs/Mediabunny 管线（engine='webcodecs'）──────────
+// 引擎核心在 useRecordingPipeline.ts；本门面持有单例状态，经 PipelineHost 注入。
+// 见 RECORDING_MEDIABUNNY_DESIGN.md P1。
+
 // ── B8：新旧双轨归一（加法式） ──────────────────────────────
 // 旧链路：screenRecorder.saveFile → JSON 历史（RecordingHistoryService，双写 SQLite）
 // 新链路：recording.start / finalize → rec_recordings 表
@@ -120,6 +143,49 @@ async function finalizeNewRecording(fileSize: number): Promise<void> {
     })
   } catch (error) {
     console.warn('[ScreenRecorder] 新通道最终化失败:', error)
+  }
+}
+
+/** 管线引擎的宿主适配器：把门面持有的单例 refs 与时长账本暴露给 useRecordingPipeline */
+const pipelineHost: PipelineHost = {
+  isRecording,
+  isPaused,
+  recordingTime,
+  savePath,
+  currentRecordingId,
+  getAccumulatedMs: () => accumulatedMs,
+  commitSegment: () => {
+    accumulatedMs += Date.now() - segmentStartTs
+  },
+  resetTimeline: () => {
+    accumulatedMs = 0
+    segmentStartTs = 0
+  },
+  markSegmentStart: () => {
+    segmentStartTs = Date.now()
+  },
+  clearRecordingTimer: () => {
+    if (recordingTimer) {
+      clearInterval(recordingTimer)
+      recordingTimer = null
+    }
+  },
+  finalizeRecordingRow: finalizeNewRecording,
+  segmentIpc: (kind) => {
+    if (!currentRecordingId.value || !isApiAvailable()) return
+    const recApi = (
+      window as unknown as {
+        recording?: {
+          segments?: Record<
+            'open' | 'close',
+            (req: { recordingId: string }) => Promise<{ ok: boolean }>
+          >
+        }
+      }
+    ).recording
+    recApi?.segments?.[kind]?.({ recordingId: currentRecordingId.value }).catch((e: unknown) => {
+      console.warn(`[useScreenRecorder] segments.${kind} failed:`, e)
+    })
   }
 }
 
@@ -177,19 +243,44 @@ function flushPendingChunk(): void {
   pendingChunk = null
   pendingChunkSize = 0
   if (!chunkApi?.appendChunk) return
-  chunkApi
-    .appendChunk(path, data)
-    .then((r) => {
-      if (!r?.ok) chunkWriteError = 'appendChunk failed'
-    })
-    .catch((e) => {
-      console.warn('[ScreenRecorder] appendChunk failed:', e)
-      chunkWriteError = String(e)
-    })
+  inFlightWrites.push(
+    chunkApi.appendChunk(path, data).then(
+      (r) => {
+        if (!r?.ok) chunkWriteError = 'appendChunk failed'
+      },
+      (e: unknown) => {
+        console.warn('[ScreenRecorder] appendChunk failed:', e)
+        chunkWriteError = String(e)
+      }
+    )
+  )
+}
+
+/** 迟到分片直写（绕过攒批缓冲），挂在 inFlightWrites 供收尾等待 */
+function appendChunkDirect(path: string, data: Uint8Array): void {
+  if (!chunkApi?.appendChunk) return
+  inFlightWrites.push(
+    chunkApi.appendChunk(path, data).then(
+      (r) => {
+        if (!r?.ok) chunkWriteError = 'appendChunk failed'
+      },
+      (e: unknown) => {
+        console.warn('[ScreenRecorder] appendChunk failed:', e)
+        chunkWriteError = String(e)
+      }
+    )
+  )
 }
 
 function bufferChunk(data: Uint8Array): void {
   if (!chunkedWritePath) return
+  // 收尾期到达的迟到分片直写（B57-5）：此刻缓冲已随 onstop flush 清空，
+  // 再攒批只会卡进无人消费的 500ms 定时器 → 尾部字节永久丢失
+  if (draining) {
+    flushPendingChunk()
+    appendChunkDirect(chunkedWritePath, data)
+    return
+  }
   if (!pendingChunk) {
     pendingChunk = new Uint8Array(Math.max(CHUNK_FLUSH_BYTES, data.length))
     pendingChunkSize = 0
@@ -215,9 +306,13 @@ const startRecording = async (
     return currentRecordingId.value
   }
 
-  // 如果没有选择保存路径，使用默认路径（不弹窗）
+  const usePipeline = recorderOptions.engine === 'webcodecs'
+
+  // 如果没有选择保存路径，使用默认路径（不弹窗）；容器跟随引擎（webm/mp4）
   if (!savePath.value && isApiAvailable()) {
-    const path = await window.api.screenRecorder.getDefaultSavePath()
+    const path = await window.api.screenRecorder.getDefaultSavePath({
+      extension: usePipeline ? 'mp4' : 'webm'
+    })
     if (!path) {
       return null
     }
@@ -226,9 +321,8 @@ const startRecording = async (
     console.warn('[ScreenRecorder] API 不可用，无法获取默认路径')
     return null
   }
-  // MediaRecorder 只产 webm 容器；用户通过旧入口选了 .mp4 后缀时补正，
-  // 避免「webm 数据 + mp4 后缀」的假容器文件
-  savePath.value = ensureWebmPath(savePath.value)
+  // 后缀按引擎补正，避免「webm 数据 + mp4 后缀」（或反过来）的假容器文件
+  savePath.value = usePipeline ? ensureMp4Path(savePath.value) : ensureWebmPath(savePath.value)
 
   try {
     recordedChunks = []
@@ -237,134 +331,172 @@ const startRecording = async (
     segmentStartTs = Date.now()
     isPaused.value = false
     chunkWriteError = null
-
-    // mimeType：优先用设置注入的候选，按支持度降级；最后兜底裸 webm
-    const candidates =
-      recorderOptions.mimeTypeCandidates && recorderOptions.mimeTypeCandidates.length > 0
-        ? recorderOptions.mimeTypeCandidates
-        : ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
-    const mimeType = candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? 'video/webm'
-
-    const options: MediaRecorderOptions = {
-      mimeType,
-      videoBitsPerSecond: recorderOptions.videoBitsPerSecond ?? 2500000,
-      audioBitsPerSecond: recorderOptions.audioBitsPerSecond ?? 128000
+    // 清上一会话残留的分片缓冲/定时器/在途链：残留缓冲会被下一段录制复用，
+    // 旧字节错位写进新文件头部（B57-5 排查中发现的跨会话污染）
+    pendingChunk = null
+    pendingChunkSize = 0
+    if (chunkFlushTimer) {
+      clearTimeout(chunkFlushTimer)
+      chunkFlushTimer = null
     }
+    inFlightWrites = []
+    draining = false
 
-    // 先建立分片写盘会话（必须 await 完成后再 start recorder：
-    // 首个分片包含 webm 头，竞态下头部进内存、后续进磁盘会导致文件损坏）
-    await startChunkedWrite(savePath.value)
+    if (usePipeline) {
+      // webcodecs 引擎：mediabunny 管线（fMP4 流式落盘），无 MediaRecorder。
+      // 状态置位在共享尾部统一做
+      configurePipeline(recorderOptions)
+      await startPipelineRecording(pipelineHost, stream, recorderOptions)
+      isRecording.value = true
+      recordingTime.value = 0
+    } else {
+      // mimeType：优先用设置注入的候选，按支持度降级；最后兜底裸 webm
+      const candidates =
+        recorderOptions.mimeTypeCandidates && recorderOptions.mimeTypeCandidates.length > 0
+          ? recorderOptions.mimeTypeCandidates
+          : ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+      const mimeType = candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? 'video/webm'
 
-    mediaRecorder = new MediaRecorder(stream, options)
+      const options: MediaRecorderOptions = {
+        mimeType,
+        videoBitsPerSecond: recorderOptions.videoBitsPerSecond ?? 2500000,
+        audioBitsPerSecond: recorderOptions.audioBitsPerSecond ?? 128000
+      }
 
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) {
-        if (chunkedWritePath) {
-          // 分片模式：数据流式写盘，不在内存驻留（仅累计字节数供 finalize 上报）
-          chunkedTotalBytes += event.data.size
-          void event.data.arrayBuffer().then((ab) => bufferChunk(new Uint8Array(ab)))
-        } else {
-          // 一次性保存：内存攒满，onstop 统一构建 Blob
-          recordedChunks.push(event.data)
+      // 先建立分片写盘会话（必须 await 完成后再 start recorder：
+      // 首个分片包含 webm 头，竞态下头部进内存、后续进磁盘会导致文件损坏）
+      await startChunkedWrite(savePath.value)
+
+      mediaRecorder = new MediaRecorder(stream, options)
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          if (chunkedWritePath) {
+            // 分片模式：数据流式写盘，不在内存驻留（仅累计字节数供 finalize 上报）。
+            // arrayBuffer 解码链挂在 inFlightWrites：晚于 onstop flush 就绪时
+            // 由收尾循环兜住（B57-5）
+            chunkedTotalBytes += event.data.size
+            inFlightWrites.push(
+              event.data.arrayBuffer().then(
+                (ab) => bufferChunk(new Uint8Array(ab)),
+                (e: unknown) => {
+                  console.warn('[ScreenRecorder] chunk decode failed:', e)
+                  chunkWriteError = String(e)
+                }
+              )
+            )
+          } else {
+            // 一次性保存：内存攒满，onstop 统一构建 Blob
+            recordedChunks.push(event.data)
+          }
         }
       }
-    }
 
-    mediaRecorder.onstop = async () => {
-      // onstop 触发时若仍处于录制中（正常 stop），把最后一段累计进去
-      if (isRecording.value && !isPaused.value) {
-        accumulatedMs += Date.now() - segmentStartTs
-      }
+      mediaRecorder.onstop = async () => {
+        // onstop 触发时若仍处于录制中（正常 stop），把最后一段累计进去
+        if (isRecording.value && !isPaused.value) {
+          accumulatedMs += Date.now() - segmentStartTs
+        }
 
-      // 分片模式下数据已流式写盘，跳过 Blob/arrayBuffer/Uint8Array 全量构建；
-      // 一次性保存路径保持原逻辑（仅在内存攒满 chunks 时才构建 buffer）
-      let buffer: Uint8Array | null = null
-      let totalBytes = 0
-      if (chunkedWritePath) {
-        totalBytes = chunkedTotalBytes
-      } else {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' })
-        const arrayBuffer = await blob.arrayBuffer()
-        buffer = new Uint8Array(arrayBuffer)
-        totalBytes = buffer.byteLength
-      }
+        // 分片模式下数据已流式写盘，跳过 Blob/arrayBuffer/Uint8Array 全量构建；
+        // 一次性保存路径保持原逻辑（仅在内存攒满 chunks 时才构建 buffer）
+        let buffer: Uint8Array | null = null
+        let totalBytes = 0
+        if (chunkedWritePath) {
+          totalBytes = chunkedTotalBytes
+        } else {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' })
+          const arrayBuffer = await blob.arrayBuffer()
+          buffer = new Uint8Array(arrayBuffer)
+          totalBytes = buffer.byteLength
+        }
 
-      // 秒 = 累计毫秒 / 1000，向下取整
-      const totalSeconds = Math.floor(accumulatedMs / 1000)
+        // 秒 = 累计毫秒 / 1000，向下取整
+        const totalSeconds = Math.floor(accumulatedMs / 1000)
 
-      if (savePath.value && isApiAvailable()) {
-        try {
-          let result: {
-            success: boolean
-            filePath?: string
-            error?: string
-            historyId?: string
-          }
-          if (chunkedWritePath && chunkApi) {
-            flushPendingChunk()
-            // 等 IPC FIFO 保证在途 append 先于 endWrite 到达主进程后落地
-            await new Promise((r) => setTimeout(r, 50))
-            if (chunkWriteError) {
-              // 写盘已坏：丢弃半截文件并结束会话，不写历史
-              await chunkApi.abortWrite?.(chunkedWritePath)?.catch(() => {})
-              chunkedWritePath = null
-              result = { success: false, error: chunkWriteError }
+        if (savePath.value && isApiAvailable()) {
+          try {
+            let result: {
+              success: boolean
+              filePath?: string
+              error?: string
+              historyId?: string
+            }
+            if (chunkedWritePath && chunkApi) {
+              // 确定性收尾（替代旧的 50ms FIFO 猜等，B57-5）：等所有在途解码/
+              // append 链清空——迟到分片由 draining 直写并再次进入等待——全部
+              // 落盘后才 endWrite，尾部分片不再丢失
+              draining = true
+              flushPendingChunk()
+              while (inFlightWrites.length) {
+                const batch = inFlightWrites.splice(0)
+                await Promise.all(batch)
+              }
+              if (chunkWriteError) {
+                // 写盘已坏：丢弃半截文件并结束会话，不写历史
+                await chunkApi.abortWrite?.(chunkedWritePath)?.catch(() => {})
+                chunkedWritePath = null
+                result = { success: false, error: chunkWriteError }
+              } else {
+                result = (await chunkApi.endWrite?.(
+                  chunkedWritePath,
+                  totalSeconds,
+                  currentRecordingId.value || undefined
+                )) ?? { success: false, error: 'endWrite unavailable' }
+                chunkedWritePath = null
+              }
             } else {
-              result = (await chunkApi.endWrite?.(
-                chunkedWritePath,
+              result = await window.api.screenRecorder.saveFile(
+                savePath.value,
+                // 仅一次性保存路径会走到这里（chunkedWritePath 非空时 buffer 恒为 null）
+                buffer!,
                 totalSeconds,
                 currentRecordingId.value || undefined
-              )) ?? { success: false, error: 'endWrite unavailable' }
-              chunkedWritePath = null
+              )
             }
-          } else {
-            result = await window.api.screenRecorder.saveFile(
-              savePath.value,
-              // 仅一次性保存路径会走到这里（chunkedWritePath 非空时 buffer 恒为 null）
-              buffer!,
-              totalSeconds,
-              currentRecordingId.value || undefined
+            if (result.success) {
+              // 若主进程未回传最终路径，则用它修正本地 savePath，保证 finalize 拿到真实路径
+              if (result.filePath) {
+                savePath.value = result.filePath
+              }
+              void finalizeNewRecording(totalBytes)
+              await window.api.notification.recording('stop', `录制已保存: ${savePath.value}`)
+            } else {
+              await window.api.notification.recording('error', `保存失败: ${result.error}`)
+            }
+          } catch (error) {
+            console.error('保存文件失败:', error)
+            chunkedWritePath = null
+            await window.api.notification.recording(
+              'error',
+              `保存失败: ${(error as Error).message}`
             )
           }
-          if (result.success) {
-            // 若主进程未回传最终路径，则用它修正本地 savePath，保证 finalize 拿到真实路径
-            if (result.filePath) {
-              savePath.value = result.filePath
-            }
-            void finalizeNewRecording(totalBytes)
-            await window.api.notification.recording('stop', `录制已保存: ${savePath.value}`)
-          } else {
-            await window.api.notification.recording('error', `保存失败: ${result.error}`)
-          }
-        } catch (error) {
-          console.error('保存文件失败:', error)
-          chunkedWritePath = null
-          await window.api.notification.recording('error', `保存失败: ${(error as Error).message}`)
+        } else {
+          await window.api.notification.recording('stop', '录制已停止')
         }
-      } else {
-        await window.api.notification.recording('stop', '录制已停止')
+
+        // 重置状态
+        isRecording.value = false
+        isPaused.value = false
+        recordingTime.value = 0
+        accumulatedMs = 0
+        segmentStartTs = 0
+        currentRecordingId.value = null
+        // 保存路径是一次性签发（endWrite 成功 / abortWrite 后主进程即撤销授权），
+        // 复位让下一段录制重新签发——复用旧路径会被 beginWrite/saveFile 以「未签发」拒绝
+        savePath.value = null
+        if (recordingTimer) {
+          clearInterval(recordingTimer)
+          recordingTimer = null
+        }
       }
 
-      // 重置状态
-      isRecording.value = false
-      isPaused.value = false
+      // 使用 timeslice 确保时间戳正确，100ms 收集一次数据
+      mediaRecorder.start(100)
+      isRecording.value = true
       recordingTime.value = 0
-      accumulatedMs = 0
-      segmentStartTs = 0
-      currentRecordingId.value = null
-      // 保存路径是一次性签发（endWrite 成功 / abortWrite 后主进程即撤销授权），
-      // 复位让下一段录制重新签发——复用旧路径会被 beginWrite/saveFile 以「未签发」拒绝
-      savePath.value = null
-      if (recordingTimer) {
-        clearInterval(recordingTimer)
-        recordingTimer = null
-      }
-    }
-
-    // 使用 timeslice 确保时间戳正确，100ms 收集一次数据
-    mediaRecorder.start(100)
-    isRecording.value = true
-    recordingTime.value = 0
+    } // legacy MediaRecorder 分支结束
 
     // 先在新 SQLite 通道登记本次录制拿正式 UUID（失败回退本地临时 ID）
     const fileName = savePath.value.split(/[\\/]/).pop() || `recording-${Date.now()}.webm`
@@ -387,6 +519,10 @@ const startRecording = async (
     return currentRecordingId.value
   } catch (error) {
     console.error('开始录制失败:', error)
+    // 管线：beginWrite 已建会话但 output 未跑起来 → 中止写盘撤销授权
+    if (usePipeline) {
+      await abortPipelineStart(pipelineHost)
+    }
     // 会话可能已建立但 recorder 未跑起来：中止写盘避免主进程侧泄漏
     if (chunkedWritePath && chunkApi) {
       const p = chunkedWritePath
@@ -402,6 +538,10 @@ const startRecording = async (
 
 // 停止录制
 const stopRecording = (): void => {
+  if (pipelineEngineActive()) {
+    void stopPipelineRecording(pipelineHost)
+    return
+  }
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop()
   }
@@ -410,6 +550,11 @@ const stopRecording = (): void => {
 // 暂停录制
 const pauseRecording = (): void => {
   if (!isRecording.value || isPaused.value) return
+  if (pipelineEngineActive()) {
+    // 管线：累计当前段 + 冻结时间轴（帧循环保眠）+ 暂停音频采样
+    pausePipeline(pipelineHost)
+    return
+  }
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return
   // 累计当前段时长
   accumulatedMs += Date.now() - segmentStartTs
@@ -439,6 +584,11 @@ const pauseRecording = (): void => {
 // 恢复录制
 const resumeRecording = (): void => {
   if (!isRecording.value || !isPaused.value) return
+  if (pipelineEngineActive()) {
+    // 管线：补记暂停时长（时间轴剔除）+ 恢复音频采样 + 开新段
+    resumePipeline(pipelineHost)
+    return
+  }
   if (!mediaRecorder || mediaRecorder.state === 'inactive') return
   isPaused.value = false
   segmentStartTs = Date.now() // 重置本段起点
@@ -473,9 +623,11 @@ const togglePause = (): void => {
 // 选择保存路径
 const selectSavePath = async (): Promise<string | null> => {
   if (!isApiAvailable()) return null
-  const path = await window.api.screenRecorder.selectSavePath()
+  // 容器跟随引擎（设置在 RecordPage 启动前注入；未注入时按旧引擎 webm 处理）
+  const extension = recorderOptions.engine === 'webcodecs' ? 'mp4' : 'webm'
+  const path = await window.api.screenRecorder.selectSavePath({ extension })
   if (path) {
-    savePath.value = ensureWebmPath(path)
+    savePath.value = extension === 'mp4' ? ensureMp4Path(path) : ensureWebmPath(path)
   }
   return savePath.value
 }
@@ -497,6 +649,11 @@ let mountedConsumers = 0
 
 // 清理资源
 const cleanup = (): void => {
+  if (pipelineEngineActive() && hasActivePipelineSession()) {
+    // 管线会话：走管线收尾（finalize/abort + 状态复位都在 stopPipelineRecording 内）
+    void stopPipelineRecording(pipelineHost)
+    return
+  }
   if (recordingTimer) {
     clearInterval(recordingTimer)
     recordingTimer = null
@@ -509,6 +666,8 @@ const cleanup = (): void => {
     }
     pendingChunk = null
     pendingChunkSize = 0
+    inFlightWrites = []
+    draining = false
   }
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop()

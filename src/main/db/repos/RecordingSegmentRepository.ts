@@ -43,6 +43,16 @@ export class RecordingSegmentRepository {
 
   /** 打开新分片（resume 时调用），返回新行的 row */
   open(recordingId: string): SegmentRow {
+    // B57-9：open 段防重——遗留 open 段会让 totalDurationMs 按 now()-started_at
+    // 无限虚增（close 只关最新一条，旧 open 永远挂着）。开新段前把该录制的一切
+    // 未关闭段收口，保证任一时刻至多一个 open 段
+    this.db
+      .prepare(
+        `UPDATE rec_segments SET ended_at = ?
+         WHERE recording_id = ? AND ended_at IS NULL`
+      )
+      .run(now(), recordingId)
+
     // 计算下一个 seg_index
     const row = this.db
       .prepare(

@@ -63,6 +63,8 @@ const timeFromClientX = (clientX: number): number => {
 const clamp = (t: number): number => Math.min(props.duration, Math.max(0, t))
 
 const onTrackPointerDown = (event: MouseEvent): void => {
+  // B57-18：只响应左键——右键/中键按下也会建立选区并在 mouseup 触发 add-clip/seek
+  if (event.button !== 0) return
   // 还没拿到 metadata 时整条轨道不可动：否则一次空拖会发出 seek(0)，把播放头跳到开头
   if (resizeRef.value || props.duration <= 0) return
   const time = timeFromClientX(event.clientX)
@@ -105,6 +107,7 @@ const onTrackPointerUp = (): void => {
 }
 
 const onEdgePointerDown = (clip: Clip, edge: 'start' | 'end', event: MouseEvent): void => {
+  if (event.button !== 0) return // B57-18：右键拖边界
   event.stopPropagation()
   resizeRef.value = { clip, edge, time: timeFromClientX(event.clientX) }
 }

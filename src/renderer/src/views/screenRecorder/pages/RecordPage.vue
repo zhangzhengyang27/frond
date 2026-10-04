@@ -21,7 +21,7 @@
         @retry-camera="retryCamera"
         @close-camera="handleCloseCamera"
         @request-permission="requestScreenPermission"
-        @select-region="handleSelectRegion"
+        @select-region="actions.selectRegion"
       />
 
       <!-- 预览区域 -->
@@ -36,7 +36,7 @@
         :show-pip-camera="showPipCamera"
         :show-recording-mode-hint="showRecordingModeHint"
         :format-time="formatTime"
-        @start-recording="startWithCountdownOrImmediate"
+        @start-recording="actions.startWithCountdownOrImmediate"
         @stop-recording="stopRecording"
         @toggle-pause="$emit('toggle-pause')"
         @select-save-path="selectSavePath"
@@ -45,7 +45,7 @@
 
       <!-- 标记面板 -->
       <MarkersPanel
-        :recording-id="localRecordingId"
+        :recording-id="actions.lastRecordingId.value"
         :is-recording="isRecording"
         :recording-time="recordingTime"
         @jump-to-marker="handleJumpToMarker"
@@ -56,12 +56,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useStreamManager } from '@composables/useStreamManager'
+import { useRecordingActions } from '@composables/recordingActions'
 import SourceSelector from '@views/screenRecorder/components/SourceSelector.vue'
 import PreviewPanel from '@views/screenRecorder/components/PreviewPanel.vue'
 import MarkersPanel from '@views/screenRecorder/components/MarkersPanel.vue'
-import { useScreenRecorder } from '@composables/useScreenRecorder'
 import { useSourceSelection } from '@composables/useSourceSelection'
 import { useToast } from '@composables/useToast'
 import type { DesktopCapturerSource, CameraDevice } from '@composables/useSourceSelection'
@@ -77,30 +77,23 @@ interface Props {
 const props = defineProps<Props>()
 
 const toast = useToast()
-const localRecordingId = ref<string | null>(null)
-// 用户框选的录制区域（屏幕 DIP 坐标系）+ 所在显示器 scaleFactor
-const selectedRegion = ref<{ x: number; y: number; width: number; height: number } | null>(null)
-const selectedRegionScale = ref(1)
 
 defineEmits<{
   'update:show-settings-dialog': [value: boolean]
   'toggle-pause': []
 }>()
 
-// 使用 composables（模块级单例：与 Layout 共享同一份状态）
+// 动作与流程已收敛到模块级控制器（B57-6）：快捷键在任意标签页有效，
+// RecordPage 只保留源选择的 UI 编排
+const actions = useRecordingActions()
 const {
-  loading: recorderLoading,
+  isStarting,
   canRecord,
-  startRecording: startRecorder,
-  stopRecording,
-  togglePause,
+  loading: recorderLoading,
   selectSavePath,
-  setRecorderOptions,
   formatTime,
-  claimRecordingStart,
-  releaseRecordingStart
-} = useScreenRecorder()
-
+  stopRecording
+} = actions
 const {
   sources,
   selectedSource,
@@ -118,22 +111,15 @@ const {
   retryCamera,
   closeCamera: closeCameraSelection
 } = useSourceSelection()
-
 const {
   stream,
   cameraStream,
-  canvasStream,
-  setPreviewVideoRef,
-  setPipCameraRef,
-  setRegion, // PR-4
-  setCursorScreenPos, // PR-4
-  setAudioConfig, // 音频输入组合（麦克风/系统音频）
-  setFps,
-  addAudioToStream,
   getScreenStream,
   getCameraStream,
   combineStreams,
   setPreview,
+  setPreviewVideoRef,
+  setPipCameraRef,
   closeCamera: closeCameraStream
 } = useStreamManager()
 
@@ -157,7 +143,7 @@ const showRecordingModeHint = computed(() => {
 
 // 处理选择屏幕源
 const handleSelectSource = async (source: DesktopCapturerSource): Promise<void> => {
-  if (props.isRecording) {
+  if (props.isRecording || isStarting.value) {
     return
   }
 
@@ -181,7 +167,7 @@ const handleSelectSource = async (source: DesktopCapturerSource): Promise<void> 
 
 // 处理选择摄像头
 const handleSelectCamera = async (device: CameraDevice): Promise<void> => {
-  if (props.isRecording) {
+  if (props.isRecording || isStarting.value) {
     return
   }
 
@@ -231,7 +217,7 @@ const handleSelectCamera = async (device: CameraDevice): Promise<void> => {
 
 // 处理切换源类型
 const handleSwitchSourceType = (type: 'screen' | 'camera'): void => {
-  if (props.isRecording) {
+  if (props.isRecording || isStarting.value) {
     return
   }
   switchSourceType(type)
@@ -260,184 +246,9 @@ const handleSwitchSourceType = (type: 'screen' | 'camera'): void => {
   }
 }
 
-// PR-4 / PR-6: 唤起 transparent overlay 让 user 框选区域；把 region 推给 stream manager 用于 canvas 裁剪
-// payload 是可选的：displayId | 'cross' | undefined
-const handleSelectRegion = async (payload?: number | 'cross' | null): Promise<void> => {
-  if (props.isRecording) return
-  const api = (
-    window as unknown as {
-      api?: {
-        recording?: {
-          region?: {
-            open: () => Promise<{ region: { x: number; y: number; width: number; height: number } }>
-            openForDisplay: (req: { displayId: number }) => Promise<{
-              region: { x: number; y: number; width: number; height: number }
-              displayId: number
-              crossDisplay: boolean
-              scaleFactor?: number
-            }>
-            openCrossDisplay: () => Promise<{
-              region: { x: number; y: number; width: number; height: number }
-              displayId: number
-              crossDisplay: boolean
-              scaleFactor?: number
-            }>
-            cancel: () => Promise<{ ok: boolean }>
-            listDisplays: () => Promise<
-              Array<{
-                id: number
-                scaleFactor: number
-                isPrimary: boolean
-                bounds: { x: number; y: number; width: number; height: number }
-              }>
-            >
-          }
-        }
-      }
-    }
-  ).api
-  if (!api?.recording?.region) return
-  try {
-    let region: { x: number; y: number; width: number; height: number }
-    let scale: number | undefined
-    if (payload === 'cross' && api.recording.region.openCrossDisplay) {
-      const r = await api.recording.region.openCrossDisplay()
-      region = r.region
-      scale = r.scaleFactor
-    } else if (typeof payload === 'number' && api.recording.region.openForDisplay) {
-      const r = await api.recording.region.openForDisplay({ displayId: payload })
-      region = r.region
-      scale = r.scaleFactor
-    } else if (api.recording.region.open) {
-      const r = await api.recording.region.open()
-      region = r.region
-    } else {
-      return
-    }
-    // openForDisplay/openCrossDisplay 会直接返回区域所在显示器的 scaleFactor；
-    // 旧版 open() 不带，回退用 listDisplays 查主显示器 scale
-    if (!scale) {
-      try {
-        const displays = await api.recording.region.listDisplays()
-        scale =
-          displays.find((d) => d.isPrimary)?.scaleFactor ??
-          (typeof payload === 'number' ? displays.find((d) => d.id === payload)?.scaleFactor : 1) ??
-          1
-      } catch {
-        scale = 1
-      }
-    }
-    selectedRegion.value = region
-    selectedRegionScale.value = scale
-    setRegion(region, scale)
-  } catch (e) {
-    console.log('[RecordPage] region selection canceled:', e)
-  }
-}
-
-// PR-4: 监听系统 cursor 推送，把它转给 stream manager 用于 canvas 光圈
-const cursorListener = (e: Event): void => {
-  const detail = (e as CustomEvent<{ x: number; y: number }>).detail
-  setCursorScreenPos(detail)
-}
-const cursorStopListener = (): void => setCursorScreenPos(null)
-
-onMounted(() => {
-  window.addEventListener('frond:cursor-position', cursorListener)
-  window.addEventListener('frond:cursor-stop', cursorStopListener)
-  // PR-7a: 全局快捷键 → 录制启停
-  window.addEventListener('frond:shortcut-recording-start', shortcutStartListenerVoid)
-  window.addEventListener('frond:shortcut-recording-togglePause', shortcutPauseListenerVoid)
-  // PR-7b: 倒计时结束 → 真正开始录制
-  window.addEventListener('frond:recording-start-after-countdown', beginAfterCountdownVoid)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('frond:cursor-position', cursorListener)
-  window.removeEventListener('frond:cursor-stop', cursorStopListener)
-  window.removeEventListener('frond:shortcut-recording-start', shortcutStartListenerVoid)
-  window.removeEventListener('frond:shortcut-recording-togglePause', shortcutPauseListenerVoid)
-  window.removeEventListener('frond:recording-start-after-countdown', beginAfterCountdownVoid)
-  const api = (
-    window as unknown as {
-      api?: { recording?: { countdown?: { cancel?: () => Promise<unknown> } } }
-    }
-  ).api
-  void api?.recording?.countdown?.cancel?.()
-})
-
-// PR-7a: 快捷键 → start/pause toggle
-function shortcutStartListenerVoid(): void {
-  void shortcutStartListener()
-}
-
-function shortcutPauseListenerVoid(): void {
-  void shortcutPauseListener()
-}
-
-function beginAfterCountdownVoid(): void {
-  void beginAfterCountdown()
-}
-
-async function shortcutStartListener(): Promise<void> {
-  if (props.isRecording) {
-    // 正在录制 → 停止
-    stopRecording()
-  } else {
-    // 没在录制 → 触发开始流程（含倒计时）
-    await startWithCountdownOrImmediate()
-  }
-}
-async function shortcutPauseListener(): Promise<void> {
-  if (!props.isRecording) return
-  // 直接调用单例 togglePause。旧实现走 IPC recording.togglePause，
-  // 但 preload 从未暴露该 API、main 端 handler 也是空实现 → 快捷键无效
-  togglePause()
-}
-
-// PR-7b: 倒计时 → start
-async function startWithCountdownOrImmediate(): Promise<void> {
-  // 倒计时秒数存在录制设置（设置对话框写入的 JSON store）里；
-  // 旧实现读 window.leaf.settings（不存在的 API）→ 永远走默认 3 秒
-  let seconds = 3
-  try {
-    const s = await window.api.recordingSettings?.getSettings()
-    if (s && 'countdownSeconds' in s && typeof s.countdownSeconds === 'number') {
-      seconds = s.countdownSeconds
-    }
-  } catch {
-    // 读不到就走默认
-  }
-  if (seconds <= 0) {
-    await handleStartRecording()
-    return
-  }
-  try {
-    const api = (
-      window as unknown as {
-        api?: {
-          recording?: {
-            countdown?: {
-              start?: (req: { seconds: number; reason: 'recording' }) => Promise<unknown>
-            }
-          }
-        }
-      }
-    ).api
-    await api?.recording?.countdown?.start?.({ seconds, reason: 'recording' })
-  } catch (e) {
-    console.warn('[RecordPage] countdown.start failed:', e)
-    await handleStartRecording()
-  }
-}
-
-async function beginAfterCountdown(): Promise<void> {
-  await handleStartRecording()
-}
-
 // 处理关闭摄像头
 const handleCloseCamera = (): void => {
-  if (props.isRecording) {
+  if (props.isRecording || isStarting.value) {
     return
   }
   // 关闭摄像头流
@@ -451,149 +262,6 @@ const handleCloseCamera = (): void => {
   } else if (previewPanelRef.value?.previewVideoRef) {
     // 如果没有屏幕流，清空预览
     previewPanelRef.value.previewVideoRef.srcObject = null
-  }
-}
-
-// 处理开始录制
-const handleStartRecording = async (): Promise<void> => {
-  // 防重入闸（B50b）：启动链最长 10s 全异步，isRecording 要到 startRecorder 内才
-  // 置 true——双击/快捷键+点击并发进入时第二次的 combineStreams epoch 作废路径
-  // 会返回已 stop 的轨道，录出空/坏文件
-  if (!canRecord.value || !claimRecordingStart()) {
-    return
-  }
-  try {
-    await startRecordingFlow()
-  } finally {
-    releaseRecordingStart()
-  }
-}
-
-const startRecordingFlow = async (): Promise<void> => {
-  // 启动前从持久化设置（JSON store，设置对话框的写入源）读配置并应用：
-  // 编码器/码率 → MediaRecorder；fps → captureStream；麦克风/系统音频 → 音频输入
-  try {
-    const s = await window.api.recordingSettings?.getSettings()
-    if (s) {
-      const mimeTypeCandidates =
-        s.encoder === 'vp8'
-          ? ['video/webm;codecs=vp8,opus', 'video/webm;codecs=vp8']
-          : s.encoder === 'h264'
-            ? ['video/webm;codecs=h264,opus', 'video/webm;codecs=h264']
-            : ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp9']
-      setRecorderOptions({
-        mimeTypeCandidates,
-        videoBitsPerSecond: (s.bitrate ?? 2500) * 1000,
-        audioBitsPerSecond: (s.audioBitrate ?? 128) * 1000
-      })
-      setFps(s.fps)
-
-      const sys = s.systemAudio
-      const sysActive = !!sys?.enabled && !!sys?.deviceId
-      setAudioConfig({
-        // 音频总开关 + 「系统音频开启且未保留麦克风」时静音麦克风
-        micEnabled: s.audioEnabled !== false && !(sysActive && !sys?.keepMicrophone),
-        systemDeviceId: sysActive ? sys.deviceId : null
-      })
-    }
-  } catch (e) {
-    console.warn('[RecordPage] apply recording settings failed:', e)
-  }
-
-  // 检查是否有可用的流
-  if (!stream.value && !cameraStream.value) {
-    toast.warning('请先选择一个录制源并等待预览加载完成')
-    return
-  }
-
-  try {
-    // 如果同时选择了屏幕和摄像头，确保合成流已创建
-    if (selectedSource.value && selectedCameraDevice.value) {
-      // 如果摄像头流不存在，尝试只录制屏幕
-      if (!cameraStream.value) {
-        if (stream.value) {
-          await startRecorder(stream.value)
-          return
-        }
-      }
-
-      // 如果屏幕流不存在，尝试只录制摄像头
-      if (!stream.value) {
-        if (cameraStream.value) {
-          // 确保摄像头流有音频轨道（复用统一音频装配，含系统音频混音）
-          if (cameraStream.value.getAudioTracks().length === 0) {
-            await addAudioToStream(cameraStream.value)
-          }
-          await startRecorder(cameraStream.value)
-          return
-        }
-      }
-
-      // 两个流都存在，尝试合成
-      if (!canvasStream.value && stream.value && cameraStream.value) {
-        await combineStreams()
-
-        // 等待一下，确保 canvas stream 已经准备好
-        await new Promise((resolve) => setTimeout(resolve, 200))
-
-        if (!canvasStream.value) {
-          toast.error('无法创建合成流，请重试')
-          return
-        }
-
-        // 检查 canvas stream 是否有活动的轨道
-        const mixedStream = canvasStream.value as MediaStream
-        const tracks = mixedStream.getTracks()
-        if (tracks.length === 0) {
-          toast.error('合成流无效，请重试')
-          return
-        }
-      }
-    }
-
-    // 确定要录制的流
-    let recordingStream: MediaStream | null = null
-
-    if (selectedSource.value && selectedCameraDevice.value && canvasStream.value) {
-      // 同时录制屏幕和摄像头，使用合成流
-      recordingStream = canvasStream.value
-    } else if (selectedSource.value && stream.value) {
-      // 只录制屏幕
-      recordingStream = stream.value
-    } else if (selectedCameraDevice.value && cameraStream.value) {
-      // 只录制摄像头，确保有音频轨道
-      if (cameraStream.value.getAudioTracks().length === 0) {
-        await addAudioToStream(cameraStream.value)
-      }
-      recordingStream = cameraStream.value
-    }
-
-    if (!recordingStream) {
-      toast.warning('无法获取录制流，请确保已选择录制源并等待预览加载完成')
-      return
-    }
-
-    // PR-4: 启用 cursor 追踪（主进程开始推送位置）
-    const cursorApi = (
-      window as unknown as {
-        api?: {
-          recording?: {
-            cursor?: { start: () => Promise<{ ok: boolean }>; stop: () => Promise<{ ok: boolean }> }
-          }
-        }
-      }
-    ).api?.recording?.cursor
-    if (cursorApi?.start) {
-      void cursorApi.start()
-    }
-
-    // recordingId 由 startRecorder 内部通过 recording.start 登记产生（正式 UUID），
-    // 并贯穿 saveFile / segments / markers，不再使用临时 ID
-    const id = await startRecorder(recordingStream)
-    localRecordingId.value = id
-  } catch (error) {
-    console.error('开始录制失败:', error)
-    toast.error('开始录制失败: ' + (error as Error).message)
   }
 }
 
@@ -611,21 +279,6 @@ watch(
     }
   },
   { immediate: true }
-)
-
-// PR-4: 录制停止时关闭 cursor 推送
-watch(
-  () => props.isRecording,
-  (rec, prev) => {
-    if (prev && !rec) {
-      const cursorApi = (
-        window as unknown as {
-          api?: { recording?: { cursor?: { stop: () => Promise<{ ok: boolean }> } } }
-        }
-      ).api?.recording?.cursor
-      if (cursorApi?.stop) void cursorApi.stop()
-    }
-  }
 )
 
 // 处理跳转到标记时间点

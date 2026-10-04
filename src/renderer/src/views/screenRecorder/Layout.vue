@@ -9,10 +9,20 @@
       v-if="countdownActive"
       class="fixed inset-0 z-[60] flex items-center justify-center bg-overlay backdrop-blur-sm"
     >
-      <div
-        class="text-[180px] font-extrabold leading-none tabular-nums text-fg-primary drop-shadow-2xl"
-      >
-        {{ countdownRemaining }}
+      <div class="flex flex-col items-center gap-8">
+        <div
+          class="text-[180px] font-extrabold leading-none tabular-nums text-fg-primary drop-shadow-2xl"
+        >
+          {{ countdownRemaining }}
+        </div>
+        <!-- B57-19：倒计时遮罩此前无取消途径（主进程事件丢失即永久遮罩） -->
+        <button
+          type="button"
+          class="rounded-md border border-line-subtle px-4 py-2 text-sm text-fg-secondary hover:bg-surface-hover"
+          @click="cancelCountdown"
+        >
+          取消录制（ESC）
+        </button>
       </div>
     </div>
 
@@ -91,6 +101,7 @@ import { useToast } from '@composables/useToast'
 import { useScreenRecorder } from '@composables/useScreenRecorder'
 import { useSourceSelection } from '@composables/useSourceSelection'
 import { useStreamManager } from '@composables/useStreamManager'
+import { useRecordingShortcuts } from '@composables/useRecordingShortcuts'
 
 // 录制设置类型
 interface RecordingSettings {
@@ -107,11 +118,13 @@ interface RecordingSettings {
   audioCodec?: 'aac' | 'opus' | undefined
   audioBitrate?: number | undefined
   // PR-5a: 系统音频
-  systemAudio?: {
-    enabled: boolean
-    deviceId?: string
-    keepMicrophone?: boolean
-  } | undefined
+  systemAudio?:
+    | {
+        enabled: boolean
+        deviceId?: string
+        keepMicrophone?: boolean
+      }
+    | undefined
 }
 
 const route = useRoute()
@@ -182,7 +195,9 @@ const handleSaveSettings = async (settings: RecordingSettings): Promise<void> =>
       systemAudio: settings.systemAudio
     }
     await window.api.recordingSettings.updateSettings(
-      settingsToSave as unknown as Parameters<NonNullable<(typeof window.api)['recordingSettings']>['updateSettings']>[0]
+      settingsToSave as unknown as Parameters<
+        NonNullable<(typeof window.api)['recordingSettings']>['updateSettings']
+      >[0]
     )
     showSettingsDialog.value = false
   } catch (error) {
@@ -240,7 +255,6 @@ onMounted(() => {
   }
   // loadSources 由 RecordPage 挂载时调用（composable 已是单例，
   // 这里再调一次会让带缩略图的 desktopCapturer 原生调用执行两遍）
-  void attachShortcuts()
 })
 
 onUnmounted(() => {
@@ -248,72 +262,15 @@ onUnmounted(() => {
   // 避免留下"界面已卸载但还在录死画面"的僵尸录制
   if (isRecording.value) stopRecording()
   cleanupStreams()
-  void detachShortcuts()
+  // 离开录屏模块：取消仍在进行的倒计时（监听器由 useRecordingShortcuts 自清）
+  void (
+    window as unknown as {
+      api?: { recording?: { countdown?: { cancel?: () => Promise<unknown> } } }
+    }
+  ).api?.recording?.countdown?.cancel?.()
 })
 
-// ── PR-7a: 全局快捷键 attach ────────────────────────────────
-async function attachShortcuts(): Promise<void> {
-  const api = (
-    window as unknown as {
-      api?: {
-        recording?: {
-          shortcut?: {
-            attach: () => Promise<{ ok: boolean }>
-            detach: () => Promise<{ ok: boolean }>
-          }
-        }
-      }
-    }
-  ).api
-  await api?.recording?.shortcut?.attach?.()
-  // 监听推送
-  window.addEventListener('frond:shortcut-start', onShortcutStart)
-  window.addEventListener('frond:shortcut-togglePause', onShortcutTogglePause)
-  // PR-7b: 倒计时（去掉 as EventListener 类型断言：EventListener 是纯类型，
-  // 在运行时不存在 → eslint no-undef 报错，且 (e: Event) => void 本就可直接赋值）
-  window.addEventListener('frond:countdown-tick', onCountdownTick)
-  window.addEventListener('frond:countdown-begun', onCountdownBegun)
-  window.addEventListener('frond:countdown-cancel', onCountdownCancel)
-}
-
-async function detachShortcuts(): Promise<void> {
-  window.removeEventListener('frond:shortcut-start', onShortcutStart)
-  window.removeEventListener('frond:shortcut-togglePause', onShortcutTogglePause)
-  window.removeEventListener('frond:countdown-tick', onCountdownTick)
-  window.removeEventListener('frond:countdown-begun', onCountdownBegun)
-  window.removeEventListener('frond:countdown-cancel', onCountdownCancel)
-  const api = (
-    window as unknown as {
-      api?: { recording?: { shortcut?: { detach: () => Promise<{ ok: boolean }> } } }
-    }
-  ).api
-  await api?.recording?.shortcut?.detach?.()
-}
-
-// ── PR-7b: 倒计时 state ────────────────────────────────────
-const countdownActive = ref(false)
-const countdownRemaining = ref(0)
-function onCountdownTick(e: Event): void {
-  const detail = (e as CustomEvent<{ remaining: number }>).detail
-  countdownActive.value = true
-  countdownRemaining.value = detail.remaining
-}
-function onCountdownBegun(): void {
-  countdownActive.value = false
-  countdownRemaining.value = 0
-  // 真正开始录制
-  void window.dispatchEvent(new CustomEvent('frond:recording-start-after-countdown'))
-}
-function onCountdownCancel(): void {
-  countdownActive.value = false
-  countdownRemaining.value = 0
-}
-
-// ── PR-7a: 快捷键 handler（占位 — RecordPage 监听真实 start/stop） ──
-function onShortcutStart(): void {
-  void window.dispatchEvent(new CustomEvent('frond:shortcut-recording-start'))
-}
-function onShortcutTogglePause(): void {
-  void window.dispatchEvent(new CustomEvent('frond:shortcut-recording-togglePause'))
-}
+// ── B57-6: 快捷键/倒计时/光圈监听统一挂 Layout（模块常驻层）────
+// 旧实现转发给 RecordPage（切标签即卸载）→ 非录制标签页快捷键整体失效
+const { countdownActive, countdownRemaining, cancelCountdown } = useRecordingShortcuts()
 </script>

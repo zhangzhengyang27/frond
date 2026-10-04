@@ -190,9 +190,16 @@ export class RecordingHistoryService {
   /**
    * 清空所有历史记录
    */
-  clearHistory(): void {
+  clearHistory(): boolean {
+    const prev = this.history
     this.history = []
-    this.saveHistory()
+    try {
+      this.saveHistory()
+      return true
+    } catch (e) {
+      this.history = prev // 失败回滚内存态，不留「看着清空了」的假象
+      throw e
+    }
   }
 
   /**

@@ -196,6 +196,9 @@ const setCursorScreenPos = (pos: { x: number; y: number } | null): void => {
   cursorScreenPos = pos
 }
 
+/** 管线录制（useScreenRecorder webcodecs 分支）读取当前光标位置的模块级出口 */
+export const getCursorScreenPos = (): { x: number; y: number } | null => cursorScreenPos
+
 /** 设置合成流帧率（来自录制设置） */
 const setFps = (fps: number): void => {
   if (fps === 30 || fps === 60) captureFps = fps
@@ -416,8 +419,14 @@ const combineStreams = async (): Promise<MediaStream> => {
     canvasStream.value = null
   }
 
-  // 确保屏幕流有音频轨道
-  if (stream.value.getAudioTracks().length === 0) {
+  // 确保屏幕流有**存活**的音频轨道（B57-3）：closeCamera 等路径误杀过的死轨
+  // 仍挂在流上（length>0），旧条件 `length === 0` 永不重装 → 无声。死轨先摘除
+  // 防多轨叠加，再走统一装配（音频缓存失效会自动重开设备）
+  const liveAudio = stream.value.getAudioTracks().filter((t) => t.readyState === 'live')
+  if (liveAudio.length === 0) {
+    stream.value.getAudioTracks().forEach((t) => {
+      stream.value?.removeTrack(t)
+    })
     await addAudioToStream(stream.value)
   }
 
@@ -617,9 +626,21 @@ const combineStreams = async (): Promise<MediaStream> => {
       // 绘制边框
       ctx.fillStyle = '#fff'
       ctx.fillRect(pipX - 2, pipY - 2, pipSize + 4, pipSize + 4)
-
-      // 绘制摄像头画面
-      ctx.drawImage(cameraVideo, pipX, pipY, pipSize, pipSize)
+      // B57-20：16:9 摄像头曾硬拉成正方形——按 contain 缩放居中，黑边补底
+      ctx.fillStyle = '#000'
+      ctx.fillRect(pipX, pipY, pipSize, pipSize)
+      const vw = cameraVideo.videoWidth
+      const vh = cameraVideo.videoHeight
+      const pipScale = Math.min(pipSize / vw, pipSize / vh)
+      const drawW = vw * pipScale
+      const drawH = vh * pipScale
+      ctx.drawImage(
+        cameraVideo,
+        pipX + (pipSize - drawW) / 2,
+        pipY + (pipSize - drawH) / 2,
+        drawW,
+        drawH
+      )
     }
 
     scheduleDraw()
@@ -713,8 +734,13 @@ const closeCamera = (): void => {
   }
   // 如果正在使用合成流，需要重新设置预览为屏幕流
   if (canvasStream.value && stream.value) {
-    // 停止合成流
-    canvasStream.value.getTracks().forEach((track) => track.stop())
+    // B57-3：canvasStream 的音轨是 combineStreams addTrack 进来的共享 mic 轨
+    // （同一对象也挂在屏幕流/音频缓存上），全轨 stop 会把它杀死 → 之后录制
+    // 全程无声。只停视频轨；音轨 removeTrack 摘除，所有权归音频缓存管理
+    canvasStream.value.getVideoTracks().forEach((track) => track.stop())
+    canvasStream.value.getAudioTracks().forEach((track) => {
+      canvasStream.value?.removeTrack(track)
+    })
     canvasStream.value = null
     // 如果只有屏幕流，设置预览为屏幕流
     if (previewVideoRef.value) {

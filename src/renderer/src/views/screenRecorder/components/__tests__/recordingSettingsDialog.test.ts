@@ -12,7 +12,15 @@ import RecordingSettingsDialog from '../RecordingSettingsDialog.vue'
  * - 保存发出 save + 完整 settings；取消发出 close
  */
 
-const getSettings = vi.fn(async () => ({
+const toastMock = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn()
+}))
+vi.mock('@composables/useToast', () => ({ useToast: () => toastMock }))
+
+const getSettings = vi.fn(async (): Promise<Record<string, unknown>> => ({
   encoder: 'vp9',
   quality: 'medium',
   bitrate: 5000,
@@ -24,10 +32,40 @@ const getSettings = vi.fn(async () => ({
   audioBitrate: 128
 }))
 
+const getQualityPreset = vi.fn(async (q: string) =>
+  q === 'high'
+    ? { bitrate: 10000, fps: 60, resolution: { width: 1920, height: 1080 } }
+    : { bitrate: 2000, fps: 30, resolution: { width: 1280, height: 720 } }
+)
+
 beforeEach(() => {
   getSettings.mockClear()
+  getQualityPreset.mockClear()
+  toastMock.error.mockClear()
   ;(window as unknown as { api: unknown }).api = {
-    recordingSettings: { getSettings, updateSettings: vi.fn(async () => ({})) }
+    recordingSettings: {
+      getSettings,
+      updateSettings: vi.fn(async () => ({})),
+      getQualityPreset,
+      resetToDefaults: vi.fn(async () => ({
+        encoder: 'vp9',
+        quality: 'medium',
+        bitrate: 5000,
+        fps: 30,
+        resolution: { width: 1920, height: 1080 },
+        format: 'webm',
+        audioEnabled: false,
+        audioCodec: 'opus',
+        audioBitrate: 128,
+        engine: 'mediarecorder'
+      }))
+    },
+    recording: {
+      shortcut: {
+        getConfig: vi.fn(async () => ({ enabled: true, start: '', togglePause: '' })),
+        setConfig: vi.fn(async () => ({}))
+      }
+    }
   }
 })
 
@@ -88,5 +126,130 @@ describe('RecordingSettingsDialog 契约（B44）', () => {
     await cancelBtn.trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
     expect(w.emitted('save')).toBeUndefined()
+  })
+})
+
+describe('B57-17 设置对话框健壮性', () => {
+  const flush = async (): Promise<void> => {
+    await new Promise((r) => setTimeout(r, 0))
+    await new Promise((r) => setTimeout(r, 0))
+  }
+
+  it('保存载荷数值钳制：负数/NaN 码率与越界分辨率不再原样落盘', async () => {
+    getSettings.mockResolvedValue({
+      encoder: 'vp9',
+      quality: 'custom',
+      bitrate: -5,
+      fps: 30,
+      resolution: { width: 0, height: 1e9 },
+      format: 'webm',
+      audioEnabled: false,
+      audioCodec: 'opus',
+      audioBitrate: Number.NaN,
+      engine: 'mediarecorder'
+    })
+    const w = await setup()
+    const saveBtn = w.findAll('button').find((b) => b.text() === '保存')!
+    await saveBtn.trigger('click')
+    await flush()
+    const payload = w.emitted('save')![0]![0] as Record<string, unknown>
+    expect(payload.bitrate).toBe(100) // -5 → 下限钳制（NaN 才走默认）
+    expect(payload.audioBitrate).toBe(128) // NaN → 默认 128
+    expect((payload.resolution as Record<string, number>).width).toBe(240) // 0 → 下限钳制
+    expect((payload.resolution as Record<string, number>).height).toBe(4320) // 1e9 → 上限钳制
+  })
+
+  it('setConfig 拒绝：toast 提示且保存流程继续（不再 unhandled 卡死）', async () => {
+    const w = await setup()
+    const api = (
+      window as unknown as {
+        api: { recording: { shortcut: { setConfig: ReturnType<typeof vi.fn> } } }
+      }
+    ).api.recording.shortcut
+    api.setConfig.mockRejectedValueOnce(new Error('accel busy'))
+    const saveBtn = w.findAll('button').find((b) => b.text() === '保存')!
+    await saveBtn.trigger('click')
+    await flush()
+    expect(toastMock.error).toHaveBeenCalled()
+    expect(w.emitted('save')).toBeTruthy() // 其余设置仍正常保存
+  })
+
+  it('重置完整：倒计时/快捷键/系统音频一并回默认（点保存不再写回旧值）', async () => {
+    getSettings.mockResolvedValue({
+      encoder: 'vp9',
+      quality: 'medium',
+      bitrate: 5000,
+      fps: 30,
+      resolution: { width: 1920, height: 1080 },
+      format: 'webm',
+      audioEnabled: false,
+      audioCodec: 'opus',
+      audioBitrate: 128,
+      engine: 'mediarecorder',
+      countdownSeconds: 7,
+      countdownBeep: false,
+      systemAudio: { enabled: true, deviceId: 'dev-1', keepMicrophone: false }
+    })
+    const w = await setup()
+    await flush()
+    const resetBtn = w.findAll('button').find((b) => b.text().includes('重置'))!
+    await resetBtn.trigger('click')
+    await flush()
+    const saveBtn = w.findAll('button').find((b) => b.text() === '保存')!
+    await saveBtn.trigger('click')
+    await flush()
+    const payload = w.emitted('save')![0]![0] as Record<string, unknown>
+    expect(payload.countdownSeconds).toBe(3)
+    expect(payload.countdownBeep).toBe(true)
+    expect((payload.systemAudio as Record<string, unknown>).enabled).toBe(false)
+    expect((payload.shortcuts as Record<string, unknown>).enabled).toBe(true)
+  })
+
+  it('质量预设连点乱序：最后一次点击胜出（晚到的旧预设被丢弃）', async () => {
+    let resolveHigh!: (v: unknown) => void
+    getQualityPreset.mockImplementation((q: string) => {
+      if (q === 'high') {
+        return new Promise((r) => {
+          resolveHigh = r as (v: unknown) => void
+        })
+      }
+      return Promise.resolve({ bitrate: 2000, fps: 30, resolution: { width: 1280, height: 720 } })
+    })
+    const w = await setup()
+    await presetBtn(w, '高质量').trigger('click') // 挂起中
+    await presetBtn(w, '低质量').trigger('click') // 后点击先返回
+    await flush()
+    resolveHigh({ bitrate: 10000, fps: 60, resolution: { width: 1920, height: 1080 } })
+    await flush()
+    const saveBtn = w.findAll('button').find((b) => b.text() === '保存')!
+    await saveBtn.trigger('click')
+    await flush()
+    const payload = w.emitted('save')![0]![0] as Record<string, unknown>
+    expect(payload.bitrate).toBe(2000) // 修复前：晚到的 high 预设覆盖成 10000
+  })
+
+  it('系统音频状态回读：重开对话框不再显示关闭（保存不再静默关闭）', async () => {
+    getSettings.mockResolvedValue({
+      encoder: 'vp9',
+      quality: 'medium',
+      bitrate: 5000,
+      fps: 30,
+      resolution: { width: 1920, height: 1080 },
+      format: 'webm',
+      audioEnabled: true,
+      audioCodec: 'opus',
+      audioBitrate: 128,
+      engine: 'mediarecorder',
+      systemAudio: { enabled: true, deviceId: 'dev-9', keepMicrophone: false }
+    })
+    const w = await setup()
+    const saveBtn = w.findAll('button').find((b) => b.text() === '保存')!
+    await saveBtn.trigger('click')
+    await flush()
+    const payload = w.emitted('save')![0]![0] as Record<string, unknown>
+    const sa = payload.systemAudio as Record<string, unknown>
+    expect(sa.enabled).toBe(true) // 修复前：恒 false → 保存即静默关闭
+    expect(sa.deviceId).toBe('dev-9')
+    expect(sa.keepMicrophone).toBe(false)
   })
 })

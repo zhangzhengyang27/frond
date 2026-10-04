@@ -41,6 +41,10 @@ export interface RecordingSettings {
     deviceId?: string
     keepMicrophone?: boolean
   }
+  // 录制引擎（B57 根因① 治理，RECORDING_MEDIABUNNY_DESIGN.md D6 特性开关双轨）：
+  // 'mediarecorder' 旧 MediaRecorder/webm 链（默认，稳定）；'webcodecs' 新
+  // WebCodecs/Mediabunny mp4 链（实验）
+  engine?: 'mediarecorder' | 'webcodecs'
 }
 
 /**
@@ -57,7 +61,8 @@ const DEFAULT_SETTINGS: RecordingSettings = {
   format: 'webm',
   audioEnabled: false,
   audioCodec: 'opus',
-  audioBitrate: 128
+  audioBitrate: 128,
+  engine: 'mediarecorder'
 }
 
 /**

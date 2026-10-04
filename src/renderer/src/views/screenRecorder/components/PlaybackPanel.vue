@@ -50,12 +50,24 @@
             >
               <AppIcon icon="ri-loader-4-line" class="animate-spin text-white" :size="48" />
             </div>
+            <!-- B57-16：解码失败/文件缺失可见化（此前黑屏 + console） -->
+            <div
+              v-else-if="loadError"
+              class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70"
+            >
+              <AppIcon icon="ri-error-warning-line" class="text-white" :size="36" />
+              <p class="text-sm text-white">{{ loadError }}</p>
+              <p class="text-xs text-white/60">文件可能已被移动、删除或损坏</p>
+            </div>
           </div>
 
           <!-- 播放控制 -->
           <div class="flex flex-col gap-4">
-            <!-- 时间轴 -->
-            <div class="relative w-full h-16 bg-gray-100 rounded-lg overflow-hidden">
+            <!-- 时间轴（B57-16：支持点击 seek） -->
+            <div
+              class="relative w-full h-16 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+              @click="handleScrub"
+            >
               <template v-if="duration > 0">
                 <div class="absolute inset-0 flex items-center">
                   <!-- 标记点 -->
@@ -77,7 +89,9 @@
                       >
                         <div
                           class="w-2 h-2 rounded-full"
-                          :style="{ backgroundColor: marker.color || 'var(--color-marker-default)' }"
+                          :style="{
+                            backgroundColor: marker.color || 'var(--color-marker-default)'
+                          }"
                         ></div>
                       </div>
                       <div
@@ -128,6 +142,18 @@
                 <span>{{ formatTime(currentTime || 0) }}</span>
                 <span>/</span>
                 <span>{{ formatTime(duration) }}</span>
+                <!-- B57-16：倍速播放 -->
+                <select
+                  v-model.number="playbackRate"
+                  class="ml-2 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-xs font-sans text-gray-700"
+                  title="播放速度"
+                >
+                  <option :value="0.5">0.5x</option>
+                  <option :value="1">1x</option>
+                  <option :value="1.25">1.25x</option>
+                  <option :value="1.5">1.5x</option>
+                  <option :value="2">2x</option>
+                </select>
               </div>
             </div>
           </div>
@@ -181,6 +207,15 @@ const isPlaying = ref(false)
 const loading = ref(false)
 const duration = ref(0)
 const blobUrl = ref<string | null>(null)
+// B57-16：解码失败/文件缺失给出可见错误（此前只有黑屏 + console）
+const loadError = ref<string | null>(null)
+// B57-16：元数据未载入（duration=0）时的标记跳转——挂起待 duration 就绪后应用
+const pendingSeek = ref<number | null>(null)
+// B57-16：倍速播放
+const playbackRate = ref(1)
+watch(playbackRate, (rate) => {
+  if (videoRef.value) videoRef.value.playbackRate = rate
+})
 
 // 使用 computed 来创建响应式的 recordingId ref
 const recordingIdRef = computed(() => props.recordingId)
@@ -275,10 +310,14 @@ watch(
 )
 
 // 监听 blob URL 变化，加载视频
+let blobLoadEpoch = 0
 watch(
   () => blobUrl.value,
   async (newUrl, oldUrl) => {
     if (!videoRef.value) return
+    // B57-16：epoch 守卫——await 期间 videoPath 再变时旧 URL 已 revoke，
+    // 恢复执行不得把失效 URL 灌给 video 元素
+    const epoch = ++blobLoadEpoch
 
     // 如果 URL 变化，重置状态
     if (newUrl !== oldUrl) {
@@ -291,6 +330,7 @@ watch(
       if (newUrl) {
         // 等待下一个 tick，确保 video 元素的 src 已经更新
         await new Promise<void>((resolve) => setTimeout(resolve, 0))
+        if (epoch !== blobLoadEpoch) return
 
         if (!videoRef.value) {
           loading.value = false
@@ -307,6 +347,7 @@ watch(
 
         // 等待视频加载元数据
         await new Promise<void>((resolve) => {
+          if (epoch !== blobLoadEpoch) return
           if (!videoRef.value) {
             loading.value = false
             resolve()
@@ -387,6 +428,8 @@ watch(
       } else {
         loading.value = false
       }
+    } else {
+      loading.value = false
     }
   },
   { immediate: true }
@@ -456,8 +499,8 @@ const handleVideoCanPlay = (): void => {
 
 // 视频开始加载
 const handleLoadStart = (): void => {
-  console.log('视频开始加载')
   loading.value = true
+  loadError.value = null
 }
 
 // 视频加载错误
@@ -469,6 +512,7 @@ const handleVideoError = (event: Event): void => {
 
   console.error('视频播放错误:', event)
   loading.value = false
+  let userMessage = '视频加载失败'
   if (videoRef.value?.error) {
     const error = videoRef.value.error
     let errorMessage = '视频加载失败'
@@ -493,7 +537,10 @@ const handleVideoError = (event: Event): void => {
         break
     }
     console.error(errorMessage, error)
+    userMessage = errorMessage
   }
+  // B57-16：错误可见化（此前黑屏 + console，用户以为功能坏了）
+  loadError.value = userMessage
 }
 
 // 更新时间
@@ -530,18 +577,44 @@ const handleSeekToEnd = (): void => {
 
 // 跳转到标记时间点
 const handleJumpToMarker = (marker: Marker | number): void => {
-  if (videoRef.value) {
-    const timestamp = typeof marker === 'number' ? marker : marker.timestamp
-    if (timestamp >= 0 && timestamp <= duration.value) {
-      videoRef.value.currentTime = timestamp
-      // 如果视频暂停，自动播放
-      if (videoRef.value.paused) {
-        videoRef.value.play().catch((error) => {
-          console.error('播放视频失败:', error)
-        })
-      }
+  if (!videoRef.value) return
+  const timestamp = typeof marker === 'number' ? marker : marker.timestamp
+  // B57-16：元数据未载入（duration=0）时不再静默失效——挂起，duration 就绪后应用
+  if (duration.value <= 0) {
+    if (timestamp >= 0) pendingSeek.value = timestamp
+    return
+  }
+  seekTo(timestamp)
+}
+
+function seekTo(timestamp: number): void {
+  if (!videoRef.value) return
+  if (timestamp >= 0 && timestamp <= duration.value) {
+    videoRef.value.currentTime = timestamp
+    if (videoRef.value.paused) {
+      videoRef.value.play().catch((error) => {
+        console.error('播放视频失败:', error)
+      })
     }
   }
+}
+
+// 挂起的跳转在时长就绪后应用
+watch(duration, (d) => {
+  if (d > 0 && pendingSeek.value != null) {
+    const target = pendingSeek.value
+    pendingSeek.value = null
+    seekTo(Math.min(target, d))
+  }
+})
+
+// ── B57-16：scrubber——时间轴点击/拖动 seek ──
+function handleScrub(e: MouseEvent): void {
+  if (duration.value <= 0) return
+  const el = e.currentTarget as HTMLElement
+  const rect = el.getBoundingClientRect()
+  const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
+  seekTo(ratio * duration.value)
 }
 
 // 关闭回放

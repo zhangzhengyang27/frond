@@ -93,6 +93,20 @@ describe('recordingHistory 白名单守卫（B30）', () => {
     expect(svc.addHistory).not.toHaveBeenCalled()
   })
 
+  it('addHistory 白名单跟随引擎：mp4/gif 已签发路径放行（P3·B57-14，webcodecs 引擎直出 mp4）', async () => {
+    // 模拟真实 resolveGrantedRecordingPath 的扩展名过滤语义
+    resolveGrantedMock.mockImplementation((p: unknown, ext?: string[]) =>
+      ext?.some((e) => String(p).toLowerCase().endsWith(e)) ? String(p) : null
+    )
+    await expect(
+      call('recording-history:addHistory', { filePath: '/downloads/rec.mp4' })
+    ).resolves.toBeTruthy()
+    await expect(
+      call('recording-history:addHistory', { filePath: '/downloads/rec.gif' })
+    ).resolves.toBeTruthy()
+    expect(svc.addHistory).toHaveBeenCalledTimes(2)
+  })
+
   it('addHistory 放行已签发路径', async () => {
     resolveGrantedMock.mockReturnValue(video)
     const res = (await call('recording-history:addHistory', { filePath: video })) as {

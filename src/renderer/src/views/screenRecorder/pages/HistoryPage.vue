@@ -26,6 +26,10 @@
     <div v-if="loading" class="flex flex-1 items-center justify-center text-sm text-fg-muted">
       读取中…
     </div>
+    <div v-else-if="loadError" class="flex flex-1 flex-col items-center justify-center gap-3">
+      <AppIcon icon="ri-error-warning-line" :size="30" class="text-fg-danger" />
+      <p class="text-sm text-fg-muted">加载失败，请点击「刷新」重试</p>
+    </div>
     <div
       v-else-if="items.length === 0"
       class="flex flex-1 flex-col items-center justify-center gap-3"
@@ -59,6 +63,7 @@
               :alt="item.filename"
               class="h-full w-full object-cover"
               loading="lazy"
+              @error="onThumbError(item)"
             />
             <AppIcon v-else icon="ri-film-line" :size="20" class="text-fg-tertiary" />
           </div>
@@ -118,6 +123,7 @@ import { useVirtualList } from '@vueuse/core'
 import AppIcon from '@components/AppIcon.vue'
 import type { RecordingHistory } from '@preload/index.d'
 import { confirm } from '@composables/useConfirm'
+import { useToast } from '@composables/useToast'
 
 /**
  * B26（2026-09-28 审计）：Layout 的 router-view 监听 @play-video / @clip-video，
@@ -149,7 +155,10 @@ const toVideo = (
   duration: item.duration
 })
 
+const toast = useToast()
 const items = ref<RecordingHistory[]>([])
+// B57-15：加载失败 ≠ 空态（错误态单独渲染，不再伪装成「还没有录制记录」）
+const loadError = ref(false)
 
 // 虚拟滚动：行高固定 96px（h-24 box-border）+ 12px 间距 = 108px 槽位
 const { list, containerProps, wrapperProps } = useVirtualList(items, {
@@ -166,7 +175,13 @@ const summaryLabel = computed(() =>
 )
 
 function thumbOf(item: RecordingHistory): string {
-  return item.thumbnail ? `file://${item.thumbnail}` : ''
+  return item.thumbnail && !brokenThumbs.has(item.id) ? `file://${item.thumbnail}` : ''
+}
+// 缩略图文件被清理/损坏：记录失败 id，模板回退到占位图标
+const brokenThumbs = new Set<string>()
+function onThumbError(item: RecordingHistory): void {
+  brokenThumbs.add(item.id)
+  items.value = [...items.value] // 触发重渲
 }
 
 function sizeLabel(bytes: number): string {
@@ -192,11 +207,13 @@ function dateLabel(ts: number): string {
 
 async function load(): Promise<void> {
   loading.value = true
+  loadError.value = false
   try {
     items.value = await window.api.recordingHistory.getHistory()
   } catch (error) {
     console.error('[HistoryPage] getHistory failed:', error)
     items.value = []
+    loadError.value = true
   } finally {
     loading.value = false
   }
@@ -204,7 +221,10 @@ async function load(): Promise<void> {
 
 async function openItem(item: RecordingHistory): Promise<void> {
   const res = await window.api.recordingHistory.openFile(item.filePath)
-  if (!res.success) console.error('[HistoryPage] openFile failed:', res.error)
+  if (!res.success) {
+    console.error('[HistoryPage] openFile failed:', res.error)
+    toast.error('打开文件失败', { description: '文件可能已被移动或删除' })
+  }
 }
 
 function reveal(item: RecordingHistory): void {
@@ -222,6 +242,9 @@ async function remove(item: RecordingHistory): Promise<void> {
   if (!ok) return
   if (await window.api.recordingHistory.deleteHistory(item.id)) {
     items.value = items.value.filter((i) => i.id !== item.id)
+  } else {
+    // B57-15：失败静默不删会让用户以为删掉了
+    toast.error('删除失败，请稍后重试')
   }
 }
 
@@ -233,8 +256,12 @@ async function clearAll(): Promise<void> {
     danger: true
   })
   if (!ok) return
-  await window.api.recordingHistory.clearHistory()
-  items.value = []
+  // B57-15：先确认成功再清本地列表（失败清了刷新又回来，自相矛盾）
+  if (await window.api.recordingHistory.clearHistory()) {
+    items.value = []
+  } else {
+    toast.error('清空失败，请稍后重试')
+  }
 }
 
 onMounted(load)

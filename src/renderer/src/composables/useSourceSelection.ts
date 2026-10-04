@@ -39,11 +39,16 @@ function schedulePermissionRetry(fn: () => void, delayMs: number): void {
   permissionRetryTimers.add(timer)
 }
 
+let deviceChangePending = false
 function ensureDeviceChangeListener(): void {
   if (deviceChangeHandler || typeof navigator === 'undefined' || !navigator.mediaDevices) return
   deviceChangeHandler = (): void => {
-    // loading 期间跳过，避免与手动刷新互相踩踏
-    if (loading.value) return
+    // B57-19：loading 期间不再丢弃事件——记 pending，loadSources 收尾后重放
+    // （旧实现窗口期内的插拔永久丢失）
+    if (loading.value) {
+      deviceChangePending = true
+      return
+    }
     void loadCameraDevices()
     if (sourceType.value === 'screen') void loadSources()
   }
@@ -75,7 +80,6 @@ const loadSources = async (): Promise<void> => {
     console.error('加载屏幕源失败:', error)
     const err = error as { message?: string; needsPermission?: unknown }
     const errorMessage = err.message || String(error)
-    const needsPermission = err.needsPermission === true
 
     // 设置友好的错误信息
     if (errorMessage.includes('屏幕录制权限') || errorMessage.includes('权限')) {
@@ -86,18 +90,19 @@ const loadSources = async (): Promise<void> => {
       sourceError.value = `加载屏幕源失败: ${errorMessage}`
     }
 
-    // 如果是权限问题，自动请求权限
-    if (needsPermission || errorMessage.includes('Failed to get sources')) {
-      // 延迟一下再请求权限，让用户看到错误信息
-      schedulePermissionRetry(() => {
-        void requestScreenPermission()
-      }, 500)
-    }
+    // B57-19：不再自动弹系统设置（无手势侵入）。错误态已展示 + UI 有
+    // 「请求权限」按钮，由用户决定何时去授权
 
     // 清空源列表
     sources.value = []
   } finally {
     loading.value = false
+    // B57-19：loading 期间积压的 devicechange 事件在此重放
+    if (deviceChangePending && !loading.value) {
+      deviceChangePending = false
+      void loadCameraDevices()
+      if (sourceType.value === 'screen') void loadSources()
+    }
   }
 }
 
@@ -182,7 +187,7 @@ const loadCameraDevices = async (): Promise<void> => {
       .map((device) => ({
         deviceId: device.deviceId,
         label: device.label || `摄像头 ${device.deviceId.slice(0, 8)}`,
-        kind: device.kind as MediaDeviceKind
+        kind: device.kind
       }))
 
     cameraDevices.value = cameras
@@ -245,7 +250,7 @@ const requestCameraPermission = async (): Promise<void> => {
       .map((device) => ({
         deviceId: device.deviceId,
         label: device.label || `摄像头 ${device.deviceId.slice(0, 8)}`,
-        kind: device.kind as MediaDeviceKind
+        kind: device.kind
       }))
 
     cameraDevices.value = cameras

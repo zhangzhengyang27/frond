@@ -1,12 +1,33 @@
-import { ref, computed, type Ref } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import type { Marker } from '../../../preload/index.d'
 
-export function useMarkers(recordingId: Ref<string | null> | string | null = null) {
-  const markers = ref<Marker[]>([])
-  const loading = ref(false)
-  // 竞态守卫（B50）：换片后旧请求晚到不得覆盖新列表
-  let loadSeq = 0
+/**
+ * useMarkers（B57-7 重构）：标记状态按 recordingId 单例化。
+ *
+ * 旧实现每次调用创建独立 markers ref——PlaybackPanel 与 MarkersPanel 各持一份：
+ * 面板增删改只刷新自己的列表，回放页时间轴 overlay 永不更新（直到重新选片）。
+ * 现在「同 recordingId ⇒ 同一 store」，任何一侧刷新即全局可见；不同录制相互隔离。
+ */
 
+interface MarkerStore {
+  markers: Ref<Marker[]>
+  loading: Ref<boolean>
+  /** 竞态守卫（B50）：换片后旧请求晚到不得覆盖新列表（按 store 隔离） */
+  loadSeq: number
+}
+
+const storeCache = new Map<string, MarkerStore>()
+
+function storeFor(recordingId: string): MarkerStore {
+  let store = storeCache.get(recordingId)
+  if (!store) {
+    store = { markers: ref<Marker[]>([]), loading: ref(false), loadSeq: 0 }
+    storeCache.set(recordingId, store)
+  }
+  return store
+}
+
+export function useMarkers(recordingId: Ref<string | null> | string | null = null) {
   // 获取当前的 recordingId
   const getRecordingId = (): string | null => {
     if (typeof recordingId === 'string' || recordingId === null) {
@@ -15,26 +36,33 @@ export function useMarkers(recordingId: Ref<string | null> | string | null = nul
     return recordingId.value
   }
 
+  // 共享列表的只读视图（随 recordingId 动态切 store）
+  const markers: ComputedRef<Marker[]> = computed(
+    () => storeFor(getRecordingId() ?? '__none__').markers.value
+  )
+  const loading: ComputedRef<boolean> = computed(
+    () => storeFor(getRecordingId() ?? '__none__').loading.value
+  )
+
   // 加载标记
   const loadMarkers = async (id?: string): Promise<void> => {
     const targetId = id || getRecordingId()
     if (!targetId) {
-      markers.value = []
       return
     }
-
-    const seq = ++loadSeq
-    loading.value = true
+    const store = storeFor(targetId)
+    const seq = ++store.loadSeq
+    store.loading.value = true
     try {
       const rows = await window.api.marker.getMarkers(targetId)
-      if (seq !== loadSeq) return // 期间又有新加载发起：丢弃本次回写
-      markers.value = rows
+      if (seq !== store.loadSeq) return // 期间又有新加载发起：丢弃本次回写
+      store.markers.value = rows
     } catch (error) {
-      if (seq !== loadSeq) return
+      if (seq !== store.loadSeq) return
       console.error('加载标记失败:', error)
-      markers.value = []
+      store.markers.value = []
     } finally {
-      if (seq === loadSeq) loading.value = false
+      if (seq === store.loadSeq) store.loading.value = false
     }
   }
 

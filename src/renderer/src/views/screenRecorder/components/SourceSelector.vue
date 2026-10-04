@@ -39,7 +39,7 @@ interface Emits {
   'retry-camera': []
   'close-camera': []
   'request-permission': []
-  'select-region': [displayId?: number | 'cross' | null]
+  'select-region': [displayId?: number | 'cross' | 'cancel' | null]
 }
 
 const displays = ref<DisplayInfo[]>([])
@@ -74,6 +74,11 @@ function toggleCrossDisplay(): void {
   if (crossDisplay.value) {
     selectedDisplayId.value = 'cross'
     emit('select-region', 'cross')
+  } else {
+    // B57-19：取消跨屏必须回传——旧实现只翻转本地布尔，UI 无选中但沿用旧区域
+    const primary = displays.value.find((d) => d.isPrimary)
+    selectedDisplayId.value = primary?.id ?? null
+    emit('select-region', 'cancel')
   }
 }
 

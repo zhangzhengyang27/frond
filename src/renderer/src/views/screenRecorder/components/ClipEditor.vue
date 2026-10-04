@@ -174,9 +174,13 @@ const handleAddClipFromTimeline = async (startTime: number, endTime: number): Pr
 // 添加剪辑
 const handleAddClip = (): void => {
   editingClip.value = null
+  const start = Math.max(0, currentTime.value || 0)
+  const maxDuration = videoInfo.value?.duration ?? 0
+  // B57-18：endTime 曾恒为「当前+10」不 clamp——片尾附近一键就建出越界片段
+  const end = maxDuration > 0 ? Math.min(maxDuration, start + 10) : start + 10
   clipForm.value = {
-    startTime: currentTime.value || 0,
-    endTime: (currentTime.value || 0) + 10,
+    startTime: start,
+    endTime: Math.max(start, end),
     label: ''
   }
   showClipDialog.value = true
@@ -195,7 +199,19 @@ const handleEditClip = (clip: Clip): void => {
 
 // 保存剪辑
 const handleSaveClip = async (): Promise<void> => {
-  if (clipForm.value.startTime >= clipForm.value.endTime) {
+  // B57-18：NaN/负数/越时长直接拦截（v-model.number 清空输入得空串）
+  const form = clipForm.value
+  const maxDuration = videoInfo.value?.duration ?? Number.POSITIVE_INFINITY
+  const valid = (n: number): boolean => Number.isFinite(n) && n >= 0
+  if (!valid(form.startTime) || !valid(form.endTime)) {
+    toast.warning('请输入有效的时间（非负数字）')
+    return
+  }
+  if (form.endTime > maxDuration) {
+    toast.warning(`结束时间超出视频时长（${maxDuration.toFixed(1)}s）`)
+    return
+  }
+  if (form.startTime >= form.endTime) {
     toast.warning('开始时间必须小于结束时间')
     return
   }
@@ -247,15 +263,21 @@ const handleClearClips = async (): Promise<void> => {
   }
 }
 
-// 预览剪辑
+// 预览剪辑（B57-10a：ffmpeg 渲染耗时，产物交给系统播放器打开；
+// 防重入避免并发发起第二次渲染）
+const previewingId = ref<string | null>(null)
 const handlePreviewClip = async (clip: Clip): Promise<void> => {
+  if (previewingId.value) return
+  previewingId.value = clip.id
   try {
     const previewPath = await previewClip(clip)
-    // 可以打开预览视频或显示预览窗口
-    console.log('预览路径:', previewPath)
+    toast.success('预览已生成', { description: previewPath })
+    await window.api.system.openPath(previewPath)
   } catch (error) {
     console.error('预览失败:', error)
     toast.error('预览失败', { description: (error as Error).message })
+  } finally {
+    previewingId.value = null
   }
 }
 
@@ -271,7 +293,11 @@ const handleExport = async (options: Omit<ExportOptions, 'clips'>): Promise<void
   }
 }
 // ─── 重建区（2026-09-23）：原件脚本头部丢失，以下胶水为新增 ───
-const videoSrc = computed(() => (props.videoPath ? `video://${encodeURI(props.videoPath)}` : ''))
+// B57-19：encodeURI 不转义 #/?（URL 被截断成 fragment/query → 404 黑屏）。
+// 按段 encodeURIComponent 保留分隔符、转义段内特殊字符；Windows 反斜杠路径整段编码
+const videoSrc = computed(() =>
+  props.videoPath ? `video://${props.videoPath.split('/').map(encodeURIComponent).join('/')}` : ''
+)
 const totalDuration = computed(() => videoInfo.value?.duration ?? 0)
 
 const handleMetadata = (event: Event): void => {
@@ -406,8 +432,13 @@ const togglePlay = (): void => {
             <button class="text-sm text-gray-600" type="button" @click="handleEditClip(clip)">
               编辑
             </button>
-            <button class="text-sm text-gray-600" type="button" @click="handlePreviewClip(clip)">
-              预览
+            <button
+              class="text-sm text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              :disabled="previewingId === clip.id"
+              @click="handlePreviewClip(clip)"
+            >
+              {{ previewingId === clip.id ? '预览中…' : '预览' }}
             </button>
             <button class="text-sm text-red-500" type="button" @click="handleRemoveClip(clip.id)">
               删除
@@ -418,39 +449,35 @@ const togglePlay = (): void => {
     </div>
 
     <!-- 片段表单 -->
-    <UModal
-      v-model="showClipDialog"
-      :title="editingClip ? '编辑片段' : '新增片段'"
-      size="md"
-    >
+    <UModal v-model="showClipDialog" :title="editingClip ? '编辑片段' : '新增片段'" size="md">
       <div class="flex flex-col gap-3">
-          <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
-            <span>开始（秒）</span>
-            <input
-              v-model.number="clipForm.startTime"
-              class="h-9 w-32 rounded-md border border-gray-200 px-3"
-              type="number"
-              min="0"
-            />
-          </label>
-          <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
-            <span>结束（秒）</span>
-            <input
-              v-model.number="clipForm.endTime"
-              class="h-9 w-32 rounded-md border border-gray-200 px-3"
-              type="number"
-              min="0"
-            />
-          </label>
-          <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
-            <span>名称</span>
-            <input
-              v-model="clipForm.label"
-              class="h-9 flex-1 rounded-md border border-gray-200 px-3"
-              type="text"
-              placeholder="可选"
-            />
-          </label>
+        <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
+          <span>开始（秒）</span>
+          <input
+            v-model.number="clipForm.startTime"
+            class="h-9 w-32 rounded-md border border-gray-200 px-3"
+            type="number"
+            min="0"
+          />
+        </label>
+        <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
+          <span>结束（秒）</span>
+          <input
+            v-model.number="clipForm.endTime"
+            class="h-9 w-32 rounded-md border border-gray-200 px-3"
+            type="number"
+            min="0"
+          />
+        </label>
+        <label class="flex items-center justify-between gap-3 text-sm text-gray-600">
+          <span>名称</span>
+          <input
+            v-model="clipForm.label"
+            class="h-9 flex-1 rounded-md border border-gray-200 px-3"
+            type="text"
+            placeholder="可选"
+          />
+        </label>
       </div>
       <template #footer>
         <UButton variant="ghost" @click="showClipDialog = false">取消</UButton>

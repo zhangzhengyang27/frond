@@ -299,11 +299,13 @@ export interface IpcContract {
     }
   }
   'recording.recovery.recover': {
-    req: { filePath: string }
+    // recordingId：scan 返回的孤儿行 id（D4 行级精确恢复；缺省按精确路径解析）
+    req: { filePath: string; recordingId?: string }
     res: { recordingId: string }
   }
   'recording.recovery.discard': {
-    req: { filePath: string }
+    // 行级精确删除（recordingId 优先）；filePath 按精确路径匹配，不再按 basename 跨目录猜
+    req: { filePath?: string; recordingId?: string }
     res: { ok: boolean }
   }
   // ── PR-3: 暂停/恢复段管理 ─────────────────────────────────────
@@ -345,25 +347,33 @@ export interface IpcContract {
     res: { totalMs: number }
   }
   // ── PR-4: 区域选择 / 系统音频探测 ─────────────────────────────
+  // 取消不再抛 Error('canceled') 信封（P3·B57-14）：统一返回 { canceled: true }；
+  // scaleFactor = 区域所在显示器（跨屏时为 primary），渲染端换算物理像素用
   'recording.region.open': {
     req: void
-    res: { region: { x: number; y: number; width: number; height: number } }
+    res: { region: { x: number; y: number; width: number; height: number } } | { canceled: true }
   }
   'recording.region.openForDisplay': {
     req: { displayId: number }
-    res: {
-      region: { x: number; y: number; width: number; height: number }
-      displayId: number
-      crossDisplay: boolean
-    }
+    res:
+      | {
+          region: { x: number; y: number; width: number; height: number }
+          displayId: number
+          crossDisplay: boolean
+          scaleFactor: number
+        }
+      | { canceled: true }
   }
   'recording.region.openCrossDisplay': {
     req: void
-    res: {
-      region: { x: number; y: number; width: number; height: number }
-      displayId: number
-      crossDisplay: boolean
-    }
+    res:
+      | {
+          region: { x: number; y: number; width: number; height: number }
+          displayId: number
+          crossDisplay: boolean
+          scaleFactor: number
+        }
+      | { canceled: true }
   }
   'recording.region.listDisplays': {
     req: void
@@ -428,13 +438,7 @@ export interface IpcContract {
   }
   'recording.export.getInfo': {
     req: { filePath: string }
-    res: {
-      ok: boolean
-      durationSec?: number | undefined
-      width?: number
-      height?: number
-      error?: string
-    }
+    res: { ok: boolean; durationSec?: number | undefined }
   }
   // PR-7a: 全局快捷键
   'recording.shortcut.getConfig': {
@@ -1184,7 +1188,7 @@ export interface IpcContract {
     req: { id: string }
     res: ReturnType<RecordingHistoryService['deleteHistory']>
   }
-  'recording-history:clearHistory': { req: void; res: void }
+  'recording-history:clearHistory': { req: void; res: boolean }
   'recording-history:generateThumbnail': {
     req: { videoPath: string }
     res: Awaited<ReturnType<RecordingHistoryService['generateThumbnail']>>
@@ -1467,7 +1471,11 @@ export interface IpcContract {
 
   'windows:list': { req: void; res: WindowInfo[] }
   'windows:activate': {
-    req: { pid: number; title: string; /** B41-2：同 pid+title 的第 N 个窗口 */ occurrence?: number }
+    req: {
+      pid: number
+      title: string
+      /** B41-2：同 pid+title 的第 N 个窗口 */ occurrence?: number
+    }
     res: boolean
   }
 
@@ -1513,11 +1521,18 @@ export interface IpcContract {
     req: { id: PermissionId | 'privacy' }
     res: { ok: boolean; error?: string }
   }
-  'screen-recorder:getDefaultSavePath': { req: void; res: string }
-  'screen-recorder:selectSavePath': { req: void; res: string | null }
+  /** extension：录制引擎决定容器（mediarecorder=webm，webcodecs=mp4）；缺省 webm 兼容旧渲染端 */
+  'screen-recorder:getDefaultSavePath': {
+    req: { extension?: 'webm' | 'mp4' } | void
+    res: string
+  }
+  'screen-recorder:selectSavePath': {
+    req: { extension?: 'webm' | 'mp4' } | void
+    res: string | null
+  }
   'screen-recorder:beginWrite': {
     req: { filePath: string }
-    res: { ok: boolean; error?: string; path?: string }
+    res: { ok: boolean; error?: string }
   }
   'screen-recorder:appendChunk': {
     req: { filePath: string; chunk: Uint8Array }

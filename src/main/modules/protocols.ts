@@ -34,7 +34,14 @@ const VIDEO_MIME: Record<string, string> = {
 
 /** 校验协议请求的本地路径：绝对路径 + 存在 + 是文件 + 扩展名在白名单内 */
 function validatedMediaPath(rawPath: string, allowed: Set<string>): string | null {
-  const filePath = decodeURI(rawPath)
+  // B57-19：decodeURIComponent 才能还原路径里的 #/?（渲染端已按段 encodeURIComponent）；
+  // 非法序列（字面 %）回 null 拒绝
+  let filePath: string
+  try {
+    filePath = decodeURIComponent(rawPath)
+  } catch {
+    return null
+  }
   if (!isAbsolute(filePath)) return null
   if (!allowed.has(extname(filePath).toLowerCase())) return null
   try {

@@ -10,6 +10,33 @@ import { typedHandle } from './typedIpc'
 
 const execAsync = promisify(exec)
 
+// macOS 系统设置的屏幕录制面板；该 URL scheme 在 macOS 12 及 13+ (Ventura) 均适用
+const DARWIN_PREFS_URL =
+  'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
+
+/**
+ * 按平台构造「打开权限设置」的结果。导出以便测试（B57-12）：
+ * Windows 桌面应用的屏幕捕获没有系统级权限面板，旧实现误开「麦克风」隐私页
+ * （复制粘贴错误）——任何平台都不应打开与屏幕录制无关的设置页。
+ */
+export async function openPermissionSettingsOutcome(
+  platform: NodeJS.Platform,
+  openExternal: (url: string) => Promise<unknown>
+): Promise<{ success: boolean; message: string }> {
+  if (platform === 'darwin') {
+    await openExternal(DARWIN_PREFS_URL)
+    return { success: true, message: '已打开系统设置，请授予屏幕录制权限后重启应用' }
+  }
+  if (platform === 'win32') {
+    // Windows 无对应隐私面板；打开无关设置页只会误导，返回事实说明即可
+    return {
+      success: false,
+      message: 'Windows 桌面应用录屏无需系统权限；若画面异常请检查捕获源或受版权保护的内容'
+    }
+  }
+  return { success: false, message: '请在系统设置中授予屏幕录制权限' }
+}
+
 export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWindow | null): void {
   // 获取可用的屏幕源
   typedHandle('screen-recorder:getSources', async (_event, req) => {
@@ -114,53 +141,25 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
     }
   })
 
-  // 请求屏幕录制权限（打开系统设置）
+  // 请求屏幕录制权限（打开系统设置；平台分支见 openPermissionSettingsOutcome）
   typedHandle('screen-recorder:requestPermission', async () => {
-    if (process.platform === 'darwin') {
+    try {
+      return await openPermissionSettingsOutcome(process.platform, (url) => shell.openExternal(url))
+    } catch (error) {
+      console.error('打开系统设置失败:', error)
+      // 备用方案：使用命令行打开（仅 macOS 会走到这里——其余平台不调 openExternal）
       try {
-        // macOS: 打开系统设置的屏幕录制权限页面
-        // 该 URL scheme 在 macOS 12 及 13+ (Ventura) 均适用
-        const urlScheme =
-          'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
-
-        await shell.openExternal(urlScheme)
+        await execAsync(`open "${DARWIN_PREFS_URL}"`)
         return { success: true, message: '已打开系统设置，请授予屏幕录制权限后重启应用' }
-      } catch (error) {
-        console.error('打开系统设置失败:', error)
-        // 备用方案：使用命令行打开
-        try {
-          await execAsync(
-            'open "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"'
-          )
-          return { success: true, message: '已打开系统设置，请授予屏幕录制权限后重启应用' }
-        } catch (fallbackError) {
-          console.error('备用方案也失败:', fallbackError)
-          return {
-            success: false,
-            message:
-              '无法自动打开系统设置，请手动前往：系统设置 > 隐私与安全性 > 屏幕录制，授予权限后重启应用'
-          }
-        }
-      }
-    } else if (process.platform === 'linux') {
-      // Linux: 可以尝试打开系统设置（取决于发行版）
-      return {
-        success: false,
-        message: '请在系统设置中授予屏幕录制权限'
-      }
-    } else if (process.platform === 'win32') {
-      // Windows: 打开隐私设置
-      try {
-        await shell.openExternal('ms-settings:privacy-microphone')
-        return { success: true, message: '已打开 Windows 隐私设置' }
-      } catch {
+      } catch (fallbackError) {
+        console.error('备用方案也失败:', fallbackError)
         return {
           success: false,
-          message: '请在 Windows 设置 > 隐私中授予屏幕录制权限'
+          message:
+            '无法自动打开系统设置，请手动前往：系统设置 > 隐私与安全性 > 屏幕录制，授予权限后重启应用'
         }
       }
     }
-    return { success: false, message: '当前平台不支持自动打开权限设置' }
   })
 
   // 检查屏幕录制权限状态
@@ -191,7 +190,9 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
   })
 
   // 获取默认保存路径（使用日期格式文件名）
-  typedHandle('screen-recorder:getDefaultSavePath', async () => {
+  // extension 由录制引擎决定容器：mediarecorder=webm，webcodecs=mp4（缺省 webm 兼容旧渲染端）
+  typedHandle('screen-recorder:getDefaultSavePath', async (_event, req) => {
+    const extension = req?.extension === 'mp4' ? 'mp4' : 'webm'
     // 生成日期格式的文件名：2025-11-08 18-52-14
     const now = new Date()
     const pad = (n: number): string => String(n).padStart(2, '0')
@@ -200,23 +201,27 @@ export function registerScreenRecorderIpcHandlers(getMainWindow: () => BrowserWi
     // 使用下载目录作为默认保存位置
     const downloadsPath = app.getPath('downloads')
     // 同一秒内连续录制（或已有同名文件）时追加序号，避免 writeFileSync 静默覆盖
-    let candidate = join(downloadsPath, `${fileName}.webm`)
+    let candidate = join(downloadsPath, `${fileName}.${extension}`)
     for (let i = 1; existsSync(candidate); i++) {
-      candidate = join(downloadsPath, `${fileName} (${i}).webm`)
+      candidate = join(downloadsPath, `${fileName} (${i}).${extension}`)
     }
     grantRecordingSavePath(candidate)
     return candidate
   })
 
   // 选择保存录制文件的路径
-  // 只允许 webm：MediaRecorder 输出固定是 webm 容器，旧实现同时提供 mp4 过滤器，
-  // 用户选了 .mp4 会得到「webm 数据 + mp4 后缀」的假容器文件
-  typedHandle('screen-recorder:selectSavePath', async () => {
+  // 过滤器跟随录制引擎的容器：旧链路只允许 webm（MediaRecorder 固定输出 webm 容器），
+  // webcodecs 引擎直出 mp4
+  typedHandle('screen-recorder:selectSavePath', async (_event, req) => {
+    const extension = req?.extension === 'mp4' ? 'mp4' : 'webm'
     const mainWindow = getMainWindow()
     const result = await showSaveDialogFor(mainWindow, {
       title: '保存录制文件',
-      defaultPath: `screen-recording-${Date.now()}.webm`,
-      filters: [{ name: 'WebM 视频', extensions: ['webm'] }]
+      defaultPath: `screen-recording-${Date.now()}.${extension}`,
+      filters:
+        extension === 'mp4'
+          ? [{ name: 'MP4 视频', extensions: ['mp4'] }]
+          : [{ name: 'WebM 视频', extensions: ['webm'] }]
     })
     if (result.canceled || !result.filePath) {
       return null

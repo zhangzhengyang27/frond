@@ -874,8 +874,10 @@ const api = {
   screenRecorder: {
     getSources: (options: Electron.SourcesOptions) =>
       typedInvoke('screen-recorder:getSources', { options }),
-    selectSavePath: () => typedInvoke('screen-recorder:selectSavePath'),
-    getDefaultSavePath: () => typedInvoke('screen-recorder:getDefaultSavePath'),
+    selectSavePath: (options?: { extension?: 'webm' | 'mp4' }) =>
+      typedInvoke('screen-recorder:selectSavePath', options ?? {}),
+    getDefaultSavePath: (options?: { extension?: 'webm' | 'mp4' }) =>
+      typedInvoke('screen-recorder:getDefaultSavePath', options ?? {}),
     saveFile: (filePath: string, buffer: Uint8Array, duration?: number, recordingId?: string) =>
       typedInvoke('screen-recorder:saveFile', { filePath, buffer, duration, recordingId }),
     // 分片流式写盘（长录制避免整段视频驻留内存）

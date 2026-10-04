@@ -39,7 +39,9 @@ export function registerRecordingHistoryIpcHandlers(): void {
       // 历史行是上面三条通道的白名单数据源：渲染端只能登记主进程当前签发过的
       // 录制路径（saveFile/endWrite 落库时签发尚未撤销）。主进程内部直接调
       // RecordingHistoryService，不经这条 IPC，不受此限。
-      if (!resolveGrantedRecordingPath(recording?.filePath, ['.webm'])) {
+      // 白名单跟随引擎（P3·B57-14）：mediarecorder=webm；webcodecs 直出 mp4；
+      // 导出产物为 mp4/gif
+      if (!resolveGrantedRecordingPath(recording?.filePath, ['.webm', '.mp4', '.gif'])) {
         throw new Error('录制路径未经主进程签发，已拒绝登记')
       }
       return recordingHistoryService.addHistory(recording)
@@ -51,9 +53,9 @@ export function registerRecordingHistoryIpcHandlers(): void {
     return recordingHistoryService.deleteHistory(req.id)
   })
 
-  // 清空历史记录
+  // 清空历史记录（B57-15：返回布尔供渲染端区分成败）
   typedHandle('recording-history:clearHistory', () => {
-    recordingHistoryService.clearHistory()
+    return recordingHistoryService.clearHistory()
   })
 
   // 生成缩略图
@@ -103,7 +105,7 @@ export function registerRecordingHistoryIpcHandlers(): void {
       throw new Error('录制文件过大（>128MB），请改用流式回放')
     }
     const buf = await readFile(filePath)
-    return new Uint8Array(buf).buffer as ArrayBuffer
+    return new Uint8Array(buf).buffer
   })
 
   // 在文件夹中显示文件

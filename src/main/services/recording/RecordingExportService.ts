@@ -15,7 +15,7 @@
  */
 
 import { spawn } from 'child_process'
-import { existsSync, statSync } from 'fs'
+import { existsSync, statSync, unlinkSync } from 'fs'
 import {
   getFfmpegPath,
   probeMediaInfo,
@@ -57,11 +57,13 @@ export interface RecordingExportOptions {
    */
   transition?: ExportTransition | undefined
   // PR-6: 背景音乐（与主音频 amix 叠加）
-  backgroundMusic?: {
-    path: string
-    /** 音量 0..1（线性）。默认 0.5 */
-    volume?: number
-  } | undefined
+  backgroundMusic?:
+    | {
+        path: string
+        /** 音量 0..1（线性）。默认 0.5 */
+        volume?: number
+      }
+    | undefined
   /**
    * PR-6: 音频淡入淡出时长（秒）。应用到主音频 + BGM（若 BGM 长于视频则会循环/截断到视频末端）。
    * 默认 0（不淡）。建议 0.5 ~ 2 秒。
@@ -93,6 +95,7 @@ export interface ExportFailure {
 
 export class RecordingExportService {
   private activeChild: ReturnType<typeof spawn> | null = null
+  private busy = false
 
   /**
    * 同步探测源文件时长（秒）。用 ffmpeg 解析 container 元数据。
@@ -219,10 +222,16 @@ export class RecordingExportService {
       args = buildSimpleExportArgs(options)
     }
 
+    if (this.busy) {
+      // B57-13：activeChild 是单例——并发导出互相覆盖句柄、cancel 杀错进程。
+      // IPC 层本就按 jobId 走 AbortController，这里直接拒绝第二个任务
+      return { ok: false, error: '已有导出任务进行中，请等待完成或取消后再试' }
+    }
+    this.busy = true
     const totalSec = srcInfo.durationSec
     onProgress({ percent: 0, message: useComplex ? '合成中…' : '开始转码…' })
 
-    const result = await new Promise<ExportResult | ExportFailure>((resolve) => {
+    return await new Promise<ExportResult | ExportFailure>((resolve) => {
       const child = spawn(ffmpeg, args)
       this.activeChild = child
       const stderrTail = createStderrTail()
@@ -232,14 +241,23 @@ export class RecordingExportService {
         const chunk = b.toString()
         stderrTail.push(chunk)
         const m = /time=(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(chunk)
-        if (m && totalSec && totalSec > 0) {
+        if (m) {
           const cur = Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])
-          const percent = Math.min(99, Math.floor((cur / totalSec) * 100))
-          if (percent > lastPercent) {
-            lastPercent = percent
+          if (totalSec && totalSec > 0) {
+            const percent = Math.min(99, Math.floor((cur / totalSec) * 100))
+            if (percent > lastPercent) {
+              lastPercent = percent
+              onProgress({
+                percent,
+                message: useComplex ? `合成中 ${percent}%` : `转码中 ${percent}%`,
+                currentTimeSec: cur
+              })
+            }
+          } else if (cur > 0 && cur % 5 === 0) {
+            // B57-13：源时长探测不到时按已转码时长展示活动（此前进度恒 0 像卡死）
             onProgress({
-              percent,
-              message: useComplex ? `合成中 ${percent}%` : `转码中 ${percent}%`,
+              percent: 0,
+              message: useComplex ? `合成中 已转码 ${cur}s` : `转码中 已转码 ${cur}s`,
               currentTimeSec: cur
             })
           }
@@ -257,12 +275,23 @@ export class RecordingExportService {
             resolve({ ok: false, error: `stat failed: ${(e as Error).message}` })
           }
         } else {
+          // B57-13：失败清理半截输出（残片既不可播又占盘）
+          try {
+            if (existsSync(outputPath)) unlinkSync(outputPath)
+          } catch {
+            /* 清理失败不遮蔽主错误 */
+          }
           resolve({ ok: false, error: `ffmpeg exited ${code}\n${stderrTail.tail()}` })
         }
       })
 
       child.on('error', (err) => {
         this.activeChild = null
+        try {
+          if (existsSync(outputPath)) unlinkSync(outputPath)
+        } catch {
+          /* 同上 */
+        }
         resolve({ ok: false, error: `spawn failed: ${err.message}` })
       })
 
@@ -275,9 +304,9 @@ export class RecordingExportService {
           })
         }
       }
+    }).finally(() => {
+      this.busy = false
     })
-
-    return result
   }
 
   cancel(): void {
@@ -288,7 +317,8 @@ export class RecordingExportService {
   }
 }
 
-function ensureExtension(path: string, format: ExportFormat): string {
+/** 按导出格式强制补齐扩展名（实际写盘路径以此为准）。导出供 IPC 层校验签发路径用 */
+export function ensureExtension(path: string, format: ExportFormat): string {
   if (path.toLowerCase().endsWith(`.${format}`)) return path
   const base = path.replace(/\.[^.]+$/, '')
   return `${base}.${format}`
@@ -366,6 +396,11 @@ interface ComplexArgs {
   durations: { source: number | null; intro: number | null; outro: number | null }
   /** 各输入是否含音轨 */
   hasAudio: { source: boolean; intro: boolean; outro: boolean }
+}
+
+/** B57-13：xfade 滤镜名映射——'slide' 曾被四处硬编码当 fade（静默降级） */
+function xfadeName(transition: ExportTransition): string {
+  return transition === 'slide' ? 'slideleft' : 'fade'
 }
 
 export function buildComplexExportArgs(c: ComplexArgs): string[] {
@@ -471,23 +506,23 @@ export function buildComplexExportArgs(c: ComplexArgs): string[] {
     let accDur = 0
     if (c.hasIntro && c.hasOutro) {
       const off1 = Math.max(0.04, segDur(c.durations.intro) - XFADE_DUR)
-      chain += `[v1][v0]xfade=transition=fade:duration=${XFADE_DUR}:offset=${off1.toFixed(3)}[f01];`
+      chain += `[v1][v0]xfade=transition=${xfadeName(c.transition)}:duration=${XFADE_DUR}:offset=${off1.toFixed(3)}[f01];`
       chain += `[a1][a0]acrossfade=d=${XFADE_DUR}[af01];`
       accDur = off1 + XFADE_DUR + segDur(srcDur) - XFADE_DUR
       const off2 = Math.max(0.04, accDur - XFADE_DUR)
-      chain += `[f01][v2]xfade=transition=fade:duration=${XFADE_DUR}:offset=${off2.toFixed(3)}[f012];`
+      chain += `[f01][v2]xfade=transition=${xfadeName(c.transition)}:duration=${XFADE_DUR}:offset=${off2.toFixed(3)}[f012];`
       chain += `[af01][a2]acrossfade=d=${XFADE_DUR}[af012];`
       vOut = '[f012]'
       aOut = '[af012]'
     } else if (c.hasIntro) {
       const off1 = Math.max(0.04, segDur(c.durations.intro) - XFADE_DUR)
-      chain += `[v1][v0]xfade=transition=fade:duration=${XFADE_DUR}:offset=${off1.toFixed(3)}[f01];`
+      chain += `[v1][v0]xfade=transition=${xfadeName(c.transition)}:duration=${XFADE_DUR}:offset=${off1.toFixed(3)}[f01];`
       chain += `[a1][a0]acrossfade=d=${XFADE_DUR}[af01];`
       vOut = '[f01]'
       aOut = '[af01]'
     } else if (c.hasOutro) {
       const off = Math.max(0.04, segDur(srcDur) - XFADE_DUR)
-      chain += `[v0][v2]xfade=transition=fade:duration=${XFADE_DUR}:offset=${off.toFixed(3)}[f02];`
+      chain += `[v0][v2]xfade=transition=${xfadeName(c.transition)}:duration=${XFADE_DUR}:offset=${off.toFixed(3)}[f02];`
       chain += `[a0][a2]acrossfade=d=${XFADE_DUR}[af02];`
       vOut = '[f02]'
       aOut = '[af02]'

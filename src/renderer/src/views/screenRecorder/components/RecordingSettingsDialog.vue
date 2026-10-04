@@ -41,11 +41,7 @@
         <!-- 帧率 -->
         <div>
           <label class="mb-2 block text-sm font-medium text-fg-primary">帧率 (FPS)</label>
-          <URadioGroup
-            v-model="localSettings.fps"
-            :options="fpsOptions"
-            direction="horizontal"
-          />
+          <URadioGroup v-model="localSettings.fps" :options="fpsOptions" direction="horizontal" />
         </div>
 
         <!-- 分辨率 -->
@@ -69,11 +65,7 @@
 
         <!-- 比特率 -->
         <div v-if="localSettings.quality === 'custom'">
-          <UInput
-            v-model.number="localSettings.bitrate"
-            type="number"
-            label="视频比特率 (kbps)"
-          />
+          <UInput v-model.number="localSettings.bitrate" type="number" label="视频比特率 (kbps)" />
           <div class="mt-1 text-xs text-fg-tertiary">
             建议值：低质量 2000，中等质量 5000，高质量 10000
           </div>
@@ -107,6 +99,19 @@
             :options="formatOptions"
             direction="horizontal"
           />
+        </div>
+
+        <!-- 录制引擎（B57 根因① 治理，D6 特性开关双轨） -->
+        <div>
+          <label class="mb-2 block text-sm font-medium text-fg-primary">录制引擎</label>
+          <URadioGroup
+            v-model="localSettings.engine"
+            :options="engineOptions"
+            direction="horizontal"
+          />
+          <p v-if="localSettings.engine === 'webcodecs'" class="mt-2 text-xs text-fg-secondary">
+            实验性：WebCodecs 直出 MP4（免转码、崩溃可恢复）。如遇异常请切回默认引擎。
+          </p>
         </div>
       </div>
     </div>
@@ -210,13 +215,18 @@
         </div>
 
         <!-- 倒计时秒数 -->
-          <div class="p-3 bg-gray-50 rounded-lg">
-            <div class="text-sm font-medium text-fg-primary mb-2">开始录制前倒数</div>
-            <UOptionPills v-model="countdownSeconds" :options="countdownOptions" variant="rect" size="md" />
-            <div class="mt-3">
-              <UCheckbox v-model="countdownBeep" label="倒数结束播放提示音" />
-            </div>
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <div class="text-sm font-medium text-fg-primary mb-2">开始录制前倒数</div>
+          <UOptionPills
+            v-model="countdownSeconds"
+            :options="countdownOptions"
+            variant="rect"
+            size="md"
+          />
+          <div class="mt-3">
+            <UCheckbox v-model="countdownBeep" label="倒数结束播放提示音" />
           </div>
+        </div>
       </div>
     </div>
 
@@ -239,6 +249,7 @@ import URadioGroup from '@components/ui/URadioGroup.vue'
 import UInput from '@components/ui/UInput.vue'
 import USelect from '@components/ui/USelect.vue'
 import UOptionPills from '@components/ui/UOptionPills.vue'
+import { useToast } from '@composables/useToast'
 
 // 录制设置类型
 interface RecordingSettings {
@@ -269,6 +280,8 @@ interface RecordingSettings {
   // PR-7b: 倒计时（秒；0 = 不倒计时）
   countdownSeconds?: 0 | 3 | 5 | 7
   countdownBeep?: boolean
+  // 录制引擎（D6 特性开关双轨）
+  engine?: 'mediarecorder' | 'webcodecs'
 }
 
 interface SystemAudioProbeResult {
@@ -288,6 +301,8 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const toast = useToast()
+
 const emit = defineEmits<{
   close: []
   save: [settings: RecordingSettings]
@@ -301,7 +316,11 @@ const onModalVisibility = (v: boolean): void => {
 const showAdvanced = ref(false)
 
 // 单选选项（value 类型对齐 RecordingSettings 字段，保 URadioGroup 泛型推断）
-const encoderOptions: Array<{ label: string; value: RecordingSettings['encoder']; description: string }> = [
+const encoderOptions: Array<{
+  label: string
+  value: RecordingSettings['encoder']
+  description: string
+}> = [
   { label: 'VP9', value: 'vp9', description: '高质量，文件较小（推荐）' },
   { label: 'VP8', value: 'vp8', description: '兼容性好，文件较大' },
   { label: 'H.264', value: 'h264', description: '通用格式，兼容性最好' }
@@ -317,6 +336,10 @@ const audioCodecOptions: Array<{ label: string; value: RecordingSettings['audioC
 const formatOptions: Array<{ label: string; value: RecordingSettings['format'] }> = [
   { label: 'WebM', value: 'webm' },
   { label: 'MP4', value: 'mp4' }
+]
+const engineOptions: Array<{ label: string; value: NonNullable<RecordingSettings['engine']> }> = [
+  { label: '默认（MediaRecorder）', value: 'mediarecorder' },
+  { label: 'WebCodecs（实验）', value: 'webcodecs' }
 ]
 
 // PR-5a: 系统音频探测与启用状态
@@ -412,7 +435,8 @@ const localSettings = ref<RecordingSettings>({
   format: 'webm',
   audioEnabled: false,
   audioCodec: 'opus',
-  audioBitrate: 128
+  audioBitrate: 128,
+  engine: 'mediarecorder'
 })
 
 // 加载设置
@@ -427,15 +451,17 @@ const loadSettings = async (): Promise<void> => {
   }
 }
 
-// 选择质量预设
+// 选择质量预设（B57-17：连点乱序防护——IPC 晚到的旧预设不得覆盖新选择）
+let presetSeq = 0
 const selectQualityPreset = async (
   quality: 'low' | 'medium' | 'high' | 'custom'
 ): Promise<void> => {
   localSettings.value.quality = quality
 
   if (quality !== 'custom') {
+    const seq = ++presetSeq
     const preset = await window.api.recordingSettings.getQualityPreset(quality)
-    if (preset) {
+    if (seq === presetSeq && preset) {
       Object.assign(localSettings.value, preset)
     }
   }
@@ -495,14 +521,33 @@ async function loadShortcutAndCountdown(): Promise<void> {
     if (cd !== undefined) countdownSeconds.value = cd
     const bp = settings?.countdownBeep as boolean | undefined
     if (bp !== undefined) countdownBeep.value = bp
+    // B57-17：系统音频状态同样回读——否则重开对话框显示关闭、再保存静默关闭系统音频
+    const sa = settings?.systemAudio as
+      { enabled?: boolean; deviceId?: string; keepMicrophone?: boolean } | undefined
+    if (sa) {
+      systemAudioEnabled.value = !!sa.enabled
+      if (sa.deviceId) systemAudioDeviceId.value = sa.deviceId
+      if (typeof sa.keepMicrophone === 'boolean') keepMicrophone.value = sa.keepMicrophone
+    }
   } catch {
     /* 默认值 */
   }
 }
 
+// 数值钳制（B57-17）：输入框直填的负数/0/NaN 不再原样进保存载荷
+const clampBitrate = (
+  v: number | undefined,
+  min: number,
+  max: number,
+  fallback: number
+): number => {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return fallback
+  return Math.min(max, Math.max(min, Math.round(v)))
+}
+
 // 保存设置
 const handleSave = async (): Promise<void> => {
-  // 保存快捷键配置
+  // 保存快捷键配置（B57-17：异常不再逃逸成 unhandled rejection 卡死弹窗）
   const shortcutApi = (
     window as unknown as {
       api?: {
@@ -511,7 +556,12 @@ const handleSave = async (): Promise<void> => {
     }
   ).api?.recording?.shortcut
   if (shortcutApi?.setConfig) {
-    await shortcutApi.setConfig({ enabled: shortcutsEnabled.value })
+    try {
+      await shortcutApi.setConfig({ enabled: shortcutsEnabled.value })
+    } catch (error) {
+      console.error('保存快捷键配置失败:', error)
+      toast.error('快捷键配置保存失败', { description: (error as Error).message })
+    }
   }
   // 倒计时 + beep 随下方 settingsToSave 一并持久化（与 loadShortcutAndCountdown 的读取路径一致）
 
@@ -519,16 +569,16 @@ const handleSave = async (): Promise<void> => {
   const settingsToSave: RecordingSettings = {
     encoder: localSettings.value.encoder,
     quality: localSettings.value.quality,
-    bitrate: localSettings.value.bitrate,
-    fps: localSettings.value.fps,
+    bitrate: clampBitrate(localSettings.value.bitrate, 100, 100_000, 2500),
+    fps: localSettings.value.fps === 60 ? 60 : 30,
     resolution: {
-      width: localSettings.value.resolution.width,
-      height: localSettings.value.resolution.height
+      width: clampBitrate(localSettings.value.resolution.width, 240, 7680, 1920),
+      height: clampBitrate(localSettings.value.resolution.height, 240, 4320, 1080)
     },
     format: localSettings.value.format,
     audioEnabled: localSettings.value.audioEnabled,
     audioCodec: localSettings.value.audioCodec,
-    audioBitrate: localSettings.value.audioBitrate,
+    audioBitrate: clampBitrate(localSettings.value.audioBitrate, 32, 1000, 128),
     // PR-5a: 系统音频
     systemAudio: {
       enabled: systemAudioEnabled.value,
@@ -542,16 +592,25 @@ const handleSave = async (): Promise<void> => {
       togglePause: 'CommandOrControl+Alt+Shift+P'
     },
     countdownSeconds: countdownSeconds.value,
-    countdownBeep: countdownBeep.value
+    countdownBeep: countdownBeep.value,
+    engine: localSettings.value.engine ?? 'mediarecorder'
   }
   emit('save', settingsToSave)
 }
 
-// 重置设置
+// 重置设置（B57-17：对话框全部状态一并回默认——旧实现只重置 localSettings，
+// 系统音频/快捷键/倒计时残留旧值，点保存又写回）
 const handleReset = async () => {
   try {
     const defaults = await window.api.recordingSettings.resetToDefaults()
     localSettings.value = { ...defaults }
+    systemAudioEnabled.value = false
+    systemAudioDeviceId.value = ''
+    systemAudioResult.value = null
+    keepMicrophone.value = true
+    shortcutsEnabled.value = true
+    countdownSeconds.value = 3
+    countdownBeep.value = true
   } catch (error) {
     console.error('重置设置失败:', error)
   }

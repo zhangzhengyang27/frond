@@ -58,8 +58,16 @@ export function useCursorHighlight(): {
     ).api
     if (!api?.recording?.cursor?.start) return
     addListeners()
-    void api.recording.cursor.start()
-    active.value = true
+    // B57-19：start 失败不再吞 rejection，也不误置 active（否则 stop 短路、监听器残留）
+    api.recording.cursor
+      .start()
+      .then(() => {
+        active.value = true
+      })
+      .catch((e: unknown) => {
+        console.warn('[useCursorHighlight] cursor start failed:', e)
+        removeListeners()
+      })
   }
 
   async function stop(): Promise<void> {

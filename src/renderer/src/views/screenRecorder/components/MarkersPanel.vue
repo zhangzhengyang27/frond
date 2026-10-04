@@ -143,7 +143,9 @@
 
           <!-- 操作按钮 -->
           <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <!-- 录制中无可跳转目标（实时流），不渲染跳转入口（B57-10b） -->
             <button
+              v-if="!isRecording"
               class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
               title="跳转到标记时间点"
               @click="handleJumpToMarker(marker)"
@@ -210,6 +212,7 @@ import AppIcon from '@components/AppIcon.vue'
 import UModal from '@components/ui/UModal.vue'
 import UButton from '@components/ui/UButton.vue'
 import { confirm } from '@composables/useConfirm'
+import { useToast } from '@composables/useToast'
 import { useMarkers } from '@composables/useMarkers'
 import type { Marker } from '@preload/index.d'
 
@@ -336,6 +339,7 @@ const handleRemoveMarker = async (markerId: string): Promise<void> => {
 }
 
 // 跳转到标记时间点
+const toast = useToast()
 const handleJumpToMarker = (marker: Marker): void => {
   // 如果有视频元素且不在录制状态（回放模式），直接跳转
   if (props.videoRef && !props.isRecording && props.duration > 0) {
@@ -356,8 +360,9 @@ const handleJumpToMarker = (marker: Marker): void => {
       return
     }
   }
-  // 发送事件给父组件（用于其他场景）
-  emit('jumpToMarker', marker.timestamp)
+  // 无视频可跳（录制页场景）：旧实现 emit 给只 console.log 的父 handler，
+  // 点击无任何可见结果（B57-10b）。给出指引且不再发无效事件
+  toast.warning('录制结束后可在回放页跳转到标记')
 }
 
 // 清空所有标记（useConfirm 二次确认后执行）
@@ -399,6 +404,10 @@ const handleKeyPress = (event: KeyboardEvent): void => {
   if (
     props.isRecording &&
     event.key.toLowerCase() === 'm' &&
+    // B57-19：带修饰键的 M（⌘M 最小化 / ⌃M / ⌥M）不是添加标记，劫持会破坏系统操作
+    !event.metaKey &&
+    !event.ctrlKey &&
+    !event.altKey &&
     !(event.target instanceof HTMLInputElement) &&
     !(event.target instanceof HTMLTextAreaElement)
   ) {

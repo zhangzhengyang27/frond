@@ -177,16 +177,18 @@ export function createTray(
     }
   }
 
-  // 点击 tray 一律弹菜单（2026-10-04 用户实测反馈：左键点击不应默认打开启动器——
-  // 启动器有专属快捷键，tray 点击给菜单才是托盘图标的标准语义）。
-  // ⚠️ macOS 上在 click 回调里**同步** popUpContextMenu 是经典坑：菜单弹出但
-  // 事件循环仍停在 click 处理里，所有菜单项点击不派发——必须 defer 到下一轮循环
-  tray.on('click', () => {
-    buildAndSetAppMenu('tray', tray, ctx)
-    setTimeout(() => {
+  // 点击 tray 一律弹菜单（2026-10-04 用户实测反馈：左键点击不应默认打开启动器）。
+  // macOS 采用标准模式：只 setContextMenu，左键由**系统原生**弹出——自己监听
+  // click 再 popUpContextMenu 的两条路都试过不通（同步弹出 → 菜单项点击不派发；
+  // defer 弹出 → 实测依然无响应，与系统管理的 NSStatusItem 菜单互相打架）。
+  // 菜单内容刷新靠下方的事件驱动 + 60s 兜底（buildAndSetAppMenu 内部 setContextMenu
+  // 替换后，系统下次弹出即用新内容）。
+  if (!isMac()) {
+    tray.on('click', () => {
+      buildAndSetAppMenu('tray', tray, ctx)
       tray.popUpContextMenu()
-    }, 0)
-  })
+    })
+  }
 
   if (isMac()) {
     tray.on('right-click', () => {

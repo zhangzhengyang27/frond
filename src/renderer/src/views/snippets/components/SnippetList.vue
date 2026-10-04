@@ -59,6 +59,7 @@ useDismissablePopup(contextMenuRef, showContextMenu, closeContextMenu)
 
 const loading = ref(false)
 const loadingMore = ref(false)
+const loadError = ref(false)
 const total = ref(0)
 
 const hasMore = computed(() => snippets.value.length < total.value)
@@ -112,7 +113,9 @@ async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
     const isTrash = props.libraryFilter === 'trash'
     const res = await window.api.snippet.listSnippets(
       {
-        folderId: props.folderId ?? undefined,
+        // B56-2：库视图（无选中文件夹）必须显式 null——?? undefined 会抹掉 null，
+        // 主进程的 folder_id IS NULL（收件箱）过滤门槛 folderId !== undefined 永假
+        folderId: props.folderId ?? (props.libraryFilter === 'inbox' ? null : undefined),
         isDeleted: isTrash,
         isFavorites: props.libraryFilter === 'favorites' ? true : undefined,
         isInbox: props.libraryFilter === 'inbox' ? true : undefined,
@@ -124,10 +127,15 @@ async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
     if (!loadGuard.isCurrent(mine)) return // 期间有新一轮拉取：丢弃本次回写
     snippets.value = mode === 'append' ? [...snippets.value, ...res.items] : res.items
     total.value = res.total
+    loadError.value = false
   } catch (error) {
     if (!loadGuard.isCurrent(mine)) return
     console.error('[SnippetList] 读取片段列表失败:', error)
-    if (mode !== 'append') snippets.value = []
+    // B56-11：错误态与空态区分——误导性的「还没有片段」会让用户以为数据丢了
+    if (mode !== 'append') {
+      snippets.value = []
+      loadError.value = true
+    }
   } finally {
     if (loadGuard.isCurrent(mine)) {
       loading.value = false
@@ -145,6 +153,26 @@ function onListScroll(e: Event): void {
 
 function select(snippet: Snippet): void {
   emit('update:selectedSnippet', snippet)
+}
+
+/** B56-4：新建片段——落在当前文件夹视图（库视图不归属），创建即选中进编辑器 */
+async function createSnippet(): Promise<void> {
+  try {
+    const created = await window.api.snippet.addSnippet({
+      name: '未命名片段',
+      description: '',
+      contents: [{ id: '', label: '代码 1', value: '', language: 'plaintext' }],
+      tagIds: [],
+      isDeleted: false,
+      isFavorites: false,
+      folderId: props.folderId
+    } as unknown as Parameters<typeof window.api.snippet.addSnippet>[0])
+    await loadSnippets('refresh')
+    const fresh = snippets.value.find((x) => x.id === created.id)
+    if (fresh) emit('update:selectedSnippet', fresh)
+  } catch (error) {
+    console.error('[SnippetList] 新建片段失败:', error)
+  }
 }
 
 function closeContextMenu(): void {
@@ -176,6 +204,12 @@ async function applyUpdate(snippet: Snippet, updates: Partial<Snippet>): Promise
       updates as unknown as Parameters<typeof window.api.snippet.updateSnippet>[1]
     )
     await loadSnippets()
+    // B56-5：动作后回写选中态——更新项还在新列表里就同步新对象（Editor 星标/路径
+    // 即时亮），已离开当前视图（如 favorites 取消收藏）则清空，杜绝悬空选中
+    const fresh = snippets.value.find((x) => x.id === snippet.id)
+    if (props.selectedSnippet?.id === snippet.id) {
+      emit('update:selectedSnippet', fresh ?? null)
+    }
   } catch (error) {
     console.error('[SnippetList] 更新片段失败:', error)
   }
@@ -215,6 +249,8 @@ async function restore(snippet: Snippet): Promise<void> {
   try {
     await window.api.snippet.restoreSnippet(snippet.id)
     await loadSnippets()
+  // B56-5：恢复后条目离开回收站视图——与移回收站/彻底删除同口径清选中
+  if (props.selectedSnippet?.id === snippet.id) emit('update:selectedSnippet', null)
   } catch (error) {
     console.error('[SnippetList] 恢复片段失败:', error)
   }
@@ -270,6 +306,8 @@ watch(
   () => [props.folderId, props.libraryFilter, debouncedSearch.value],
   () => {
     closeContextMenu()
+    // B56-5：视图切换后旧选中项大概率不在新列表——清空，Editor 不再悬空展示
+    if (props.selectedSnippet) emit('update:selectedSnippet', null)
     void loadSnippets('reset')
   }
 )
@@ -288,7 +326,6 @@ watch(
 onMounted(() => {
   searchInput.value = props.searchQuery
   debouncedSearch.value = props.searchQuery
-  document.addEventListener('click', closeContextMenu)
   void loadSnippets('reset')
 })
 
@@ -299,7 +336,6 @@ onBeforeUnmount(() => {
     searchDebounceTimer = null
     debouncedSearch.value = searchInput.value
   }
-  document.removeEventListener('click', closeContextMenu)
 })
 </script>
 
@@ -310,6 +346,17 @@ onBeforeUnmount(() => {
       <div class="mb-2 flex items-center gap-2">
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium text-fg-primary">{{ listTitle }}</h2>
         <span class="shrink-0 text-xs text-fg-tertiary">{{ total }}</span>
+        <!-- B56-4：新建片段入口（此前全 UI 无任何创建路径，空态引导成了断头路） -->
+        <button
+          v-if="libraryFilter !== 'trash'"
+          type="button"
+          data-testid="snippet-create"
+          class="shrink-0 text-fg-muted hover:text-brand-500"
+          title="新建片段"
+          @click="createSnippet"
+        >
+          <AppIcon icon="add-line" :size="15" />
+        </button>
         <button
           v-if="libraryFilter === 'trash' && snippets.length > 0"
           type="button"
@@ -346,9 +393,18 @@ onBeforeUnmount(() => {
     <div class="min-h-0 flex-1 overflow-y-auto px-2 pb-3" @scroll="onListScroll">
       <p v-if="loading" class="px-2 py-6 text-center text-xs text-fg-muted">加载中…</p>
       <UEmpty
+        v-else-if="loadError"
+        title="加载失败"
+        description="片段列表读取失败，请重试（详情见日志）"
+      >
+        <template #icon>
+          <AppIcon icon="error-warning-line" :size="20" />
+        </template>
+      </UEmpty>
+      <UEmpty
         v-else-if="snippets.length === 0"
         :title="debouncedSearch ? '没有匹配的片段' : '这里还没有片段'"
-        :description="debouncedSearch ? '换个关键词试试' : '新建一个片段，或从其它文件夹移动过来'"
+        :description="debouncedSearch ? '换个关键词试试' : '点右上角 + 新建一个片段，或从其它文件夹移动过来'"
       >
         <template #icon>
           <AppIcon icon="code-s-slash-line" :size="20" />

@@ -264,14 +264,16 @@ export class SnippetRepository {
    * B53-3b：胶囊根搜索轻路径——只投影 id/name/language 且 LIMIT 内返回，
    * 不做 attachRelations（逐行 AES 解密全部 contents 是每击键的主进程大头）。
    * 匹配口径与 buildSnippetQuery 的 search 一致（search_text LIKE + 同款转义）。
-   * 注意：与 getSnippets({search}) 同口径，不加 deleted 过滤（保持既有行为）。
+   * B56-8：必须排除回收站——此前的「不加 deleted 过滤」注释失实（getSnippets
+   * 的业务入口经 SnippetDataStore 强制 isDeleted:false），直连 repo 的本方法
+   * 曾把已删片段泄漏进胶囊搜索，回车还能复制已删内容。
    */
   quickSearch(query: string, limit: number): Array<{ id: string; name: string; language: string }> {
     const like = `%${query.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
     return this.db
       .prepare(
         `SELECT id, title AS name, language FROM snip_snippets
-         WHERE search_text LIKE ? ESCAPE '\\'
+         WHERE deleted_at IS NULL AND search_text LIKE ? ESCAPE '\\'
          ORDER BY updated_at DESC, rowid DESC LIMIT ?`
       )
       .all(like, limit) as Array<{ id: string; name: string; language: string }>
@@ -366,7 +368,8 @@ export class SnippetRepository {
       this.db
         .prepare(
           `UPDATE snip_snippets
-           SET folder_id = ?, title = ?, description = ?, trigger = ?, is_favorite = ?, updated_at = ?, search_text = ?
+           SET folder_id = ?, title = ?, description = ?, trigger = ?, is_favorite = ?, updated_at = ?, search_text = ?,
+               content = ?, language = ?
            WHERE id = ?`
         )
         .run(
@@ -377,6 +380,9 @@ export class SnippetRepository {
           next.isFavorites ? 1 : 0,
           ts,
           buildSnippetSearchText(next.name, next.description, next.contents, next.trigger),
+          // B56-10：遗留反范式列与子表保持同步（quickSearch 副标题读 language）
+          next.contents[0]?.value ?? '',
+          next.contents[0]?.language ?? 'plaintext',
           id
         )
 
@@ -420,10 +426,14 @@ export class SnippetRepository {
     return r.changes > 0
   }
 
-  /** 硬删除 */
+  /** 硬删除（B56-10：snip_tags 无外键，junction 行必须手动清） */
   permanentlyDeleteSnippet(id: string): boolean {
-    const r = this.db.prepare(`DELETE FROM snip_snippets WHERE id = ?`).run(id)
-    return r.changes > 0
+    const tx = this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM snip_tags WHERE snippet_id = ?`).run(id)
+      const r = this.db.prepare(`DELETE FROM snip_snippets WHERE id = ?`).run(id)
+      return r.changes > 0
+    })
+    return tx()
   }
 
   /** 恢复 */
@@ -446,8 +456,20 @@ export class SnippetRepository {
   }
 
   emptyTrash(): number {
-    const r = this.db.prepare(`DELETE FROM snip_snippets WHERE deleted_at IS NOT NULL`).run()
-    return r.changes
+    // B56-10：junction 行随库行一起清（同 permanentlyDeleteSnippet）
+    const ids = (
+      this.db
+        .prepare(`SELECT id FROM snip_snippets WHERE deleted_at IS NOT NULL`)
+        .all() as Array<{ id: string }>
+    ).map((r) => r.id)
+    if (ids.length === 0) return 0
+    const tx = this.db.transaction(() => {
+      const delTags = this.db.prepare(`DELETE FROM snip_tags WHERE snippet_id = ?`)
+      for (const id of ids) delTags.run(id)
+      const r = this.db.prepare(`DELETE FROM snip_snippets WHERE deleted_at IS NOT NULL`).run()
+      return r.changes
+    })
+    return tx()
   }
 
   duplicateSnippet(id: string): Snippet | undefined {
@@ -456,16 +478,24 @@ export class SnippetRepository {
     return this.addSnippet({
       name: `${orig.name} (副本)`,
       description: orig.description,
-      contents: orig.contents.map((c) => ({
-        id: uuidv4(),
-        label: c.label,
-        value: c.value,
-        language: c.language
-      })),
+      contents: orig.contents.map(
+        (c): SnippetContent => ({
+          id: uuidv4(),
+          label: c.label,
+          value: c.value,
+          language: c.language,
+          // B56-10：contentType 必须跟随（此前 rich 副本被降级成 text，HTML 源码
+          // 被当纯文本渲染/粘贴）
+          ...(c.contentType ? { contentType: c.contentType } : {})
+        })
+      ),
       folderId: orig.folderId,
       tagIds: [...orig.tagIds],
       isDeleted: false,
-      isFavorites: false
+      isFavorites: false,
+      // 副本不继承触发词：同名触发词会让全局展开的命中方随 updatedAt 抖动
+      // （B56-12），副本先置空由用户显式设置
+      trigger: ''
     })
   }
 

@@ -154,7 +154,14 @@ function handleKey(e: KeyboardEvent): boolean {
 
 defineExpose({ handleKey })
 
-onMounted(async () => {
+onMounted(() => {
+  void load()
+  window.addEventListener('focus', () => void load())
+})
+
+/** B56-12：胶囊非 immediately 回根模式不重挂载——唤起（window focus）时重拉，
+ *  主窗的增删改在下次唤起即可见 */
+async function load(): Promise<void> {
   try {
     const snippets = (await window.api.snippet.getSnippets()) as SnippetItem[]
     all.value = snippets.map((s) => {
@@ -174,7 +181,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
 </script>
 
 <style scoped>

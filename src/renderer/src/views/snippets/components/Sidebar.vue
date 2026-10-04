@@ -5,9 +5,11 @@
  * preload 的 window.api.folder.*。父级不给 folders 兜底加载，所以首次 getFolders 在这里做，
  * 并把结果回写父级（SnippetList / Editor 都读同一份 folders）。
  */
-import { computed, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import UModal from '@components/ui/UModal.vue'
 import { confirm } from '@composables/useConfirm'
+import { useFolders } from '@composables/useFolders'
 
 interface FolderLike {
   id: string
@@ -42,17 +44,56 @@ const LIBRARY_ITEMS: Array<{
 
 const folderCount = computed(() => props.folders.length)
 
+// B56-9：双源真相收口——Sidebar 的增删改必须同步 useFolders 共享 store，
+// 否则 SnippetList 的「移动到」菜单与行内徽标永远看不到新文件夹
+const { loadFolders, loadFolderTree } = useFolders()
+
 async function reload(): Promise<void> {
-  const list = await window.api.folder.getFolders()
+  await Promise.all([loadFolders(), loadFolderTree()])
   emit(
     'update:folders',
-    list.map((f) => ({
+    (await window.api.folder.getFolders()).map((f) => ({
       id: f.id,
       name: f.name,
       defaultLanguage: f.defaultLanguage,
       icon: f.icon ?? null
     }))
   )
+}
+
+// B56-3：window.prompt 在 Electron 渲染端直接抛异常——文件夹建/改名改 UModal 输入弹窗
+const folderDialog = ref<{ mode: 'create' | 'rename'; folder: FolderLike | null; name: string } | null>(
+  null
+)
+const folderInputRef = ref<HTMLInputElement | null>(null)
+// v-model 不接受可选链：用 computed 代理读写
+const folderDialogName = computed({
+  get: () => folderDialog.value?.name ?? '',
+  set: (v: string) => {
+    if (folderDialog.value) folderDialog.value.name = v
+  }
+})
+
+function openCreateFolder(): void {
+  folderDialog.value = { mode: 'create', folder: null, name: '' }
+  void nextTick(() => folderInputRef.value?.focus())
+}
+
+function openRenameFolder(folder: FolderLike): void {
+  folderDialog.value = { mode: 'rename', folder, name: folder.name }
+  void nextTick(() => folderInputRef.value?.focus())
+}
+
+async function confirmFolderDialog(): Promise<void> {
+  const dlg = folderDialog.value
+  if (!dlg || !dlg.name.trim()) return
+  if (dlg.mode === 'create') {
+    await window.api.folder.addFolder({ name: dlg.name.trim(), parentId: null })
+  } else if (dlg.folder) {
+    await window.api.folder.updateFolder(dlg.folder.id, { name: dlg.name.trim() })
+  }
+  folderDialog.value = null
+  await reload()
 }
 
 function pickLibrary(key: 'all' | 'inbox' | 'favorites' | 'trash'): void {
@@ -65,19 +106,7 @@ function pickFolder(id: string): void {
   emit('update:selectedFolderId', props.selectedFolderId === id ? null : id)
 }
 
-async function addFolder(): Promise<void> {
-  const name = window.prompt('新建文件夹名称')
-  if (!name || !name.trim()) return
-  await window.api.folder.addFolder({ name: name.trim(), parentId: null })
-  await reload()
-}
 
-async function renameFolder(folder: FolderLike): Promise<void> {
-  const name = window.prompt('重命名文件夹', folder.name)
-  if (!name || !name.trim() || name.trim() === folder.name) return
-  await window.api.folder.updateFolder(folder.id, { name: name.trim() })
-  await reload()
-}
 
 async function removeFolder(folder: FolderLike): Promise<void> {
   const ok = await confirm({
@@ -127,7 +156,7 @@ onMounted(() => {
         type="button"
         class="rounded p-1 text-fg-muted hover:bg-surface-hover hover:text-fg-primary"
         title="新建文件夹"
-        @click="addFolder"
+        @click="openCreateFolder"
       >
         <AppIcon icon="add-line" :size="14" />
       </button>
@@ -158,7 +187,7 @@ onMounted(() => {
           type="button"
           class="rounded p-1 text-fg-tertiary opacity-0 hover:text-fg-primary group-hover:opacity-100"
           title="重命名"
-          @click="renameFolder(folder)"
+          @click="openRenameFolder(folder)"
         >
           <AppIcon icon="pencil-line" :size="13" />
         </button>
@@ -173,4 +202,41 @@ onMounted(() => {
       </div>
     </div>
   </aside>
+
+  <!-- B56-3：文件夹建/改名弹窗（替代 Electron 不存在的 window.prompt） -->
+  <UModal
+    :model-value="folderDialog !== null"
+    :title="folderDialog?.mode === 'rename' ? '重命名文件夹' : '新建文件夹'"
+    size="sm"
+    @update:model-value="(v: boolean) => (v ? null : (folderDialog = null))"
+  >
+    <div class="p-4">
+      <input
+        ref="folderInputRef"
+        v-model="folderDialogName"
+        type="text"
+        class="w-full rounded-md border border-line-subtle bg-surface-0 px-3 py-2 text-sm text-fg-primary outline-none focus:border-brand-500/40"
+        placeholder="文件夹名称"
+        data-testid="folder-name-input"
+        @keydown.enter="confirmFolderDialog"
+      />
+      <div class="mt-4 flex justify-end gap-2">
+        <button
+          type="button"
+          class="rounded-md px-3 py-1.5 text-sm text-fg-secondary hover:bg-surface-hover"
+          @click="folderDialog = null"
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          class="rounded-md bg-brand-500 px-3 py-1.5 text-sm text-white hover:bg-brand-600"
+          data-testid="folder-name-confirm"
+          @click="confirmFolderDialog"
+        >
+          保存
+        </button>
+      </div>
+    </div>
+  </UModal>
 </template>

@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { Snippet, SnippetContent, Tag } from '@preload/index.d'
 import CodeMirror from 'codemirror'
 import { useDark, useCssVar } from '@vueuse/core'
 import { useEditor } from '@composables/useEditor'
 import { useDismissablePopup } from '@composables/useDismissablePopup'
-import { useSnippetUpdate, enqueueContentsWrite } from '@composables/useSnippetUpdate'
-import { useTags } from '@composables/useTags'
+import { confirm } from '@composables/useConfirm'
+import {
+  useSnippetUpdate,
+  enqueueContentsWrite,
+  flushPendingContentWrites,
+  flushAllPendingContentWrites,
+  onSnippetSynced
+} from '@composables/useSnippetUpdate'
 import TagInput from '@components/TagInput.vue'
 import CodePreview from '@components/CodePreview.vue'
 import MarkdownPreview from '@components/MarkdownPreview.vue'
@@ -49,7 +55,32 @@ const emit = defineEmits<Emits>()
 
 const { cursorPosition, settings } = useEditor()
 const { addToUpdateContentQueue } = useSnippetUpdate()
-const { getTagsByIds } = useTags()
+
+// B56-1 编辑真相回流：flush/结构写落库后把 DB 返回的新对象同步回父级 props——
+// 此前 props 永远陈旧（切 tab 旧值回填丢输入、结构操作 payload 携带旧值回滚已落库编辑）
+const offSnippetSynced = onSnippetSynced((synced) => {
+  if (props.snippet?.id === synced.id) emit('update:snippet', synced)
+})
+
+// B56-6：丢编辑窗口收敛——卸载（切路由）、窗口失焦、隐藏（Cmd+H/切屏）都先落盘。
+// 写链在模块层，组件卸载后 IPC 照常完成
+const flushCurrent = (): void => {
+  if (props.snippet?.id) void flushPendingContentWrites(props.snippet.id)
+}
+const onWindowBlur = (): void => {
+  void flushAllPendingContentWrites()
+}
+const onVisibilityChange = (): void => {
+  if (document.visibilityState === 'hidden') void flushAllPendingContentWrites()
+}
+window.addEventListener('blur', onWindowBlur)
+document.addEventListener('visibilitychange', onVisibilityChange)
+onBeforeUnmount(() => {
+  offSnippetSynced()
+  window.removeEventListener('blur', onWindowBlur)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  flushCurrent()
+})
 
 const isDark = useDark()
 const fontSize = useCssVar('--editor-font-size', document.body, {
@@ -388,8 +419,11 @@ watch(
 )
 
 // 切换代码块
-function switchContent(index: number): void {
+async function switchContent(index: number): Promise<void> {
   if (!props.snippet || index < 0 || index >= props.snippet.contents.length) return
+
+  // 切 tab 前先落盘并同步真值：否则下方回填走陈旧 props，输入凭空消失
+  await flushPendingContentWrites(props.snippet.id)
 
   currentContentIndex.value = index
 
@@ -409,6 +443,7 @@ function switchContent(index: number): void {
 // 添加代码块
 async function addContent(): Promise<void> {
   if (!props.snippet) return
+  await flushPendingContentWrites(props.snippet.id)
   try {
     const lastContentIndex = props.snippet.contents.length
     const newContent: SnippetContent = {
@@ -445,6 +480,18 @@ async function addContent(): Promise<void> {
 // 删除代码块
 async function removeContent(index: number): Promise<void> {
   if (!props.snippet || props.snippet.contents.length <= 1) return
+  // B56-11：正在重命名的 tab 被删——先退编辑态，否则重命名框错位到隔壁 tab
+  if (editingTabIndex.value === index) editingTabIndex.value = null
+  // B56-11：tab 删除不可恢复（contents 无回收站），二次确认
+  const target = props.snippet.contents[index]
+  const ok = await confirm({
+    title: `删除代码块「${target?.label || `#${index + 1}`}」？`,
+    message: '该代码块内容将一并删除，此操作不可恢复。',
+    confirmText: '删除',
+    danger: true
+  })
+  if (!ok) return
+  await flushPendingContentWrites(props.snippet.id)
   try {
     const newContents = props.snippet.contents.filter((_, i) => i !== index)
 
@@ -478,6 +525,7 @@ async function removeContent(index: number): Promise<void> {
 // 更新标签名称
 async function updateContentLabel(index: number, label: string): Promise<void> {
   if (!props.snippet || !selectedSnippetContent.value) return
+  await flushPendingContentWrites(props.snippet.id)
   try {
     const newContents = props.snippet.contents.map((c, i) => (i === index ? { ...c, label } : c))
     // contents 均为纯对象，ipcRenderer.invoke 走结构化克隆，无需手动 JSON 深拷贝
@@ -494,6 +542,7 @@ async function updateContentLabel(index: number, label: string): Promise<void> {
 // 更新语言
 async function updateLanguage(language: string): Promise<void> {
   if (!props.snippet || !selectedSnippetContent.value) return
+  await flushPendingContentWrites(props.snippet.id)
 
   // 获取编辑器当前的值，确保不会丢失用户正在编辑的内容
   const currentEditorValue = editor?.getValue() || selectedSnippetContent.value.value || ''
@@ -529,6 +578,7 @@ async function updateLanguage(language: string): Promise<void> {
 // 剪贴板 text/html 双格式粘贴，保留排版（邮件/文档/聊天可用）
 async function updateContentType(contentType: 'text' | 'rich'): Promise<void> {
   if (!props.snippet || !selectedSnippetContent.value) return
+  await flushPendingContentWrites(props.snippet.id)
   const content = selectedSnippetContent.value
   if ((content.contentType ?? 'text') === contentType) return
 
@@ -555,9 +605,15 @@ async function updateContentType(contentType: 'text' | 'rich'): Promise<void> {
 
 // 复制代码
 async function copyCode(): Promise<void> {
-  if (!selectedSnippetContent.value) return
+  if (!selectedSnippetContent.value || !props.snippet) return
   try {
-    await navigator.clipboard.writeText(selectedSnippetContent.value.value)
+    // B56-1：先落盘再复制；编辑器可见时优先取实时值（防抖窗口内的最新输入）
+    await flushPendingContentWrites(props.snippet.id)
+    const live =
+      editor && isEditorVisible.value
+        ? editor.getValue()
+        : selectedSnippetContent.value.value
+    await navigator.clipboard.writeText(live || selectedSnippetContent.value.value)
   } catch (error) {
     console.error('复制失败:', error)
   }
@@ -582,6 +638,8 @@ async function toggleFavorite(): Promise<void> {
 // 对同一字段重复写一次 IPC，防抖队列对这些非连续输入场景形同虚设）
 async function updateName(name: string): Promise<void> {
   if (!props.snippet) return
+  // B56-5：值未变不写库——否则 blur 一发 IPC、updatedAt 跳顶、选中弹回
+  if ((name) === props.snippet.name) return
   const updated = await window.api.snippet.updateSnippet(props.snippet.id, { name })
   if (updated) {
     emit('update:snippet', updated)
@@ -591,6 +649,8 @@ async function updateName(name: string): Promise<void> {
 // 更新描述
 async function updateDescription(description: string): Promise<void> {
   if (!props.snippet) return
+  // B56-5：值未变不写库——否则 blur 一发 IPC、updatedAt 跳顶、选中弹回
+  if ((description) === props.snippet.description) return
   const updated = await window.api.snippet.updateSnippet(props.snippet.id, { description })
   if (updated) {
     emit('update:snippet', updated)
@@ -619,11 +679,26 @@ async function updateTags(tagIds: string[]): Promise<void> {
   }
 }
 
+/** B56-7：新建标签并挂到当前片段（TagInput 的 create 通道） */
+async function createTagAndAttach(name: string): Promise<void> {
+  if (!props.snippet) return
+  try {
+    const existing = await window.api.tag.getTags()
+    const tag = existing.find((t) => t.name.toLowerCase() === name.toLowerCase())
+      ?? (await window.api.tag.addTag(name))
+    await updateTags([...(props.snippet.tagIds ?? []), tag.id])
+    allTags.value = await window.api.tag.getTags()
+  } catch (error) {
+    console.error('新建标签失败:', error)
+  }
+}
+
 // 加载标签
 async function loadTags(): Promise<void> {
   if (props.snippet?.tagIds && props.snippet.tagIds.length > 0) {
     snippetTags.value = [...props.snippet.tagIds]
-    allTags.value = await getTagsByIds(props.snippet.tagIds)
+    // B56-7：候选集必须是全部标签（此前只取已挂载的，再滤已选 → 恒空，标签加不上）
+    allTags.value = await window.api.tag.getTags()
   } else {
     snippetTags.value = []
     allTags.value = []
@@ -772,7 +847,9 @@ function toggleCodePreview(): void {
 }
 
 // 切换 Markdown 预览
-function toggleMarkdown(): void {
+async function toggleMarkdown(): Promise<void> {
+  // B56-11：切走前先落盘（同 toggleCodePreview）
+  await saveEditorContent()
   isShowMarkdown.value = !isShowMarkdown.value
   isShowCodePreview.value = false
   isShowJsonVisualizer.value = false
@@ -782,6 +859,7 @@ function toggleMarkdown(): void {
 // 保存编辑器内容到 selectedSnippetContent
 async function saveEditorContent(): Promise<void> {
   if (!editor || !props.snippet?.id || !selectedSnippetContent.value) return
+  await flushPendingContentWrites(props.snippet.id)
 
   const currentValue = editor.getValue()
   const contentValue = selectedSnippetContent.value.value || ''
@@ -1093,6 +1171,7 @@ onMounted(() => {
           :model-value="snippetTags"
           :suggestions="allTags"
           @update:model-value="updateTags"
+          @create="createTagAndAttach"
         />
       </div>
 

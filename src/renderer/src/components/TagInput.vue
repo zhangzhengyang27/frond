@@ -11,7 +11,11 @@ import AppIcon from '@components/AppIcon.vue'
 import type { Tag } from '@preload/index.d'
 
 const props = defineProps<{ modelValue: string[]; suggestions: Tag[] }>()
-const emit = defineEmits<{ 'update:modelValue': [ids: string[]] }>()
+const emit = defineEmits<{
+  'update:modelValue': [ids: string[]]
+  /** B56-7：Enter 时无同名候选 → 请求调用方建标签（建标签要写库，归属在调用方） */
+  create: [name: string]
+}>()
 
 const query = ref('')
 const focused = ref(false)
@@ -46,8 +50,19 @@ function remove(id: string): void {
 }
 
 function onEnter(): void {
+  const q = query.value.trim()
+  // 精确同名候选优先；无候选且输入非空 → 请求新建（此前输入永远落空，标签是死路）
+  const exact = props.suggestions.find((t) => t.name.toLowerCase() === q.toLowerCase())
+  if (exact && !props.modelValue.includes(exact.id)) {
+    add(exact.id)
+    return
+  }
   const first = candidates.value[0]
-  if (first) add(first.id)
+  if (first && !q) {
+    add(first.id)
+    return
+  }
+  if (q && (!exact || props.modelValue.includes(exact.id))) emit('create', q)
 }
 
 function colorOf(tag: Tag): string {
@@ -92,7 +107,7 @@ function colorOf(tag: Tag): string {
     </div>
 
     <ul
-      v-if="focused && candidates.length > 0"
+      v-if="focused && (candidates.length > 0 || query.trim())"
       class="absolute left-0 top-[calc(100%+4px)] z-30 max-h-56 w-56 overflow-y-auto rounded-lg border border-line-subtle bg-surface-1 py-1 shadow-lg"
     >
       <li v-for="tag in candidates" :key="tag.id">
@@ -103,6 +118,17 @@ function colorOf(tag: Tag): string {
         >
           <span class="h-2 w-2 shrink-0 rounded-full" :style="{ background: colorOf(tag) }" />
           <span class="truncate">{{ tag.name }}</span>
+        </button>
+      </li>
+      <li v-if="query.trim() && !props.suggestions.some((t) => t.name.toLowerCase() === query.trim().toLowerCase())">
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-brand-500 hover:bg-surface-hover"
+          data-testid="tag-create"
+          @mousedown.prevent="emit('create', query.trim())"
+        >
+          <AppIcon icon="add-line" :size="12" />
+          <span>新建「{{ query.trim() }}」</span>
         </button>
       </li>
     </ul>

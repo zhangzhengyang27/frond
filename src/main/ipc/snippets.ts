@@ -22,8 +22,14 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
   )
   typedHandle('snippet:getSnippets', (_event, { filters }) => snippetStore.getSnippets(filters))
 
+  // B56-10：limit/offset 运行时钳制——SQLite 语义下 LIMIT <=0 = 不限行数，
+  // 异常值会让主进程单次全库解密（每行 AES）卡死
   typedHandle('snippet:listSnippets', (_event, { filters, limit, offset }) =>
-    snippetStore.listSnippets(filters, limit, offset)
+    snippetStore.listSnippets(
+      filters,
+      Math.min(Math.max(Number(limit) || 200, 1), 1000),
+      Math.max(Number(offset) || 0, 0)
+    )
   )
 
   typedHandle('snippet:getSnippetById', (_event, { id }) => snippetStore.getSnippetById(id))

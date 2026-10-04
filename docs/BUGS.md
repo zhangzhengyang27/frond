@@ -964,3 +964,178 @@
 写链防抖+按片段串行+事务、分页排序稳定性、LIKE 转义、canMoveFolder 环检测、
 加解密容错、invalidateTriggers 五通道覆盖、quickSearch 与主列表排序一致——均扎实。
 病灶集中在「编辑真相不回流」与「契约两端语义漂移」两个系统性根因。
+
+### B56 第一轮修复（1200d57，19 条落库）
+- P0×4 全修：①编辑真相回流（onSnippetSynced 广播 + 结构操作/切 tab 前排空队列，
+  useSnippetUpdate 5 钉 + Editor 订阅）；②收件箱显式 null（契约钉 3 条）；③prompt→UModal；
+  ④新建片段按钮（创建即选中）。
+- P1 修 8：quickSearch 排回收站（repo 2 钉）、选中态单一真相（回写/清空三口径）、
+  blur 脏检查、flush-on-exit（卸载/失焦/隐藏 + 失败保留队列）、标签通道（全量候选 +
+  新建行）、文件夹双源收口（Sidebar 同步共享 store）、复制实时值、列表预览经回流自愈。
+- P2 修 7：duplicate contentType/trigger、legacy 列同步、snip_tags 清理、limit 钳制、
+  tab 删除确认+索引复位、预览切换先落盘、错误态区分、胶囊片段页唤起重拉、死代码清理。
+- **B56 剩余**：列表键盘导航、触发词冲突检测、updated_at 语义分离、snippet:* 入参校验、
+  胶囊 SnippetsPage 失效广播的规范化（focus 重拉为过渡方案）。
+- ⚠️ 本轮与**并行会话的 B57（录屏专项）**同仓并行：各自文件不重叠，全量门禁暂被
+  B57 的 RED 测试占用（screenRecorderPermission/chunkFlush），B56 域测试全绿
+  （repo 6 + composable 5 + inbox 3 + snippets 域 41）。病灶集中在「编辑真相不回流」与「契约两端语义漂移」两个系统性根因。
+
+## 2026-10-04 发现（用户实测：录屏模块专项，四路并行审计）
+
+> 背景：用户反馈「录屏的功能一堆的 bug」。三路并行（核心状态机自查 + 主进程
+> services/ipc 全量 + 渲染层页面组件全量）+ 单测基线确认（录屏相关 4 文件 13 测试
+> 全绿 → 下列全部处于测试盲区），B57 编号。
+> 系统性根因四个：① MediaRecorder 只产 webm → 转码/授权/恢复/契约链连锁病灶；
+> ② 共享音轨所有权无单一真相（addTrack 进多流，任一方全轨 stop 即互毁）；
+> ③ 双 finalize 双真相（主进程 segments 算时长 vs 渲染端自报，互踩）；
+> ④ 事件监听挂错层（挂在会被卸载的页面组件）。
+
+### B57-1【P0 族】崩溃恢复整体脱节 + 自身四账不平
+- RecoveryManager 扫 `.partial.mp4`（RecoveryManager.ts:24,62），但全管线只产 `.webm`
+  （授权白名单 recordingSavePathGrants.ts:42 默认仅 webm，MediaRecorder 亦只产 webm）
+  → 真实崩溃（kill -9/断电）残留永远不被扫描，恢复面板对实际场景空转。
+- recover 时 renameSync 静默覆盖已存在成品（:113-114，POSIX 无条件覆盖）；
+  rename 成功后 DB 更新失败无回滚 → 文件「消失」且 scan 再也扫不到（:113-126）。
+- discard/recover 按文件名全局匹配 DB 行（:183-194，不校验目录），重名时 hardDelete
+  删错行（级联 markers/segments）。
+
+### B57-2【P0】cleanup 路径时长归零 + 双 finalize 互踩
+- cleanup()（useScreenRecorder.ts:513-521）同步置 isRecording=false、accumulatedMs=0
+  后，MediaRecorder stop 事件才异步到达 → onstop 的段累计（:275-277）不成立，
+  totalSeconds=0 写入历史。录制中切走模块（最后消费者卸载）→ 自动停录且时长 0:00。
+- 渲染端 void finalizeNewRecording(totalBytes)（:334，自报 durationMs）与主进程
+  endWrite→finalizeSavedFile（screenRecorderSave.ts:44-59，按 segments 扣暂停）先后
+  写同一行，最终值取决于完成顺序；B57-2 前半条件下正确时长被 0 覆盖。
+
+### B57-3【P0】关摄像头杀共享麦克风轨 → 之后录制全程无声
+- combineStreams 把 stream.value 的音轨 addTrack 进 canvasStream（useStreamManager.ts:531-533，
+  同一 track 对象）；closeCamera 对 canvasStream 全轨 stop（:716-717）→ 共享 mic 轨
+  ended；此后 combineStreams 只判 getAudioTracks().length===0（:420，轨死但仍在流上）
+  不重新装配 → 画中画开麦→关摄像头→再录制 = 无声视频。
+
+### B57-4【P0】导出链路任意文件读取（安全）+ 路径授权绕过
+- introPath/outroPath/backgroundMusic.path 仅 existsSync（RecordingExportService.ts:139-141），
+  无白名单校验（对照 sourcePath 有，recording.ts:360-365 注释自述防 B48 任意文件
+  经 ffmpeg 拼进产物回读）→ B48 防线对三个输入形同虚设。
+- outputPath 校验的是原始路径（recording.ts:357），export 内 ensureExtension 按 format
+  重写（RecordingExportService.ts:117,291-295）→ 实际写盘路径 ≠ 签发路径，revoke 对不上。
+
+### B57-5【P1】分片写盘丢尾竞态（文件尾部损坏）
+- ondataavailable 的 event.data.arrayBuffer() 异步链（useScreenRecorder.ts:265）可能在
+  onstop flushPendingChunk 之后才到 bufferChunk → 新建 pendingChunk + 500ms 定时器；
+  而 endWrite 在 50ms 硬等待（:306）后已执行、chunkedWritePath 置 null → 定时器到期
+  flushPendingChunk 直接 return → 最后一批数据永久丢失。
+- 在途 appendChunk Promise 未被 await（flushPendingChunk 不返回 Promise），50ms 等
+  IPC FIFO 不可靠（慢主进程 >50ms 即丢尾）。
+
+### B57-6【P1】全局快捷键在非「录制」标签页完全失效
+- 监听挂在会被卸载的 RecordPage（RecordPage.vue:349-352 onMounted 注册），切
+  历史/回放/剪辑标签即随组件卸载 → 设置面板宣传的 ⌘⇧⌥R/⌘⇧⌥P 静默无效；
+  倒计时结束事件 frond:recording-start-after-countdown 同挂 RecordPage，倒计时中
+  切标签则录制永不开始。附：Layout attachShortcuts 先 await IPC 后 addEventListener
+  （Layout.vue:243-252），await 期间卸载 → detach 已先行 → window 监听器永久泄漏。
+
+### B57-7【P1】回放页时间轴标记永不更新
+- useMarkers 非单例：PlaybackPanel.vue:187 与 MarkersPanel.vue:235-245 各持独立实例，
+  各自 loadMarkers（重复 IPC）；面板增删改后 PlaybackPanel 时间轴 overlay 不刷新
+  （直至重新选片），也未监听 markerAdded。
+
+### B57-8【P1 族】写盘会话授权四账不平
+- endWrite 失败路径（screenRecorderSave.ts:205-218）：session 已删，endStream/statSync
+  抛错直接返回 → revokeRecordingSavePath 永不执行（grant 泄漏靠 32 条 LRU 淘汰），
+  半截 webm 无历史、无恢复入口（叠加 B57-1）。
+- grant 的 `.webm` 变体（recordingSavePathGrants.ts:24-26）revoke 只删精确路径（:51-55）
+  → 变体永久可写（覆盖写风险）。
+- LRU MAX_GRANTS=32：反复预取默认路径可挤掉活跃授权 → beginWrite refused。
+- beginWrite 同路径旧会话：静默截断重开 + endStream 错误被吞（screenRecorderSave.ts:151-156）
+  → fd 泄漏、无 abort 语义。
+
+### B57-9【P1】段管理漏关 → 时长随挂机时间无限虚增
+- openSegment 不防重复、close 只关 findOpen 最新一条（SegmentService.ts:36-58）；
+  遗留 open 段按 now()-started_at 累计 totalDurationMs（RecordingSegmentRepository.ts:111-121）
+  → 写进历史时长的持续增长。
+
+### B57-10【P1】半成品交互两处（点了无任何可见结果）
+- ClipEditor「预览」按钮：previewClip 真实跑片段渲染后仅 console.log（ClipEditor.vue:251-260）。
+- RecordPage 标记「跳转」：录制/非录制两分支都只 console.log（RecordPage.vue:632-643）。
+
+### B57-11【P1】启动链 10s 窗口 UI 未锁定
+- claimRecordingStart 拦截二次启动但静默 return（RecordPage.vue:462），无提示；
+  loading ref 只读无写（useScreenRecorder.ts:32）→ PreviewPanel「准备中」永不亮；
+  启动链期间换源/关摄像头只挡 props.isRecording（此刻仍 false，RecordPage.vue:160,184,234,266）
+  → 停掉正在装配的流，录出黑屏/坏文件。
+
+### B57-12【P1】区域浮层跨屏疑似失效 + 平台错误
+- 跨屏虚拟 bounds 拼好后 setKiosk(true)（RegionOverlay.ts:224,293-310）——kiosk 收敛
+  到所在单屏，跨屏框选可能只选到一屏（需真机多屏验证，疑似）。
+- 混合 DPI 副屏选区错位：只按 primary scaleFactor 换算（:299-308）。
+- Windows 分支打开 ms-settings:privacy-**microphone**（screenRecorder.ts:154）——
+  麦克风设置页，与屏幕录制无关（复制粘贴错误）。
+- 权限刚授权未重启应用时 checkPermission 误报 granted（:174-191，与 permissions.ts:134
+  自述「macOS 授权后需重启」矛盾）。
+
+### B57-13【P2 族】导出五件
+- transition='slide' 四处硬编码 fade（RecordingExportService.ts:474-490）；导出失败不清理
+  半截输出（:259-261，GifEncoderService 同）；并发导出 activeChild 模块级单例被覆盖，
+  service 级 cancel 杀错进程；totalSec 探测失败进度恒 0%（:235）；export.getInfo 契约
+  承诺 width/height/error 未实现（ipc-contract.ts:429-438 vs recording.ts:464-475）。
+
+### B57-14【P2 族】IPC 契约漂移五件
+- recording.delete 忽略 deleteFile 参数（契约 ipc-contract.ts:244 有，handler recording.ts:130-141
+  不读）→ 物理文件永不删；addHistory 白名单只认 .webm（recordingHistory.ts:42）→
+  mp4/gif 导出产物登记被拒；beginWrite 契约 res.path 从不返回；region 取消抛
+  Error('canceled') 信封、契约未定义形状；码率/fps/分辨率数值无运行时校验（负码率
+  可拼进 ffmpeg 参数）。
+
+### B57-15【P2 族】历史页反馈缺失五件
+- load 失败置空 → 伪装「还没有录制记录」空态（HistoryPage.vue:193-203）；deleteHistory
+  false 静默；clearHistory 不查返回值本地先清（:223-225）；文件被外部删除点播放黑屏；
+  缩略图无 @error 兜底 + 点击区是无 tabindex 的 div（:51-64，键盘不可达）。
+
+### B57-16【P2 族】回放器五件
+- 解码失败/文件缺失仅 console（黑屏无提示，PlaybackPanel.vue:464-497）；时间轴无
+  scrubber 不可点击/拖动 seek；duration=0（metadata 未载入）时标记跳转静默失效（:532-545）；
+  无倍速控件；blobUrl watch 无 epoch 守卫（:278-393，对照 readFile watch 有）。
+
+### B57-17【P2 族】设置对话框四件
+- 分辨率/码率 number 输入无校验（负数/0/NaN 清空直存，RecordingSettingsDialog.vue:504-548）；
+  「重置默认」只重置 localSettings，系统音频/快捷键配置残留旧值一并写入（:551-558）；
+  handleSave 中 await shortcutApi.setConfig 不在 try 内 → unhandled rejection 弹窗卡死；
+  质量预设连点乱序（await IPC 竞态，:431-442）。
+
+### B57-18【P2 族】时间轴/剪辑表单四件
+- mousedown 不检查 event.button → 右键也建立选区并在 mouseup 触发 add-clip/seek
+  （ClipTimeline.vue:65-70,134-142）；mouseleave 当松手立即提交，无法轨道外微调；
+  新增片段 endTime=当前+10 不 clamp 超时长（ClipEditor.vue:175-183）；表单 NaN/负数
+  直提交（仅校验 start>=end）。
+
+### B57-19【P2 族】周边交互九件
+- ExportDialog 导出中可被 ESC/遮罩关闭（UModal 默认，导出后台裸奔无恢复入口）；
+  倒计时全屏遮罩无取消途径不响应 ESC（Layout.vue:8-17）；'M' 键不查修饰键且
+  preventDefault → ⌘M 最小化被劫持（MarkersPanel.vue:397-408）；SourceSelector 跨屏
+  开关取消分支不回传（UI 无选中但实际沿用旧区域，SourceSelector.vue:45-78）；
+  `video://`+encodeURI 不转义 #/?（ClipEditor.vue:274）→ 特殊路径剪辑页黑屏；
+  设备热插拔在 loading 期永久丢失 + 显示器列表只拉一次（useSourceSelection.ts:44-49）；
+  权限类错误 500ms 后自动开系统设置（:90-95，无手势侵入）；CursorTracker.stop 无参
+  清全局（多窗互踢）；useCursorHighlight.start 吞 rejection 且失败仍置 active。
+
+### B57-20【P2 族】画质两件
+- 画中画摄像头 drawImage 硬画正方形（useStreamManager.ts:622，16:9 源被拉伸变形）。
+- 鼠标光圈仅区域模式绘制（:591 `cursorScreenPos && captureRegion`），全屏录制无光圈，
+  行为不一致。
+
+### 健康面（核实无误）
+claimRecordingStart 原子防重入闸、combineEpoch 代际号防 rAF 复活、分片写盘内存 O(1)
+设计、visibilitychange 后台 2fps 降级、音频缓存与混音 ctx 清理链、单例消费者引用
+计数——主体架构已吸收 B 系列修复成果。病灶集中在上述四个系统性根因。
+
+### 第三方调研结论（2026-10-04，回应「换现成模块」）
+- 整体替换不可行：无成熟可嵌入的 Electron 录屏模块——Kap/aperture（macOS AVFoundation
+  路线）近年基本停滞且仅 macOS；npm 上 electron-screen-recorder 类均为玩具级。
+- 核心管线可换：**Mediabunny**（github.com/Vanilagy/mediabunny，mp4-muxer/webm-muxer
+  统一后继，零依赖纯 TS、活跃维护）= WebCodecs 编码 + MP4/WebM mux，浏览器端直出
+  MP4（免 ffmpeg 转码）、流式写盘、支持 fragmented MP4（崩溃恢复有据可依），另有
+  Conversion API 可承接部分剪辑/转码。Screenity v4.6（2026 中）已用 WebCodecs+Mediabunny
+  全面替换 MediaRecorder/webm 路线，管线成熟度经过同体量验证。根因①可由此消亡。
+- 小件可换：gifenc（活跃）替代自研 GIF 编码逻辑。区域浮层/倒计时/全局快捷键无现成
+  库，保留自研（按 B57-12 修）。

@@ -1021,6 +1021,56 @@
 > 纯函数可测、GB 级文件 O(片段数) 次读。集成钉 15 条（真实 sqlite + 临时目录 +
 > fMP4 夹具），全量 1357 测试/typecheck/lint 绿。**B57-1 核销**（kill -9 真机演练
 > 归入 P1 真机回归批）。
+> **P3 清理落地（同日，设计文档 §7.4）**：B57-4 全链封死（ensureExtension 绕过 +
+> intro/outro/BGM 输入白名单）；B57-14 契约收敛（deleteFile 兑现、addHistory 白名单
+> 跟随引擎 webm/mp4/gif、beginWrite res.path 删除、getInfo 收敛、region 取消转
+> {canceled:true} + 补 scaleFactor、数值运行时校验）。新增 9 钉，全量 1366 测试绿。
+> **B57-4 核销、B57-14 核销**。B57-8 中 endWrite 失败 revoke 缺口仍在旧引擎路径
+> （待旧引擎退役批处理）；转码链保留至旧引擎退役（双轨现实的诚实修订），
+> Conversion API 评估结论=剪辑转码暂不换。
+> **第三批修复（同日，TDD 11 钉，全量 1377 测试/typecheck/lint 绿）**：
+> B57-3 ✅（closeCamera 只停视频轨+音轨 removeTrack 摘除、combineStreams 按
+> readyState 检查存活并重装死轨；useStreamManager.audio.test.ts 2 钉）；
+> B57-2 后半 ✅（recording.finalize 时长单一真相 = segments 聚合优先，渲染端自报
+> 仅作无段兜底，file_size 以磁盘 statSync 为准；recordingDelete.test.ts 2 钉）；
+> B57-9 ✅（repo.open 前自动收口该录制全部遗留 open 段，任一时刻至多一个 open，
+> totalDurationMs 不再随挂机虚增；SegmentService.dedup.test.ts 4 钉真实 sqlite）；
+> B57-7 ✅（useMarkers 按 recordingId 键控单例 store，回放页时间轴与标记面板共享
+> 单一真相；useMarkers.singleton.test.ts 3 钉；B50 乱序防护用例迁移到新契约：
+> 视图跟随 recordingId，守卫意图不变）。
+> **第四批修复（同日，TDD 10 钉，全量 1387 测试/typecheck/lint 绿）**：
+> B57-6 ✅（最后一个 P1）——录制动作从 RecordPage 组件闭包提取到模块级控制器
+> recordingActions.ts（依赖的单例 composables 注入，快捷键响应与组件生命周期解耦），
+> 监听器统一挂 useRecordingShortcuts（Layout 常驻层）：快捷键/倒计时/光圈推送在
+> 任意标签页有效；P2-1 附带修复（window 监听器同步挂载 + disposed 标记，attach IPC
+> 期间卸载不再永久泄漏）。RecordPage 653→296 行。B57-11 部分 ✅——isStarting 置位：
+> 启动链二次触发 toast 提示（不再静默丢弃）、loading 点亮（PreviewPanel「准备中」
+> 生效、canRecord 失效）、启动期间换源/关摄像头被守卫。
+> **第五批修复（同日，P2 体验族 17 件，全量 1392 测试/typecheck/lint 绿）**：
+> B57-17 ✅（设置对话框：码率/分辨率/音频码率钳制；setConfig 异常捕获+toast 不再
+> 卡死弹窗；重置完整覆盖系统音频/快捷键/倒计时；预设连点 seq 守卫；**附带发现并修
+> 掉 systemAudio 状态从不回读**——重开对话框显示关闭、再保存即静默关闭系统音频；
+> recordingSettingsDialog.test.ts +5 钉）；B57-15 ✅（历史页：加载失败独立错误态
+> 不再伪装空态；删除/清空失败 toast、clearHistory 服务端回滚回执 + 契约 void→boolean；
+> openFile 失败提示；缩略图 @error 回退占位图标）；B57-18 ✅（时间轴右键/中键不再
+> 建选区拖边界；新增片段 endTime clamp 进时长；表单 NaN/负数/越界拦截）；
+> B57-19 三件 ✅（'M' 键忽略 ⌘/⌃/⌥ 修饰——不再劫持系统最小化；ExportDialog 导出中
+> 禁 ESC/遮罩关闭；useCursorHighlight start 失败不再吞 rejection+误置 active）；
+> B57-20 部分 ✅（画中画摄像头 contain 缩放居中，16:9 不再硬拉正方形）。
+> **第六批修复（同日，P2 收尾 12 件，全量 1392 测试/typecheck/lint 绿）**：
+> B57-16 ✅（回放器：解码失败/文件缺失错误覆盖层可见化（此前黑屏+console）、
+> blobUrl watch 补 epoch 守卫（对照 readFile watch 的 B50 守卫）、duration=0 时
+> 标记跳转挂起待元数据就绪后应用（不再静默失效）、时间轴点击 seek（scrubber）、
+> 倍速控件 0.5~2x；此批为 UI 级修复，未加组件钉——真机回归时验证）；
+> B57-13 ✅（导出：并发导出拒绝（activeChild 单例防覆盖+cancel 语义不再破坏）、
+> ffmpeg 非零退出/spawn 失败清理半截输出、totalSec 探测失败按已转码时长展示活动
+> （不再恒 0 像卡死）、'slide' 转场映射 xfade slideleft（四处硬编码 fade 消亡））；
+> B57-19 余件 ✅（protocols decodeURIComponent+容错 + ClipEditor 按段 encodeURIComponent
+> —— #/? 路径不再截断 404；设备热插拔 loading 期挂 pending 在 loadSources 收尾重放
+> （不再永久丢失）；权限错误不再无手势自动弹系统设置；SourceSelector 取消跨屏回传
+> 'cancel' → actions 清区域回全屏源（旧实现只翻转本地布尔沿用旧区域）；倒计时遮罩
+> 加 ESC+取消按钮（主进程事件丢失不再永久遮罩）；CursorTracker.stop 审计误报——
+> IPC handler 本就传 e.sender.id，现码正确无需修改）。
 > 系统性根因四个：① MediaRecorder 只产 webm → 转码/授权/恢复/契约链连锁病灶；
 > ② 共享音轨所有权无单一真相（addTrack 进多流，任一方全轨 stop 即互毁）；
 > ③ 双 finalize 双真相（主进程 segments 算时长 vs 渲染端自报，互踩）；

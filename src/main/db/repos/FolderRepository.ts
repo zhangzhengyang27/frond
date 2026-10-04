@@ -192,12 +192,13 @@ export class FolderRepository {
     const idsToDelete = [id, ...this.getAllSubfolderIds(id)]
     const placeholders = idsToDelete.map(() => '?').join(',')
     const tx = this.db.transaction(() => {
-      // 先摘除引用（inbox 条件是 folder_id IS NULL，悬挂 id 会让片段从所有视图消失）
+      // 先摘除引用（inbox 条件是 folder_id IS NULL，悬挂 id 会让片段从所有视图消失）；
+      // B56：归档动作不 bump updated_at
       this.db
         .prepare(
-          `UPDATE snip_snippets SET folder_id = NULL, updated_at = ? WHERE folder_id IN (${placeholders})`
+          `UPDATE snip_snippets SET folder_id = NULL WHERE folder_id IN (${placeholders})`
         )
-        .run(Date.now(), ...idsToDelete)
+        .run(...idsToDelete)
       this.db
         .prepare(`DELETE FROM folder_folders WHERE id IN (${placeholders})`)
         .run(...idsToDelete)

@@ -963,6 +963,14 @@
   snippets:changed 失效广播（全部变异通道推双窗，胶囊片段页订阅即时重拉）。
   **B56 全部 24 条清账**。回归钉：repo 10 + composable 5 + inbox/键盘 6 + IPC 校验随域。
 - ⚠️ 全量 e2e 的 plugin-arg-slots 仍有轮转失败（本批跑两次各红一条不同用例）——
+  已知负载敏感抖动位（见 memory），独立复跑各自绿。
+- **B56-1 补刀**（4e66739）：e2e 实测发现终版守卫仍有缝隙——switchContent 的 flush
+  里条目在广播后才出队，「队列有条目」守卫误判在途键入并吞掉同步 → 切 tab 回填
+  旧空值。修正为「编辑器实时值 ≠ ack 回流值」对比（flush 快照后键入才跳过）。
+  新增 e2e/snippets-ui.spec.mjs 五条真实 UI 链路验证（收件箱过滤/新建/切 tab 不丢/
+  文件夹 UModal/键盘导航），CodeMirror 断言走 getValue 真值面。
+- 门禁终态：typecheck 0 / lint 0（我的域）/ unit 1357 / e2e 片段域 13/13 全绿
+  （UI 5 + CRUD 8）+ 全量 100 过 + 1 已知抖动。- ⚠️ 全量 e2e 的 plugin-arg-slots 仍有轮转失败（本批跑两次各红一条不同用例）——
   已知负载敏感抖动位（见 memory），独立复跑各自绿。### B56-12【P2 族】周边三件
 - 胶囊 SnippetsPage 非 immediately 回根模式下陈旧数据（无失效广播）；
   触发词冲突无检测（命中方随 updatedAt 抖动，expansionBuffer.ts:95-107）；
@@ -999,6 +1007,20 @@
 > toast 指引；clipEditor.preview 2 钉 + markersPanel 2 钉）；B57-12 部分 ✅（win32
 > 误开麦克风设置页 → openPermissionSettingsOutcome 平台分支纯函数，不再打开无关
 > 面板；screenRecorderPermission 2 钉。kiosk 跨屏与混合 DPI 待真机验证后修）。
+> **P1 管线切换落地（同日，RECORDING_MEDIABUNNY_DESIGN.md §7.2）**：新模块
+> useRecordingPipeline.ts（WebCodecs/Mediabunny fMP4 引擎，engine 特性开关默认关），
+> 门面 useScreenRecorder 经 PipelineHost 委托（体量棘轮拆分 1100→731 行）；
+> settings.engine + 路径签发扩展名参数；设置对话框「录制引擎」开关；管线回归钉 6 条
+> （pipeline.test.ts），全量 1342 测试/typecheck/lint 绿。核销映射：P1 真机回归后 →
+> B57-5（新引擎无自研攒批）+ B57-2 前半（管线时长单一真相）。
+> **P2 恢复重写落地（同日，设计文档 §7.3）**：RecoveryManager 按 D4 重写——scan 主源
+> 改 DB 孤儿行（status recording/paused 且文件存在，webm/mp4 通吃；.partial.mp4 目录
+> 扫描降为历史兜底）；recover 改 fMP4 box 边界扫描 + 原地截断（不 rename，消灭静默
+> 覆盖 P0-1；先文件后 DB，消灭「文件消失」P0-2）；discard 改行级精确删除
+> （recordingId/精确路径，消灭 basename 跨目录误删 P0-4）；findMp4RecoveryPoint
+> 纯函数可测、GB 级文件 O(片段数) 次读。集成钉 15 条（真实 sqlite + 临时目录 +
+> fMP4 夹具），全量 1357 测试/typecheck/lint 绿。**B57-1 核销**（kill -9 真机演练
+> 归入 P1 真机回归批）。
 > 系统性根因四个：① MediaRecorder 只产 webm → 转码/授权/恢复/契约链连锁病灶；
 > ② 共享音轨所有权无单一真相（addTrack 进多流，任一方全轨 stop 即互毁）；
 > ③ 双 finalize 双真相（主进程 segments 算时长 vs 渲染端自报，互踩）；

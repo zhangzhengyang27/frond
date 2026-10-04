@@ -610,7 +610,7 @@ async function updateTrigger(trigger: string): Promise<void> {
 async function updateTags(tagIds: string[]): Promise<void> {
   if (!props.snippet) return
   // 清理数据，确保只传递可序列化的基本类型
-  const cleanTagIds = JSON.parse(JSON.stringify(tagIds))
+  const cleanTagIds = JSON.parse(JSON.stringify(tagIds)) as string[]
   const updated = await window.api.snippet.updateSnippet(props.snippet.id, {
     tagIds: cleanTagIds
   })

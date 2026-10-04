@@ -19,6 +19,7 @@
  * - 失败策略：单条失败不阻断；汇总 errors
  */
 
+import type Database from 'better-sqlite3'
 import { app } from 'electron'
 import { join } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
@@ -62,7 +63,7 @@ export function runRecordingHistoryMigration(userDataDir?: string): RecordingMig
   }
 
   // 检查 SQLite 是否可用（PR-2 单测注入 :memory: 时也可走此路径）
-  let db
+  let db: Database.Database
   try {
     db = database.handle
   } catch (e) {

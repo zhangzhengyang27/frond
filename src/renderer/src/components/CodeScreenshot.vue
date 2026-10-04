@@ -65,8 +65,7 @@ function init(): void {
 
   // 禁用文本选择
   editor.on('mousedown', (e) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(e as any).preventDefault()
+    ;(e as unknown as { preventDefault(): void }).preventDefault()
   })
 
   watch(
@@ -132,7 +131,7 @@ function initInteract(): void {
         isDragging.value = true
         showDimensions.value = true
       },
-      move(event) {
+      move(event: { deltaRect: { width: number } }) {
         // 考虑居中效果，宽度变化要翻倍
         let newWidth = width.value + event.deltaRect.width * 2
         newWidth = Math.max(MIN_WIDTH, Math.min(newWidth, containerMaxWidth))

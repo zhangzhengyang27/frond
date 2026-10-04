@@ -62,7 +62,15 @@ export function useSnippetSearchOverlay(getEditor: () => CodeMirror.Editor | nul
         editor.addOverlay(currentSearchOverlay)
 
         // 滚动到第一个匹配项
-        const cursor = editor.getSearchCursor(searchQuery.value, { line: 0, ch: 0 }, true)
+        // getSearchCursor 来自 searchcursor 插件（CodeMirror 基础类型不含）
+        const withCursor = editor as unknown as {
+          getSearchCursor: (
+            query: string,
+            pos: { line: number; ch: number },
+            caseFold: boolean
+          ) => { findNext(): boolean; from(): { line: number; ch: number } }
+        }
+        const cursor = withCursor.getSearchCursor(searchQuery.value, { line: 0, ch: 0 }, true)
         if (cursor.findNext()) {
           editor.scrollIntoView(cursor.from(), 50)
         }

@@ -341,7 +341,7 @@ function runSystemProfiler(timeoutMs = 15000): Promise<string | null> {
       resolve(null)
     }, timeoutMs)
 
-    child.stdout.on('data', (chunk) => {
+    child.stdout.on('data', (chunk: Buffer) => {
       out += chunk.toString()
     })
     child.on('error', () => {

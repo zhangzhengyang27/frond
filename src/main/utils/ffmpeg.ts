@@ -18,7 +18,7 @@ export function getFfmpegPath(): string {
     // 尝试加载打包的 ffmpeg
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- 无类型声明的 CommonJS 包
-    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg')
+    const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg') as { path: string }
     const ffmpegPath = ffmpegInstaller.path
 
     if (ffmpegPath) {

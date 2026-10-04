@@ -50,7 +50,7 @@ export function safeOpenablePath(input: unknown): string | null {
   // 扩展名黑名单对文件与目录都生效：.app/.bundle 等是目录形态的
   // 可执行 bundle，曾被 isFile 短路放行（审查 I-8）
   if (EXECUTABLE_EXTENSIONS.has(extname(p).toLowerCase())) return null
-  let stat
+  let stat: ReturnType<typeof statSync>
   try {
     stat = statSync(p)
   } catch {

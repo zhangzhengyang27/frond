@@ -64,7 +64,7 @@ export class PreferencesDataStore {
     const raw = prefRepository.get(PREF_KEYS.editor)
     if (raw) {
       try {
-        return { ...EDITOR_DEFAULTS, ...JSON.parse(raw) }
+        return { ...EDITOR_DEFAULTS, ...(JSON.parse(raw) as Partial<EditorSettings>) }
       } catch (e) {
       // 批 7b 空 catch 清账（原注释：fall through）
       log.debug('preferences-data-store', 'fall through', e)
@@ -88,7 +88,7 @@ export class PreferencesDataStore {
     const raw = prefRepository.get(PREF_KEYS.theme)
     if (raw) {
       try {
-        const parsed = JSON.parse(raw)
+        const parsed = JSON.parse(raw) as 'light' | 'dark' | 'auto'
         if (THEME_VALUES.includes(parsed)) return parsed
       } catch (e) {
       // 批 7b 空 catch 清账（原注释：fall through）
@@ -140,7 +140,7 @@ export class PreferencesDataStore {
     const raw = prefRepository.get(PREF_KEYS.favoriteModules)
     if (!raw) return []
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(raw) as unknown
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
     } catch (e) {
       // 批 7b 空 catch 清账（原注释：* fall through）
@@ -159,7 +159,7 @@ export class PreferencesDataStore {
     const raw = prefRepository.get(PREF_KEYS.fallbackDisabled)
     if (!raw) return []
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(raw) as unknown
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
     } catch (e) {
       // 批 7b 空 catch 清账（原注释：* fall through）
@@ -178,7 +178,7 @@ export class PreferencesDataStore {
     const raw = prefRepository.get(PREF_KEYS.fallbackOrder)
     if (!raw) return []
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(raw) as unknown
       if (Array.isArray(parsed)) return parsed.filter((x): x is string => typeof x === 'string')
     } catch (e) {
       // 批 7b 空 catch 清账（原注释：* fall through）

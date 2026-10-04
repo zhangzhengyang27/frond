@@ -557,7 +557,7 @@ export class PomodoroRepository {
         .get(SETTINGS_KEY) as { value: string } | undefined
       if (raw) {
         try {
-          return { ...DEFAULT_SETTINGS, ...JSON.parse(raw.value) }
+          return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw.value) as Partial<typeof DEFAULT_SETTINGS>) }
         } catch {
           return { ...DEFAULT_SETTINGS }
         }
@@ -567,7 +567,7 @@ export class PomodoroRepository {
     const raw = prefRepository.get(SETTINGS_KEY)
     if (!raw) return { ...DEFAULT_SETTINGS }
     try {
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+      return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<typeof DEFAULT_SETTINGS>) }
     } catch {
       return { ...DEFAULT_SETTINGS }
     }

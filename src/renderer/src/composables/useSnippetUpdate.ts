@@ -92,7 +92,7 @@ function updateContentDebounced(snippetId: string, contentId: string): void {
                 }
           )
           // 清理数据，确保只传递可序列化的基本类型
-          const cleanContents = JSON.parse(JSON.stringify(updatedContents))
+          const cleanContents = JSON.parse(JSON.stringify(updatedContents)) as typeof updatedContents
           await window.api.snippet.updateSnippet(update.snippetId, {
             contents: cleanContents
           } as Partial<Snippet>)

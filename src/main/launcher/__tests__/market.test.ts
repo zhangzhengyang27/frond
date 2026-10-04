@@ -358,9 +358,11 @@ describe('远程索引（P-3.1）', () => {
     await expect(
       assertRemoteTargetAllowed('http://example.com/p.json', publicOnly)
     ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('https') })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- vitest stringContaining 泛型摩擦（断言域）
     await expect(
       assertRemoteTargetAllowed('https://127.0.0.1:8787/p.json', async () => true)
     ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('内网') })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- vitest stringContaining 泛型摩擦（断言域）
     await expect(assertRemoteTargetAllowed('not a url', publicOnly)).resolves.toMatchObject({
       ok: false,
       error: '地址无效'
@@ -521,9 +523,11 @@ describe('远程索引（P-3.1）', () => {
     await expect(
       assertRemoteTargetAllowed('http://example.com/p.json', publicOnly)
     ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('https') })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- vitest stringContaining 泛型摩擦（断言域）
     await expect(
       assertRemoteTargetAllowed('https://127.0.0.1:8787/p.json', async () => true)
     ).resolves.toMatchObject({ ok: false, error: expect.stringContaining('内网') })
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- vitest stringContaining 泛型摩擦（断言域）
     await expect(assertRemoteTargetAllowed('not a url', publicOnly)).resolves.toMatchObject({
       ok: false,
       error: '地址无效'

@@ -1,19 +1,8 @@
 {
-  "total": 248,
+  "total": 137,
   "files": {
-    "src/main/db/dataMigrationsRecording.ts": {
-      "no-unsafe-call": 11,
-      "no-unsafe-member-access": 11
-    },
-    "src/main/db/repos/PomodoroRepository.ts": {
-      "no-unsafe-return": 2
-    },
     "src/main/ipc/__tests__/applicationsCacheFile.test.ts": {
       "no-unsafe-return": 1
-    },
-    "src/main/ipc/applications.ts": {
-      "no-unsafe-call": 1,
-      "no-unsafe-member-access": 1
     },
     "src/main/launcher/__tests__/market.test.ts": {
       "no-unsafe-assignment": 4
@@ -24,14 +13,6 @@
     "src/main/launcher/dataSync.ts": {
       "no-unsafe-return": 1
     },
-    "src/main/modules/__tests__/brandMigration.test.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/services/AIService.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-argument": 1
-    },
     "src/main/services/DictionaryService.ts": {
       "no-unsafe-assignment": 1
     },
@@ -41,24 +22,8 @@
     "src/main/services/mcp/__tests__/mcp.tools.test.ts": {
       "no-unsafe-member-access": 1
     },
-    "src/main/stores/PreferencesDataStore.ts": {
-      "no-unsafe-return": 2,
-      "no-unsafe-assignment": 4,
-      "no-unsafe-argument": 1
-    },
     "src/main/utils/__tests__/aiEndpointGuard.test.ts": {
       "no-unsafe-assignment": 1
-    },
-    "src/main/utils/ffmpeg.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-member-access": 3,
-      "no-unsafe-call": 2,
-      "no-unsafe-argument": 1,
-      "no-unsafe-return": 1
-    },
-    "src/main/utils/openPathGuard.ts": {
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 2
     },
     "src/preload/index.ts": {
       "no-unsafe-assignment": 86,
@@ -66,60 +31,11 @@
       "no-unsafe-call": 3,
       "no-unsafe-argument": 30
     },
-    "src/renderer/src/components/CodeScreenshot.vue": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 4,
-      "no-unsafe-assignment": 2
-    },
-    "src/renderer/src/components/JsonVisualizer.vue": {
-      "no-unsafe-assignment": 2,
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 2
-    },
-    "src/renderer/src/components/MarkdownPresentation.vue": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 1
-    },
-    "src/renderer/src/components/MarkdownPreview.vue": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 1
-    },
-    "src/renderer/src/composables/useSnippetUpdate.ts": {
-      "no-unsafe-assignment": 2
-    },
     "src/renderer/src/launcher/LauncherApp.vue": {
       "no-unsafe-return": 1
     },
-    "src/renderer/src/launcher/components/DetailPanel.vue": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 2
-    },
-    "src/renderer/src/launcher/pages/PluginListPage.vue": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 2
-    },
-    "src/renderer/src/utils/api.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-return": 1
-    },
-    "src/renderer/src/utils/sanitize-html-wrapper.ts": {
-      "no-unsafe-assignment": 1
-    },
     "src/renderer/src/views/screenRecorder/pages/RecordPage.vue": {
       "no-unsafe-call": 1
-    },
-    "src/renderer/src/views/snippets/components/Editor.vue": {
-      "no-unsafe-assignment": 2
-    },
-    "src/renderer/src/views/snippets/composables/useSnippetSearchOverlay.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 2,
-      "no-unsafe-argument": 1
     },
     "src/shared/__tests__/plugin-manifest.test.ts": {
       "no-unsafe-assignment": 1

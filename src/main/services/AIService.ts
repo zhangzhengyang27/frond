@@ -259,7 +259,10 @@ async function chatStream(
           controller.abort(new Error('AI 响应超过总时长上限'))
           throw new Error('AI 响应超过总时长上限')
         }
-        const { done, value } = await reader.read()
+        const { done, value } = (await reader.read()) as {
+          done: boolean
+          value?: Uint8Array
+        }
         if (done) break
         armIdle()
         buffer += decoder.decode(value, { stream: true })

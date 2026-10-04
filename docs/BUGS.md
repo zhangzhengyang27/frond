@@ -891,3 +891,76 @@
   capsule-animation / plugin-arg-slots 各 1 条时序抖动（已知负载敏感域，spec 头注
   明失败签名；独立/重跑均绿，file-index 全绿；当晚机器有 PyCase dev 全套 + ZCode
   会话两路额外负载）。
+
+## 2026-10-04 发现（用户实测：代码片段模块专项，四路并行审计 24 条）
+
+> 背景：用户保留片段模块（Raycast 无此形态），反馈「一堆 bug」。四路 Explore 并行
+> （页面主链路 / 编辑器 / 主进程数据链路 / 胶囊与多窗一致性）+ 去重，B56 编号。
+> 修复批建议顺序：B56-1（编辑器真相回流，消除两条 P0）→ B56-2/3/4 → P1 族 → P2 收尾。
+
+### B56-1【P0】编辑器「编辑真相不回流」——contents 整体写回滚已落库编辑（数据丢失）
+- 防抖 flush（useSnippetUpdate.ts:96-99）写库后不回写 props/父状态；Editor 的
+  saveEditorContent/addContent/removeContent/updateLanguage 等（Editor.vue:793-810,422,449,502）
+  构造 payload 时非当前 content 一律取旧 props 值 → 主进程全量 DELETE+INSERT
+  （SnippetRepository.ts:383-400）把已落库的 tab A 编辑抹掉。
+- 同根 P0：切 tab 回填走 props（Editor.vue:262-271,397-406），500ms 内切走切回
+  输入消失，再敲键以旧值为基准覆盖 DB。
+- 派生：复制按钮读 props 旧值（:557-564）100% 复制错内容；纯打字后列表预览/排序
+  不更新（flush 不 emit）。修法：flush/saveEditorContent 完成后回写父状态，
+  编辑器实时值作为唯一真相。
+
+### B56-2【P0】收件箱过滤死参数——收件箱视图=全部视图
+- SnippetList.vue:116 传 folderId: props.folderId ?? undefined（null→undefined），
+  repo 门槛 folderId !== undefined 永假（SnippetRepository.ts:218-225），isInbox
+  从未生效。模块默认视图就是收件箱（index.vue:10）——用户开门第一屏即错。
+- 修法：库视图显式传 folderId: null；repo 层补组合集成测试。
+
+### B56-3【P0】Sidebar 用 window.prompt 建/改名文件夹——Electron 直接抛异常
+- Sidebar.vue:69,76。文件夹创建/重命名整体不可用（本仓其余处已 UModal 化，仅此漏网）。
+
+### B56-4【P0】全 UI 无新建片段入口——空态引导「新建一个片段」但渲染端零调用 addSnippet
+- 唯一调用方是 e2e 直调 API（snippets-crud.spec.mjs:108）。主链路断头。
+
+### B56-5【P1 族】选中态无单一真相（六连）
+- 右键收藏/移动不回写选中（SnippetList.vue:172-191）；恢复不清选中（:214-222）；
+  切文件夹/筛选不清选中（:269-275）→ Editor 悬空显示；名称/描述 blur 无条件写库
+  （Editor.vue:1011,1086→583-598）→ updatedAt 跳顶 + 选中弹回。
+
+### B56-6【P1】防抖写队列三漏——关窗不 flush、失败静默、先出队后等结果
+- useSnippetUpdate.ts:58-104：无 beforeunload flush（对照 NotesPage 有）；catch 仅
+  console.warn；delete(key) 在 settle 之前。Cmd+Q 丢最后 500ms 编辑。
+
+### B56-7【P1】标签功能死路——候选集恒空，加不了标签
+- Editor.vue:623-631 候选=已挂标签；TagInput 再滤已选 → 恒空。全 renderer 无 addTag 调用。
+
+### B56-8【P1】quickSearch 泄漏回收站片段进胶囊搜索
+- SnippetRepository.ts:269-278 无 deleted_at 过滤（注释声称同口径不实——业务入口
+  经 SnippetDataStore 强制 isDeleted:false，quickSearch 直连 repo 绕过）；
+  actionHandlers.ts:125-130 执行端也不设防。
+
+### B56-9【P1】文件夹双源真相——新建文件夹不进「移动到」菜单
+- Sidebar 直连 IPC 只 emit 回父 props；SnippetList 读 useFolders 模块级闩锁
+  （每会话只拉一次）；props.folders 声明后零读取。新建文件夹直到重启才出现在
+  移动菜单/行内徽标。
+
+### B56-10【P2 族】数据卫生四件
+- duplicateSnippet 丢 contentType（rich 副本降级 text）与 trigger
+  （SnippetRepository.ts:459-464）；硬删除不清 snip_tags 无外键 junction
+  （:425,449）；updateSnippet 不同步遗留 content/language 列（:368-381，胶囊
+  quickSearch 副标题语言过期）；listSnippets limit/offset 无运行时钳制（ipc/snippets.ts:25-27）。
+
+### B56-11【P2 族】编辑器体验七件
+- 删除重命名中 tab 不复位 editingTabIndex（错位到隔壁 tab）；tab 删除零确认不可恢复；
+  保存失败零提示（六处仅 console.error）；代码预览/Markdown 切换不先保存（陈旧预览+
+  旧值回填）；软删/收藏 bump updated_at 污染排序；列表无 ↑↓/Enter 键盘导航；
+  错误态渲染成空态（catch 后 snippets=[]）。
+
+### B56-12【P2 族】周边三件
+- 胶囊 SnippetsPage 非 immediately 回根模式下陈旧数据（无失效广播）；
+  触发词冲突无检测（命中方随 updatedAt 抖动，expansionBuffer.ts:95-107）；
+  死代码（useSnippetViewModes/useSnippetSearchOverlay 零引用）与双关闭通道。
+
+### 健康面（核实无误）
+写链防抖+按片段串行+事务、分页排序稳定性、LIKE 转义、canMoveFolder 环检测、
+加解密容错、invalidateTriggers 五通道覆盖、quickSearch 与主列表排序一致——均扎实。
+病灶集中在「编辑真相不回流」与「契约两端语义漂移」两个系统性根因。

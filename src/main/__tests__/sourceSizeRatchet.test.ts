@@ -31,7 +31,7 @@ const KNOWN_OVER_1000 = [
   'shared/ipc-contract.ts', // 1567
   'renderer/src/views/pomodoro/index.vue', // 1539
   'renderer/src/views/snippets/components/Editor.vue', // 1515
-  'renderer/src/views/launcher/index.vue', // 1236
+  'renderer/src/views/settings/LauncherManagePanel.vue', // 1395
   'preload/index.ts' // 1131
 ]
 

@@ -71,8 +71,10 @@ test('1. 进入启动器管理页，市场区块与远程索引输入框在位',
   await page.getByText('跳过引导').first().click()
   await page.evaluate(async () => {
     await window.api.preferences.setOnboardingCompleted()
-    window.location.hash = '#/launcher'
+    // 启动器管理页已迁入设置页「启动器」页签（2026-10-04 Home/独立大页退役）
+    window.location.hash = '#/settings'
   })
+  await page.getByRole('button', { name: '启动器' }).first().click()
   await expect(page.getByText('插件市场').first()).toBeVisible({ timeout: 20000 })
   await expect(indexInput(page)).toBeVisible({ timeout: 20000 })
 })

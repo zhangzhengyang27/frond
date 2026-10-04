@@ -78,18 +78,6 @@ export const MODULES: ModuleMeta[] = [
     category: 'tool',
     shortcut: '3'
   },
-  // 启动器
-  {
-    id: 'launcher',
-    routeName: 'launcher',
-    path: '/launcher',
-    label: '启动器',
-    description: 'Alt+Space 唤起 · 插件扩展',
-    icon: 'search',
-    group: 'resource',
-    category: 'launcher',
-    shortcut: '4'
-  }
 ]
 
 /** 按 id 找模块（主进程 dockMenu/tray 也用） */

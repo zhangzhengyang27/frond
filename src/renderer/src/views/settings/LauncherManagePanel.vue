@@ -1,3 +1,9 @@
+<!--
+  LauncherManagePanel · 启动器管理面板（设置页「启动器」页签内容）
+  2026-10-04 自 views/launcher/index.vue 整体迁入（用户决策：独立大页退役，
+  Raycast 式——管理界面归设置窗，主交互面是启动器胶囊）。六段功能
+  （插件 / 插件市场 / Quicklinks / 文本扩展 / 快捷键 / WebDAV）结构原样保留。
+-->
 <template>
   <div class="mx-auto max-w-3xl px-6 py-8">
     <!-- ═══ 页头 ═══ -->

@@ -74,8 +74,10 @@ test('⌘K 面板的行与胶囊同源：能搜到 Registry 独有的行，且�
   await expect(input).toBeVisible({ timeout: 15000 })
 
   // ① 首屏还是那批静态行（模块 / 系统页 / 动作），徽标筛选与迁移前同源
+  // 启动器模块已退役（2026-10-04：主交互面是胶囊，管理页并入设置页），
+  // 用仍然在册的「代码片段」模块行验证首屏静态行同源
   await expect
-    .poll(async () => main.locator('[data-palette-key="module:launcher"]').count(), {
+    .poll(async () => main.locator('[data-palette-key="module:snippets"]').count(), {
       timeout: 25000
     })
     .toBe(1)

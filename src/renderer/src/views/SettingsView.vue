@@ -21,6 +21,7 @@ import { useUserTheme } from '../composables/useUserTheme'
 import type { UpdateStatus, UpdateEvent } from '../types/update'
 import type { SystemInfo } from '../types/system'
 import type { TelemetryMode } from '../types/log'
+import LauncherManagePanel from './settings/LauncherManagePanel.vue'
 
 // 设置页面标题
 document.title = '设置'
@@ -898,26 +899,8 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
           <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-fg-primary">启动器</h1>
           <p class="mb-8 text-[14px] text-fg-tertiary">全局搜索、插件命令与快捷键。</p>
 
-          <section class="mb-8">
-            <div class="overflow-hidden rounded-xl bg-surface-1 ring-1 ring-line-subtle">
-              <div class="flex items-center gap-3 px-4 py-3">
-                <div
-                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-500/10 text-brand-500"
-                >
-                  <AppIcon icon="ri-search-line" :size="16" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="text-[14px] font-medium text-fg-primary">胶囊启动台与插件</div>
-                  <div class="mt-0.5 text-[12px] text-fg-tertiary">
-                    全局搜索 / 插件命令 / WebDAV 同步，均在启动器管理页配置
-                  </div>
-                </div>
-                <UButton size="sm" variant="secondary" @click="router.push('/launcher')"
-                  >管理插件</UButton
-                >
-              </div>
-            </div>
-          </section>
+          <!-- 启动器管理面板（2026-10-04 自独立大页 /launcher 迁入，Raycast 式） -->
+          <LauncherManagePanel />
 
           <!-- 结果列表密度（P-6④）：只改行高与间距，字号与图标不跟着缩。
                与「启动器 → 紧凑模式」（P-6⑤，空查询时整窗收成一条栏）是两件事 -->
@@ -1365,8 +1348,8 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     查看、安装、卸载插件，管理插件偏好设置
                   </div>
                 </div>
-                <UButton size="sm" variant="secondary" @click="router.push('/launcher')"
-                  >打开管理页</UButton
+                <UButton size="sm" variant="secondary" @click="activeSection = 'launcher'"
+                  >去管理</UButton
                 >
               </div>
             </div>

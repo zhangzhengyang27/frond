@@ -87,10 +87,10 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue')
     },
     {
-      // 启动器管理页（IA v2：fastSearch → launcher 改名，2026-09）
+      // 启动器管理页已退役（2026-10-04：内容迁设置页「启动器」页签，
+      // Raycast 式——独立大页删除）。旧链接重定向。
       path: '/launcher',
-      name: 'launcher',
-      component: () => import('../views/launcher/index.vue')
+      redirect: '/settings'
     },
     // 旧路径兼容重定向
     { path: '/fastSearch', redirect: '/launcher' },

@@ -843,7 +843,15 @@
   （preload 122：桥接函数参数需逐通道从 ipc-contract 取型；dataMigrationsRecording
   22；其余为 renderer v-html/window API/marked 等 ≤10 条的散点，与 sqlite 无关）。
   棘轮脚本守门不变。
-- **B 系列活账**：B44（重塑批 7）、B55（新开，见上）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
+### 2026-10-04 批14 推进核销（B55 散点清零，1 commit）
+- **B55 推进**（1961cff）：248 → 137——新增 sanitize-html / dom-to-image 两个
+  项目内 ambient 声明（各消灭一簇 type-could-not-be-resolved 连带污染）；
+  sanitize-html-wrapper 摘 @ts-ignore；dataMigrationsRecording `let db` 显式类型；
+  15 处散点收口（ffmpeg require / statSync / JSON.parse 群 / AI 流 reader /
+  axios 拦截器 / CodeMirror searchcursor / 事件形参）。单测 1298 全绿。
+- **B55 余量 = preload/index.ts 122**（桥接函数参数逐通道从 ipc-contract 取型）
+  + 15 条单点，棘轮守门不变。
+- **B 系列活账**：B44（重塑批 7）、B55（仅剩 preload 主体 + 15 单点）。- **B 系列活账**：B44（重塑批 7）、B55（新开，见上）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
   类型化 2447 条，重塑批 2c/7 范围）。- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、

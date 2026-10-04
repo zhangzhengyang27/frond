@@ -29,8 +29,7 @@ class FrondDatabase {
 
   /** 拿到 raw Database handle（仅供 service 层使用，不外泄到 IPC） */
   get handle(): Database.Database {
-    this.ensureOpen()
-    return this.db as Database.Database
+    return this.ensureOpen()
   }
 
   /** 主动打开数据库（幂等）；通常用于 app.whenReady() 之后的预热 */
@@ -48,8 +47,9 @@ class FrondDatabase {
     return join(app.getPath('userData'), DB_FILE)
   }
 
-  private ensureOpen(): void {
-    if (this.db) return
+  // 返回非空句柄（打开成功或抛出）：调用点用返回值而非 this.db，规避可空窄化
+  private ensureOpen(): Database.Database {
+    if (this.db) return this.db
     if (!app.isReady()) {
       throw new Error('[database] called before app.isReady(); defer until whenReady')
     }
@@ -81,6 +81,7 @@ class FrondDatabase {
       this.db = null
       throw error
     }
+    return this.db
   }
 
   private maybeBackup(dbPath: string): void {
@@ -208,8 +209,8 @@ class FrondDatabase {
 
   /** 调试/测试用：拿到当前已应用版本 */
   currentVersion(): number {
-    this.ensureOpen()
-    const row = this.db.prepare('SELECT MAX(version) AS v FROM meta').get() as { v: number | null }
+    const db = this.ensureOpen()
+    const row = db.prepare('SELECT MAX(version) AS v FROM meta').get() as { v: number | null }
     return row.v ?? 0
   }
 

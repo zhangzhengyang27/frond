@@ -11,6 +11,7 @@
 
 import type Database from 'better-sqlite3'
 import { database } from '../database'
+import { sqlFacade, type SqlDb } from '../typedSql'
 import { now, mustGet } from '../repo'
 
 export interface MarkerRow {
@@ -28,8 +29,9 @@ const SELECT_MARKER = `SELECT id, recording_id, time_ms, label, color, created_a
 export class MarkerRepository {
   constructor(private readonly _db?: Database.Database) {}
 
-  private get db(): Database.Database {
-    return this._db ?? database.handle
+  // B46：facade 化——链式 prepare 写法保持，行形状由调用点泛型给出
+  private get db(): SqlDb {
+    return sqlFacade(this._db ?? database.handle)
   }
 
   listByRecording(recordingId: string): MarkerRow[] {

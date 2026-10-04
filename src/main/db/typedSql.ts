@@ -15,11 +15,9 @@
 
 /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument -- 见文件头：better-sqlite3 v13 无类型，裸转换全仓只允许发生在此文件 */
 
-type AnyStatement = {
-  run(...params: unknown[]): unknown
-  get(...params: unknown[]): unknown
-  all(...params: unknown[]): unknown[]
-}
+import type Database from 'better-sqlite3'
+
+type AnyStatement = Database.Statement
 
 type AnyDatabase = {
   prepare(sql: string): AnyStatement
@@ -61,16 +59,9 @@ export function prepareStmt(db: unknown, sql: string): unknown {
 
 // ── facade 形态：Repository 的 this.db 直接换成它，链式写法保持、泛型在调用点 ──
 
-export interface SqlRunResult {
-  changes: number
-  lastInsertRowid: number | bigint
-}
+export type SqlRunResult = Database.RunResult
 
-export interface SqlStmt<Row> {
-  run(...params: unknown[]): SqlRunResult
-  get(...params: unknown[]): Row | undefined
-  all(...params: unknown[]): Row[]
-}
+export type SqlStmt<Row = unknown> = Database.Statement<Row>
 
 export interface SqlDb {
   prepare<Row = unknown>(sql: string): SqlStmt<Row>

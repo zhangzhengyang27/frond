@@ -1,309 +1,12 @@
 {
-  "total": 1895,
+  "total": 248,
   "files": {
-    "src/main/db/__tests__/5_6b.pomodoro.test.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 1
-    },
-    "src/main/db/__tests__/5_6b.snippet.test.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/__tests__/dataMigrations.test.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/__tests__/dataMigrationsAi.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 13,
-      "no-unsafe-member-access": 10
-    },
-    "src/main/db/__tests__/dataMigrationsAlias.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 15,
-      "no-unsafe-member-access": 12
-    },
-    "src/main/db/__tests__/dataMigrationsClips.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 13,
-      "no-unsafe-member-access": 10
-    },
-    "src/main/db/__tests__/dataMigrationsLegacyStore.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 20,
-      "no-unsafe-member-access": 17
-    },
-    "src/main/db/__tests__/dataMigrationsMarkers.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 11,
-      "no-unsafe-member-access": 8
-    },
-    "src/main/db/__tests__/dataMigrationsPomodoro.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 19,
-      "no-unsafe-member-access": 16
-    },
-    "src/main/db/__tests__/dataMigrationsRecordingSettings.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 13,
-      "no-unsafe-member-access": 10
-    },
-    "src/main/db/__tests__/listSnippets.test.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/__tests__/migrationConsistency.test.ts": {
-      "no-unsafe-call": 14,
-      "no-unsafe-member-access": 12,
-      "no-unsafe-assignment": 2
-    },
-    "src/main/db/__tests__/migrations.test.ts": {
-      "no-unsafe-call": 17,
-      "no-unsafe-member-access": 16,
-      "no-unsafe-assignment": 1
-    },
-    "src/main/db/__tests__/recordingRepoFilePath.test.ts": {
-      "no-unsafe-assignment": 1
-    },
-    "src/main/db/__tests__/snippetQuickSearch.test.ts": {
-      "no-unsafe-assignment": 1
-    },
-    "src/main/db/__tests__/snippetSearchText.test.ts": {
-      "no-unsafe-assignment": 2,
-      "no-unsafe-call": 13,
-      "no-unsafe-member-access": 12
-    },
-    "src/main/db/__tests__/syncTableSpecs.test.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 9,
-      "no-unsafe-member-access": 7
-    },
-    "src/main/db/__tests__/testDb.ts": {
-      "no-unsafe-assignment": 2,
-      "no-unsafe-call": 9,
-      "no-unsafe-member-access": 7
-    },
-    "src/main/db/dataMigrations.ts": {
-      "no-unsafe-assignment": 8,
-      "no-unsafe-call": 28,
-      "no-unsafe-member-access": 27
-    },
-    "src/main/db/dataMigrationsPomodoro.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 9,
-      "no-unsafe-member-access": 9
-    },
     "src/main/db/dataMigrationsRecording.ts": {
-      "no-unsafe-assignment": 1,
       "no-unsafe-call": 11,
       "no-unsafe-member-access": 11
-    },
-    "src/main/db/database.ts": {
-      "no-unsafe-return": 2,
-      "no-unsafe-assignment": 6,
-      "no-unsafe-call": 22,
-      "no-unsafe-member-access": 18
-    },
-    "src/main/db/dbBackup.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 2
-    },
-    "src/main/db/migrations/001_init.ts": {
-      "no-unsafe-call": 1,
-      "no-unsafe-member-access": 1
-    },
-    "src/main/db/migrations/002_tag_softdelete.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 5
-    },
-    "src/main/db/migrations/003_lib_files_and_wall_meta.ts": {
-      "no-unsafe-call": 6,
-      "no-unsafe-member-access": 6
-    },
-    "src/main/db/migrations/004_snippet_contents_and_folder_meta.ts": {
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 5
-    },
-    "src/main/db/migrations/005_snippet_fts_triggers.ts": {
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 2
-    },
-    "src/main/db/migrations/006_online_music_schema.ts": {
-      "no-unsafe-call": 9,
-      "no-unsafe-member-access": 9
-    },
-    "src/main/db/migrations/007_usage_schema.ts": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/db/migrations/008_recording_segments_and_status.ts": {
-      "no-unsafe-call": 6,
-      "no-unsafe-member-access": 6
-    },
-    "src/main/db/migrations/009_pomodoro_v2.ts": {
-      "no-unsafe-call": 16,
-      "no-unsafe-member-access": 15,
-      "no-unsafe-assignment": 5
-    },
-    "src/main/db/migrations/010_pomodoro_multi_project.ts": {
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/migrations/011_pomodoro_task_title.ts": {
-      "no-unsafe-call": 9,
-      "no-unsafe-member-access": 8,
-      "no-unsafe-assignment": 2
-    },
-    "src/main/db/migrations/012_remove_default_project.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 6,
-      "no-unsafe-member-access": 6
-    },
-    "src/main/db/migrations/013_remove_music_schema.ts": {
-      "no-unsafe-call": 12,
-      "no-unsafe-member-access": 11
-    },
-    "src/main/db/migrations/014_assets_v1.ts": {
-      "no-unsafe-call": 19,
-      "no-unsafe-member-access": 18,
-      "no-unsafe-assignment": 5
-    },
-    "src/main/db/migrations/015_photo_embeddings.ts": {
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 2
-    },
-    "src/main/db/migrations/016_asset_kinds.ts": {
-      "no-unsafe-call": 10,
-      "no-unsafe-member-access": 10
-    },
-    "src/main/db/migrations/017_bookmarks_geo.ts": {
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 5
-    },
-    "src/main/db/migrations/018_remove_photos_and_wallpaper.ts": {
-      "no-unsafe-call": 12,
-      "no-unsafe-member-access": 11
-    },
-    "src/main/db/migrations/019_launcher_docs.ts": {
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/db/migrations/020_snippet_trigger.ts": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/db/migrations/021_usage_count.ts": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/db/migrations/022_snippet_content_type.ts": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/db/migrations/023_notes.ts": {
-      "no-unsafe-call": 12,
-      "no-unsafe-member-access": 11
-    },
-    "src/main/db/migrations/024_reminders.ts": {
-      "no-unsafe-call": 12,
-      "no-unsafe-member-access": 11
-    },
-    "src/main/db/migrations/025_reminders_notified.ts": {
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/migrations/026_rec_marker_color.ts": {
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/migrations/027_drop_rec_clips.ts": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 2
-    },
-    "src/main/db/migrations/028_remove_screenshot.ts": {
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/migrations/029_create_shot_index.ts": {
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/db/migrations/030_sync_state.ts": {
-      "no-unsafe-call": 3,
-      "no-unsafe-member-access": 2
-    },
-    "src/main/db/migrations/031_brand_rename.ts": {
-      "no-unsafe-call": 7,
-      "no-unsafe-member-access": 6
-    },
-    "src/main/db/migrations/032_snippet_search_text.ts": {
-      "no-unsafe-call": 11,
-      "no-unsafe-member-access": 10,
-      "no-unsafe-assignment": 2
-    },
-    "src/main/db/migrations/033_snippet_search_text_trigger.ts": {
-      "no-unsafe-call": 8,
-      "no-unsafe-member-access": 7,
-      "no-unsafe-assignment": 2
-    },
-    "src/main/db/migrations/034_drop_snippet_fts.ts": {
-      "no-unsafe-call": 6,
-      "no-unsafe-member-access": 5
-    },
-    "src/main/db/repos/MarkerRepository.ts": {
-      "no-unsafe-return": 3,
-      "no-unsafe-call": 18,
-      "no-unsafe-member-access": 23,
-      "no-unsafe-assignment": 5
     },
     "src/main/db/repos/PomodoroRepository.ts": {
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 4,
       "no-unsafe-return": 2
-    },
-    "src/main/db/repos/PrefRepository.ts": {
-      "no-unsafe-return": 2,
-      "no-unsafe-call": 12,
-      "no-unsafe-member-access": 12,
-      "no-unsafe-assignment": 3
-    },
-    "src/main/db/repos/ProjectRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 12,
-      "no-unsafe-member-access": 13,
-      "no-unsafe-assignment": 1
-    },
-    "src/main/db/repos/RecordingSegmentRepository.ts": {
-      "no-unsafe-return": 3,
-      "no-unsafe-call": 16,
-      "no-unsafe-member-access": 19,
-      "no-unsafe-assignment": 3
-    },
-    "src/main/db/repos/RecordingSettingsRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/db/repos/ShotIndexRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 22,
-      "no-unsafe-member-access": 20
-    },
-    "src/main/db/repos/SnippetRepository.ts": {
-      "no-unsafe-call": 2,
-      "no-unsafe-member-access": 2
-    },
-    "src/main/db/repos/UsageRepository.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 16,
-      "no-unsafe-member-access": 16
     },
     "src/main/ipc/__tests__/applicationsCacheFile.test.ts": {
       "no-unsafe-return": 1
@@ -312,51 +15,18 @@
       "no-unsafe-call": 1,
       "no-unsafe-member-access": 1
     },
-    "src/main/ipc/system.ts": {
-      "no-unsafe-assignment": 1,
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 5
-    },
-    "src/main/launcher/__tests__/dataSync.chain.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 18,
-      "no-unsafe-member-access": 16
-    },
-    "src/main/launcher/__tests__/dataSync.test.ts": {
-      "no-unsafe-call": 55,
-      "no-unsafe-member-access": 53,
-      "no-unsafe-assignment": 19
-    },
     "src/main/launcher/__tests__/market.test.ts": {
       "no-unsafe-assignment": 4
     },
     "src/main/launcher/__tests__/pluginManifestAudit.test.ts": {
       "no-unsafe-member-access": 1
     },
-    "src/main/launcher/cloudBackup.ts": {
-      "no-unsafe-call": 1,
-      "no-unsafe-member-access": 1
-    },
     "src/main/launcher/dataSync.ts": {
-      "no-unsafe-call": 21,
-      "no-unsafe-member-access": 20,
-      "no-unsafe-return": 2,
-      "no-unsafe-assignment": 4
-    },
-    "src/main/launcher/docStore.ts": {
-      "no-unsafe-return": 1,
-      "no-unsafe-call": 22,
-      "no-unsafe-member-access": 22,
-      "no-unsafe-assignment": 4
+      "no-unsafe-return": 1
     },
     "src/main/modules/__tests__/brandMigration.test.ts": {
       "no-unsafe-assignment": 1,
       "no-unsafe-member-access": 3
-    },
-    "src/main/modules/fileIndex/db.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 11,
-      "no-unsafe-member-access": 6
     },
     "src/main/services/AIService.ts": {
       "no-unsafe-assignment": 1,
@@ -365,57 +35,16 @@
     "src/main/services/DictionaryService.ts": {
       "no-unsafe-assignment": 1
     },
-    "src/main/services/LogService.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 6,
-      "no-unsafe-member-access": 5
-    },
     "src/main/services/RecordingHistoryService.ts": {
       "no-unsafe-assignment": 1
     },
-    "src/main/services/__tests__/AIService.byom.test.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 3
-    },
-    "src/main/services/__tests__/AIService.storage.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 10,
-      "no-unsafe-member-access": 7
-    },
-    "src/main/services/__tests__/AliasService.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 8,
-      "no-unsafe-member-access": 5
-    },
-    "src/main/services/__tests__/MarkerService.storage.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 10,
-      "no-unsafe-member-access": 7
-    },
-    "src/main/services/mcp/__tests__/mcp.env.test.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 3
-    },
     "src/main/services/mcp/__tests__/mcp.tools.test.ts": {
-      "no-unsafe-assignment": 3,
-      "no-unsafe-call": 5,
-      "no-unsafe-member-access": 4
-    },
-    "src/main/services/recording/RecoveryManager.ts": {
-      "no-unsafe-call": 4,
-      "no-unsafe-member-access": 4
+      "no-unsafe-member-access": 1
     },
     "src/main/stores/PreferencesDataStore.ts": {
       "no-unsafe-return": 2,
       "no-unsafe-assignment": 4,
       "no-unsafe-argument": 1
-    },
-    "src/main/stores/__tests__/RecordingSettingsDataStore.storage.test.ts": {
-      "no-unsafe-assignment": 4,
-      "no-unsafe-call": 10,
-      "no-unsafe-member-access": 7
     },
     "src/main/utils/__tests__/aiEndpointGuard.test.ts": {
       "no-unsafe-assignment": 1

@@ -851,7 +851,18 @@
   axios 拦截器 / CodeMirror searchcursor / 事件形参）。单测 1298 全绿。
 - **B55 余量 = preload/index.ts 122**（桥接函数参数逐通道从 ipc-contract 取型）
   + 15 条单点，棘轮守门不变。
-- **B 系列活账**：B44（重塑批 7）、B55（仅剩 preload 主体 + 15 单点）。- **B 系列活账**：B44（重塑批 7）、B55（新开，见上）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
+### 2026-10-04 批15 修复核销（B55 关账，1 commit）
+- **B55 完成**（3973577）：preload 122 条桥接参数全量类型化——TS 编译器 API
+  codemod 两轮（86 个简写参数注解 `IpcRequest<'通道'>['字段']`；28 个整对象直通
+  注解 `IpcRequest<'通道'>`）；`IpcRequestInput` 从 typedIpc 导出复用；渲染端 7 处
+  「显式 undefined 属性」调用点按线格式语义收口（`Parameters<typeof window.api…>`
+  断言，不引 main 类型，层次安全）；尾段 8 条清零（focus-shield:info 载荷收型、
+  LauncherApp barHeight、themeFile String() 等）。
+- **no-unsafe-* 五规则升为 error**（B55 完成判据）：eslint.config.mjs，any 再
+  出现即编译期拦截；棘轮 2564→0，退位为 0 基线守门。
+- 门禁终态：typecheck 0 / lint 0 error 0 unsafe / unit 1298 / e2e 全量 100 过 +
+  a11y:78 一条负载抖动（独立复跑 3/3 绿）。
+- **B 系列活账只剩 B44**（重建件 UI 断言，随重塑批 7「先补网后动刀」落地）。- **B 系列活账**：B44（重塑批 7）、B55（仅剩 preload 主体 + 15 单点）。- **B 系列活账**：B44（重塑批 7）、B55（新开，见上）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）；B46 转入战役推进
   （机制已立，机械推进）。- **B 系列活账只剩**：B44（重建件 UI 断言，重塑批 7 范围）、B46（Repository
   类型化 2447 条，重塑批 2c/7 范围）。- **B53 全清，B 系列活账只剩**：B41（剪贴板大图 readImage 需 changeCount 级方案、

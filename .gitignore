@@ -31,3 +31,4 @@ test-results/
 
 # 插件发布产物（make-plugin-release 的默认输出目录）
 *-release/
+scripts/mediabunny-pilot/vendor.mjs

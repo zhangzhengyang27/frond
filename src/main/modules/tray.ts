@@ -178,10 +178,14 @@ export function createTray(
   }
 
   // 点击 tray 一律弹菜单（2026-10-04 用户实测反馈：左键点击不应默认打开启动器——
-  // 启动器有专属快捷键，tray 点击给菜单才是托盘图标的标准语义）
+  // 启动器有专属快捷键，tray 点击给菜单才是托盘图标的标准语义）。
+  // ⚠️ macOS 上在 click 回调里**同步** popUpContextMenu 是经典坑：菜单弹出但
+  // 事件循环仍停在 click 处理里，所有菜单项点击不派发——必须 defer 到下一轮循环
   tray.on('click', () => {
     buildAndSetAppMenu('tray', tray, ctx)
-    tray.popUpContextMenu()
+    setTimeout(() => {
+      tray.popUpContextMenu()
+    }, 0)
   })
 
   if (isMac()) {

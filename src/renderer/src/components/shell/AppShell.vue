@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import TopBar from './TopBar.vue'
-import CommandPalette from './CommandPalette.vue'
 import UToastProvider from '../ui/UToastProvider.vue'
 import UConfirmProvider from '../ui/UConfirmProvider.vue'
 import { useModuleShortcuts } from '../../composables/useModuleShortcuts'
@@ -17,8 +16,6 @@ void useTheme().initTheme()
     <main class="app-scroll flex-1 min-w-0 overflow-auto">
       <slot />
     </main>
-    <!-- 命令面板（⌘K）-->
-    <CommandPalette />
     <!-- 全局 Toast 容器 -->
     <UToastProvider />
     <!-- 全局确认弹窗容器（useConfirm） -->

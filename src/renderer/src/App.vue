@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import RouteLoading from './components/RouteLoading.vue'
+import CommandPalette from './components/shell/CommandPalette.vue'
 import AppShell from './components/shell/AppShell.vue'
 import { useAppMenu } from './composables/useAppMenu'
 import { installTrackpadSwipe } from './composables/useTrackpadGesture'
@@ -131,4 +132,8 @@ const loadingDelay = computed(() => {
       </Suspense>
     </router-view>
   </AppShell>
+
+  <!-- 命令面板（⌘K）：主窗全局能力——Home 删除后主窗可能落在 /settings 等无壳路由，
+       面板必须与路由解耦（2026-10-04 实测反馈） -->
+  <CommandPalette />
 </template>

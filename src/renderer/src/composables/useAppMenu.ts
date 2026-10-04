@@ -3,7 +3,6 @@
  *
  * 订阅的 channel（src/main/modules/appMenu.ts 发出）：
  * - app:openModule           { moduleId, path }
- * - app:goHome
  * - app:openCommandPalette
  * - app:openSettings
  * - app:openAbout
@@ -52,13 +51,6 @@ export function useAppMenu(): {
       unsubs.push(
         window.api.onAppOpenModule(({ moduleId, path }) => {
           navigateAndRecord(moduleId, path)
-        })
-      )
-    }
-    if (window.api?.onAppGoHome) {
-      unsubs.push(
-        window.api.onAppGoHome(() => {
-          void router.push('/')
         })
       )
     }

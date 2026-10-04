@@ -126,6 +126,11 @@ const sections: SettingsSection[] = [
   }
 ]
 const activeSection = ref('general')
+// B44 后主窗开机即落 /settings（Home 已删）：自动化列表只在 onMounted 拉一次的话，
+// 插件后建的任务永远不出现。切到「高级」页签时刷新——顺带治长期开着设置页的数据陈旧
+watch(activeSection, (id) => {
+  if (id === 'advanced') void loadAutomations()
+})
 const searchQuery = ref('')
 
 const filteredSections = computed(() => {

@@ -307,7 +307,6 @@ describe('IPC contract (E2E 烟雾测试)', { timeout: 120_000 }, () => {
       'app:openSettings',
       'app:openAbout',
       // 这两条同样经 appMenu 的 sendToRenderer 转发（静态扫不到 send 的字面量）
-      'app:goHome',
       'pomodoro:focusProject',
       'ai:stream-chunk',
       'clip:exportProgress',

@@ -58,11 +58,9 @@ const router = createRouter({
     return { top: 0 }
   },
   routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: () => import('../views/Home.vue')
-    },
+    // Home 落地页已删（2026-10-04 用户决策，Raycast 式：主窗仅作设置/模块页支撑壳，
+    // 主交互面是启动器胶囊）——根路径重定向设置页
+    { path: '/', redirect: '/settings' },
     {
       path: '/settings',
       name: 'settings',

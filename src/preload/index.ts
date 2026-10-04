@@ -462,11 +462,6 @@ const api = {
     ipcRenderer.on('app:openModule', l)
     return () => ipcRenderer.removeListener('app:openModule', l)
   },
-  onAppGoHome: (cb: () => void): (() => void) => {
-    const l = (): void => cb()
-    ipcRenderer.on('app:goHome', l)
-    return () => ipcRenderer.removeListener('app:goHome', l)
-  },
   onAppOpenCommandPalette: (cb: () => void): (() => void) => {
     const l = (): void => cb()
     ipcRenderer.on('app:openCommandPalette', l)

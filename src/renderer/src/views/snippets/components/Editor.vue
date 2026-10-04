@@ -59,8 +59,23 @@ const { addToUpdateContentQueue } = useSnippetUpdate()
 // B56-1 编辑真相回流：flush/结构写落库后把 DB 返回的新对象同步回父级 props——
 // 此前 props 永远陈旧（切 tab 旧值回填丢输入、结构操作 payload 携带旧值回滚已落库编辑）
 const offSnippetSynced = onSnippetSynced((synced) => {
-  if (props.snippet?.id === synced.id) emit('update:snippet', synced)
+  if (props.snippet?.id !== synced.id) return
+  // B56-1 终版守卫：仅当「编辑器实时值 ≠ ack 回流值」（flush 快照后用户又键入）
+  // 才跳过本次同步——待写队列的下一次 flush 会带上最新值再收敛。
+  // 注意不能用「队列有条目」判定：switchContent 的 flush 里条目在广播后才出队，
+  // 误判会吞掉切 tab 的同步（实测踩坑）。
+  const idx = currentContentIndex.value
+  const syncedVal = synced.contents[idx]?.value ?? ''
+  const live = editor?.getValue()
+  if (selectedSnippetContent.value && live != null && live !== syncedVal) return
+  emit('update:snippet', synced)
 })
+watch(
+  () => props.snippet,
+  () => {
+    // B56-1：props 回流（sync emit → 父级）触发本 watch——空体占位，保持依赖追踪
+  }
+)
 
 // B56-6：丢编辑窗口收敛——卸载（切路由）、窗口失焦、隐藏（Cmd+H/切屏）都先落盘。
 // 写链在模块层，组件卸载后 IPC 照常完成
@@ -294,6 +309,23 @@ watch(selectedSnippetContent, (v, oldV) => {
   if (!editor) return
   void nextTick(() => {
     const isNewValue = v?.id !== oldV?.id
+    // B56-1 终版守卫：同 content 的回填一律以编辑器实时值为准——
+    // 回流/结构写的 props 同步与 index 切换存在竞态，陈旧空值会把正在编辑的
+    // 内容顶掉。编辑器非空且与 props 不同 → 差异重新入队（实时值就是真相），
+    // flush 落库后经 onSnippetSynced 再次同步，界面与 DB 收敛一致。
+    if (!isNewValue) {
+      const live = editor?.getValue() ?? ''
+      if (live && live !== (v?.value || '')) {
+        if (props.snippet?.id && v?.id) {
+          addToUpdateContentQueue(props.snippet.id, v.id, {
+            label: v.label,
+            value: live,
+            language: v.language
+          })
+        }
+        return
+      }
+    }
     setValue(v?.value || '', true, !isNewValue)
     if (searchQuery.value) {
       updateSearchOverlay()

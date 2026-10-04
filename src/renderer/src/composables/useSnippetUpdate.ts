@@ -50,6 +50,11 @@ function notifySynced(snippet: Snippet): void {
   for (const l of syncListeners) l(snippet)
 }
 
+/** 该 content 是否还有待落库的编辑（编辑器实时值比 ack 回流值新） */
+export function hasPendingContentWrite(snippetId: string, contentId: string): boolean {
+  return updateContentQueue.value.has(`${snippetId}-${contentId}`)
+}
+
 /** 订阅「片段已落库的新对象」；Editor 据此把真相同步回父级 props */
 export function onSnippetSynced(cb: SyncListener): () => void {
   syncListeners.add(cb)

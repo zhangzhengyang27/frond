@@ -134,14 +134,5 @@ export function shouldQuitOnAllWindowsClosed(): boolean {
   return !isMac()
 }
 
-/**
- * 平台对应的「托盘点击默认行为」。
- * - Mac: 点击切换窗口可见性（菜单走 dock）
- * - Win/Linux: 点击直接弹菜单
- */
-export function trayClickShouldToggleWindow(): boolean {
-  return isMac()
-}
-
 // Re-export electron 引用以避免 caller 重复 import
 import { app, BrowserWindow } from 'electron'

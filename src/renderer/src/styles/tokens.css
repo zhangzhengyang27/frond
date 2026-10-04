@@ -369,7 +369,7 @@
   --launcher-radius: 14px;
   --launcher-search-height: 64px;
   --launcher-footer-height: 44px;
-  --launcher-detail-width: 465px;
+  --launcher-detail-width: 320px;
   /* v5 补齐：此前被页面引用却从未定义，导致 hover/input/badge 背景静默失效 */
   --launcher-result-hover: rgba(0, 0, 0, 0.045);
   --launcher-input-bg: rgba(0, 0, 0, 0.04);
@@ -404,7 +404,7 @@ html.dark {
   --launcher-radius: 14px;
   --launcher-search-height: 64px;
   --launcher-footer-height: 44px;
-  --launcher-detail-width: 465px;
+  --launcher-detail-width: 320px;
   --launcher-result-hover: rgba(255, 255, 255, 0.07);
   --launcher-input-bg: rgba(255, 255, 255, 0.08);
   --launcher-badge-bg: rgba(10, 132, 255, 0.22);

@@ -15,9 +15,8 @@ import { existsSync } from 'fs'
 import icon from '../../../resources/icon.png?asset'
 import { is } from '@electron-toolkit/utils'
 import { buildAndSetAppMenu, registerMenuAutoRefresh, destroyMenuAutoRefresh } from './appMenu'
-import { isMac, trayClickShouldToggleWindow } from '../utils/platform'
+import { isMac } from '../utils/platform'
 import { pomodoroIntegrationService } from '../services/PomodoroIntegrationService'
-import { toggleLauncherWindow } from '../launcher/window'
 import { log } from '../services/LogService'
 
 /** 清理托盘定时器与菜单自动刷新订阅（在 app will-quit 时调用） */
@@ -178,16 +177,11 @@ export function createTray(
     }
   }
 
-  // —— 平台差异行为 ——
+  // 点击 tray 一律弹菜单（2026-10-04 用户实测反馈：左键点击不应默认打开启动器——
+  // 启动器有专属快捷键，tray 点击给菜单才是托盘图标的标准语义）
   tray.on('click', () => {
-    if (trayClickShouldToggleWindow()) {
-      // macOS（IA v2 阶段C）：点击 tray 唤起/收起启动台胶囊
-      toggleLauncherWindow()
-    } else {
-      // Win / Linux：点击直接弹菜单
-      buildAndSetAppMenu('tray', tray, ctx)
-      tray.popUpContextMenu()
-    }
+    buildAndSetAppMenu('tray', tray, ctx)
+    tray.popUpContextMenu()
   })
 
   if (isMac()) {

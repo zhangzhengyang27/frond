@@ -1,6 +1,7 @@
 <template>
-  <div class="flex-1 overflow-y-auto p-6 px-8">
-    <div class="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_1.5fr_1fr] gap-6 h-full">
+  <div class="flex h-full gap-5 overflow-hidden bg-gradient-to-b from-surface-2 to-surface-1 p-5">
+    <!-- 主舞台列：源带 + 预览 -->
+    <div class="mx-auto flex min-w-0 flex-1 flex-col gap-4">
       <!-- 屏幕源选择区域 -->
       <SourceSelector
         :source-type="sourceType"
@@ -24,9 +25,10 @@
         @select-region="actions.selectRegion"
       />
 
-      <!-- 预览区域 -->
+      <!-- 预览舞台（主角） -->
       <PreviewPanel
         ref="previewPanelRef"
+        class="min-h-0 flex-1"
         :has-preview="hasPreview"
         :is-recording="isRecording"
         :is-paused="isPaused"
@@ -42,16 +44,19 @@
         @select-save-path="selectSavePath"
         @open-settings="$emit('update:show-settings-dialog', true)"
       />
+    </div>
 
-      <!-- 标记面板 -->
+    <!-- 标记侧栏（玻璃卡，宽屏显示） -->
+    <aside class="hidden w-[320px] shrink-0 overflow-y-auto xl:block">
       <MarkersPanel
+        class="h-full"
         :recording-id="actions.lastRecordingId.value"
         :is-recording="isRecording"
         :recording-time="recordingTime"
         @jump-to-marker="handleJumpToMarker"
         @marker-added="handleMarkerAdded"
       />
-    </div>
+    </aside>
   </div>
 </template>
 
@@ -162,6 +167,8 @@ const handleSelectSource = async (source: DesktopCapturerSource): Promise<void> 
   } catch (error) {
     console.error('获取屏幕流失败:', error)
     toast.error('无法获取屏幕流，请确保已授予屏幕录制权限')
+    // B59：失败常见原因是源已失效（窗口关闭等）——刷新列表清掉过期源
+    void loadSources()
   }
 }
 

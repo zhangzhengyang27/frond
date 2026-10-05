@@ -59,6 +59,10 @@ const hasSelectedSource = computed(() => {
   return !!selectedSource.value || !!selectedCameraDevice.value
 })
 
+// B59：源列表只在挂载时拉一次——窗口源（其他应用窗口）随时会消失，点选过期源
+// = 捕获流即刻死亡（预览「无法播放媒体」且无恢复）。focus 自动刷新由 Layout
+// 接线（此处不知录制状态，避免打断捕获的判断在监听器侧做）
+
 // 加载屏幕源
 const loadSources = async (): Promise<void> => {
   loading.value = true

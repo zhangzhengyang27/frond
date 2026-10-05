@@ -44,8 +44,11 @@ function setup(props: Record<string, unknown> = {}) {
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- 测试辅助
+// 2026-10-05 重设计后控制坞为图标键：以 aria-label 为准（无障碍即测试口径）
 const btn = (w: ReturnType<typeof setup>, text: string) =>
-  w.findAll('button').find((b) => b.text().includes(text))
+  w.findAll('button').find(
+    (b) => b.attributes('aria-label')?.includes(text) || b.text().includes(text)
+  )
 
 beforeEach(() => formatTime.mockClear())
 
@@ -178,8 +181,8 @@ describe('PreviewPanel · 暂停态', () => {
 
 describe('PreviewPanel · 可选区块的出现条件', () => {
   it('hasPreview=false 显示占位文案，true 时不显示（负向）', () => {
-    expect(setup({ hasPreview: false }).text()).toContain('选择录制源后可在此预览')
-    expect(setup({ hasPreview: true }).text()).not.toContain('选择录制源后可在此预览')
+    expect(setup({ hasPreview: false }).text()).toContain('从上方选择录制源')
+    expect(setup({ hasPreview: true }).text()).not.toContain('从上方选择录制源')
   })
 
   it('showPipCamera 决定画中画 video 的可见性（元素恒存在，B28 v-show 契约）', () => {

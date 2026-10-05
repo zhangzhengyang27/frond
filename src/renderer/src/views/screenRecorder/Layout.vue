@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppIcon from '@components/AppIcon.vue'
 import RecordingSettingsDialog from '@views/screenRecorder/components/RecordingSettingsDialog.vue'
@@ -102,6 +102,7 @@ import { useScreenRecorder } from '@composables/useScreenRecorder'
 import { useSourceSelection } from '@composables/useSourceSelection'
 import { useStreamManager } from '@composables/useStreamManager'
 import { useRecordingShortcuts } from '@composables/useRecordingShortcuts'
+import { useRecordingActions } from '@composables/recordingActions'
 
 // 录制设置类型
 interface RecordingSettings {
@@ -273,4 +274,18 @@ onUnmounted(() => {
 // ── B57-6: 快捷键/倒计时/光圈监听统一挂 Layout（模块常驻层）────
 // 旧实现转发给 RecordPage（切标签即卸载）→ 非录制标签页快捷键整体失效
 const { countdownActive, countdownRemaining, cancelCountdown } = useRecordingShortcuts()
+
+// B59：窗口源会随时消失（过期源点选 = 预览死亡）。重新聚焦录屏窗口时自动
+// 刷新源/设备列表；录制与启动链期间不打断
+const {
+  isRecording: actionsRecording,
+  isStarting,
+  loadSources: actionsLoadSources
+} = useRecordingActions()
+function onModuleWindowFocus(): void {
+  if (actionsRecording.value || isStarting.value) return
+  void actionsLoadSources()
+}
+window.addEventListener('focus', onModuleWindowFocus)
+onBeforeUnmount(() => window.removeEventListener('focus', onModuleWindowFocus))
 </script>

@@ -1,8 +1,11 @@
 <!-- 2026-09-23 重建：原文件被截断，仅存 39 行真实代码（脚本尾 + 空的 style 头），其余为重建 -->
+<!-- 2026-10-05 UI 重设计：预览舞台（深色媒体面）+ 悬浮控制坞（大圆 REC 键，Cap/Screen Studio 式） -->
 <template>
-  <div class="flex h-full flex-col gap-4 rounded-2xl bg-surface-1 p-6 shadow-lg">
-    <!-- 待核：模板与样式整体重建，绑定名一律取自存留脚本与 RecordPage 的传参 -->
-    <div class="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+  <div
+    class="flex h-full flex-col overflow-hidden rounded-2xl border border-line-subtle bg-[#0b0c10] shadow-[0_16px_48px_rgba(0,0,0,0.30)]"
+  >
+    <!-- 舞台 -->
+    <div class="relative min-h-0 flex-1">
       <video
         ref="previewVideoRef"
         class="h-full w-full object-contain"
@@ -15,80 +18,131 @@
       <video
         v-show="showPipCamera"
         ref="pipCameraRef"
-        class="absolute bottom-3 right-3 w-32 rounded-lg object-cover shadow-lg"
+        class="absolute bottom-3 right-3 w-36 rounded-xl object-cover shadow-[0_8px_24px_rgba(0,0,0,0.5)] ring-1 ring-white/20"
         autoplay
         muted
         playsinline
       ></video>
-      <p
+
+      <!-- 空态：构图式引导 -->
+      <div
         v-if="!hasPreview"
-        class="absolute inset-0 flex items-center justify-center text-sm text-white/70"
+        class="absolute inset-0 flex flex-col items-center justify-center gap-3"
       >
-        选择录制源后可在此预览
-      </p>
+        <div
+          class="flex size-16 items-center justify-center rounded-2xl bg-white/5 ring-1 ring-white/10"
+        >
+          <AppIcon icon="ri-focus-3-line" :size="28" class="text-white/40" />
+        </div>
+        <p class="m-0 text-[15px] font-medium text-white/85">从上方选择录制源</p>
+        <p class="m-0 text-xs text-white/40">屏幕、窗口或摄像头，选好即可开始</p>
+      </div>
+      <!-- 预览错误（B59：过期源等） -->
+      <div
+        v-else-if="previewError"
+        class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70"
+      >
+        <AppIcon icon="ri-error-warning-line" class="text-white" :size="32" />
+        <p class="m-0 text-sm text-white">预览不可用：该源可能已关闭或失效</p>
+        <p class="m-0 text-xs text-white/60">请重新选择录制源（列表已自动刷新）</p>
+      </div>
+
+      <!-- 录制状态徽章 -->
       <div
         v-if="isRecording"
-        class="preview-badge absolute left-3 top-3 flex items-center gap-2 rounded-full bg-black/55 px-3 py-1 text-xs text-white"
+        class="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/60 px-3.5 py-1.5 text-xs font-medium text-white ring-1 ring-white/15 backdrop-blur"
       >
         <span
           class="size-2 rounded-full"
-          :class="isPaused ? 'bg-yellow-400' : 'animate-pulse bg-red-500'"
+          :class="isPaused ? 'bg-amber-400' : 'animate-pulse bg-red-500'"
         />
-        <span>{{ isPaused ? '已暂停' : '录制中' }} {{ formatTime(recordingTime) }}</span>
+        <span class="tabular-nums"
+          >{{ isPaused ? '已暂停' : '录制中' }} · {{ formatTime(recordingTime) }}</span
+        >
       </div>
+
+      <!-- 区域录制提示 -->
+      <p
+        v-if="showRecordingModeHint"
+        class="absolute bottom-3 left-4 m-0 rounded-full bg-black/50 px-3 py-1 text-[11px] text-white/70 backdrop-blur"
+      >
+        区域录制：先在系统选区里拖出范围再开始
+      </p>
     </div>
 
-    <p v-if="showRecordingModeHint" class="m-0 text-xs text-gray-500">
-      区域录制：先在系统选区里拖出范围再开始；跨显示器录制要求各屏缩放一致。
-    </p>
+    <!-- 控制坞：大圆 REC 键 + 伴生动作 -->
+    <div class="relative border-t border-white/5 bg-[#101116]/95 px-6 py-3.5">
+      <div class="mx-auto flex max-w-md items-center justify-between">
+        <!-- 左：保存位置 -->
+        <button
+          class="flex size-10 items-center justify-center rounded-full text-white/60 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-40"
+          type="button"
+          :disabled="isRecording"
+          title="保存位置"
+          aria-label="保存位置"
+          @click="$emit('select-save-path')"
+        >
+          <AppIcon icon="ri-folder-line" :size="18" />
+        </button>
 
-    <div class="mt-auto flex flex-wrap items-center gap-2">
-      <button
-        v-if="!isRecording"
-        class="rounded-lg bg-brand-500 px-5 py-2 text-sm text-white transition-colors hover:bg-brand-400 disabled:opacity-50"
-        type="button"
-        :disabled="!canRecord || loading"
-        @click="$emit('start-recording')"
+        <!-- 中：REC 大圆键 -->
+        <div class="flex items-center gap-4">
+          <button
+            v-if="!isRecording"
+            type="button"
+            class="group relative flex size-14 items-center justify-center rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.22),0_10px_28px_rgba(239,68,68,0.4)] transition-all duration-200 hover:scale-105 hover:bg-red-400 active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
+            :disabled="!canRecord || loading"
+            :title="loading ? '准备中…' : '开始录制'"
+            aria-label="开始录制"
+            @click="$emit('start-recording')"
+          >
+            <span
+              class="size-5 rounded-full bg-white/90 transition-all duration-200 group-hover:size-6"
+            />
+          </button>
+          <button
+            v-else
+            type="button"
+            class="flex size-14 items-center justify-center rounded-[14px] bg-red-500 shadow-[0_0_0_4px_rgba(239,68,68,0.22),0_10px_28px_rgba(239,68,68,0.4)] transition-all duration-200 hover:scale-105 hover:bg-red-400 active:scale-95"
+            title="停止录制"
+            aria-label="停止录制"
+            @click="$emit('stop-recording')"
+          >
+            <span class="size-5 rounded-[4px] bg-white/95" />
+          </button>
+
+          <!-- 暂停 / 继续（录制中） -->
+          <button
+            v-if="isRecording"
+            class="flex size-10 items-center justify-center rounded-full text-white/70 ring-1 ring-white/15 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
+            type="button"
+            :title="isPaused ? '继续' : '暂停'"
+            :aria-label="isPaused ? '继续' : '暂停'"
+            @click="$emit('toggle-pause')"
+          >
+            <AppIcon :icon="isPaused ? 'ri-play-fill' : 'ri-pause-fill'" :size="18" />
+          </button>
+        </div>
+
+        <!-- 右：设置 -->
+        <button
+          class="flex size-10 items-center justify-center rounded-full text-white/60 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
+          type="button"
+          title="录制设置"
+          aria-label="设置"
+          @click="$emit('open-settings')"
+        >
+          <AppIcon icon="ri-settings-3-line" :size="18" />
+        </button>
+      </div>
+
+      <!-- 准备中 -->
+      <span
+        v-if="loading"
+        class="absolute right-5 top-1/2 -translate-y-1/2 text-xs text-white/50 max-md:hidden"
       >
-        开始录制
-      </button>
-      <button
-        v-else
-        class="rounded-lg bg-red-500 px-5 py-2 text-sm text-white transition-colors hover:bg-red-400"
-        type="button"
-        @click="$emit('stop-recording')"
-      >
-        停止录制
-      </button>
-      <button
-        v-if="isRecording"
-        class="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
-        type="button"
-        @click="$emit('toggle-pause')"
-      >
-        <AppIcon :icon="isPaused ? 'ri-play-line' : 'ri-pause-line'" />
-        <span>{{ isPaused ? '继续' : '暂停' }}</span>
-      </button>
-      <button
-        class="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
-        type="button"
-        :disabled="isRecording"
-        @click="$emit('select-save-path')"
-      >
-        <AppIcon icon="ri-folder-line" />
-        <span>保存位置</span>
-      </button>
-      <button
-        class="flex items-center gap-1.5 rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-600 transition-colors hover:bg-gray-100"
-        type="button"
-        @click="$emit('open-settings')"
-      >
-        <AppIcon icon="ri-settings-3-line" />
-        <span>设置</span>
-      </button>
-      <span v-if="loading" class="flex items-center gap-1 text-xs text-gray-500">
-        <AppIcon icon="ri-loader-4-line" class="animate-spin" />
-        <span>准备中…</span>
+        <AppIcon icon="ri-loader-4-line" class="me-1 inline animate-spin" />
+        准备中…
       </span>
     </div>
   </div>
@@ -96,7 +150,7 @@
 
 <script setup lang="ts">
 /**
- * PreviewPanel · 录屏预览与控制（RecordPage 中间列）
+ * PreviewPanel · 录屏预览舞台与控制坞（RecordPage 主列）
  * 预览流由父组件经 defineExpose 的 previewVideoRef / pipCameraRef 直接挂 srcObject
  */
 import { ref } from 'vue'
@@ -114,26 +168,29 @@ interface Props {
   formatTime: (seconds: number) => string
 }
 
-interface Emits {
-  (e: 'start-recording'): void
-  (e: 'stop-recording'): void
-  (e: 'toggle-pause'): void // PR-3
-  (e: 'select-save-path'): void
-  (e: 'open-settings'): void
-}
-
 defineProps<Props>()
 defineEmits<Emits>()
 
 const previewVideoRef = ref<HTMLVideoElement | null>(null)
 const pipCameraRef = ref<HTMLVideoElement | null>(null)
 
-const onVideoLoaded = (): void => {
-  // 原件此处丢失，没留下可依据的调用点：不猜行为，先只保住 @loadedmetadata 的绑定点
-}
-
+// B59：预览 video 报错（典型：点选了已消失的窗口源，捕获流即刻死亡）——
+// 给出可见错误与重选指引，不再裸露 Chromium「无法播放媒体」
+const previewError = ref(false)
 const onVideoError = (event: Event): void => {
   console.error('视频元素错误:', event)
+  previewError.value = true
+}
+const onVideoLoaded = (): void => {
+  previewError.value = false
+}
+
+interface Emits {
+  (e: 'start-recording'): void
+  (e: 'stop-recording'): void
+  (e: 'toggle-pause'): void // PR-3
+  (e: 'select-save-path'): void
+  (e: 'open-settings'): void
 }
 
 // 暴露 ref 给父组件
@@ -143,8 +200,7 @@ defineExpose({
 })
 </script>
 <style scoped>
-/* 2026-09-23 重建：原件样式未留存，以下仅覆盖本模板用到的类 */
-.preview-badge {
-  font-variant-numeric: tabular-nums;
+video {
+  background: transparent;
 }
 </style>

@@ -7,13 +7,13 @@ import { useCommandPalette } from '../../composables/useCommandPalette'
 import { useTheme } from '../../composables/useTheme'
 
 const router = useRouter()
+import { useSettingsModal } from '@composables/useSettingsModal'
 const palette = useCommandPalette()
 const { setTheme } = useTheme()
 
 const goSettings = (): void => {
-  router.push('/settings').catch(() => {
-    /* ignore */
-  })
+  // B58 后续：设置在主窗内 = 模态浮层（不再路由跳转，避免「迷路在设置页」）
+  useSettingsModal().open()
 }
 
 const goAbout = (): void => {

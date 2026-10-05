@@ -69,7 +69,10 @@ export function useAppMenu(): {
     if (window.api?.onAppOpenSettings) {
       unsubs.push(
         window.api.onAppOpenSettings(() => {
-          void router.push('/settings')
+          // B58 后续：主窗/沉浸窗内设置 = 模态浮层（不再路由跳转）
+          void import('./useSettingsModal').then(({ useSettingsModal }) => {
+            useSettingsModal().open()
+          })
         })
       )
     }

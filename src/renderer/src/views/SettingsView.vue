@@ -29,13 +29,18 @@ document.title = '设置'
 const { theme, setTheme, initTheme } = useTheme()
 void initTheme()
 
+// embedded：被 SettingsModal 以浮层承载——高度交给宿主、ESC 让位给模态统一处理
+const props = defineProps<{ embedded?: boolean }>()
+
 const router = useRouter()
 
 // B57 后续：设置页无返回按钮曾让主窗/独立窗「迷路」在设置态。
 // ESC = 有历史就回退；无历史（独立设置窗首屏）就隐藏窗口（Raycast 式）
 function handleSettingsEsc(e: KeyboardEvent): void {
+  if (props.embedded) return // 模态统一处理 ESC
   if (e.key !== 'Escape') return
-  if (window.history.state?.back != null) {
+  const historyBack = (window.history.state as { back?: string | null } | null)?.back
+  if (historyBack != null) {
     void router.back()
   } else {
     void window.api.hideMainWindow()
@@ -55,7 +60,19 @@ const sections: SettingsSection[] = [
     id: 'general',
     label: '通用',
     icon: 'ri-settings-3-line',
-    keywords: ['主题', '外观', '浅色', '深色', '跟随系统', '权限', '录屏', '麦克风', 'theme', 'appearance', 'permissions']
+    keywords: [
+      '主题',
+      '外观',
+      '浅色',
+      '深色',
+      '跟随系统',
+      '权限',
+      '录屏',
+      '麦克风',
+      'theme',
+      'appearance',
+      'permissions'
+    ]
   },
   {
     id: 'launcher',
@@ -735,7 +752,10 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
 </script>
 
 <template>
-  <div class="FrondSettings flex h-screen overflow-hidden bg-surface-2 text-fg-primary">
+  <div
+    class="FrondSettings flex overflow-hidden bg-surface-2 text-fg-primary"
+    :class="embedded ? 'h-full' : 'h-screen'"
+  >
     <!-- ═══ 左侧边栏（Raycast 风格）═══ -->
     <aside class="flex w-[200px] shrink-0 flex-col border-r border-line-subtle bg-surface-2">
       <!-- 搜索框 -->
@@ -905,7 +925,10 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                 </button>
               </div>
             </div>
-            <p v-if="rejectedThemes.length" class="mt-2 text-[12px] leading-relaxed text-[var(--text-danger)]">
+            <p
+              v-if="rejectedThemes.length"
+              class="mt-2 text-[12px] leading-relaxed text-[var(--text-danger)]"
+            >
               {{ rejectedThemes.length }} 份未通过校验：{{
                 rejectedThemes.map((r) => `${r.file}（${r.error}）`).join('；')
               }}
@@ -940,11 +963,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   size="sm"
                   data-testid="density-picker"
                   class="shrink-0"
-                  :options="DENSITY_VALUES.map((d) => ({
-                    label: d === 'comfortable' ? '宽松' : '紧凑',
-                    value: d,
-                    attrs: { 'data-density-opt': d }
-                  }))"
+                  :options="
+                    DENSITY_VALUES.map((d) => ({
+                      label: d === 'comfortable' ? '宽松' : '紧凑',
+                      value: d,
+                      attrs: { 'data-density-opt': d }
+                    }))
+                  "
                   @update:model-value="chooseDensity"
                 />
               </div>
@@ -961,11 +986,13 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   size="sm"
                   data-testid="glass-picker"
                   class="shrink-0"
-                  :options="CAPSULE_GLASS_VALUES.map((g) => ({
-                    label: g === 'opaque' ? '不透明' : g === 'soft' ? '半透明' : '通透',
-                    value: g,
-                    attrs: { 'data-glass-opt': g }
-                  }))"
+                  :options="
+                    CAPSULE_GLASS_VALUES.map((g) => ({
+                      label: g === 'opaque' ? '不透明' : g === 'soft' ? '半透明' : '通透',
+                      value: g,
+                      attrs: { 'data-glass-opt': g }
+                    }))
+                  "
                   @update:model-value="chooseGlass"
                 />
               </div>
@@ -1023,12 +1050,16 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     :model-value="aiProvider"
                     variant="pill"
                     size="sm"
-                    :options="AI_PROVIDERS.map((p) => ({
-                      label: p.label,
-                      value: p.id,
-                      attrs: { title: p.hint || p.baseUrl }
-                    }))"
-                    @update:model-value="(id: string) => pickProvider(AI_PROVIDERS.find((p) => p.id === id)!)"
+                    :options="
+                      AI_PROVIDERS.map((p) => ({
+                        label: p.label,
+                        value: p.id,
+                        attrs: { title: p.hint || p.baseUrl }
+                      }))
+                    "
+                    @update:model-value="
+                      (id: string) => pickProvider(AI_PROVIDERS.find((p) => p.id === id)!)
+                    "
                   />
                   <p v-if="pickedProvider?.hint" class="mt-1.5 text-[12px] text-fg-tertiary">
                     {{ pickedProvider.hint }}
@@ -1526,7 +1557,9 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
         <!-- ═══ 高级 ═══ -->
         <template v-else-if="activeSection === 'advanced'">
           <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-fg-primary">高级</h1>
-          <p class="mb-8 text-[14px] text-fg-tertiary">日志、遥测与开发者选项。系统权限已移至「通用」。</p>
+          <p class="mb-8 text-[14px] text-fg-tertiary">
+            日志、遥测与开发者选项。系统权限已移至「通用」。
+          </p>
 
           <!-- 定时任务（P-4④）：cron 按本机本地时间判定，动作面只留无人值守说得通的几类 -->
           <section class="mb-8">

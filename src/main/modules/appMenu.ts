@@ -11,6 +11,7 @@
  * - 最近使用 / 收藏：usageStore（每次 setMenu 前实时拉，避免 stale）
  */
 
+import { createWindow as createAppWindow } from './windows'
 import { app, BrowserWindow, Menu } from 'electron'
 import { MODULES, type ModuleMeta } from '../../shared/modules'
 import { usageStore } from '../stores'
@@ -39,9 +40,9 @@ export function registerMenuAutoRefresh(build: () => void): void {
       try {
         build()
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 菜单构建失败不致命，等下次触发）
-      log.debug('app-menu', '* 菜单构建失败不致命，等下次触发', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 菜单构建失败不致命，等下次触发）
+        log.debug('app-menu', '* 菜单构建失败不致命，等下次触发', e)
+      }
     }, 1000)
   }
   menuRefreshUnsubscribers.push(usageRepository.onUsageChanged(rebuild))
@@ -148,7 +149,7 @@ function frondItems(ctx: AppMenuContext): Electron.MenuItemConstructorOptions[] 
     {
       label: '偏好设置',
       accelerator: 'CmdOrCtrl+,',
-      click: () => sendToRenderer(ctx, 'app:openSettings')
+      click: () => createAppWindow('/settings', true, 800, 786)
     },
     { label: '关于 Frond', click: () => sendToRenderer(ctx, 'app:openAbout') }
   ]
@@ -235,7 +236,7 @@ export function installApplicationMenu(ctx: AppMenuContext): void {
         {
           label: '偏好设置…',
           accelerator: 'Cmd+,',
-          click: () => sendToRenderer(ctx, 'app:openSettings')
+          click: () => createAppWindow('/settings', true, 800, 786)
         },
         { type: 'separator' },
         { role: 'services' },

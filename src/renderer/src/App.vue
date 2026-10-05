@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import RouteLoading from './components/RouteLoading.vue'
 import CommandPalette from './components/shell/CommandPalette.vue'
 import AppShell from './components/shell/AppShell.vue'
+import SettingsModal from './components/SettingsModal.vue'
 import { useAppMenu } from './composables/useAppMenu'
 import { installTrackpadSwipe } from './composables/useTrackpadGesture'
 import { ensurePomodoroBridgeSync } from './composables/usePomodoroAppBridge'
@@ -116,6 +117,8 @@ const loadingDelay = computed(() => {
         <component :is="Component" />
         <template #fallback>
           <RouteLoading :variant="loadingVariant" :delay="loadingDelay" />
+          <!-- 设置模态浮层（主窗/沉浸窗内设置统一形态，B58 后续） -->
+          <SettingsModal />
         </template>
       </Suspense>
     </router-view>

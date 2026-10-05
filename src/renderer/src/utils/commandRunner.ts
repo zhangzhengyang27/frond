@@ -12,6 +12,7 @@ import { toRaw } from 'vue'
 import type { Router } from 'vue-router'
 import type { CommandEntry, FirstPartyPage } from '@shared/commands'
 import { buildQuicklinkUrl, quicklinkFieldNames, WINDOW_MODULES } from '@shared/commands'
+import { useSettingsModal } from '@composables/useSettingsModal'
 
 export interface CommandRunOptions {
   /** 主窗口内的入口（⌘K）必传；胶囊窗无 router，可不传 */
@@ -58,6 +59,13 @@ export async function executeCommand(entry: CommandEntry, opts: CommandRunOption
     case 'page': {
       // 以下各类型统一按 entry.key 记录使用（frecency 全类型加权，V4 P0-3）
       void window.api.usage.recordUse(entry.key)
+      // 设置在主窗/沉浸窗内 = 居中模态浮层（用户确认的弹窗形态，B58 后续）；
+      // 胶囊窗口过小，保持开独立 800×786 设置窗
+      if (a.path === '/settings' && router && inMainWindow) {
+        useSettingsModal().open()
+        close()
+        break
+      }
       if (!inMainWindow || !router) {
         // 胶囊打开系统页（设置 / 迁移 / 关于）同样走沉浸式独立窗口
         void window.api.createNewWindow(`${a.path}?immersive=1`)

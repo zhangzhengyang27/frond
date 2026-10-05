@@ -20,6 +20,7 @@ export {
 } from './components'
 export {
   showToast,
+  showHud,
   copyToClipboard,
   getClipboardText,
   getPluginContext,

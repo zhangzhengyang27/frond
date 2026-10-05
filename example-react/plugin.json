@@ -18,6 +18,12 @@
       "mode": "action"
     },
     {
+      "code": "hud",
+      "title": "HUD 轻提示探针",
+      "description": "调 showHud 后自关：验证胶囊 HUD 全链路",
+      "mode": "action"
+    },
+    {
       "code": "ping-view",
       "title": "Ping 但要界面（Action 升级）",
       "description": "声明 action 但渲染列表 → 宿主应升级为可见",

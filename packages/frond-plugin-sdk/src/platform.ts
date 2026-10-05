@@ -10,6 +10,7 @@
 
 interface PluginHostApi {
   notify?: (body: unknown) => Promise<unknown> | unknown
+  showHud?: (title: string) => Promise<boolean> | boolean
   copyText?: (text: unknown) => Promise<unknown> | unknown
   readText?: () => Promise<string> | string
   getContext?: () => Promise<PluginContext | null> | PluginContext | null
@@ -91,6 +92,16 @@ export function showToast(styleOrInput: unknown, message?: string): void {
       .join('：')
   }
   if (body) void api.notify(body)
+}
+
+/**
+ * 插件轻提示 HUD（2026-10-05 spec 3.3）：胶囊窗内 1.5s 自动淡出的轻反馈。
+ * 纯 UI 反馈（与 notify 同级），无需 manifest 权限；宿主不支持时静默 no-op。
+ */
+export function showHud(title: string): Promise<boolean> {
+  const api = host()
+  if (!api?.showHud) return Promise.resolve(false)
+  return Promise.resolve(api.showHud(title))
 }
 
 export async function copyToClipboard(text: string): Promise<void> {

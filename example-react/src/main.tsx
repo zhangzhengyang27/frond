@@ -9,6 +9,7 @@ import {
   getPluginContext,
   closePlugin,
   showToast,
+  showHud,
   getPreferenceValues,
   openExternalUrl,
   scheduleCommand,
@@ -106,6 +107,12 @@ void (async () => {
     showToast({ title: 'React 示例', message: 'Action 命令已执行' })
     // ping-hold 故意不自关：用来验宿主 ACTION_COMMAND_TIMEOUT_MS 的兜底回收
     if (ctx.cmd === 'ping') await closePlugin()
+    return
+  }
+  if (ctx?.cmd === 'hud') {
+    // spec 3.3 全链路探针：plugapi:hud → launcher:plugin-hud → 胶囊 PluginHud
+    await showHud('HUD 探针：轻提示已送达')
+    await closePlugin()
     return
   }
   if (ctx?.cmd === 'list-loading') {

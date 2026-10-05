@@ -97,7 +97,9 @@ const router = createRouter({
     {
       path: '/pomodoro',
       name: 'pomodoro',
-      component: () => import('../views/pomodoro/index.vue')
+      component: () => import('../views/pomodoro/index.vue'),
+      // B59a：与 /snippets 同口径——工作模块全出血，壳顶栏是噪音
+      meta: { window: 'overlay' }
     },
     {
       // 迷你番茄钟悬浮窗：miniWindow.ts 以 hash 直接加载
@@ -125,6 +127,9 @@ const router = createRouter({
       path: '/screenRecorder',
       component: () => import('../views/screenRecorder/Layout.vue'),
       redirect: '/screenRecorder/record',
+      // B59a：meta 挂父级，子路由经 vue-router 的 matched 合并继承；
+      // clip 子路由自己的 overlay 声明不受影响
+      meta: { window: 'overlay' },
       children: [
         {
           path: 'record',

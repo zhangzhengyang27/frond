@@ -16,13 +16,17 @@ import { useTheme } from './composables/useTheme'
 // useAppMenu 需要在 setup 上下文内调用（内部取 router），install 推迟到挂载时
 const { install: installAppMenu } = useAppMenu()
 
+const route = useRoute()
+
 // B59：模块快捷键（⌘1-9）与主题初始化从 AppShell 上移——/snippets 等去壳
 // 路由不挂 AppShell，留在壳里会让快捷键在模块页失灵、主题在直落模块页时不初始化
 useModuleShortcuts()
 void useTheme().initTheme()
 
 // 窗口标题跟随路由——document.title 会覆盖 BrowserWindow 标题，且一旦设置
-// 就跨路由滞留（此前进过设置页后标题永远挂「设置」，片段页也是「设置」）
+// 就跨路由滞留（此前进过设置页后标题永远挂「设置」，片段页也是「设置」）。
+// 注意 route 必须先于 watcher 声明：immediate getter 同步求值，
+// 后置声明会踩 TDZ 静默炸掉 watcher（实测：标题从此再也不更新）
 const ROUTE_TITLES: Record<string, string> = {
   settings: '设置',
   snippets: '代码片段',
@@ -51,8 +55,6 @@ type LoadingVariant =
   | 'recorder-playback'
   | 'recorder-clip'
   | 'capture'
-
-const route = useRoute()
 
 /**
  * 壳显隐由路由 meta.window 驱动（语义定义见 router/index.ts）：

@@ -1,9 +1,7 @@
 <template>
-  <!-- 高度用 calc(100vh - 顶栏) 而非 h-screen —— 在 AppShell 的 main 内
-       用 h-screen 会多出顶栏高度导致内容被裁切/双滚动条 -->
-  <div
-    class="flex h-[calc(100vh-var(--shell-topbar-h))] flex-col overflow-hidden bg-gradient-primary"
-  >
+  <!-- B59a：录屏已去壳（meta.window=overlay），直接 h-screen——
+       旧 calc(100vh - 顶栏) 是壳内语义，壳没了会留 40px 死空间 -->
+  <div class="flex h-screen flex-col overflow-hidden bg-gradient-primary">
     <!-- PR-7b: 倒计时遮罩（fixed，覆盖全屏） -->
     <div
       v-if="countdownActive"

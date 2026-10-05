@@ -1338,3 +1338,14 @@ snippets-capsule-b58c 3/3（内容全文可搜、⌘→ 切块 Enter 复制活�
   上移 App.vue 根层——与 CommandPalette 同一解耦道理（e2e 抓出去壳后确认弹窗
   消失的回归）；窗口标题 App.vue 按 route.name 接管（ROUTE_TITLES 表）。
 - 同根候选（本轮未动）：/screenRecorder、/pomodoro 仍在壳里；若同样反馈再收。
+
+### B59a（2026-10-05 用户实测续：三栏偏宽 + 录屏/番茄钟同病 + 标题仍错）
+- 三栏收窄：库 250→210 / 列表 280→240（编辑器吃回余量）。
+- 录屏 / 番茄钟同批去壳：/screenRecorder meta 挂父级（子路由经 matched 合并
+  继承）、/pomodoro 单页 overlay；Layout.vue 高度改 h-screen（壳内语义的
+  calc(100vh-顶栏) 在无壳下留 40px 死空间）；pomodoro .zf-root 本就是 height:100% 免改。
+- 标题「设置」滞留真因：首版 ROUTE_TITLES watcher 把 route 声明放在 watcher
+  之后，immediate getter 同步求值踩 TDZ 静默炸掉（Vue 错误处理吞掉，app 照常
+  渲染，标题从此不更新——用户截图实锤）。route 前置修复，e2e 钉
+  `main.title()==='代码片段'` 断言（snippets-ui-b58 用例1）。
+- 门禁：typecheck 0 / lint 0 error / snippets+pomodoro+recording-clip e2e 31/31。

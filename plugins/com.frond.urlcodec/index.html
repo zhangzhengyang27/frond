@@ -5,124 +5,141 @@
     <title>URL 编解码</title>
   </head>
   <body>
+    <script src="lib.js"></script>
     <script>
       var api = window.launcherApi
+      var Lib = window.FrondUrlcodecLib
       var currentCmd = 'encode'
+      var lastOutput = null
+      var lastResults = []
+      var lastInput = ''
 
       api.onEnter(function (data) {
         currentCmd = (data && data.cmd) || 'encode'
-        var placeholders = {
-          encode: '粘贴或输入要编码的文本…',
-          decode: '粘贴或输入要解码的 URL…'
-        }
-        api.setSubInput(placeholders[currentCmd] || '输入文本…')
+        api.setSubInput(currentCmd === 'decode' ? '粘贴要解码的 URL 编码字符串…' : '输入要编码的文本或 URL…')
         api
           .readText()
           .then(function (res) {
-            var text = res || ''
-            if (text && text.trim()) {
-              process(text.trim())
-            } else {
-              showEmpty()
-            }
+            var text = (res || '').trim()
+            text ? process(text) : showEmpty()
           })
-          .catch(function () {
-            showEmpty()
-          })
+          .catch(function () { showEmpty() })
       })
 
       api.onSubInputChange(function (data) {
-        var text = data && typeof data.text === 'string' ? data.text : ''
-        if (text && text.trim()) {
-          process(text.trim())
-        } else {
-          showEmpty()
-        }
+        var text = data && typeof data.text === 'string' ? data.text.trim() : ''
+        text ? process(text) : showEmpty()
       })
 
       function showEmpty() {
-        var titles = { encode: 'URL 编码', decode: 'URL 解码' }
-        api.renderList([
-          {
-            title: titles[currentCmd] || 'URL 工具',
-            subtitle: '在上方输入框粘贴文本，或从剪贴板自动读取',
-            icon: 'link',
-            detail:
-              '**URL 编解码**\n\n- 编码：文本 → URL 安全格式（encodeURIComponent）\n- 解码：URL 编码 → 原文（decodeURIComponent）\n- 支持中文和特殊字符\n\n回车复制处理结果。',
-            detailFormat: 'markdown',
-            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
-          }
-        ])
+        api.renderList([{
+          title: '示例：编码 https://example.com/?a=中',
+          subtitle: '组件编码与整体编码并列，回车复制',
+          icon: 'link-line',
+          detail:
+            '**URL 编解码**\n\n- 编码：encodeURIComponent（组件级，全转）与 encodeURI（整体级，保留 : / ? & =）并列\n- 解码：decodeURIComponent\n- 最近 20 条记录进历史\n\n回车复制结果。',
+          detailFormat: 'markdown',
+          actions: [{ label: '填入示例', type: 'callback', payload: 'demo:https://example.com/?a=中', hint: '↵' }]
+        }], { id: 'root' })
       }
 
       function process(text) {
-        try {
-          var result = ''
-          var actionName = ''
-          if (currentCmd === 'encode') {
-            result = encodeURIComponent(text)
-            actionName = '编码'
-          } else {
-            result = decodeURIComponent(text)
-            actionName = '解码'
-          }
-          showResult(actionName + '完成', result, result.length, actionName, text)
-        } catch (e) {
-          api.renderList([
-            {
-              title: currentCmd === 'encode' ? '编码失败' : '解码失败',
-              subtitle: e.message || '输入格式不正确',
-              icon: 'error-warning-line',
-              detail:
-                '**错误信息**：' +
-                (e.message || '未知错误') +
-                '\n\n' +
-                (currentCmd === 'decode'
-                  ? '请检查输入是否为有效的 URL 编码字符串。注意：decodeURIComponent 无法解码包含 `%` 后跟非十六进制字符的字符串。'
-                  : '请检查输入文本。'),
-              detailFormat: 'markdown',
-              actions: [
-                { label: '复制错误信息', type: 'copy', payload: e.message || '错误', hint: '↵' },
-                { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
-              ]
-            }
-          ])
+        lastInput = text
+        var results = Lib.convert(text, currentCmd)
+        if (!results || !results.length) return showError(text)
+        lastResults = results.map(function (r) { return r.output })
+        var first = results[0]
+        if (first.output !== lastOutput) {
+          lastOutput = first.output
+          pushHistory(text, first.output)
         }
+        loadHistory().then(function (hist) {
+          api.renderList(buildItems(results, hist), { id: 'root' })
+        })
       }
 
-      function showResult(title, result, length, actionName, original) {
-        var preview =
-          result.length > 500
-            ? result.slice(0, 500) + '\n…（共 ' + result.length + ' 字符）'
-            : result
-        api.renderList([
-          {
-            title: title + '（' + length + ' 字符）',
-            subtitle: '回车复制处理结果',
-            icon: 'checkbox-circle-line',
-            detail:
-              '**结果**\n\n```\n' +
-              preview +
-              '\n```\n\n' +
-              '- 原文长度: ' +
-              original.length +
-              ' 字符\n' +
-              '- 结果长度: ' +
-              length +
-              ' 字符\n' +
-              (actionName === '编码'
-                ? '- 膨胀率: ' + ((length / original.length) * 100 - 100).toFixed(1) + '%'
-                : '- 压缩率: ' + ((1 - length / original.length) * 100).toFixed(1) + '%'),
-            detailFormat: 'markdown',
-            actions: [
-              { label: '复制结果', type: 'copy', payload: result, hint: '↵' },
-              { label: '复制原文', type: 'copy', payload: original, hint: '⌘1' }
-            ]
-          }
-        ])
+      function showError(text) {
+        lastResults = [text]
+        api.renderList([{
+          title: '解码失败',
+          subtitle: '输入含无法解析的百分号序列',
+          icon: 'error-warning-line',
+          actions: [{ label: '复制原文', type: 'callback', payload: 'copy:0', hint: '↵' }]
+        }], { id: 'root' })
       }
 
-      api.onAction(function () {})
+      // ── 历史公约实现 ──
+      function loadHistory() {
+        return api.db.get('history').then(function (res) {
+          var d = res && res.data
+          return d && Array.isArray(d.list) ? d.list : []
+        }).catch(function () { return [] })
+      }
+      function pushHistory(input, output) {
+        return loadHistory().then(function (list) {
+          list = list.filter(function (h) { return !(h.input === input && h.output === output) })
+          list.unshift({ input: input, output: output, ts: Date.now() })
+          return api.db.put('history', { list: list.slice(0, 20) })
+        }).catch(function () {})
+      }
+      function buildItems(results, hist) {
+        var items = results.map(function (r, i) { return {
+          title: r.title, subtitle: r.subtitle || undefined,
+          icon: r.icon || 'checkbox-circle-line',
+          section: r.section, detail: r.detail || undefined, detailFormat: r.detail ? 'markdown' : undefined,
+          actions: [{ label: '复制结果', type: 'callback', payload: 'copy:' + i, hint: '↵' }]
+        } })
+        hist.forEach(function (h) { items.push({
+          title: String(h.output).slice(0, 60),
+          subtitle: '输入: ' + String(h.input).slice(0, 60),
+          icon: 'history-line', section: '历史',
+          actions: [
+            { label: '复制该结果', type: 'callback', payload: 'copyh:' + h.ts, hint: '↵' },
+            { label: '以该输入重算', type: 'callback', payload: 'recalc:' + h.input.slice(0, 500) },
+            { label: '删除该条', type: 'callback', payload: 'del:' + h.ts }
+          ]
+        }) })
+        if (hist.length) items.push({
+          title: '清空历史（' + hist.length + ' 条）', icon: 'delete-bin-line',
+          actions: [{ label: '清空', type: 'callback', payload: 'clear-history' }]
+        })
+        return items
+      }
+
+      api.onAction(function (data) {
+        var p = data && data.action && typeof data.action.payload === 'string' ? data.action.payload : ''
+        if (p.indexOf('copy:') === 0) {
+          var idx = Number(p.slice(5))
+          var content = lastResults[idx]
+          if (typeof content !== 'string') return
+          api.copyText(content).then(function () { api.showHud('已复制') }).catch(function () {})
+        } else if (p.indexOf('copyh:') === 0) {
+          var ts = Number(p.slice(6))
+          loadHistory().then(function (list) {
+            var hit = list.filter(function (h) { return h.ts === ts })[0]
+            if (hit) return api.copyText(hit.output).then(function () { api.showHud('已复制') })
+          }).catch(function () {})
+        } else if (p === 'clear-history') {
+          api.alert({ title: '清空历史', message: '确定清空全部历史记录？',
+            actions: [{ id: 'ok', title: '清空', style: 'destructive' }, { id: 'cancel', title: '取消', style: 'cancel' }]
+          }).then(function (id) {
+            if (id !== 'ok') return
+            api.db.put('history', { list: [] }).then(function () { lastOutput = null; showEmpty() })
+          })
+        } else if (p.indexOf('del:') === 0) {
+          var delTs = Number(p.slice(4))
+          loadHistory().then(function (list) {
+            return api.db.put('history', { list: list.filter(function (h) { return h.ts !== delTs }) })
+          }).then(function () {
+            lastOutput = null
+            lastInput ? process(lastInput) : showEmpty()
+          })
+        } else if (p.indexOf('recalc:') === 0) {
+          process(p.slice(7))
+        } else if (p.indexOf('demo:') === 0) {
+          process(p.slice(5))
+        }
+      })
     </script>
   </body>
 </html>

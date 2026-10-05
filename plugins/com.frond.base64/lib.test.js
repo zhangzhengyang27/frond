@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { encode, decode, isProbablyBase64 } from './lib.js'
+import { encode, decode, isProbablyBase64, convert } from './lib.js'
 
 describe('base64 lib（计划 2 的插件测试基建样板）', () => {
   it('encode/decode 往返（含中文/emoji/长文本）', () => {
@@ -29,5 +29,19 @@ describe('base64 lib（计划 2 的插件测试基建样板）', () => {
   it('内部 ASCII 空白剥离（atob 语义）：多行粘贴可解码', () => {
     expect(decode('aGVs\nbG8=')).toBe('hello')
     expect(decode(' aGVs bG8= ')).toBe('hello')
+  })
+  describe('convert 双向检测（spec 4.4）', () => {
+    it("cmd='encode'：普通文本 → 编码结果；且输入本身是 base64 时并列解码", () => {
+      const r = convert('hello world', 'encode')
+      expect(r).toHaveLength(1)
+      expect(r[0].output).toBe(encode('hello world'))
+      expect(r[0].direction).toBe('encode')
+      const r2 = convert(encode('你好'), 'encode')
+      expect(r2.map((x) => x.direction)).toEqual(['encode', 'decode'])
+    })
+    it("cmd='decode'：合法输入双列；乱码 → null", () => {
+      expect(convert(encode('hi'), 'decode')).toHaveLength(2)
+      expect(convert('!!!', 'decode')).toBeNull()
+    })
   })
 })

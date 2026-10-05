@@ -130,11 +130,47 @@
     return decode(str) !== null
   }
 
+  /**
+   * 双向检测入口（spec 4.4）：按命令方向给出主结果；输入本身是合法 base64 时
+   * 并列反向结果。条目形状 { title, output, direction }；两个方向都失败 → null。
+   */
+  function convert(text, cmd) {
+    var str = String(text).trim()
+    if (str === '') return null
+    var out = []
+    if (cmd === 'decode') {
+      var decoded = decode(str)
+      if (decoded !== null) {
+        out.push({
+          title: '解码完成（' + decoded.length + ' 字符）',
+          output: decoded,
+          direction: 'decode'
+        })
+        out.push({ title: '编码（反向）', output: encode(decoded), direction: 'encode' })
+        return out
+      }
+      return null
+    }
+    var encoded = encode(str)
+    out.push({
+      title: '编码完成（' + encoded.length + ' 字符）',
+      output: encoded,
+      direction: 'encode'
+    })
+    if (isProbablyBase64(str)) {
+      var back = decode(str)
+      if (back !== null)
+        out.push({ title: '解码（检测到 Base64 输入）', output: back, direction: 'decode' })
+    }
+    return out
+  }
+
   return {
     encode: encode,
     decode: decode,
     toUrlSafe: toUrlSafe,
     fromUrlSafe: fromUrlSafe,
-    isProbablyBase64: isProbablyBase64
+    isProbablyBase64: isProbablyBase64,
+    convert: convert
   }
 })

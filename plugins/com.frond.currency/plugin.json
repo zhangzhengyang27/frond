@@ -1,7 +1,7 @@
 {
   "id": "com.frond.currency",
   "name": "汇率转换",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "实时汇率转换：支持 160+ 货币，从剪贴板读取金额，一键复制转换结果",
   "author": "Frond",
   "main": "index.html",
@@ -9,7 +9,14 @@
     {
       "code": "convert",
       "title": "汇率转换",
-      "description": "输入金额和货币对，查看实时汇率并复制结果"
+      "description": "输入金额和货币对，查看实时汇率并复制结果",
+      "arguments": [
+        {
+          "name": "q",
+          "type": "text",
+          "placeholder": "金额 货币对，如 100 usd cny（可空）"
+        }
+      ]
     }
   ],
   "preferences": [
@@ -18,15 +25,42 @@
       "label": "基准货币",
       "type": "select",
       "default": "CNY",
-      "options": ["CNY", "USD", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD", "SGD"]
+      "options": [
+        "CNY",
+        "USD",
+        "EUR",
+        "JPY",
+        "GBP",
+        "HKD",
+        "KRW",
+        "AUD",
+        "CAD",
+        "SGD"
+      ]
     },
     {
       "name": "targetCurrency",
       "label": "目标货币",
       "type": "select",
       "default": "USD",
-      "options": ["USD", "CNY", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD", "SGD"]
+      "options": [
+        "USD",
+        "CNY",
+        "EUR",
+        "JPY",
+        "GBP",
+        "HKD",
+        "KRW",
+        "AUD",
+        "CAD",
+        "SGD"
+      ]
     }
   ],
-  "permissions": ["clipboard.read", "net"]
+  "permissions": [
+    "clipboard.read",
+    "net",
+    "clipboard.write"
+  ],
+  "api": "react"
 }

@@ -28,8 +28,8 @@
     {
       "id": "com.frond.currency",
       "name": "汇率转换",
-      "version": "1.0.1",
-      "description": "实时汇率转换：支持 160+ 货币，从剪贴板读取金额，一键复制转换结果",
+      "version": "2.0.0",
+      "description": "实时汇率转换（React 标杆）：160+ 货币、收藏货币对、24h 离线缓存、货币选择与金额表单",
       "author": "Frond",
       "download": "./plugins/com.frond.currency"
     },

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { mount, type VueWrapper } from '@vue/test-utils'
 import NativePickerField from '../NativePickerField.vue'
 
@@ -33,6 +33,8 @@ afterEach(() => {
 
 describe('NativePickerField', () => {
   it('input 类型随 mode，点图标开面板并写回', async () => {
+    // 固定时钟：「今天」随真实日期漂移会让期望值跨天翻车（2026-10-06 曾挂）
+    vi.useFakeTimers({ now: new Date('2026-10-05T12:00:00') })
     const w = setup('date')
     expect(w.find('input').attributes('type')).toBe('date')
     await w.find('.npk-btn').trigger('click')
@@ -41,6 +43,7 @@ describe('NativePickerField', () => {
     await w.vm.$nextTick()
     expect(w.emitted('update:modelValue')![0]).toEqual(['2026-10-05'])
     expect(panel()).toBeNull()
+    vi.useRealTimers()
   })
 
   it('↵ 开面板，面板开着时 ESC 收起不写值', async () => {

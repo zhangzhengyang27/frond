@@ -69,6 +69,8 @@ export default defineConfig(
       'packages/**/*.{ts,tsx}',
       'example-plugin/**',
       'example-react/**',
+      // 插件 React 源码由 esbuild 转译（不经 vue-tsc/tsc 工程），无 type info 可用
+      'plugins/**/*.{ts,tsx}',
       'vitest.global-setup.ts',
       'electron.vite.config.ts'
     ],

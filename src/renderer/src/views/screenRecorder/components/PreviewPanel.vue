@@ -124,16 +124,32 @@
           </button>
         </div>
 
-        <!-- 右：设置 -->
-        <button
-          class="flex size-10 items-center justify-center rounded-full text-white/60 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
-          type="button"
-          title="录制设置"
-          aria-label="设置"
-          @click="$emit('open-settings')"
-        >
-          <AppIcon icon="ri-settings-3-line" :size="18" />
-        </button>
+        <!-- 右：标记浮层 toggle + 设置 -->
+        <div class="flex items-center gap-2">
+          <button
+            class="flex size-10 items-center justify-center rounded-full transition-all duration-200 active:scale-95"
+            :class="
+              showMarkers
+                ? 'bg-brand-400/20 text-brand-300 ring-1 ring-brand-400/50'
+                : 'text-white/60 hover:bg-white/10 hover:text-white'
+            "
+            type="button"
+            title="标记"
+            aria-label="标记"
+            @click="$emit('toggle-markers')"
+          >
+            <AppIcon icon="ri-bookmark-line" :size="18" />
+          </button>
+          <button
+            class="flex size-10 items-center justify-center rounded-full text-white/60 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
+            type="button"
+            title="录制设置"
+            aria-label="设置"
+            @click="$emit('open-settings')"
+          >
+            <AppIcon icon="ri-settings-3-line" :size="18" />
+          </button>
+        </div>
       </div>
 
       <!-- 准备中 -->
@@ -165,6 +181,7 @@ interface Props {
   loading: boolean
   showPipCamera: boolean
   showRecordingModeHint: boolean
+  showMarkers?: boolean // 标记浮层开态（dock 键高亮）
   formatTime: (seconds: number) => string
 }
 
@@ -191,6 +208,7 @@ interface Emits {
   (e: 'toggle-pause'): void // PR-3
   (e: 'select-save-path'): void
   (e: 'open-settings'): void
+  (e: 'toggle-markers'): void
 }
 
 // 暴露 ref 给父组件

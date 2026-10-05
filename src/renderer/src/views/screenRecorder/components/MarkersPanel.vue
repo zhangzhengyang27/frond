@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-2xl bg-white/[0.04] p-5 ring-1 ring-white/10 flex flex-col">
+  <div class="flex h-full flex-col p-4">
     <div class="flex items-center justify-between mb-5">
       <h2 class="text-xl font-semibold text-white/90 m-0">标记</h2>
       <div class="flex items-center gap-2">

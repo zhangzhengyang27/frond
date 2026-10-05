@@ -1,6 +1,6 @@
 <template>
-  <div class="flex h-full gap-5 overflow-hidden bg-[#0e0f13] p-5">
-    <!-- 主舞台列：源带 + 预览 -->
+  <div class="flex h-full flex-col gap-4 overflow-hidden bg-[#0e0f13] p-5">
+    <!-- 主舞台列：源带 + 预览（标记浮层覆盖其上） -->
     <div class="mx-auto flex min-w-0 flex-1 flex-col gap-4">
       <!-- 屏幕源选择区域 -->
       <SourceSelector
@@ -25,38 +25,53 @@
         @select-region="actions.selectRegion"
       />
 
-      <!-- 预览舞台（主角） -->
-      <PreviewPanel
-        ref="previewPanelRef"
-        class="min-h-0 flex-1"
-        :has-preview="hasPreview"
-        :is-recording="isRecording"
-        :is-paused="isPaused"
-        :recording-time="recordingTime"
-        :can-record="canRecord"
-        :loading="loading"
-        :show-pip-camera="showPipCamera"
-        :show-recording-mode-hint="showRecordingModeHint"
-        :format-time="formatTime"
-        @start-recording="actions.startWithCountdownOrImmediate"
-        @stop-recording="stopRecording"
-        @toggle-pause="$emit('toggle-pause')"
-        @select-save-path="selectSavePath"
-        @open-settings="$emit('update:show-settings-dialog', true)"
-      />
-    </div>
+      <!-- 预览舞台（主角）+ 标记浮层 -->
+      <div class="relative min-h-0 flex-1">
+        <PreviewPanel
+          ref="previewPanelRef"
+          class="h-full"
+          :has-preview="hasPreview"
+          :is-recording="isRecording"
+          :is-paused="isPaused"
+          :recording-time="recordingTime"
+          :can-record="canRecord"
+          :loading="loading"
+          :show-pip-camera="showPipCamera"
+          :show-recording-mode-hint="showRecordingModeHint"
+          :show-markers="showMarkers"
+          :format-time="formatTime"
+          @start-recording="actions.startWithCountdownOrImmediate"
+          @stop-recording="stopRecording"
+          @toggle-pause="$emit('toggle-pause')"
+          @select-save-path="selectSavePath"
+          @open-settings="$emit('update:show-settings-dialog', true)"
+          @toggle-markers="showMarkers = !showMarkers"
+        />
 
-    <!-- 标记侧栏（玻璃卡，宽屏显示） -->
-    <aside class="hidden w-[320px] shrink-0 overflow-y-auto xl:block">
-      <MarkersPanel
-        class="h-full"
-        :recording-id="actions.lastRecordingId.value"
-        :is-recording="isRecording"
-        :recording-time="recordingTime"
-        @jump-to-marker="handleJumpToMarker"
-        @marker-added="handleMarkerAdded"
-      />
-    </aside>
+        <!-- 标记浮层（玻璃卡，覆盖舞台右上；不遮画中画） -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 translate-x-3"
+          enter-to-class="opacity-100 translate-x-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0 translate-x-3"
+        >
+          <div
+            v-if="showMarkers"
+            class="absolute right-3 top-3 z-20 max-h-[78%] w-[330px] overflow-y-auto rounded-2xl bg-[#14151a]/95 shadow-[0_18px_48px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-md"
+          >
+            <MarkersPanel
+              :recording-id="actions.lastRecordingId.value"
+              :is-recording="isRecording"
+              :recording-time="recordingTime"
+              @jump-to-marker="handleJumpToMarker"
+              @marker-added="handleMarkerAdded"
+            />
+          </div>
+        </Transition>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -82,6 +97,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const toast = useToast()
+const showMarkers = ref(false)
 
 defineEmits<{
   'update:show-settings-dialog': [value: boolean]

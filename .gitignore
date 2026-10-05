@@ -32,3 +32,6 @@ test-results/
 # 插件发布产物（make-plugin-release 的默认输出目录）
 *-release/
 scripts/mediabunny-pilot/vendor.mjs
+# currency React 插件：dist 必须入库（干净检出打包/安装即白屏）——例外于上方全局 dist 规则
+!plugins/com.frond.currency/dist/
+!plugins/com.frond.currency/dist/main.js

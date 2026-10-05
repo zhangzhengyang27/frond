@@ -6,7 +6,7 @@
  * - qrcode：icon.dataUrl 缩略图（img.plist-thumb，data:image/png 前缀）
  * - currency：React 视图冒烟（列表/错误/缓存态任一渲染完成，不断言汇率数值——外网不可依赖）
  *
- * 用法：先 pnpm build；currency 的 dist/main.js 已入库无需构建。
+ * 用法：先 pnpm build；currency 的 dist 由 e2e global-setup 自动重建（不入库）。
  */
 
 import { test, expect } from 'playwright/test'

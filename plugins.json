@@ -52,7 +52,7 @@
     {
       "id": "com.frond.timestamp",
       "name": "时间戳转换",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "description": "Unix 时间戳与可读时间互转：支持秒/毫秒，从剪贴板读取，一键复制",
       "author": "Frond",
       "download": "./plugins/com.frond.timestamp"
@@ -76,7 +76,7 @@
     {
       "id": "com.frond.baseconvert",
       "name": "进制转换",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "description": "数字进制转换：2/8/10/16 进制互转，支持大整数，从剪贴板读取，一键复制",
       "author": "Frond",
       "download": "./plugins/com.frond.baseconvert"

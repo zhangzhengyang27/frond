@@ -1,7 +1,7 @@
 {
   "id": "com.frond.baseconvert",
   "name": "进制转换",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "数字进制转换：2/8/10/16 进制互转，支持大整数，从剪贴板读取，一键复制",
   "author": "Frond",
   "main": "index.html",
@@ -12,5 +12,8 @@
       "description": "2/8/10/16 进制互转"
     }
   ],
-  "permissions": ["clipboard.read"]
+  "permissions": [
+    "clipboard.read",
+    "clipboard.write"
+  ]
 }

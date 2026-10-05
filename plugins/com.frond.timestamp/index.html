@@ -5,223 +5,160 @@
     <title>时间戳转换</title>
   </head>
   <body>
+    <script src="lib.js"></script>
     <script>
       var api = window.launcherApi
+      var Lib = window.FrondTimestamplib
+      var currentCmd = 'convert'
+      var lastOutput = null
+      var lastResults = []
+      var lastInput = ''
 
       api.onEnter(function () {
-        api.setSubInput('输入时间戳或时间，或留空显示当前时间…')
+        api.setSubInput('输入时间戳或日期（双向自动识别）…')
         api
           .readText()
           .then(function (res) {
-            var text = res || ''
-            if (text && text.trim()) {
-              process(text.trim())
-            } else {
-              showCurrent()
-            }
+            var text = (res || '').trim()
+            text ? process(text) : showEmpty()
           })
-          .catch(function () {
-            showCurrent()
-          })
+          .catch(function () { showEmpty() })
       })
 
       api.onSubInputChange(function (data) {
-        var text = data && typeof data.text === 'string' ? data.text : ''
-        if (text && text.trim()) {
-          process(text.trim())
-        } else {
-          showCurrent()
-        }
+        var text = data && typeof data.text === 'string' ? data.text.trim() : ''
+        text ? process(text) : showEmpty()
       })
 
-      function showCurrent() {
-        var now = Date.now()
-        var sec = Math.floor(now / 1000)
-        var date = new Date(now)
-        var items = [
-          {
-            title: '当前时间戳（秒）: ' + sec,
-            subtitle: formatDateTime(date),
-            icon: 'time-line',
-            accessories: ['秒'],
-            detail:
-              '**当前时间**\n\n- 时间戳（秒）: `' +
-              sec +
-              '`\n- 时间戳（毫秒）: `' +
-              now +
-              '`\n- 本地时间: ' +
-              formatDateTime(date) +
-              '\n- UTC 时间: ' +
-              formatDateTimeUTC(date) +
-              '\n\n回车复制秒级时间戳。',
-            detailFormat: 'markdown',
-            actions: [
-              { label: '复制秒', type: 'copy', payload: String(sec), hint: '↵' },
-              { label: '复制毫秒', type: 'copy', payload: String(now), hint: '⌘1' },
-              { label: '复制时间', type: 'copy', payload: formatDateTime(date), hint: '⌘2' }
-            ]
-          }
-        ]
-        api.renderList(items)
-      }
-
-      function process(input) {
-        // 判断是时间戳还是时间字符串
-        var num = Number(input)
-        if (!isNaN(num) && isFinite(num) && input.match(/^\d+$/)) {
-          // 时间戳：判断是秒还是毫秒
-          var isMs = num > 1e12 // 2001年以后的毫秒级时间戳 > 1e12
-          var ts = isMs ? num : num * 1000
-          var date = new Date(ts)
-          if (isNaN(date.getTime())) {
-            showError('无效的时间戳: ' + input)
-            return
-          }
-          var items = [
-            {
-              title: (isMs ? '毫秒' : '秒') + '时间戳: ' + input,
-              subtitle: formatDateTime(date),
-              icon: 'time-line',
-              accessories: [isMs ? '毫秒' : '秒'],
-              detail:
-                '**时间戳转换结果**\n\n- 输入: `' +
-                input +
-                '` (' +
-                (isMs ? '毫秒' : '秒') +
-                ')\n- 本地时间: ' +
-                formatDateTime(date) +
-                '\n- UTC 时间: ' +
-                formatDateTimeUTC(date) +
-                '\n- ISO 格式: `' +
-                date.toISOString() +
-                '`\n- 相对时间: ' +
-                relativeTime(date) +
-                '\n\n回车复制可读时间。',
-              detailFormat: 'markdown',
-              actions: [
-                { label: '复制时间', type: 'copy', payload: formatDateTime(date), hint: '↵' },
-                { label: '复制 ISO', type: 'copy', payload: date.toISOString(), hint: '⌘1' },
-                {
-                  label: '复制秒级时间戳',
-                  type: 'copy',
-                  payload: String(Math.floor(ts / 1000)),
-                  hint: '⌘2'
-                }
-              ]
-            }
+      var nowTimer = null
+      function nowEntry() {
+        var sec = Math.floor(Date.now() / 1000)
+        return {
+          title: String(sec),
+          subtitle: '当前时间戳（秒级，30s 刷新）',
+          icon: 'time-line',
+          actions: [
+            { label: '复制秒级', type: 'callback', payload: 'copy:0', hint: '↵' },
+            { label: '复制毫秒级', type: 'callback', payload: 'copyms', hint: '⌘1' }
           ]
-          api.renderList(items)
-        } else {
-          // 尝试解析为时间字符串
-          var date = new Date(input)
-          if (isNaN(date.getTime())) {
-            // 尝试中文格式
-            var cnMatch = input.match(
-              /(\d{4})年(\d{1,2})月(\d{1,2})日\s*(\d{1,2})?[:：]?(\d{1,2})?/
-            )
-            if (cnMatch) {
-              date = new Date(
-                parseInt(cnMatch[1]),
-                parseInt(cnMatch[2]) - 1,
-                parseInt(cnMatch[3]),
-                parseInt(cnMatch[4] || 0),
-                parseInt(cnMatch[5] || 0)
-              )
-            }
-          }
-          if (isNaN(date.getTime())) {
-            showError('无法解析时间: ' + input)
-            return
-          }
-          var sec = Math.floor(date.getTime() / 1000)
-          var items = [
-            {
-              title: '时间: ' + formatDateTime(date),
-              subtitle: '时间戳（秒）: ' + sec,
-              icon: 'time-line',
-              accessories: ['秒'],
-              detail:
-                '**时间转换结果**\n\n- 输入: `' +
-                input +
-                '`\n- 本地时间: ' +
-                formatDateTime(date) +
-                '\n- UTC 时间: ' +
-                formatDateTimeUTC(date) +
-                '\n- 时间戳（秒）: `' +
-                sec +
-                '`\n- 时间戳（毫秒）: `' +
-                date.getTime() +
-                '`\n- ISO 格式: `' +
-                date.toISOString() +
-                '`\n\n回车复制秒级时间戳。',
-              detailFormat: 'markdown',
-              actions: [
-                { label: '复制秒', type: 'copy', payload: String(sec), hint: '↵' },
-                { label: '复制毫秒', type: 'copy', payload: String(date.getTime()), hint: '⌘1' },
-                { label: '复制时间', type: 'copy', payload: formatDateTime(date), hint: '⌘2' }
-              ]
-            }
-          ]
-          api.renderList(items)
         }
       }
 
-      function showError(msg) {
-        api.renderList([
-          {
-            title: msg,
-            subtitle: '支持的格式：10位时间戳 / 13位时间戳 / 2024-01-01 12:00 / 2024年1月1日',
-            icon: 'error-warning-line',
-            detail:
-              '**支持的输入格式**\n\n- 10位时间戳（秒）: `1704067200`\n- 13位时间戳（毫秒）: `1704067200000`\n- ISO 格式: `2024-01-01T12:00:00Z`\n- 日期时间: `2024-01-01 12:00:00`\n- 中文格式: `2024年1月1日 12:00`',
-            detailFormat: 'markdown',
-            actions: [{ label: '重新输入', type: 'callback', hint: '↵' }]
-          }
-        ])
-      }
-
-      function formatDateTime(date) {
-        var y = date.getFullYear()
-        var m = String(date.getMonth() + 1).padStart(2, '0')
-        var d = String(date.getDate()).padStart(2, '0')
-        var h = String(date.getHours()).padStart(2, '0')
-        var min = String(date.getMinutes()).padStart(2, '0')
-        var s = String(date.getSeconds()).padStart(2, '0')
-        return y + '-' + m + '-' + d + ' ' + h + ':' + min + ':' + s
-      }
-
-      function formatDateTimeUTC(date) {
-        var y = date.getUTCFullYear()
-        var m = String(date.getUTCMonth() + 1).padStart(2, '0')
-        var d = String(date.getUTCDate()).padStart(2, '0')
-        var h = String(date.getUTCHours()).padStart(2, '0')
-        var min = String(date.getUTCMinutes()).padStart(2, '0')
-        var s = String(date.getUTCSeconds()).padStart(2, '0')
-        return y + '-' + m + '-' + d + ' ' + h + ':' + min + ':' + s + ' UTC'
-      }
-
-      function relativeTime(date) {
-        var diff = Date.now() - date.getTime()
-        var abs = Math.abs(diff)
-        var future = diff < 0
-        var units = [
-          { label: '年', ms: 365 * 24 * 60 * 60 * 1000 },
-          { label: '月', ms: 30 * 24 * 60 * 60 * 1000 },
-          { label: '天', ms: 24 * 60 * 60 * 1000 },
-          { label: '小时', ms: 60 * 60 * 1000 },
-          { label: '分钟', ms: 60 * 1000 },
-          { label: '秒', ms: 1000 }
-        ]
-        for (var i = 0; i < units.length; i++) {
-          if (abs >= units[i].ms) {
-            var n = Math.floor(abs / units[i].ms)
-            return future ? n + ' ' + units[i].label + '后' : n + ' ' + units[i].label + '前'
-          }
+      function showEmpty() {
+        if (nowTimer) clearInterval(nowTimer)
+        var demo = {
+          title: '示例：1700000000', subtitle: '双向识别，秒/毫秒自动判定', icon: 'time-line',
+          detail: '**时间戳转换**\n\n- 时间戳 → 本地/UTC/相对时间\n- 日期 → 秒级/毫秒级时间戳\n- 空态显示当前时间戳（30s 刷新）\n- 最近 20 条记录进历史\n\n回车复制结果。',
+          detailFormat: 'markdown',
+          actions: [{ label: '填入示例', type: 'callback', payload: 'demo:1700000000', hint: '↵' }]
         }
-        return '刚刚'
+        lastResults = [String(Math.floor(Date.now() / 1000))]
+        api.renderList([nowEntry(), demo], { id: 'root' })
+        nowTimer = setInterval(function () {
+          lastResults = [String(Math.floor(Date.now() / 1000))]
+          api.renderList([nowEntry(), demo], { id: 'root' })
+        }, 30000)
       }
 
-      api.onAction(function () {})
+      function process(text) {
+        lastInput = text
+        var results = Lib.convert(text)
+        if (!results || !results.length) return showError(text)
+        lastResults = results.map(function (r) { return r.output })
+        var first = results[0]
+        if (first.output !== lastOutput) {
+          lastOutput = first.output
+          pushHistory(text, first.output)
+        }
+        loadHistory().then(function (hist) {
+          api.renderList(buildItems(results, hist), { id: 'root' })
+        })
+      }
+
+      function showError(text) {
+        lastResults = [text]
+        api.renderList([{
+          title: '无法解析',
+          subtitle: '既不是时间戳也不是可解析日期',
+          icon: 'error-warning-line',
+          actions: [{ label: '复制原文', type: 'callback', payload: 'copy:0', hint: '↵' }]
+        }], { id: 'root' })
+      }
+
+      // ── 历史公约实现 ──
+      function loadHistory() {
+        return api.db.get('history').then(function (res) {
+          var d = res && res.data
+          return d && Array.isArray(d.list) ? d.list : []
+        }).catch(function () { return [] })
+      }
+      function pushHistory(input, output) {
+        return loadHistory().then(function (list) {
+          list = list.filter(function (h) { return !(h.input === input && h.output === output) })
+          list.unshift({ input: input, output: output, ts: Date.now() })
+          return api.db.put('history', { list: list.slice(0, 20) })
+        }).catch(function () {})
+      }
+      function buildItems(results, hist) {
+        var items = results.map(function (r, i) { return {
+          title: r.title, subtitle: r.subtitle || undefined,
+          icon: r.icon || 'checkbox-circle-line',
+          section: r.section, detail: r.detail || undefined, detailFormat: r.detail ? 'markdown' : undefined,
+          actions: [{ label: '复制结果', type: 'callback', payload: 'copy:' + i, hint: '↵' }]
+        } })
+        hist.forEach(function (h) { items.push({
+          title: String(h.output).slice(0, 60),
+          subtitle: '输入: ' + String(h.input).slice(0, 60),
+          icon: 'history-line', section: '历史',
+          actions: [
+            { label: '复制该结果', type: 'callback', payload: 'copyh:' + h.ts, hint: '↵' },
+            { label: '以该输入重算', type: 'callback', payload: 'recalc:' + h.input.slice(0, 500) },
+            { label: '删除该条', type: 'callback', payload: 'del:' + h.ts }
+          ]
+        }) })
+        if (hist.length) items.push({
+          title: '清空历史（' + hist.length + ' 条）', icon: 'delete-bin-line',
+          actions: [{ label: '清空', type: 'callback', payload: 'clear-history' }]
+        })
+        return items
+      }
+
+      api.onAction(function (data) {
+        var p = data && data.action && typeof data.action.payload === 'string' ? data.action.payload : ''
+        if (p === 'copyms') {
+          api.copyText(String(Date.now())).then(function () { api.showHud('已复制') }).catch(function () {})
+        } else if (p.indexOf('copy:') === 0) {
+          var idx = Number(p.slice(5))
+          var content = lastResults[idx]
+          if (typeof content !== 'string') return
+          api.copyText(content).then(function () { api.showHud('已复制') }).catch(function () {})
+        } else if (p.indexOf('copyh:') === 0) {
+          var ts = Number(p.slice(6))
+          loadHistory().then(function (list) {
+            var hit = list.filter(function (h) { return h.ts === ts })[0]
+            if (hit) return api.copyText(hit.output).then(function () { api.showHud('已复制') })
+          }).catch(function () {})
+        } else if (p === 'clear-history') {
+          api.alert({ title: '清空历史', message: '确定清空全部历史记录？',
+            actions: [{ id: 'ok', title: '清空', style: 'destructive' }, { id: 'cancel', title: '取消', style: 'cancel' }]
+          }).then(function (id) {
+            if (id !== 'ok') return
+            api.db.put('history', { list: [] }).then(function () { lastOutput = null; showEmpty() })
+          })
+        } else if (p.indexOf('del:') === 0) {
+          var delTs = Number(p.slice(4))
+          loadHistory().then(function (list) {
+            return api.db.put('history', { list: list.filter(function (h) { return h.ts !== delTs }) })
+          }).then(function () {
+            lastOutput = null
+            lastInput ? process(lastInput) : showEmpty()
+          })
+        } else if (p.indexOf('recalc:') === 0) {
+          process(p.slice(7))
+        } else if (p.indexOf('demo:') === 0) {
+          process(p.slice(5))
+        }
+      })
     </script>
   </body>
 </html>

@@ -12,6 +12,7 @@
       </div>
       <ModeSelector
         :current-mode="currentMode"
+        :switch-locked="strictPauseBlocked"
         settings-title="番茄钟设置"
         @switch="switchMode"
         @open-settings="showSettings = true"
@@ -150,8 +151,10 @@
           </div>
         </div>
 
-        <!-- Bottom Toolbar -->
-        <div class="zf-toolbar">
+        <!-- B60-14：toolbar+浮层包一层 relative 锚定（浮层随工具条走）；
+             两个浮层互斥（此前可同时打开、同位叠置） -->
+        <div class="zf-toolbar-wrap">
+          <div class="zf-toolbar">
           <button type="button" class="zf-tool-btn" title="全屏" @click="toggleFullscreen">
             <AppIcon icon="ri-fullscreen-line" />
           </button>
@@ -161,7 +164,7 @@
             class="zf-tool-btn"
             :class="{ active: isSpecialBreak }"
             title="特殊休息（午休 / 晚饭，不占番茄循环）"
-            @click="specialBreakOpen = !specialBreakOpen"
+            @click="toggleSpecialBreakPop"
           >
             <AppIcon icon="ri-restaurant-line" />
           </button>
@@ -171,7 +174,7 @@
             class="zf-tool-btn"
             :class="{ active: soundscape.current.value !== 'none' }"
             title="声景白噪音"
-            @click="soundscapeOpen = !soundscapeOpen"
+            @click="toggleSoundscapePop"
           >
             <AppIcon
               :icon="soundscape.current.value !== 'none' ? 'ri-music-2-fill' : 'ri-music-line'"
@@ -199,11 +202,11 @@
             <AppIcon :icon="focusModeEnabled ? 'ri-moon-fill' : 'ri-moon-line'" />
           </button>
           <span class="zf-tool-divider" />
-          <span class="zf-tool-label">{{ settings.workDuration }} 分钟</span>
-        </div>
+          <span class="zf-tool-label">{{ effective.workDuration }} 分钟</span>
+          </div>
 
-        <!-- 特殊休息时长浮层 -->
-        <div v-if="specialBreakOpen" ref="specialBreakPopRef" role="menu" aria-label="特殊休息时长" class="zf-sound-pop">
+          <!-- 特殊休息时长浮层 -->
+          <div v-if="specialBreakOpen" ref="specialBreakPopRef" role="menu" aria-label="特殊休息时长" class="zf-sound-pop">
           <div class="zf-sound-grid">
             <button
               v-for="m in SPECIAL_BREAK_OPTIONS"
@@ -246,6 +249,7 @@
             />
             <AppIcon icon="ri-volume-up-line" />
           </div>
+        </div>
         </div>
       </main>
 
@@ -298,7 +302,7 @@
           <template v-if="sidePanelTab === 'main'">
             <TodayStatsBar
               :work-count="statistics.today.work"
-              :work-duration="settings.workDuration"
+              :work-duration="effective.workDuration"
               :streak="store.streak"
             />
             <FocusAssets class="zf-streak" />
@@ -306,7 +310,7 @@
               :tasks="focusedTasks"
               :projects="projects"
               :current-task-id="currentTaskId"
-              :work-duration="settings.workDuration"
+              :work-duration="effective.workDuration"
               @select="handleSelectTask"
               @start="handleStartTask"
               @complete="handleCompleteTask"
@@ -342,7 +346,7 @@
       v-if="selectedTaskForEdit"
       :task="selectedTaskForEdit"
       :projects="projects"
-      :work-duration="settings.workDuration"
+      :work-duration="effective.workDuration"
       @close="editingTaskId = null"
       @save="handleSaveTask"
       @create-project="handleCreateProject"
@@ -353,7 +357,7 @@
       mode="create"
       :task="null"
       :projects="projects"
-      :work-duration="settings.workDuration"
+      :work-duration="effective.workDuration"
       :default-project-id="focusedProjectId"
       @close="creatingTask = false"
       @create="handleCreateTask"
@@ -459,7 +463,6 @@ const focusedTasks = computed(() => {
 const showSettings = ref(false)
 // 新建任务弹窗开关（true 时显示创建弹窗）
 const creatingTask = ref(false)
-const isFullscreen = ref(false)
 const sidePanelTab = ref<'main' | 'stats'>('main')
 
 // Tab 指示器位置：跟随当前 tab 滑动
@@ -592,9 +595,8 @@ function toggleFullscreen(): void {
   }
 }
 
-// 同步全屏状态（用户可能通过 Esc 退出全屏）
+// 同步全屏状态（用户可能通过 Esc 退出全屏）。B60-25：isFullscreen 死变量删除
 function onFullscreenChange(): void {
-  isFullscreen.value = !!document.fullscreenElement
   if (!document.fullscreenElement) breakFullscreenActive.value = false
 }
 
@@ -638,6 +640,16 @@ useDismissablePopup(soundscapePopRef, soundscapeOpen, () => (soundscapeOpen.valu
 })
 const isSpecialBreak = computed(() => focusedTimerState.value?.specialBreak === true)
 
+// B60-14：两个浮层互斥——此前可同时打开，绝对定位下同坐标叠置
+function toggleSpecialBreakPop(): void {
+  specialBreakOpen.value = !specialBreakOpen.value
+  if (specialBreakOpen.value) soundscapeOpen.value = false
+}
+function toggleSoundscapePop(): void {
+  soundscapeOpen.value = !soundscapeOpen.value
+  if (soundscapeOpen.value) specialBreakOpen.value = false
+}
+
 function handleSpecialBreak(minutes: number): void {
   specialBreakOpen.value = false
   timer.startSpecialBreak(minutes)
@@ -673,8 +685,18 @@ function handleFinishFlowtime(): void {
 }
 
 // ─── P1-4：严格模式 · 离开窗口作废 ───
-function onWindowBlur(): void {
+async function onWindowBlur(): Promise<void> {
   if (!isStrict.value || !strictBlurFails.value) return
+  if (!isRunning.value || currentMode.value !== 'work') return
+  // B60-22：焦点可能只是去了自家迷你悬浮窗/托盘/通知中心——等焦点落定后
+  // 查前台是否 Frond 窗口，是则不算离开（此前点自家窗也会作废本番茄）
+  await new Promise((resolve) => setTimeout(resolve, 120))
+  try {
+    if (await window.api.pomodoro.isFrondFrontmost()) return
+  } catch {
+    /* IPC 失败按原语义作废（宁可误杀不放过摸鱼） */
+  }
+  // await 窗口内状态可能已变（用户暂停/切模式）
   if (!isRunning.value || currentMode.value !== 'work') return
   timer.failStrict()
   void store.notifyIntegration('pause', '严格模式：检测到离开窗口，本番茄已作废')
@@ -808,10 +830,9 @@ async function handleSaveTask(updates: Partial<(typeof store.tasks)[number]>): P
 }
 
 async function handleCreateProject(payload: { name: string; color: string }): Promise<void> {
-  const project = await store.addProject(payload.name, payload.color)
-  if (editingTaskId.value) {
-    await store.updateTask(editingTaskId.value, { projectId: project.id })
-  }
+  // B60-15：只负责建项目——挂到任务是弹窗内 pendingProjectName 回填 + 保存时
+  // 提交的事。此前这里直写 updateTask(projectId)，弹窗点「取消」也无法回滚
+  await store.addProject(payload.name, payload.color)
 }
 
 async function handleSaveSettings(newSettings: Partial<typeof settings.value>): Promise<void> {
@@ -1477,9 +1498,15 @@ onBeforeUnmount(() => {
 }
 
 /* ═══ P0-3 · 声景选择浮层 ═══ */
+/* B60-14：wrap 锚定——浮层随工具条走（此前锚死 bottom:84px 是旧布局调值，
+   去壳后工具条垂直居中，高窗口下浮层与按钮脱节约 180px） */
+.zf-toolbar-wrap {
+  position: relative;
+}
+
 .zf-sound-pop {
   position: absolute;
-  bottom: 84px;
+  bottom: calc(100% + 10px);
   left: 50%;
   z-index: 30;
   transform: translateX(-50%);

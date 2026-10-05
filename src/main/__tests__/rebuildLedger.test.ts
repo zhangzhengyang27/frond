@@ -74,7 +74,7 @@ const KNOWN_REBUILD_FILES = [
   'renderer/src/views/pomodoro/components/TimerRing.vue',
   'renderer/src/views/pomodoro/components/TaskEditDialog.vue',
   'renderer/src/views/pomodoro/components/ProjectDonut.vue',
-  'renderer/src/views/pomodoro/components/TaskList.vue',
+  // B60 批C：TaskList.vue 全仓零引用（死件）删除，台账同步移除——非丢失
 
   // ── 录屏（9）──
 
@@ -181,7 +181,7 @@ describe('重建件台账', () => {
 
   it('重建件数量精确等于 24（新增/删除都必须显式改这里，不许静默漂）', () => {
     const found = rebuildFiles()
-    expect(found).toHaveLength(24)
+    expect(found).toHaveLength(23)
   })
 
   it('24 个已知路径逐个存在（防止「删一个、误标一个」把数量凑回来）', () => {
@@ -195,7 +195,7 @@ describe('重建件台账', () => {
 
     // 清单本身不能有重复项，否则「33」是假的
     expect(new Set(KNOWN_REBUILD_FILES).size).toBe(KNOWN_REBUILD_FILES.length)
-    expect(KNOWN_REBUILD_FILES).toHaveLength(24)
+    expect(KNOWN_REBUILD_FILES).toHaveLength(23)
   })
 
   it('没有清单外的文件被标成重建件（防漏登记）', () => {

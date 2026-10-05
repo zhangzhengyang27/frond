@@ -7,6 +7,8 @@
         type="button"
         class="segment"
         :class="[{ active: currentMode === opt.value }, `is-${opt.value}`]"
+        :disabled="switchLocked && currentMode !== opt.value"
+        :title="switchLocked && currentMode !== opt.value ? '严格模式：专注中不允许切换' : undefined"
         @click="emit('switch', opt.value)"
       >
         <AppIcon :icon="opt.icon" />
@@ -33,8 +35,10 @@ import type { TimerMode } from '../../../stores/pomodoro'
 interface Props {
   currentMode: TimerMode
   settingsTitle?: string
+  /** B60-17：严格模式专注中——非当前模式按钮置灰（此前点击静默无效，像按钮坏了） */
+  switchLocked?: boolean
 }
-withDefaults(defineProps<Props>(), { settingsTitle: '设置' })
+withDefaults(defineProps<Props>(), { settingsTitle: '设置', switchLocked: false })
 
 const emit = defineEmits<{
   switch: [mode: TimerMode]
@@ -84,6 +88,16 @@ const options: Array<{ value: TimerMode; label: string; icon: string }> = [
 
 .segment:hover {
   color: var(--pomo-text-strong);
+}
+
+/* B60-17：严格模式专注中——非当前模式置灰 */
+.segment:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.segment:disabled:hover {
+  color: var(--pomo-text-muted);
 }
 
 .segment i {

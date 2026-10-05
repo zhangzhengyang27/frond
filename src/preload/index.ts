@@ -59,6 +59,8 @@ const api = {
     updateTask: (id: string, updates: IpcRequest<'pomodoro:updateTask'>['updates']) => typedInvoke('pomodoro:updateTask', { id, updates }),
     deleteTask: (id: string) => typedInvoke('pomodoro:deleteTask', { id }),
     completeTask: (id: string) => typedInvoke('pomodoro:completeTask', { id }),
+    /** B60-22：前台是否为 Frond 自家窗口（严格模式 blur 判定排除自身） */
+    isFrondFrontmost: () => typedInvoke('pomodoro:isFrondFrontmost'),
     // 项目管理
     projects: {
       getAll: () => typedInvoke('pomodoro:projects:getAll'),

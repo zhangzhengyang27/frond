@@ -9,6 +9,7 @@ import {
 } from '../services/PomodoroIntegrationService'
 import { registerPomodoroShortcuts } from './pomodoroShortcuts'
 import { addShortcutRestorer } from './globalShortcuts'
+import { hasFocusedFrondWindow } from './globalKeys'
 import { updatePomodoroProjects } from './tray'
 
 export function registerPomodoroHandlers(
@@ -20,6 +21,11 @@ export function registerPomodoroHandlers(
   typedHandle('pomodoro:updateTask', (_event, { id, updates }) => store.updateTask(id, updates))
   typedHandle('pomodoro:deleteTask', (_event, { id }) => store.deleteTask(id))
   typedHandle('pomodoro:completeTask', (_event, { id }) => store.completeTask(id))
+
+  // B60-22：严格模式 blur 判定——焦点去了自家迷你窗/托盘不算离开
+  typedHandle('pomodoro:isFrondFrontmost', () =>
+    hasFocusedFrondWindow(BrowserWindow.getAllWindows())
+  )
 
   typedHandle('pomodoro:projects:getAll', () => projectRepository.getAll())
   typedHandle('pomodoro:projects:add', (_event, { name, color }) =>

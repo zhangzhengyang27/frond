@@ -24,14 +24,10 @@
         </button>
 
         <div class="row-body">
-          <button
-            type="button"
-            class="row-title"
-            :title="`${task.title}（点击查看详情）`"
-            @click.stop="emit('open-detail', task.id)"
-          >
-            {{ task.title }}
-          </button>
+          <!-- B60-11：标题不再是「查看详情」按钮——点任务名 = 选中为当前任务
+               （此前标题区整块是 open-detail，选中只能点缝隙，实测高频误触抽屉）；
+           查看详情移入右侧动作区的独立按钮，语义不再打架 -->
+          <span class="row-title" :title="task.title">{{ task.title }}</span>
           <div class="row-meta">
             <span v-if="projectOf(task)" class="row-project">
               <span class="row-dot" :style="{ background: projectOf(task)?.color }" />
@@ -48,6 +44,14 @@
         </div>
 
         <div class="row-actions">
+          <button
+            type="button"
+            class="row-btn"
+            title="查看详情"
+            @click.stop="emit('open-detail', task.id)"
+          >
+            <AppIcon icon="file-list-line" />
+          </button>
           <button
             v-if="!task.completed"
             type="button"

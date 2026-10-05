@@ -28,12 +28,10 @@
           <div class="summary-card">
             <span class="summary-label">专注总时长</span>
             <strong>{{ formatMinutes(summary.workMs) }}</strong>
-            <span class="summary-unit">h</span>
           </div>
           <div class="summary-card">
             <span class="summary-label">预估</span>
             <strong>{{ summary.estimateMs ? formatMinutes(summary.estimateMs) : '—' }}</strong>
-            <span class="summary-unit">{{ summary.estimateMs ? 'h' : '' }}</span>
           </div>
           <div class="summary-card" :class="{ over: overEstimate, under: underEstimate }">
             <span class="summary-label">偏差</span>
@@ -116,26 +114,21 @@
         <PomodoroDetailPanel
           v-if="selectedRecordId"
           :record-id="selectedRecordId"
-          @close="selectedRecordIdLocal = null"
+          @close="store.closeRecordDetail()"
         />
 
-        <!-- M11：截图/录屏关联引导 -->
+        <!-- 截图关联引导（录屏模块已下线，B59 时代残留一并清理） -->
         <section class="assets-hint">
           <header class="section-header">
-            <h3>截图 / 录屏</h3>
+            <h3>截图关联</h3>
           </header>
           <p class="hint-text">
-            截图按 ⌥⇧S（或下面的「开始截图」），录屏用「屏幕录制」模块；
-            标题中包含本任务名称时会被自动索引（标题层匹配）。
+            截图按 ⌥⇧S（或下面的「开始截图」）；标题中包含本任务名称时会被自动索引。
           </p>
           <div class="hint-actions">
             <button class="action-btn" type="button" @click="startScreenshot">
               <AppIcon icon="ri-camera-line" />
               <span>开始截图</span>
-            </button>
-            <button class="action-btn" type="button" @click="goRecordingView">
-              <AppIcon icon="ri-movie-line" />
-              <span>打开录屏</span>
             </button>
           </div>
         </section>
@@ -195,9 +188,6 @@ const freeRecords = computed(() => store.freeRecords)
 const taskDetailLoading = computed(() => store.taskDetailLoading)
 const selectedRecordId = computed(() => store.selectedRecordId)
 
-// 本地 state 留作子组件 emit 关闭使用
-const selectedRecordIdLocal = ref<string | null>(null)
-
 const lastExportMessage = ref<string | null>(null)
 const lastExportOk = ref(false)
 
@@ -215,7 +205,7 @@ watch(
 
 function close(): void {
   emit('close')
-  selectedRecordIdLocal.value = null
+  store.closeRecordDetail()
 }
 
 // UDrawer 内建关闭（Esc/遮罩）统一回传 close
@@ -233,16 +223,13 @@ function startScreenshot(): void {
   })
 }
 
-function goRecordingView(): void {
-  window.location.hash = '#/snippets'
-}
-
 function selectRecord(id: string): void {
-  selectedRecordIdLocal.value = id
   void store.loadRecordDetail(id)
 }
 
+// B60-13：此前缺 work 分支，所有专注番茄都标成「长休息」
 function modeLabel(type: 'work' | 'shortBreak' | 'longBreak'): string {
+  if (type === 'work') return '专注'
   if (type === 'shortBreak') return '短休息'
   return '长休息'
 }

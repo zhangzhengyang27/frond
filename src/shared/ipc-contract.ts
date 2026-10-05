@@ -281,6 +281,8 @@ export interface IpcContract {
   }
   'pomodoro:deleteTask': { req: { id: string }; res: boolean }
   'pomodoro:completeTask': { req: { id: string }; res: PomodoroTask | null }
+  /** B60-22：前台是否为 Frond 自家窗口（严格模式 blur 判定排除自身） */
+  'pomodoro:isFrondFrontmost': { req: void; res: boolean }
   /** summary 从 store 返回类型派生：这里抄一份的话 store 加字段不会报错 */
   'pomodoro:task:detail': {
     req: { taskId: string }

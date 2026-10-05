@@ -19,6 +19,7 @@
 
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { usePomodoroDetail } from './pomodoroDetail'
 
 // ─────────── 类型（与 PomodoroRepository 业务接口对齐） ───────────
 
@@ -183,28 +184,6 @@ export interface PomodoroTraySnapshot {
   updatedAt: number
 }
 
-export interface PomodoroTaskDetail {
-  task: PomodoroTask
-  project: PomodoroProject | null
-  records: PomodoroRecord[]
-  summary: PomodoroTaskSummary | null
-}
-
-export interface PomodoroTaskSummary {
-  taskId: string
-  pomodoroCount: number
-  workMs: number
-  firstStartedAt: number | null
-  lastCompletedAt: number | null
-  estimateMs: number | null
-  estimateDeviationMs: number | null
-}
-
-export interface PomodoroRecordDetail {
-  record: PomodoroRecord
-  task: PomodoroTask | null
-}
-
 // ─────────── Store ───────────
 
 export const usePomodoroStore = defineStore('pomodoro', () => {
@@ -257,14 +236,24 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     todayCompleted: 0,
     updatedAt: 0
   })
-  // ─── 详情页（P1-1）───
-  const taskDetailId = ref<string | null>(null)
-  const taskDetail = ref<PomodoroTaskDetail | null>(null)
-  const taskDetailLoading = ref(false)
-  const selectedRecordId = ref<string | null>(null)
-  const recordDetail = ref<PomodoroRecordDetail | null>(null)
+  // ─── 详情页（P1-1）─── B60 批C：拆至 pomodoroDetail.ts（体量棘轮），
+  // 同名解构透出，消费方无感；lastError 归本 store，经回调写入
   const integrationFailedShortcuts = ref<PomodoroShortcutAction[]>([])
   const lastError = ref<string | null>(null)
+  const {
+    taskDetailId,
+    taskDetail,
+    taskDetailLoading,
+    selectedRecordId,
+    recordDetail,
+    openTaskDetail,
+    closeTaskDetail,
+    loadRecordDetail,
+    closeRecordDetail,
+    saveRecordNote
+  } = usePomodoroDetail((message) => {
+    lastError.value = message || null
+  })
 
   // ─── getters ───
   const todayFocusMinutes = computed(() => {
@@ -845,71 +834,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     await window.api.pomodoro.integration.updateProjects(list, focusedProjectId.value)
   }
 
-  // ─── P1-1：详情页 ───
-
-  async function openTaskDetail(taskId: string): Promise<void> {
-    taskDetailId.value = taskId
-    taskDetail.value = null
-    selectedRecordId.value = null
-    recordDetail.value = null
-    taskDetailLoading.value = true
-    lastError.value = null
-    try {
-      const detail = (await window.api.pomodoro.task.detail(taskId)) as PomodoroTaskDetail | null
-      if (taskDetailId.value === taskId) {
-        taskDetail.value = detail
-      }
-    } catch (err) {
-      lastError.value = err instanceof Error ? err.message : String(err)
-      console.error('[pomodoro store] openTaskDetail failed:', err)
-    } finally {
-      if (taskDetailId.value === taskId) {
-        taskDetailLoading.value = false
-      }
-    }
-  }
-
-  function closeTaskDetail(): void {
-    taskDetailId.value = null
-    taskDetail.value = null
-    selectedRecordId.value = null
-    recordDetail.value = null
-    taskDetailLoading.value = false
-  }
-
-  async function loadRecordDetail(recordId: string): Promise<void> {
-    selectedRecordId.value = recordId
-    recordDetail.value = null
-    try {
-      const detail = (await window.api.pomodoro.record.get(recordId)) as PomodoroRecordDetail | null
-      if (selectedRecordId.value === recordId) {
-        recordDetail.value = detail
-      }
-    } catch (err) {
-      console.error('[pomodoro store] loadRecordDetail failed:', err)
-    }
-  }
-
-  async function saveRecordNote(recordId: string, note: string): Promise<void> {
-    try {
-      const updated = (await window.api.pomodoro.record.updateNote(
-        recordId,
-        note
-      )) as PomodoroRecord | null
-      if (updated && taskDetail.value) {
-        taskDetail.value = {
-          ...taskDetail.value,
-          records: taskDetail.value.records.map((r) => (r.id === recordId ? updated : r))
-        }
-      }
-      if (updated && recordDetail.value?.record.id === recordId) {
-        recordDetail.value = { ...recordDetail.value, record: updated }
-      }
-    } catch (err) {
-      console.error('[pomodoro store] saveRecordNote failed:', err)
-      throw err
-    }
-  }
+  // ─── P1-1：详情页动作已拆至 pomodoroDetail.ts（B60 批C）───
 
   return {
     // state
@@ -948,6 +873,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     updateTask,
     deleteTask,
     completeTask,
+    closeRecordDetail,
     addProject,
     updateProject,
     deleteProject,

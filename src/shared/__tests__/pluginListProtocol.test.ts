@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   sanitizePluginListIcon,
   sanitizePluginSection,
@@ -36,10 +36,15 @@ describe('sanitizePluginListIcon', () => {
     const edgeOut = sanitizePluginListIcon({ value: 'a', dataUrl: edge })
     expect(typeof edgeOut === 'object' && edgeOut?.dataUrl).toBe(edge)
     const over = edge + 'X'
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
     expect(sanitizePluginListIcon({ value: 'a', tintColor: '#fff', dataUrl: over })).toEqual({
       value: 'a',
       tintColor: '#fff'
     })
+    // spec 3.1/§9：超限剥除必须 console 警告（插件作者可诊断），压线不警告
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(String(warnSpy.mock.calls[0]?.[0])).toContain('dataUrl')
+    warnSpy.mockRestore()
   })
   it('dataUrl 前缀错 / 非字符串 / value 缺失 → 整体 undefined', () => {
     expect(sanitizePluginListIcon({ value: 'a', dataUrl: 'http://x/y.png' })).toEqual({ value: 'a' })

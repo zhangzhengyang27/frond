@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 import PluginListPage from '../PluginListPage.vue'
 import type { PluginListItem } from '@shared/plugin-protocol'
@@ -69,5 +70,18 @@ describe('PluginListPage 新字段渲染（spec 3.1/3.2/3.4）', () => {
     const items = w.findAll('.plist-item')
     expect(items).toHaveLength(2)
     expect(items[0]!.classes()).toContain('selected')
+  })
+  it('分组列表上 ArrowDown 移动到下一个条目（跳过组头，selectedIndex 对应 items 下标）', async () => {
+    const w = mountPage([
+      { ...base, title: '1', section: '组' },
+      { ...base, title: '2', section: '组' }
+    ])
+    ;(w.vm as unknown as { handleKey: (e: KeyboardEvent) => boolean }).handleKey(
+      new KeyboardEvent('keydown', { key: 'ArrowDown' })
+    )
+    await nextTick()
+    const items = w.findAll('.plist-item')
+    expect(items[0]!.classes()).not.toContain('selected')
+    expect(items[1]!.classes()).toContain('selected')
   })
 })

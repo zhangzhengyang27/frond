@@ -33,7 +33,8 @@
 
   function bytesToUtf8(bytes) {
     if (typeof TextDecoder === 'function') {
-      return new TextDecoder('utf-8').decode(new Uint8Array(bytes))
+      // fatal: 非法 UTF-8 序列抛错（上层 catch → null），不静默替换 U+FFFD 出乱码
+      return new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(bytes))
     }
     var s = ''
     for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i])
@@ -71,23 +72,27 @@
 
   /**
    * Base64 → 文本；非法输入返回 null（不抛错，插件层据此渲染错误态）。
-   * 兼容 URL-safe 变体（- _）与缺省 padding。
+   * 兼容 URL-safe 变体（- _）与缺省 padding；剥离 ASCII 空白（atob 语义，
+   * 邮件多行粘贴可解）；padding 只允许末尾 ≤2 个。
    */
   function decode(text) {
-    var str = String(text).trim()
+    var str = String(text).trim().replace(/\s+/g, '')
     if (str === '') return null
     if (/[^A-Za-z0-9+/=\-_]/.test(str)) return null
-    // 去掉 padding 后长度必须是 4 的倍数（补齐后）
-    var clean = str.replace(/=+$/, '')
+    var padMatch = str.match(/=+$/)
+    var padLen = padMatch ? padMatch[0].length : 0
+    var clean = str.slice(0, str.length - padLen)
+    if (clean.length === 0) return null // 全是 '='
+    if (padLen > 2) return null
+    if (/=/.test(clean)) return null // '=' 只能在末尾
     var padded = clean + '='.repeat((4 - (clean.length % 4)) % 4)
-    if (padded.length % 4 !== 0) return null
     var bytes = []
     for (var i = 0; i < padded.length; i += 4) {
       var c0 = base64CharValue(padded[i])
       var c1 = base64CharValue(padded[i + 1])
       var c2 = base64CharValue(padded[i + 2])
       var c3 = base64CharValue(padded[i + 3])
-      if (c0 < 0 || c1 < 0 || c2 === -1 || c3 === -1) return null
+      if (c0 < 0 || c1 < 0) return null
       var b0 = (c0 << 2) | (c1 >> 4)
       bytes.push(b0)
       if (c2 >= 0 && c2 !== -2) {

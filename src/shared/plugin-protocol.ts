@@ -428,7 +428,8 @@ export function parsePluginView(raw: unknown): PluginViewListItem[] {
   if (Array.isArray(node.sections)) {
     for (const section of node.sections.slice(0, 20)) {
       if (typeof section !== 'object' || section === null) continue
-      // spec 3.2：不再拍平丢组——组名注入该组条目的 section 字段（渲染层相邻同名聚合）
+      // spec 3.2：不再拍平丢组——组名注入该组条目的 section 字段（渲染层相邻同名聚合）。
+      // 组标题语义上优先：条目自带 section 时（SDK List.Item 不产出，仅手拼载荷可达）被组名覆盖
       const title = sanitizePluginSection((section as PluginViewSection).title)
       const start = out.length
       pushItems((section as PluginViewSection).items)
@@ -573,12 +574,15 @@ export function sanitizePluginListIcon(raw: unknown): PluginListIcon | undefined
   if (typeof rec.tintColor === 'string' && HEX_COLOR_RE.test(rec.tintColor.trim())) {
     icon.tintColor = rec.tintColor.trim()
   }
-  if (
-    typeof rec.dataUrl === 'string' &&
-    rec.dataUrl.startsWith(DATAURL_PREFIX) &&
-    rec.dataUrl.length <= PLUGIN_MAX_ICON_DATAURL
-  ) {
-    icon.dataUrl = rec.dataUrl
+  if (typeof rec.dataUrl === 'string' && rec.dataUrl.startsWith(DATAURL_PREFIX)) {
+    if (rec.dataUrl.length <= PLUGIN_MAX_ICON_DATAURL) {
+      icon.dataUrl = rec.dataUrl
+    } else {
+      // spec 3.1/§9：超限剥除必须可诊断——插件作者提交超限图片时静默消失=盲区
+      console.warn(
+        `[frond] 插件条目 dataUrl 超限已剥除（${rec.dataUrl.length} > ${PLUGIN_MAX_ICON_DATAURL} 字符）`
+      )
+    }
   }
   return icon
 }

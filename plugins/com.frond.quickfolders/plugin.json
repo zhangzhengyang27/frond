@@ -1,7 +1,7 @@
 {
   "id": "com.frond.quickfolders",
   "name": "常用目录",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "保存常用文件夹路径，从启动器直接搜索并打开；支持从剪贴板添加目录",
   "author": "Frond",
   "main": "index.html",
@@ -25,5 +25,8 @@
       "default": "~/Desktop,~/Documents,~/Downloads"
     }
   ],
-  "permissions": ["clipboard.read"]
+  "permissions": [
+    "clipboard.read",
+    "clipboard.write"
+  ]
 }

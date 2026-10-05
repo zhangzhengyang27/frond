@@ -5,30 +5,48 @@
         {{ loading ? '加载中…' : emptyMessage || '（插件暂未提交列表）' }}
       </div>
       <div v-else class="plist-list">
-        <div
-          v-for="(item, index) in items"
-          :key="index"
-          class="plist-item"
-          :class="{ selected: index === selectedIndex }"
-          @mouseenter="selectedIndex = index"
-          @click="runDefault(index)"
+        <template
+          v-for="(row, ri) in rows"
+          :key="row.kind === 'header' ? `h${ri}-${row.label}` : `i${row.index}`"
         >
-          <div class="plist-icon">
-            <AppIcon
-              :icon="typeof item.icon === 'object' ? item.icon?.value || 'plug-2' : item.icon || 'plug-2'"
-              :size="16"
-            />
+          <div v-if="row.kind === 'header'" class="plist-header">{{ row.label }}</div>
+          <div
+            v-else
+            class="plist-item"
+            :class="{ selected: row.index === selectedIndex }"
+            @mouseenter="selectedIndex = row.index"
+            @click="runDefault(row.index)"
+          >
+            <div class="plist-icon">
+              <img
+                v-if="iconThumb(items[row.index]!)"
+                class="plist-thumb"
+                :src="iconThumb(items[row.index]!)"
+                alt=""
+              />
+              <AppIcon
+                v-else
+                :icon="iconName(items[row.index]!)"
+                :color="iconTint(items[row.index]!)"
+                :size="16"
+              />
+            </div>
+            <div class="plist-text">
+              <div class="plist-title">{{ items[row.index]!.title }}</div>
+              <div v-if="items[row.index]!.subtitle" class="plist-sub">
+                {{ items[row.index]!.subtitle }}
+              </div>
+            </div>
+            <template v-for="(a, ai) in items[row.index]!.accessories ?? []" :key="ai">
+              <span v-if="!isTag(a)" class="plist-accessory">{{ a }}</span>
+              <span
+                v-else
+                class="plist-accessory plist-tag"
+                :class="a.tone && a.tone !== 'default' ? `plist-tag--${a.tone}` : ''"
+              >{{ a.tag }}</span>
+            </template>
           </div>
-          <div class="plist-text">
-            <div class="plist-title">{{ item.title }}</div>
-            <div v-if="item.subtitle" class="plist-sub">{{ item.subtitle }}</div>
-          </div>
-          <span
-            v-for="(a, ai) in item.accessories ?? []"
-            :key="ai"
-            class="plist-accessory"
-          >{{ typeof a === 'object' ? a.tag : a }}</span>
-        </div>
+        </template>
       </div>
     </div>
     <!-- Detail：选中条目详情 -->
@@ -62,7 +80,7 @@ import { computed, ref, watch } from 'vue'
 import { marked } from 'marked'
 import AppIcon from '@components/AppIcon.vue'
 import CapsulePage from './CapsulePage.vue'
-import type { PluginListItem } from '@shared/plugin-protocol'
+import type { PluginListItem, PluginListIcon } from '@shared/plugin-protocol'
 
 const props = defineProps<{
   pluginId: string
@@ -76,6 +94,43 @@ const props = defineProps<{
 const selectedIndex = ref(0)
 
 const selected = computed(() => props.items[selectedIndex.value] ?? null)
+
+/** 相邻同名 section 聚合为组头行（spec 3.2）；组头不占 items 下标，键盘选择仍按 items 索引 */
+const rows = computed<Array<{ kind: 'header'; label: string } | { kind: 'item'; index: number }>>(
+  () => {
+    const out: Array<{ kind: 'header'; label: string } | { kind: 'item'; index: number }> = []
+    let last: string | null = null
+    props.items.forEach((item, index) => {
+      // 聚合按 trim 归一（清洗层已裁过一次，这里兜底保证「相邻同名」判定稳定）
+      const s = item.section ? item.section.trim() || null : null
+      if (s && s !== last) {
+        out.push({ kind: 'header', label: s })
+        last = s
+      } else if (!s) {
+        last = null
+      }
+      out.push({ kind: 'item', index })
+    })
+    return out
+  }
+)
+
+function iconName(item: PluginListItem): string {
+  const i = item.icon as PluginListIcon | undefined
+  if (typeof i === 'string') return i || 'plug-2'
+  return i?.value || 'plug-2'
+}
+function iconTint(item: PluginListItem): string | undefined {
+  const i = item.icon
+  return i && typeof i === 'object' ? i.tintColor : undefined
+}
+function iconThumb(item: PluginListItem): string | undefined {
+  const i = item.icon
+  return i && typeof i === 'object' ? i.dataUrl : undefined
+}
+function isTag(a: string | { tag: string; tone?: string }): a is { tag: string; tone?: string } {
+  return typeof a === 'object'
+}
 
 /**
  * markdown 详情的净化 HTML（detailFormat === 'markdown' 时）。
@@ -292,6 +347,35 @@ defineExpose({ handleKey })
   border-radius: 999px;
   padding: 2px 8px;
   flex-shrink: 0;
+}
+
+/* spec 3.2 组头：相邻同名 section 聚合的小标题 */
+.plist-header {
+  padding: 8px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--launcher-text-muted);
+  text-transform: uppercase;
+}
+
+/* spec 3.1 dataUrl 缩略图（qrcode 等图片条目） */
+.plist-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+/* spec 3.4 tag 徽章 tone 三色（全局 Primitive 语义色，HIG System Colors） */
+.plist-tag--success {
+  color: var(--color-success);
+}
+.plist-tag--warn {
+  color: var(--color-warning);
+}
+.plist-tag--danger {
+  color: var(--color-danger);
 }
 
 .plist-detail {

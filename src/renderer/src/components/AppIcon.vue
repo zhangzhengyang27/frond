@@ -4,7 +4,8 @@ import { computed, useAttrs } from 'vue'
 interface Props {
   icon: string
   size?: string | number
-  color?: string
+  /** exactOptionalPropertyTypes：允许调用方显式传 undefined（如插件条目无 tintColor 时） */
+  color?: string | undefined
   rotate?: number
   flip?: 'horizontal' | 'vertical' | 'both'
   inline?: boolean

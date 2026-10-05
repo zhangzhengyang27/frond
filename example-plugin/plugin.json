@@ -1,7 +1,7 @@
 {
   "id": "com.frond.example",
   "name": "示例插件",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "官方示例：声明式列表 / 偏好设置 / 受控 API 全演示",
   "author": "Frond",
   "main": "index.html",
@@ -25,6 +25,11 @@
       "code": "misc",
       "title": "通知与剪贴板",
       "description": "系统通知、读写剪贴板、原生对话框与本地存储"
+    },
+    {
+      "code": "fancy",
+      "title": "新协议字段演示（2026-10）",
+      "description": "section 分组 / icon 颜色块与图片 / tag 徽章 / HUD"
     }
   ],
   "preferences": [
@@ -39,7 +44,11 @@
       "label": "示例主题",
       "type": "select",
       "default": "原生质感",
-      "options": ["原生质感", "高对比", "护眼"]
+      "options": [
+        "原生质感",
+        "高对比",
+        "护眼"
+      ]
     },
     {
       "name": "notifyOnCopy",
@@ -48,5 +57,9 @@
       "default": true
     }
   ],
-  "permissions": ["clipboard.read", "clipboard.write", "net"]
+  "permissions": [
+    "clipboard.read",
+    "clipboard.write",
+    "net"
+  ]
 }

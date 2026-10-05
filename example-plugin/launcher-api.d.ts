@@ -88,6 +88,8 @@ export interface LauncherPluginApi {
 
   /** ─── 受控副作用（需 permissions 声明）─── */
   notify(body: string): Promise<boolean>
+  /** 轻提示 HUD（2026-10 spec 3.3）：胶囊窗内 1.5s 自动消失，无需 permissions 声明 */
+  showHud(title: string): Promise<boolean>
   copyText(text: string): Promise<boolean>
   readText(): Promise<string>
   openPath(path: string): Promise<boolean>

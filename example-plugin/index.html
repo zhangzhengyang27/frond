@@ -20,7 +20,52 @@
         if (cmd === 'prefs') return prefsList()
         if (cmd === 'net') return netList()
         if (cmd === 'misc') return miscList()
+        if (cmd === 'fancy') return fancyList()
         return declarativeList(subText)
+      }
+
+      // ─── 0. 2026-10 新协议字段演示：section 分组 / 颜色块 / 图片条目 / tag 徽章 / HUD ───
+      var TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+      function fancyList() {
+        var rows = [
+          item({
+            title: 'HEX #ff3b30',
+            subtitle: 'icon.tintColor：条目左侧渲染该颜色的色块',
+            icon: { value: 'palette-line', tintColor: '#ff3b30' },
+            section: '颜色块',
+            accessories: [{ tag: 'tintColor', tone: 'danger' }],
+            actions: [{ type: 'callback', label: 'HUD 轻提示演示', payload: 'hud', hint: '↵' }]
+          }),
+          item({
+            title: 'HEX #34c759',
+            subtitle: 'success 徽章 + 绿色色块',
+            icon: { value: 'palette-line', tintColor: '#34c759' },
+            section: '颜色块',
+            accessories: [{ tag: 'success', tone: 'success' }],
+            actions: [{ type: 'callback', label: 'HUD 轻提示演示', payload: 'hud', hint: '↵' }]
+          }),
+          item({
+            title: '图片条目（icon.dataUrl）',
+            subtitle: 'icon 传 data:image/png;base64 即渲染缩略图（≤65536 字符）',
+            icon: { value: 'image-line', dataUrl: TINY_PNG },
+            section: '图片',
+            actions: [{ type: 'callback', label: 'HUD 轻提示演示', payload: 'hud', hint: '↵' }]
+          }),
+          item({
+            title: 'tag 徽章四态',
+            subtitle: 'accessories 传 { tag, tone }，tone：success / warn / danger / default',
+            section: '徽章',
+            accessories: [
+              { tag: '成功', tone: 'success' },
+              { tag: '警告', tone: 'warn' },
+              { tag: '危险', tone: 'danger' }
+            ],
+            actions: [{ type: 'callback', label: 'HUD 轻提示演示', payload: 'hud', hint: '↵' }]
+          })
+        ]
+        // 尾部：清空演示（alert 二次确认 + HUD）
+        return rows
       }
 
       // ─── 1. 声明式列表：图标 / 副标题 / 配件 / 详情 / 三类动作 ───
@@ -176,6 +221,10 @@
         var payload = (data && data.action && data.action.payload) || ''
         var title = (data && data.item && data.item.title) || ''
 
+        if (payload === 'hud') {
+          api.showHud('这是 showHud 的轻提示（1.5s 自动消失）')
+          return
+        }
         if (payload.indexOf('author=') === 0) {
           var name = payload.slice('author='.length)
           api.preferences.set('author', name).then(function () {

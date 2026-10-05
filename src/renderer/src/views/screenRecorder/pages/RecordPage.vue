@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-full gap-5 overflow-hidden bg-gradient-to-b from-surface-2 to-surface-1 p-5">
+  <div class="flex h-full gap-5 overflow-hidden bg-[#0e0f13] p-5">
     <!-- 主舞台列：源带 + 预览 -->
     <div class="mx-auto flex min-w-0 flex-1 flex-col gap-4">
       <!-- 屏幕源选择区域 -->

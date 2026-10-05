@@ -122,17 +122,17 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
 <template>
   <!-- 横向源带：段控 + 区域 chips + 缩略横滚（Cap 式源选择条） -->
   <div
-    class="rounded-2xl border border-line-subtle bg-surface-1/70 p-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)] backdrop-blur-sm"
+    class="rounded-2xl border border-line-subtle bg-white/[0.04] p-3 ring-1 ring-white/10 backdrop-blur-sm"
   >
     <div class="flex flex-wrap items-center gap-3">
       <!-- 源类型段控 -->
-      <div class="flex items-center rounded-full bg-surface-2 p-1">
+      <div class="flex items-center rounded-full bg-white/[0.06] p-1">
         <button
           class="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200"
           :class="
             sourceType === 'screen'
-              ? 'bg-surface-0 text-fg-primary shadow-sm'
-              : 'text-fg-tertiary hover:text-fg-secondary'
+              ? 'bg-white/10 text-white shadow-sm'
+              : 'text-white/40 hover:text-white/70'
           "
           type="button"
           :disabled="isRecording"
@@ -145,8 +145,8 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           class="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200"
           :class="
             sourceType === 'camera'
-              ? 'bg-surface-0 text-fg-primary shadow-sm'
-              : 'text-fg-tertiary hover:text-fg-secondary'
+              ? 'bg-white/10 text-white shadow-sm'
+              : 'text-white/40 hover:text-white/70'
           "
           type="button"
           :disabled="isRecording"
@@ -168,8 +168,8 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           class="rounded-full border px-3 py-1.5 text-xs transition-all duration-200 active:scale-95"
           :class="
             selectedDisplayId === display.id
-              ? 'border-brand-500/60 bg-brand-500/10 text-brand-600'
-              : 'border-line-subtle text-fg-tertiary hover:border-line-strong hover:text-fg-secondary'
+              ? 'border-brand-400/60 bg-brand-400/15 text-brand-300'
+              : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/70'
           "
           type="button"
           :disabled="isRecording"
@@ -182,8 +182,8 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           class="rounded-full border px-3 py-1.5 text-xs transition-all duration-200 active:scale-95"
           :class="
             crossDisplay
-              ? 'border-brand-500/60 bg-brand-500/10 text-brand-600'
-              : 'border-line-subtle text-fg-tertiary hover:border-line-strong hover:text-fg-secondary'
+              ? 'border-brand-400/60 bg-brand-400/15 text-brand-300'
+              : 'border-white/10 text-white/40 hover:border-white/25 hover:text-white/70'
           "
           type="button"
           :disabled="isRecording"
@@ -212,29 +212,29 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
     </div>
 
     <!-- 错误 / 权限 -->
-    <p v-if="sourceError" class="mb-0 mt-2.5 flex items-center gap-1.5 text-[13px] text-fg-danger">
+    <p v-if="sourceError" class="mb-0 mt-2.5 flex items-center gap-1.5 text-[13px] text-red-400">
       <AppIcon icon="ri-error-warning-line" :size="14" />
       {{ sourceError }}
       <button
-        class="ml-1 rounded-md border border-line-subtle px-2 py-0.5 text-xs text-fg-secondary transition-colors hover:bg-surface-hover"
+        class="ml-1 rounded-md border border-white/15 px-2 py-0.5 text-xs text-white/60 transition-colors hover:bg-white/10"
         type="button"
         @click="$emit('request-permission')"
       >
         授予权限
       </button>
     </p>
-    <p v-if="cameraError" class="mb-0 mt-2.5 flex items-center gap-1.5 text-[13px] text-fg-danger">
+    <p v-if="cameraError" class="mb-0 mt-2.5 flex items-center gap-1.5 text-[13px] text-red-400">
       <AppIcon icon="ri-error-warning-line" :size="14" />
       {{ cameraError }}
       <button
-        class="ml-1 rounded-md border border-line-subtle px-2 py-0.5 text-xs text-fg-secondary transition-colors hover:bg-surface-hover"
+        class="ml-1 rounded-md border border-white/15 px-2 py-0.5 text-xs text-white/60 transition-colors hover:bg-white/10"
         type="button"
         @click="$emit('retry-camera')"
       >
         重试
       </button>
       <button
-        class="rounded-md border border-line-subtle px-2 py-0.5 text-xs text-fg-secondary transition-colors hover:bg-surface-hover"
+        class="rounded-md border border-white/15 px-2 py-0.5 text-xs text-white/60 transition-colors hover:bg-white/10"
         type="button"
         @click="$emit('close-camera')"
       >
@@ -255,14 +255,14 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           :class="
             selectedSource?.id === source.id
               ? 'border-brand-500 shadow-[0_0_0_3px_rgba(16,163,127,0.15)]'
-              : 'border-line-subtle hover:border-line-strong hover:shadow-md'
+              : 'border-white/10 hover:border-white/25 hover:bg-white/[0.03]'
           "
           type="button"
           :disabled="isRecording"
           @click="$emit('select-source', source)"
         >
           <div
-            class="flex h-[76px] w-full items-center justify-center overflow-hidden bg-surface-2"
+            class="flex h-[76px] w-full items-center justify-center overflow-hidden bg-white/[0.06]"
           >
             <img
               :src="getThumbnailUrl(source.thumbnail)"
@@ -279,9 +279,9 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
             />
           </div>
           <div class="flex items-center justify-between gap-2 px-2.5 py-2">
-            <span class="truncate text-xs font-medium text-fg-primary">{{ source.name }}</span>
+            <span class="truncate text-xs font-medium text-white/90">{{ source.name }}</span>
             <span
-              class="shrink-0 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-fg-tertiary"
+              class="shrink-0 rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-fg-tertiary"
             >
               {{ getSourceTypeLabel(source.id) }}
             </span>
@@ -289,7 +289,7 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           <!-- 选中角标 -->
           <span
             v-if="selectedSource?.id === source.id"
-            class="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-brand-500 text-white shadow"
+            class="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-brand-400 text-[#0e0f13]"
           >
             <AppIcon icon="ri-check-line" :size="12" />
           </span>
@@ -309,8 +309,8 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           class="flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-[13px] transition-all duration-200 active:scale-[0.98]"
           :class="
             selectedCameraDevice?.deviceId === device.deviceId
-              ? 'border-brand-500 bg-brand-500/10 text-brand-600'
-              : 'border-line-subtle text-fg-secondary hover:border-line-strong'
+              ? 'border-brand-400/60 bg-brand-400/15 text-brand-300'
+              : 'border-white/10 text-white/70 hover:border-white/25'
           "
           type="button"
           :disabled="isRecording"

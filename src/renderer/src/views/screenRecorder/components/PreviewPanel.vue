@@ -2,7 +2,7 @@
 <!-- 2026-10-05 UI 重设计：预览舞台（深色媒体面）+ 悬浮控制坞（大圆 REC 键，Cap/Screen Studio 式） -->
 <template>
   <div
-    class="flex h-full flex-col overflow-hidden rounded-2xl border border-line-subtle bg-[#0b0c10] shadow-[0_16px_48px_rgba(0,0,0,0.30)]"
+    class="flex h-full flex-col overflow-hidden rounded-2xl border border-line-subtle bg-[#0a0b0e] ring-1 ring-white/10"
   >
     <!-- 舞台 -->
     <div class="relative min-h-0 flex-1">
@@ -71,7 +71,7 @@
     </div>
 
     <!-- 控制坞：大圆 REC 键 + 伴生动作 -->
-    <div class="relative border-t border-white/5 bg-[#101116]/95 px-6 py-3.5">
+    <div class="relative border-t border-white/5 bg-white/[0.03] px-6 py-3.5">
       <div class="mx-auto flex max-w-md items-center justify-between">
         <!-- 左：保存位置 -->
         <button

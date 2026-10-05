@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-surface-1 rounded-2xl p-6 shadow-lg flex flex-col">
+  <div class="rounded-2xl bg-white/[0.04] p-5 ring-1 ring-white/10 flex flex-col">
     <div class="flex items-center justify-between mb-5">
-      <h2 class="text-xl font-semibold text-gray-800 m-0">标记</h2>
+      <h2 class="text-xl font-semibold text-white/90 m-0">标记</h2>
       <div class="flex items-center gap-2">
         <button
           v-if="markers.length > 0"
-          class="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+          class="flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm text-white/60 hover:text-white/90 hover:bg-white/[0.06] rounded-lg transition-colors"
           title="导出 CSV"
           @click="handleExportCSV"
         >
@@ -27,7 +27,7 @@
     <!-- 时间轴上的标记点 -->
     <div
       v-if="duration > 0"
-      class="relative w-full h-16 mb-5 bg-gradient-to-b from-gray-50 to-gray-100 rounded-xl overflow-hidden border border-gray-200/50 shadow-inner"
+      class="relative w-full h-16 mb-5 bg-white/[0.04] rounded-xl overflow-hidden border border-white/10"
     >
       <!-- 时间轴背景 -->
       <div class="absolute inset-0 flex items-center">
@@ -53,7 +53,7 @@
 
         <!-- 标记点图标 -->
         <div
-          class="absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-white rounded-full shadow-lg border-2 transition-all duration-200 group-hover:scale-125 group-hover:shadow-xl group-hover:-translate-y-1/2"
+          class="absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 bg-white/[0.06] rounded-full shadow-lg border-2 transition-all duration-200 group-hover:scale-125 group-hover:shadow-xl group-hover:-translate-y-1/2"
           :style="{
             borderColor: marker.color || 'var(--color-marker-default)',
             boxShadow: `0 4px 12px ${marker.color || 'var(--color-marker-default)'}40, 0 0 0 1px ${marker.color || 'var(--color-marker-default)'}20`
@@ -102,7 +102,7 @@
         <div
           v-for="marker in markers"
           :key="marker.id"
-          class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 group"
+          class="flex items-center gap-3 p-4 bg-white/[0.06] border border-white/10 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 group"
         >
           <!-- 标记点指示器 -->
           <div class="relative flex-shrink-0">
@@ -126,7 +126,7 @@
           <!-- 内容区域 -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-1">
-              <div class="font-mono text-sm font-semibold text-gray-800">
+              <div class="font-mono text-sm font-semibold text-white/90">
                 {{ formatTime(marker.timestamp) }}
               </div>
               <div
@@ -146,21 +146,21 @@
             <!-- 录制中无可跳转目标（实时流），不渲染跳转入口（B57-10b） -->
             <button
               v-if="!isRecording"
-              class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
+              class="p-2 text-white/45 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 hover:scale-110"
               title="跳转到标记时间点"
               @click="handleJumpToMarker(marker)"
             >
               <AppIcon icon="ri-play-line" :size="16" />
             </button>
             <button
-              class="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:scale-110"
+              class="p-2 text-white/45 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 hover:scale-110"
               title="编辑标记"
               @click="handleEditMarker(marker)"
             >
               <AppIcon icon="ri-edit-line" :size="16" />
             </button>
             <button
-              class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
+              class="p-2 text-white/45 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:scale-110"
               title="删除标记"
               @click="handleRemoveMarker(marker.id)"
             >

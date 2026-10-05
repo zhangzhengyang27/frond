@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { mount } from '@vue/test-utils'
 import SettingsModal from '../SettingsModal.vue'
 import { useSettingsModal } from '@composables/useSettingsModal'
@@ -68,5 +70,19 @@ describe('SettingsModal（设置弹窗形态）', () => {
     await w.vm.$nextTick()
     expect(useSettingsModal().isOpen.value).toBe(true)
     w.unmount()
+  })
+})
+
+describe('App.vue 挂载位置（盲替换回归钉）', () => {
+  it('SettingsModal 恰好在模板根层挂载一次，不在任何 #fallback 插槽内', () => {
+    const src = readFileSync(
+      join(process.cwd(), 'src/renderer/src/App.vue'),
+      'utf8'
+    )
+    expect(src.match(/<SettingsModal \/>/g)).toHaveLength(1)
+    const fallbackBlocks = src.match(/<template #fallback>[\s\S]*?<\/template>/g) ?? []
+    for (const block of fallbackBlocks) {
+      expect(block).not.toContain('SettingsModal')
+    }
   })
 })

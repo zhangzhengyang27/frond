@@ -204,7 +204,9 @@
           {{ isRunning ? '正在专注' : isPaused ? '已暂停' : '待开始' }}
         </span>
         <span class="zf-current-title" :title="currentTask.title">{{ currentTask.title }}</span>
-        <span class="zf-current-pomos" title="今日已完成 / 预估番茄">🍅 {{ currentTaskPomos }}</span>
+        <span class="zf-current-pomos" title="今日已完成 / 预估番茄">
+          🍅 {{ currentTaskEstimate > 0 ? `${currentTaskPomos}/${currentTaskEstimate}` : currentTaskPomos }}
+        </span>
         <button
           type="button"
           class="zf-btn zf-btn--icon"
@@ -468,6 +470,14 @@ const currentTaskPomos = computed(() => {
   if (!currentTaskId.value) return 0
   return todayRecords.value.filter((r) => r.type === 'work' && r.taskId === currentTaskId.value)
     .length
+})
+
+// 预估番茄数（Pomofocus 口径：🍅 已完成/预估）——estimateMs 按建任务时的
+// 全局时长折算，用有效时长还原个数
+const currentTaskEstimate = computed(() => {
+  const est = currentTask.value?.estimateMs ?? 0
+  const unit = Math.max(1, effective.value.workDuration) * 60_000
+  return est > 0 ? Math.max(1, Math.round(est / unit)) : 0
 })
 
 // 模式切换确认弹窗

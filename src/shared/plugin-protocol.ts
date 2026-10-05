@@ -338,18 +338,17 @@ function sanitizeViewListItem(rec: Record<string, unknown>): PluginViewListItem 
   }
   const item: PluginViewListItem = { title, actions }
   if (typeof rec.subtitle === 'string') item.subtitle = rec.subtitle.trim().slice(0, 200)
-  if (typeof rec.icon === 'string') item.icon = rec.icon.trim().slice(0, 40)
+  const icon = sanitizePluginListIcon(rec.icon)
+  if (icon !== undefined) item.icon = icon
+  const sec = sanitizePluginSection(rec.section)
+  if (sec) item.section = sec
   if (typeof rec.detail === 'string') {
     item.detail = rec.detail.slice(0, PLUGIN_MAX_VIEW_TEXT)
     item.detailFormat = rec.detailFormat === 'markdown' ? 'markdown' : 'text'
   }
   if (Array.isArray(rec.accessories)) {
-    const acc = rec.accessories
-      .filter((s): s is string => typeof s === 'string')
-      .map((s) => s.trim().slice(0, 40))
-      .filter((s) => s !== '')
-      .slice(0, 3)
-    if (acc.length > 0) item.accessories = acc
+    const acc = sanitizePluginAccessories(rec.accessories)
+    if (acc) item.accessories = acc
   }
   if (Array.isArray(rec.keywords)) {
     const kw = rec.keywords
@@ -429,7 +428,11 @@ export function parsePluginView(raw: unknown): PluginViewListItem[] {
   if (Array.isArray(node.sections)) {
     for (const section of node.sections.slice(0, 20)) {
       if (typeof section !== 'object' || section === null) continue
+      // spec 3.2：不再拍平丢组——组名注入该组条目的 section 字段（渲染层相邻同名聚合）
+      const title = sanitizePluginSection((section as PluginViewSection).title)
+      const start = out.length
       pushItems((section as PluginViewSection).items)
+      if (title) for (let i = start; i < out.length; i++) out[i]!.section = title
     }
   }
   pushItems(node.items)
@@ -615,6 +618,49 @@ export function sanitizePluginHudTitle(raw: unknown): string | null {
   if (typeof raw !== 'string') return null
   const v = raw.trim().slice(0, PLUGIN_MAX_HUD_TITLE)
   return v === '' ? null : v
+}
+
+/**
+ * data 模式（renderList）单条清洗：逻辑从 runtime.ts setDeclaredList 原样抽出
+ * （2026-10-05 重塑），限额保持 data 模式现值（title 200 / subtitle 300 /
+ * detail 5000 / payload 2000 / actions 10 / accessories 3），icon/accessories/
+ * section 三处接 fail-closed 清洗器。返回 null = runtime 现行「整批拒绝」条件。
+ * reactMode 仅控制 callbackId 是否透传（审查 M7：数据模式不得走 Callback 分支）。
+ */
+export function sanitizeDataModeListItem(
+  item: unknown,
+  opts: { reactMode: boolean }
+): PluginListItem | null {
+  if (typeof item !== 'object' || item === null) return null
+  const rec = item as Record<string, unknown>
+  if (typeof rec.title !== 'string' || !Array.isArray(rec.actions)) return null
+  const actions: PluginItemAction[] = rec.actions.slice(0, 10).map((a) => {
+    const action = (a ?? {}) as Record<string, unknown>
+    return {
+      label: String(action.label ?? '执行').slice(0, 60),
+      type: (['copy', 'open', 'callback'].includes(String(action.type))
+        ? String(action.type)
+        : 'callback') as PluginItemAction['type'],
+      ...(typeof action.payload === 'string' && { payload: action.payload.slice(0, 2000) }),
+      // #11 回调 id 仅 react 模式透传（审查 M7：数据模式不得走 Callback 分支）
+      ...(opts.reactMode &&
+      typeof action.callbackId === 'string' &&
+      action.callbackId.trim() !== '' && { callbackId: action.callbackId.slice(0, 64) })
+    }
+  })
+  const out: PluginListItem = { title: rec.title.slice(0, 200), actions }
+  if (typeof rec.subtitle === 'string') out.subtitle = rec.subtitle.slice(0, 300)
+  const icon = sanitizePluginListIcon(rec.icon)
+  if (icon !== undefined) out.icon = icon
+  const accessories = sanitizePluginAccessories(rec.accessories)
+  if (accessories !== undefined) out.accessories = accessories
+  const section = sanitizePluginSection(rec.section)
+  if (section !== undefined) out.section = section
+  if (typeof rec.detail === 'string') out.detail = rec.detail.slice(0, 5000)
+  if (rec.detailFormat === 'markdown' || rec.detailFormat === 'text') {
+    out.detailFormat = rec.detailFormat
+  }
+  return out
 }
 
 // ─── 插件敏感权限（声明制，2026-09-11 决策）───

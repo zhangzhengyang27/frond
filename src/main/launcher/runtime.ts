@@ -35,6 +35,7 @@ import {
   parsePluginListMeta,
   parsePluginForm,
   isActionCommand,
+  sanitizeDataModeListItem,
   PLUGIN_MAX_VIEW_ITEMS,
   type ParsedPluginForm,
   type PluginListItem,
@@ -136,44 +137,17 @@ export function setDeclaredList(
   if (!Array.isArray(items)) return { ok: false, error: 'items must be an array' }
   const list: PluginListItem[] = []
   for (const raw of items.slice(0, PLUGIN_MAX_VIEW_ITEMS)) {
-    if (typeof raw !== 'object' || raw === null) return { ok: false, error: 'bad item' }
-    const item = raw as Record<string, unknown>
-    if (typeof item.title !== 'string' || !Array.isArray(item.actions)) {
-      return { ok: false, error: 'item needs title and actions' }
+    // 2026-10-05 重塑：清洗抽为 shared 纯函数（sanitizeDataModeListItem），限额与语义不变
+    const item = sanitizeDataModeListItem(raw, { reactMode: ctx.plugin.api === 'react' })
+    // 保持现行语义：非法条目整批拒绝（不静默剔除）
+    if (!item) {
+      return {
+        ok: false,
+        error:
+          raw === null || typeof raw !== 'object' ? 'bad item' : 'item needs title and actions'
+      }
     }
-    list.push({
-      title: String(item.title).slice(0, 200),
-      subtitle: typeof item.subtitle === 'string' ? item.subtitle.slice(0, 300) : undefined,
-      icon: typeof item.icon === 'string' ? item.icon : undefined,
-      accessories: Array.isArray(item.accessories)
-        ? item.accessories.map(String).slice(0, 3)
-        : undefined,
-      detail: typeof item.detail === 'string' ? item.detail.slice(0, 5000) : undefined,
-      // detailFormat 白名单放行：仅接受 'text' / 'markdown'，其余按缺省 'text' 处理
-      detailFormat:
-        item.detailFormat === 'markdown' || item.detailFormat === 'text'
-          ? item.detailFormat
-          : undefined,
-      actions: item.actions.slice(0, 10).map((a) => {
-        const action = (a ?? {}) as Record<string, unknown>
-        return {
-          label: String(action.label ?? '执行').slice(0, 60),
-          type: (['copy', 'open', 'callback'].includes(String(action.type))
-            ? String(action.type)
-            : 'callback') as 'copy' | 'open' | 'callback',
-          ...(typeof action.payload === 'string' && {
-            payload: action.payload.slice(0, 2000)
-          }),
-          // #11 React 视图协议：SDK 生成的回调 id，宿主交互时经 Callback 钩子原样回传
-          // #11 回调 id 仅 react 模式透传（审查 M7：数据模式插件不得走 Callback 分支）
-          ...(ctx.plugin.api === 'react' &&
-          typeof action.callbackId === 'string' &&
-          action.callbackId.trim() !== '' && {
-            callbackId: action.callbackId.slice(0, 64)
-          })
-        }
-      })
-    })
+    list.push(item)
   }
   commitLayer(
     ctx,

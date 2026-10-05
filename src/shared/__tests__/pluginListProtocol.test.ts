@@ -4,6 +4,7 @@ import {
   sanitizePluginSection,
   sanitizePluginAccessories,
   sanitizePluginHudTitle,
+  parsePluginView,
   PLUGIN_MAX_ICON_DATAURL
 } from '../plugin-protocol'
 
@@ -80,5 +81,37 @@ describe('sanitizePluginHudTitle', () => {
     expect(sanitizePluginHudTitle(' 已复制 ')).toBe('已复制')
     expect(sanitizePluginHudTitle('h'.repeat(100))).toBe('h'.repeat(80))
     expect(sanitizePluginHudTitle('  ')).toBeNull()
+  })
+})
+
+describe('parsePluginView section 注入（spec 3.2）', () => {
+  it('sections 组名注入条目 section 字段，顺序保持', () => {
+    const view = {
+      $t: 'list',
+      sections: [
+        { title: 'SHA256', items: [{ title: 'a', actions: [] }] },
+        { title: 'SHA1', items: [{ title: 'b', actions: [] }] }
+      ]
+    }
+    const out = parsePluginView(view)
+    expect(out.map((i) => i.section)).toEqual(['SHA256', 'SHA1'])
+    expect(out.map((i) => i.title)).toEqual(['a', 'b'])
+  })
+  it('sanitizeViewListItem 接收条目自带 section / icon 对象 / tag 徽章', () => {
+    const out = parsePluginView({
+      $t: 'list',
+      items: [
+        {
+          title: 'x',
+          section: '组',
+          icon: { value: 'ri-plug-2', tintColor: '#0f0' },
+          accessories: [{ tag: 'OK', tone: 'success' }],
+          actions: []
+        }
+      ]
+    })
+    expect(out[0]?.section).toBe('组')
+    expect(out[0]?.icon).toEqual({ value: 'ri-plug-2', tintColor: '#0f0' })
+    expect(out[0]?.accessories).toEqual([{ tag: 'OK', tone: 'success' }])
   })
 })

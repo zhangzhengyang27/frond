@@ -78,13 +78,6 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 环后一圈模式色光晕：把环从纸面上轻轻托起 */
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    var(--pomo-ring-halo, transparent) 0%,
-    transparent 68%
-  );
 }
 
 .ring {
@@ -122,18 +115,6 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
 .is-longBreak .ring-progress {
   stroke: var(--pomo-long);
   filter: drop-shadow(0 0 8px var(--pomo-long-glow));
-}
-
-.is-work .ring-wrap {
-  --pomo-ring-halo: var(--pomo-work-soft);
-}
-
-.is-shortBreak .ring-wrap {
-  --pomo-ring-halo: var(--pomo-short-soft);
-}
-
-.is-longBreak .ring-wrap {
-  --pomo-ring-halo: var(--pomo-long-soft);
 }
 
 .running .ring-progress {

@@ -99,12 +99,12 @@
     <!-- ═══ 单列主内容（Pomofocus 范式：页签→计时器→主按钮→任务） ═══ -->
     <main class="zf-stage">
       <div class="zf-column">
-      <!-- 2. 会话进度：第 N 个番茄 / 本组 M 个 -->
+      <!-- 2. 会话进度：🍅 + 圆点（本组第 N 个番茄，每 M 个进长休；纯信息非控件） -->
       <div
         class="zf-session"
-        :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}（每 ${sessionDots.total} 个番茄进入长休息）`"
+        :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}——每 ${sessionDots.total} 个番茄进入一次长休息`"
       >
-        <span class="zf-session-count">第 {{ sessionDots.completed + 1 }} 个</span>
+        <span class="zf-session-ico" aria-hidden="true">🍅</span>
         <span class="zf-session-dots">
           <span
             v-for="i in sessionDots.total"
@@ -113,7 +113,6 @@
             :class="{ done: i <= sessionDots.completed, next: i === sessionDots.completed + 1 }"
           />
         </span>
-        <span class="zf-session-count zf-session-count--muted">共 {{ sessionDots.total }} 个</span>
       </div>
 
       <!-- 浮动提示堆栈（恢复 / 切模式确认 / 严格作废） -->
@@ -1192,17 +1191,9 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
-.zf-session-count {
-  font-size: 12px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--pomo-mode);
-  transition: color 0.8s ease;
-}
-
-.zf-session-count--muted {
-  color: var(--pomo-text-faint);
-  font-weight: 500;
+.zf-session-ico {
+  font-size: 13px;
+  line-height: 1;
 }
 
 .zf-session-dots {

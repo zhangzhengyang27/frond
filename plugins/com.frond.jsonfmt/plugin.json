@@ -1,7 +1,7 @@
 {
   "id": "com.frond.jsonfmt",
   "name": "JSON 格式化",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "JSON 格式化与压缩：从剪贴板读取 JSON，格式化/压缩/转义，一键复制结果",
   "author": "Frond",
   "main": "index.html",
@@ -28,8 +28,15 @@
       "label": "缩进空格数",
       "type": "select",
       "default": "2",
-      "options": ["2", "4", "Tab"]
+      "options": [
+        "2",
+        "4",
+        "Tab"
+      ]
     }
   ],
-  "permissions": ["clipboard.read"]
+  "permissions": [
+    "clipboard.read",
+    "clipboard.write"
+  ]
 }

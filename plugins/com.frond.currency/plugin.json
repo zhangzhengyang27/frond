@@ -9,14 +9,7 @@
     {
       "code": "convert",
       "title": "汇率转换",
-      "description": "输入金额和货币对，查看实时汇率并复制结果",
-      "arguments": [
-        {
-          "name": "q",
-          "type": "text",
-          "placeholder": "金额 货币对，如 100 usd cny（可空）"
-        }
-      ]
+      "description": "输入金额和货币对，查看实时汇率并复制结果"
     }
   ],
   "preferences": [

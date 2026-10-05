@@ -34,6 +34,11 @@ const result = await build({
   jsx: 'automatic',
   define: { 'process.env.NODE_ENV': '"production"' },
   nodePaths: [DEPS],
+  // ⚠ 实证（2026-10-05）：esbuild 会把「顶层 async IIFE」入口整段判为可摇（视副作用为
+  // 可丢弃），产物只剩 SDK+react 运行时壳（510KB 恒定、无入口字符串、页面静默白屏）。
+  // example-react 之所以幸存是因为其 IIFE 内有 getPreferenceValues 等被 define 保留的调用
+  // 形态差异；本插件必须显式关闭 tree-shaking。
+  treeShaking: false,
   metafile: true,
   logLevel: 'info'
 })

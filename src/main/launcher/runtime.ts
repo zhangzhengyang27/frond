@@ -204,10 +204,18 @@ export function setDeclaredView(
 ): { ok: boolean; count?: number; error?: string } {
   const ctx = viewsByWebContents.get(senderId)
   if (!ctx) return { ok: false, error: 'no plugin context' }
-  if (ctx.plugin.api !== 'react') return { ok: false, error: "manifest api must be 'react'" }
+  if (ctx.plugin.api !== 'react') {
+    try {
+      require('fs').appendFileSync('/tmp/frond-plug-dbg.log', 'setDeclaredView reject: not react mode\n')
+    } catch {}
+    return { ok: false, error: "manifest api must be 'react'" }
+  }
   // 形状校验先行：合法节点允许空条目（插件可表达「无结果」空态，审查 I3）
   const node = raw as Record<string, unknown> | null
   const kind = typeof node === 'object' && node !== null ? node.$t : null
+  try {
+    require('fs').appendFileSync('/tmp/frond-plug-dbg.log', 'setDeclaredView kind=' + String(kind) + ' keys=' + (node ? Object.keys(node).join(',') : 'null') + '\n')
+  } catch {}
   if (typeof kind !== 'string' || !['list', 'detail', 'form'].includes(kind)) {
     return { ok: false, error: 'invalid view node' }
   }
@@ -611,6 +619,23 @@ export function openPlugin(
   })
 
   view.webContents.once('dom-ready', () => {
+    // eslint-disable-next-line no-console
+    console.log('[PLUGIN-DBG]', 'dom-ready', plugin.id, plugin.api)
+    void view.webContents
+      .executeJavaScript(
+        JSON.stringify('scripts=' + document.scripts.length + ' srcs=' + Array.from(document.scripts).map((s) => s.src) + ' api=' + typeof (window as unknown as Record<string, unknown>).launcherApi)
+      )
+      .then((info: string) => {
+        try {
+          require('fs').appendFileSync('/tmp/frond-plug-dbg.log', 'exec ' + plugin.id + ' ' + info + '\n')
+        } catch {}
+      })
+      .catch((err: Error) => {
+        try {
+          require('fs').appendFileSync('/tmp/frond-plug-dbg.log', 'exec-err ' + plugin.id + ' ' + String(err) + '\n')
+        } catch {}
+      })
+
     // 加载完成前被 detach 的话，detach 路径已发过 Enter，这里不再重复
     if (ctx.detached) return
     if (ctx.headless && !ctx.attached) {
@@ -628,6 +653,11 @@ export function openPlugin(
     sendHook(ctx, 'Enter', { cmd, args: ctx.args })
     sendHook(ctx, 'Ready', null)
     notifyRenderer(win)
+  })
+
+  // TEMP-DEBUG: 转发插件页 console 便于 e2e 诊断（调试后删除）
+  view.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    console.error('[PLUGIN-CONSOLE]', plugin.id, level, message.slice(0, 200), sourceId.split('/').pop(), line)
   })
 
   view.webContents.on('render-process-gone', () => {

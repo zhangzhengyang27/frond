@@ -570,9 +570,10 @@ export function registerLauncherIpc(): void {
   // 插件退一层（P-2④ 第二半）：只有明说 push 过的层退得回去，第一层交给胶囊的 ESC 关插件
   typedHandle('plugapi:popView', (e) => popActiveView(e.sender.id))
   // ─────────── React 视图协议（#11）───────────
-  typedHandle('plugapi:renderView', (e, { view }) =>
-    setDeclaredView(e.sender.id, view, getLauncherWindow())
-  )
+  typedHandle('plugapi:renderView', (e, { view }) => {
+    countE2E('plugapi:renderView')
+    return setDeclaredView(e.sender.id, view, getLauncherWindow())
+  })
   // 胶囊表单提交：值经 Callback 钩子回传插件 onSubmit（#11 M2）
   typedHandle('launcher:plugin-form-submit', (_e, { values }) =>
     submitPluginFormValues((values ?? {}) as Record<string, string | boolean>)

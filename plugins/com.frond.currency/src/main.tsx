@@ -306,7 +306,8 @@ async function run(): Promise<void> {
   }
 }
 
-void (async () => {
+;
+;(async () => {
   if (booted) return
   booted = true
   const ctx = await getPluginContext()

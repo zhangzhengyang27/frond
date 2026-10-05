@@ -57,6 +57,7 @@ export const DEFAULT_SNAPSHOT: PomodoroTraySnapshot = {
 
 const MODE_KEY = 'pomodoro_integration_mode'
 const SHORTCUTS_KEY = 'pomodoro_integration_shortcuts'
+const FOCUS_MODE_KEY = 'pomodoro_focus_mode'
 
 export class PomodoroIntegrationService {
   private static instance: PomodoroIntegrationService
@@ -177,11 +178,23 @@ export class PomodoroIntegrationService {
   // ─── M7：专注模式 ───
   setFocusMode(enabled: boolean): PomodoroTraySnapshot {
     this.updateTraySnapshot({ focusMode: enabled })
+    // B60-24：持久化——此前只写内存快照，重启后专注模式（含静默通知判定）
+    // 静默回关
+    try {
+      prefRepository.set(FOCUS_MODE_KEY, enabled ? '1' : '0')
+    } catch (e) {
+      log.debug('pomodoro-integration-service', 'focus mode persist failed', e)
+    }
     return this.snapshot
   }
 
   getFocusMode(): boolean {
-    return this.snapshot.focusMode === true
+    if (this.snapshot.focusMode === true) return true
+    try {
+      return prefRepository.get(FOCUS_MODE_KEY) === '1'
+    } catch {
+      return false
+    }
   }
 
   private emitBadge(count: number): void {

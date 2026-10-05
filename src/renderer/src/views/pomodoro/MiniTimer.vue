@@ -39,6 +39,7 @@ interface Snapshot {
   timeLeftSeconds?: number
   totalSeconds?: number
   projectName?: string | null
+  updatedAt?: number
 }
 
 const snapshot = ref<Snapshot>({
@@ -51,6 +52,23 @@ const snapshot = ref<Snapshot>({
 
 let unsub: (() => void) | null = null
 let tickHandle: number | null = null
+
+// B60-23：本地显示锚定「绝对截止时刻」——此前逐秒自减最后收到的快照，
+// 主窗关闭后推送停止即永久漂移、休眠唤醒不补偿（冻死在 00:00）。
+// 绝对时刻不依赖推送频率：主窗死了显示也继续走对，休眠唤醒自动对齐。
+let deadlineAt: number | null = null
+let lastSnapshotUpdatedAt = -1
+
+function applySnapshot(patch: Snapshot): void {
+  snapshot.value = { ...snapshot.value, ...patch }
+  const updatedAt = patch.updatedAt ?? 0
+  if (updatedAt !== lastSnapshotUpdatedAt) {
+    lastSnapshotUpdatedAt = updatedAt
+    deadlineAt = snapshot.value.isRunning
+      ? Date.now() + (snapshot.value.timeLeftSeconds ?? 0) * 1000
+      : null
+  }
+}
 
 const circumference = 2 * Math.PI * 46
 
@@ -88,7 +106,7 @@ const projectName = computed(() => snapshot.value.projectName ?? '空闲')
 onMounted(async () => {
   try {
     const snap = await window.api.pomodoro.integration.getTraySnapshot()
-    snapshot.value = { ...snapshot.value, ...snap }
+    applySnapshot(snap)
   } catch {
     /* ignore */
   }
@@ -101,17 +119,17 @@ onMounted(async () => {
     | undefined
   if (api?.onTraySnapshot) {
     unsub = api.onTraySnapshot((s) => {
-      snapshot.value = { ...snapshot.value, ...s }
+      applySnapshot(s)
     })
     // B5 修复：触发主进程的快照推送（否则 onTraySnapshot 永远收不到后续更新）
     api.subscribeSnapshot?.()
   }
 
   tickHandle = window.setInterval(() => {
-    if (!snapshot.value.isRunning) return
+    if (!snapshot.value.isRunning || deadlineAt == null) return
     snapshot.value = {
       ...snapshot.value,
-      timeLeftSeconds: Math.max(0, (snapshot.value.timeLeftSeconds ?? 0) - 1)
+      timeLeftSeconds: Math.max(0, Math.round((deadlineAt - Date.now()) / 1000))
     }
   }, 1000)
 })

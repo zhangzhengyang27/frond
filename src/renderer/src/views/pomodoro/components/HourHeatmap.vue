@@ -9,7 +9,7 @@
       <span class="corner" />
       <span v-for="h in hours" :key="`h-${h}`" class="hour-label">{{ h % 6 === 0 ? h : '' }}</span>
       <template v-for="d in dayIndexes" :key="`d-${d}`">
-        <span class="day-label">{{ dayNames[d] }}</span>
+        <span class="day-label">{{ weekdayLabelByDay.get(d) ?? '' }}</span>
         <span
           v-for="h in hours"
           :key="`c-${d}-${h}`"
@@ -34,6 +34,18 @@ const dayNames = ['一', '二', '三', '四', '五', '六', '日']
 
 /** 格子的 `day` 从哪天开始由主进程决定，这里不猜：按数据里出现过的值排出来 */
 const dayIndexes = computed(() => [...new Set(props.cells.map((c) => c.day))].sort((a, b) => a - b))
+
+// B60-20：行标签从该行真实日期推导星期——此前拿行序号当 dayNames 下标，
+// 7 天窗口整体错位一天、近 30 天第 8 行起标签全空
+const weekdayLabelByDay = computed(() => {
+  const m = new Map<number, string>()
+  for (const c of props.cells) {
+    if (m.has(c.day)) continue
+    const d = new Date(`${c.date}T00:00:00`)
+    if (!Number.isNaN(d.getTime())) m.set(c.day, dayNames[(d.getDay() + 6) % 7] ?? '')
+  }
+  return m
+})
 
 const byKey = computed(() => {
   const m = new Map<string, HeatmapCell>()

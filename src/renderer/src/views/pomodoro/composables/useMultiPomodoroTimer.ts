@@ -438,8 +438,12 @@ export function useMultiPomodoroTimer(
       setTimerToDuration(state)
     }
     state.justFinishedLongBreak = false
-    state.warned = []
-    state.warnBase = isFlowtimeWork(state) ? 0 : state.timeLeft
+    // B60-21：预警只在「新一轮」重置——暂停/恢复反复横跳时按恢复前的基准走，
+    // 此前无条件清 warned 会让同一阶段 60s/30s 预警每轮恢复都重播
+    if (state.status === 'idle') {
+      state.warned = []
+      state.warnBase = isFlowtimeWork(state) ? 0 : state.timeLeft
+    }
     // B60-25a：本轮番茄首次开始的真实时刻（跨暂停保留，pause 不清）
     if (state.firstStartedAt == null) state.firstStartedAt = Date.now()
     state.status = 'running'

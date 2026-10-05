@@ -1516,3 +1516,22 @@ PomodoroIntegrationService.ts:178-185——setFocusMode 不走 prefRepository，
 - 批C（交互与页面）：B60-11/12/13/14/15/16/17/22 —— 任务行语义分区 + 抽屉
   关闭链 + 浮层锚定 + 覆盖时长全局贯通
 - 批D（长尾）：B60-20/21/23/24
+
+### B60 修复记录（2026-10-05 当日四批全清，29/29）
+- 批A（64531a8）：B60-1/2/3/4/8/9 —— 完成链同步迁移+completing 互斥、bridge 传真
+  全局配置、skip idle 守卫、onComplete/notify 容错、优先级钳制 0-3、elapsed 持久化。
+  计时器状态机单测 +7（43→50）。
+- 批B（8f30d35）：B60-5/6/7/10/18/19/25 —— tick 补差钳制 120s、work 落库=真实
+  elapsed、今日分钟=Σ真实 duration、actual_ms 落库激活预估偏差、完成率分母限区间、
+  自由番茄出分子、started_at 全链 + trend/heatmap 日历日迭代 + 导出日期本地化。
+- 批C（da8889a）：B60-11/12/13/14/15/16/17/22+25 —— 任务行语义分区（点行=选中，
+  详情移动作区）、抽屉 closeRecordDetail 修死交互+清录屏残留、时间轴 modeLabel
+  补 work、浮层 relative 锚定+互斥、新建项目不再直写任务、覆盖时长贯通五处显示、
+  模式切换置灰、isFrondFrontmost IPC 排除自家窗；pomodoro.ts 过体量棘轮拆
+  pomodoroDetail.ts/pomodoroTypes.ts；TaskList.vue 死件移除（台账 24→23 显式）。
+- 批D（本条同批提交）：B60-20/21/23/24 —— 热力图星期标签从 cell.date 推导
+  （序号冒充星期/30 天空白修复）、预警只在新一轮重置（恢复不再重播）、MiniTimer
+  改绝对截止时刻锚定（updatedAt 变化才重算 deadline，主窗关闭/休眠唤醒不再漂移
+  冻死）、focusMode 走 prefRepository 持久化。
+- 门禁终态：typecheck 0 / lint 0 error / unit 1284 / e2e pomodoro+snippets+
+  heavy-window 20/20。运行时实测（临时探针）复现 B60-11/12 后已随批C 修复。

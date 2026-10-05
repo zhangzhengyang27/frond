@@ -78,8 +78,9 @@ test('主窗口启动 + 首屏可见', async () => {
   if (!app) throw new Error('app not launched')
   const page = await getMainWindow()
 
-  // title 来自 src/renderer/index.html（产品名统一为 Frond，见 docs/POSITIONING.md）
-  await expect(page).toHaveTitle(/Frond/)
+  // title：HTML 里是 Frond，但 ROUTE_TITLES watcher 会按路由改写——
+  // 新鲜启动落在 Onboarding 即「欢迎」，已完成引导是 Hub 标题，故接受两者
+  await expect(page).toHaveTitle(/Frond|欢迎|主页|Hub/)
 
   // 首屏要么是 Onboarding（首次启动），要么是 Hub（已完成引导）
   // 都应在 5s 内出现至少一个根元素

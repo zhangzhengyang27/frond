@@ -126,13 +126,13 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
   >
     <div class="flex flex-wrap items-center gap-3">
       <!-- 源类型段控 -->
-      <div class="flex items-center rounded-full bg-white/[0.06] p-1">
+      <div class="flex items-center rounded-md bg-white/[0.05] p-0.5">
         <button
-          class="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200"
+          class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-100"
           :class="
             sourceType === 'screen'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-white/40 hover:text-white/70'
+              ? 'bg-white/10 text-white/90'
+              : 'text-white/45 hover:text-white/70'
           "
           type="button"
           :disabled="isRecording"
@@ -142,11 +142,11 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           屏幕
         </button>
         <button
-          class="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-all duration-200"
+          class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors duration-100"
           :class="
             sourceType === 'camera'
-              ? 'bg-white/10 text-white shadow-sm'
-              : 'text-white/40 hover:text-white/70'
+              ? 'bg-white/10 text-white/90'
+              : 'text-white/45 hover:text-white/70'
           "
           type="button"
           :disabled="isRecording"
@@ -165,7 +165,7 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
         <button
           v-for="display in displays"
           :key="`display-${display.id}`"
-          class="rounded-full border px-3 py-1.5 text-xs transition-all duration-200 active:scale-95"
+          class="rounded-md border px-3 py-1.5 text-xs transition-colors duration-100"
           :class="
             selectedDisplayId === display.id
               ? 'border-brand-400/60 bg-brand-400/15 text-brand-300'
@@ -179,7 +179,7 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
           显示器 {{ display.id }}{{ display.isPrimary ? '（主）' : '' }}
         </button>
         <button
-          class="rounded-full border px-3 py-1.5 text-xs transition-all duration-200 active:scale-95"
+          class="rounded-md border px-3 py-1.5 text-xs transition-colors duration-100"
           :class="
             crossDisplay
               ? 'border-brand-400/60 bg-brand-400/15 text-brand-300'
@@ -247,7 +247,8 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
       <p v-if="!loading && sources.length === 0" class="m-0 py-2 text-[13px] text-fg-tertiary">
         没有可用的屏幕或窗口源。
       </p>
-      <div v-else class="flex gap-2.5 overflow-x-auto pb-1.5 [scrollbar-width:thin]">
+      <!-- Cap TargetMenuGrid：grid-cols-2 gap-2 -->
+      <div v-else class="grid w-full grid-cols-2 items-start content-start gap-2">
         <button
           v-for="source in sources"
           :key="source.id"
@@ -306,7 +307,7 @@ const handleThumbnailLoad = (event: Event, _sourceId?: string): void => {
         <button
           v-for="device in cameraDevices"
           :key="device.deviceId"
-          class="flex items-center gap-2 rounded-xl border px-3.5 py-2.5 text-[13px] transition-all duration-200 active:scale-[0.98]"
+          class="flex items-center gap-2 rounded-lg border px-3.5 py-2.5 text-[13px] transition-colors duration-100"
           :class="
             selectedCameraDevice?.deviceId === device.deviceId
               ? 'border-brand-400/60 bg-brand-400/15 text-brand-300'

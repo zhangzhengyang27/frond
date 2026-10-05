@@ -1,7 +1,7 @@
 <template>
-  <div class="flex h-full flex-col gap-4 overflow-hidden bg-[#0e0f13] p-5">
+  <div class="flex h-full flex-col gap-4 overflow-hidden bg-[#0d0d0f] p-4">
     <!-- 主舞台列：源带 + 预览（标记浮层覆盖其上） -->
-    <div class="mx-auto flex min-w-0 flex-1 flex-col gap-4">
+    <div class="mx-auto flex min-w-0 flex-1 flex-col gap-3">
       <!-- 屏幕源选择区域 -->
       <SourceSelector
         :source-type="sourceType"
@@ -59,7 +59,7 @@
         >
           <div
             v-if="showMarkers"
-            class="absolute right-3 top-3 z-20 max-h-[78%] w-[330px] overflow-y-auto rounded-2xl bg-[#14151a]/95 shadow-[0_18px_48px_rgba(0,0,0,0.55)] ring-1 ring-white/10 backdrop-blur-md"
+            class="absolute right-3 top-3 z-20 max-h-[78%] w-[330px] overflow-y-auto rounded-2xl bg-[#17171a]/97 shadow-[0_18px_48px_rgba(0,0,0,0.55)] ring-1 ring-white/[0.08] backdrop-blur-md"
           >
             <MarkersPanel
               :recording-id="actions.lastRecordingId.value"

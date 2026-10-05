@@ -55,13 +55,20 @@ export class PomodoroTimerStateRepository {
         typeof parsed.consecutiveCount === 'number' && parsed.consecutiveCount >= 0
           ? Math.floor(parsed.consecutiveCount)
           : 0
+      // B60-9：elapsed 必须保留——此前 parseState 剥掉该字段，Flowtime 正计时
+      // 重启后累计清零（写入侧一直带着它）
+      const elapsed =
+        typeof parsed.elapsed === 'number' && parsed.elapsed > 0
+          ? Math.floor(parsed.elapsed)
+          : undefined
       return {
         mode,
         status,
         timeLeft,
         currentTaskId,
         consecutiveCount,
-        updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now()
+        updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now(),
+        ...(elapsed !== undefined ? { elapsed } : {})
       }
     } catch {
       return null

@@ -60,13 +60,15 @@ function createTimer(): PomodoroTimer {
   )
   const tasks = computed(() => store.tasks)
   const projects = computed(() => store.projects)
-  const effective = computed(() => store.effectiveSettings(store.focusedProjectId ?? ''))
 
   return useMultiPomodoroTimer({
+    // B60-2：必须传真·全局·配置——此前传焦点项目的 effectiveSettings，
+    // 无自身覆盖的后台项目会吃焦点项目的时长（串扰计时/落库）。
+    // 引擎侧已按项目叠加 overrides，这里的职责只有全局默认值
     globalSettings: () => ({
-      workDuration: effective.value.workDuration,
-      shortBreakDuration: effective.value.shortBreakDuration,
-      longBreakDuration: effective.value.longBreakDuration,
+      workDuration: settings.value.workDuration,
+      shortBreakDuration: settings.value.shortBreakDuration,
+      longBreakDuration: settings.value.longBreakDuration,
       longBreakInterval: settings.value.longBreakInterval
     }),
     getProjectOverrides: (id) => store.projectSettingsById(id),

@@ -607,3 +607,75 @@ describe('useMultiPomodoroTimer', () => {
     })
   })
 })
+
+// ── B60 批A：完成链互斥与守卫 ────────────────────────────────
+// B60-1 完成链 await 竞态（用户操作被异步后半段覆盖/双落库）
+// B60-3 skip 无状态守卫（idle 白刷满额番茄）
+// B60-4 落库抛错冻结状态机
+describe('B60 批A：完成链互斥与守卫', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('B60-1：状态迁移同步先行，完成窗口内 start/skip 被互斥拒绝', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const { api, completes } = makeTimer({
+      // 记录器包一层：落库挂起在 gate 上，模拟真实 IPC await
+      onComplete: (p) => {
+        completes.push(p)
+        return gate
+      }
+    })
+
+    api.start('p1')
+    const t = api.getTimer('p1')
+    t.timeLeft = 1
+    // tick 触发完成：onComplete 挂起在 gate 上
+    await vi.advanceTimersByTimeAsync(1100)
+    // 迁移同步生效：立即进入短休息（此前要等落库完成才切）
+    expect(api.getTimer('p1').mode).toBe('shortBreak')
+
+    // 完成窗口内的用户操作被互斥拒绝：不双落库、不破坏已迁移状态
+    api.start('p1')
+    await api.skip('p1')
+    expect(completes).toHaveLength(1)
+
+    release()
+    await vi.advanceTimersByTimeAsync(50)
+    expect(completes).toHaveLength(1)
+    expect(api.getTimer('p1').consecutiveCount).toBe(1)
+    expect(api.getTimer('p1').status).not.toBe('running')
+  })
+
+  it('B60-3：idle 态 skip 不落库、不推进计数、不切阶段', async () => {
+    const { api, completes } = makeTimer()
+    await api.skip('p1')
+    expect(completes).toHaveLength(0)
+    expect(api.getTimer('p1').mode).toBe('work')
+    expect(api.getTimer('p1').consecutiveCount).toBe(0)
+    expect(api.getTimer('p1').status).toBe('idle')
+  })
+
+  it('B60-4：落库抛错不冻结状态机——阶段照常推进且 skip 正常返回', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { api } = makeTimer({
+      onComplete: () => {
+        throw new Error('db down')
+      }
+    })
+    api.start('p1')
+    await api.skip('p1')
+    // 迁移已生效：不是卡在 paused/00:00，而是完整进入短休息并计时就绪
+    expect(api.getTimer('p1').mode).toBe('shortBreak')
+    expect(api.getTimer('p1').consecutiveCount).toBe(1)
+    expect(api.getTimer('p1').timeLeft).toBe(5 * 60)
+    expect(errSpy).toHaveBeenCalled()
+    errSpy.mockRestore()
+  })
+})

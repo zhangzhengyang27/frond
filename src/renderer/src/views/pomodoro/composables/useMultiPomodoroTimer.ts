@@ -65,6 +65,8 @@ export interface TimerState {
   specialBreak: boolean
   /** P2-8：特殊休息总秒数（用于按实际时长写记录，而非配置的短休息时长） */
   specialBreakTotalSec: number | null
+  /** B60-1：完成链互斥标志——onComplete 落库 await 期间拒绝重入与用户操作 */
+  completing: boolean
 }
 
 interface UseMultiPomodoroTimerOptions {
@@ -130,7 +132,8 @@ const DEFAULT_STATE = (projectId: string, mode: TimerMode = 'work'): TimerState 
   warnBase: 0,
   warned: [],
   specialBreak: false,
-  specialBreakTotalSec: null
+  specialBreakTotalSec: null,
+  completing: false
 })
 
 function durationFor(
@@ -289,77 +292,99 @@ export function useMultiPomodoroTimer(
     byTimer: boolean,
     override?: { durationSec?: number; nextBreakSec?: number }
   ): Promise<void> {
-    const wasRunning = state.status === 'running'
-    const specialTotalSec = state.specialBreakTotalSec
-    state.status = 'paused'
-    state.timeLeft = 0
+    // B60-1：完成链互斥——onComplete 落库是多次 IPC 的 await，窗口期内第二次
+    // completeInternal（连按 skip）会双落库 + consecutiveCount 双加；用户操作
+    // （start/pause/…）也会被恢复执行的后半段覆盖。统一在此拒绝
+    if (state.completing) return
+    state.completing = true
+    try {
+      const wasRunning = state.status === 'running'
+      const specialTotalSec = state.specialBreakTotalSec
+      const prevConsecutive = state.consecutiveCount
+      const prevMode = state.mode
+      // 时长必须在迁移前取值：effectiveDuration 读 state.mode，切阶段后就变了
+      const durationSec =
+        override?.durationSec ??
+        (specialTotalSec != null ? specialTotalSec : effectiveDuration(state))
 
-    const task = state.currentTaskId ? options.taskById(state.currentTaskId) : null
-    await options.onComplete({
-      projectId: state.projectId,
-      type: state.mode,
-      // 内部计时均为秒；×1000 对齐 pom_pomodoros.duration_ms 列（毫秒）语义
-      duration:
-        (override?.durationSec ??
-          (specialTotalSec != null ? specialTotalSec : effectiveDuration(state))) * 1000,
-      taskId: state.currentTaskId,
-      taskTitle: task?.title ?? null,
-      taskById: options.taskById
-    })
+      // B60-1：状态迁移同步先行——UI 立即看到下一阶段，落库 await 只负责记录
+      if (prevMode === 'work') {
+        state.consecutiveCount = prevConsecutive + 1
+      }
+      state.justFinishedLongBreak = prevMode === 'longBreak'
 
-    const prevConsecutive = state.consecutiveCount
-    const prevMode = state.mode
-    if (prevMode === 'work') {
-      state.consecutiveCount = prevConsecutive + 1
+      const nextMode: TimerMode = (() => {
+        if (prevMode !== 'work') return 'work'
+        const projOverrides = options.getProjectOverrides(state.projectId)
+        const globalRaw = options.globalSettings() as { longBreakInterval?: number }
+        const fallbackInterval = globalRaw.longBreakInterval ?? 4
+        const longBreakInterval = Math.max(2, projOverrides?.longBreakInterval ?? fallbackInterval)
+        const completed = prevConsecutive + 1
+        return completed > 0 && completed % longBreakInterval === 0 ? 'longBreak' : 'shortBreak'
+      })()
+
+      state.mode = nextMode
+      state.startedAt = null
+      state.lastTickAt = 0
+      state.status = byTimer ? 'paused' : 'idle'
+      setTimerToDuration(state)
+      if (override?.nextBreakSec && nextMode !== 'work') {
+        state.timeLeft = Math.max(60, Math.floor(override.nextBreakSec))
+      }
+      state.elapsed = 0
+      state.warned = []
+      state.specialBreak = false
+      state.specialBreakTotalSec = null
+      state.warnBase = state.timeLeft
+
+      // B60-4：落库失败不再冻结状态机——迁移已生效，仅丢这条记录并留痕
+      const task = state.currentTaskId ? options.taskById(state.currentTaskId) : null
+      try {
+        await options.onComplete({
+          projectId: state.projectId,
+          type: prevMode,
+          // 内部计时均为秒；×1000 对齐 pom_pomodoros.duration_ms 列（毫秒）语义
+          duration: durationSec * 1000,
+          taskId: state.currentTaskId,
+          taskTitle: task?.title ?? null,
+          taskById: options.taskById
+        })
+      } catch (error) {
+        console.error('[pomodoro-timer] 完成落库失败（阶段已推进，本条记录未写入）:', error)
+      }
+
+      if (byTimer) {
+        try {
+          await options.notify(
+            state.projectId,
+            nextMode === 'work' ? 'break' : 'start',
+            nextMode === 'work' ? '休息结束，下一轮开始' : '专注结束，进入休息'
+          )
+        } catch (error) {
+          console.error('[pomodoro-timer] 完成通知失败:', error)
+        }
+      }
+
+      const auto = options.shouldAutoStart?.() ?? { break: false, work: false }
+      const shouldAuto = prevMode === 'work' ? auto.break : auto.work
+      if (shouldAuto) {
+        state.status = 'running'
+        state.startedAt = Date.now()
+        state.lastTickAt = Date.now()
+        startAll()
+        try {
+          await options.notify(state.projectId, 'start')
+        } catch (error) {
+          console.error('[pomodoro-timer] 自动开始通知失败:', error)
+        }
+      } else if (wasRunning) {
+        state.status = 'paused'
+      }
+
+      snapshotPersist(state)
+    } finally {
+      state.completing = false
     }
-    // 长休息结束标志：供 UI 显示 resume banner
-    state.justFinishedLongBreak = prevMode === 'longBreak'
-
-    const nextMode: TimerMode = (() => {
-      if (prevMode !== 'work') return 'work'
-      const projOverrides = options.getProjectOverrides(state.projectId)
-      const globalRaw = options.globalSettings() as { longBreakInterval?: number }
-      const fallbackInterval = globalRaw.longBreakInterval ?? 4
-      const longBreakInterval = Math.max(2, projOverrides?.longBreakInterval ?? fallbackInterval)
-      const completed = prevConsecutive + 1
-      return completed > 0 && completed % longBreakInterval === 0 ? 'longBreak' : 'shortBreak'
-    })()
-
-    state.mode = nextMode
-    state.startedAt = null
-    state.lastTickAt = 0
-    state.status = byTimer ? 'paused' : 'idle'
-    setTimerToDuration(state)
-    if (override?.nextBreakSec && nextMode !== 'work') {
-      state.timeLeft = Math.max(60, Math.floor(override.nextBreakSec))
-    }
-    state.elapsed = 0
-    state.warned = []
-    state.specialBreak = false
-    state.specialBreakTotalSec = null
-    state.warnBase = state.timeLeft
-
-    if (byTimer) {
-      await options.notify(
-        state.projectId,
-        state.mode === 'work' ? 'break' : 'start',
-        state.mode === 'work' ? '休息结束，下一轮开始' : '专注结束，进入休息'
-      )
-    }
-
-    const auto = options.shouldAutoStart?.() ?? { break: false, work: false }
-    const shouldAuto = prevMode === 'work' ? auto.break : auto.work
-    if (shouldAuto) {
-      state.status = 'running'
-      state.startedAt = Date.now()
-      state.lastTickAt = Date.now()
-      startAll()
-      await options.notify(state.projectId, 'start')
-    } else if (wasRunning) {
-      state.status = 'paused'
-    }
-
-    snapshotPersist(state)
   }
 
   function focus(projectId: string): void {
@@ -371,6 +396,8 @@ export function useMultiPomodoroTimer(
     const id = projectId ?? focusedProjectId.value
     const state = ensureTimer(id)
     if (state.status === 'running') return
+    // B60-1：完成链落库窗口内拒绝操作（否则被后半段覆盖或打断迁移一致性）
+    if (state.completing) return
     if (isFlowtimeWork(state)) {
       // Flowtime：idle 时从 0 开始；暂停后继续则保留累计
       if (state.status === 'idle') {
@@ -394,6 +421,7 @@ export function useMultiPomodoroTimer(
     const id = projectId ?? focusedProjectId.value
     const state = ensureTimer(id)
     if (state.status !== 'running') return
+    if (state.completing) return
     if (strictBlocked(state)) return
     state.status = 'paused'
     state.lastTickAt = 0
@@ -412,7 +440,11 @@ export function useMultiPomodoroTimer(
   async function skip(projectId?: string): Promise<void> {
     const id = projectId ?? focusedProjectId.value
     const state = ensureTimer(id)
+    if (state.completing) return
     if (strictBlocked(state)) return
+    // B60-3：idle 态没有「跳过」语义——此前会直接落一条满额番茄 + 推进计数
+    // （全局快捷键 ⌘⇧S 可达，UI 无此按钮，静默刷番茄不易察觉）
+    if (state.status === 'idle') return
     // Flowtime 的 work：skip 语义 = 结束本次专注（按累计时长记录）
     if (isFlowtimeWork(state)) {
       await finishFlowtime(id)
@@ -424,6 +456,7 @@ export function useMultiPomodoroTimer(
   function reset(projectId?: string): void {
     const id = projectId ?? focusedProjectId.value
     const state = ensureTimer(id)
+    if (state.completing) return
     if (strictBlocked(state)) return
     state.status = 'idle'
     state.lastTickAt = 0
@@ -487,6 +520,7 @@ export function useMultiPomodoroTimer(
   function startSpecialBreak(minutes: number, projectId?: string): void {
     const id = projectId ?? focusedProjectId.value
     const state = ensureTimer(id)
+    if (state.completing) return
     if (strictBlocked(state)) return
     if (state.status === 'running') {
       state.status = 'paused'
@@ -507,6 +541,7 @@ export function useMultiPomodoroTimer(
   function setMode(mode: TimerMode, projectId?: string): void {
     const id = projectId ?? focusedProjectId.value
     const state = ensureTimer(id)
+    if (state.completing) return
     if (strictBlocked(state)) return
     if (state.status === 'running') {
       state.status = 'paused'

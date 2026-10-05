@@ -933,7 +933,8 @@ function localDayRange(date: string): { start: number; end: number } {
 
 function clampPriority(value: number): number {
   if (!Number.isFinite(value)) return 0
-  return Math.max(0, Math.min(2, Math.round(value)))
+  // B60-8：UI 是四档（0 无/1 低/2 中/3 高）——此前钳到 2，选「高」被静默降成「中」
+  return Math.max(0, Math.min(3, Math.round(value)))
 }
 
 export const pomodoroRepository = new PomodoroRepository()

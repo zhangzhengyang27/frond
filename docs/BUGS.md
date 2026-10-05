@@ -1387,3 +1387,132 @@ snippets-capsule-b58c 3/3（内容全文可搜、⌘→ 切块 Enter 复制活�
 ### 验证
 单测 171 文件/1253 全绿 · typecheck 双侧 0 · e2e 113 通过+1 skipped ·
 lint/ratchet/ghostClasses 绿 · 幽灵 API 引用清零。
+
+## 2026-10-05 发现（用户反馈「番茄钟一堆 bug 和页面问题」，四路排查 29 条，B60 编号）
+
+> 三路静态审计（计时核心 / 页面 UI / 任务与统计数据链）+ 一路运行时实测
+> （playwright 黑盒驱动）。全部含 文件:行号 证据。修复建议批次见末尾。
+
+### B60-1【P0】完成链 await 竞态：异步后半段无条件覆盖用户操作
+useMultiPomodoroTimer.ts:298,328-331——completeInternal 同步置 paused 后 await
+onComplete（addRecord+refreshStats 两次 IPC），await 窗口内用户的 start()/skip
+被恢复执行的后半段抹掉：到点瞬间按开始被吞；窗口内再 skip → 两个
+completeInternal 并发 → 双落库 + consecutiveCount 双加。
+
+### B60-2【P0】后台项目时长被焦点项目配置污染
+usePomodoroAppBridge.ts:63-71 + useMultiPomodoroTimer.ts:143——bridge 把
+globalSettings 实现为焦点项目的 effectiveSettings；durationFor 对无覆盖项目
+回退该 global。聚焦 50 分钟项目 B 后启动无覆盖项目 A → A 按 50 分钟计时/落库。
+
+### B60-3【P1】全局快捷键 skip 无状态守卫：idle 态直接落满额番茄
+useMultiPomodoroTimer.ts:412-421——只查 strictBlocked 不查 status，空闲按
+⌘⇧S 立即写入一条满额专注记录 + consecutiveCount+1；暂停中的半程番茄也按
+满额记账（UI 无 skip 按钮，仅快捷键可达）。
+
+### B60-4【P1】completeInternal 无容错：onComplete 抛错即状态机冻结
+useMultiPomodoroTimer.ts:282,298-308——tick 内 void completeInternal 不捕获，
+IPC/DB 失败后 mode 切换/重置/auto-start/persist 全跳过，计时器卡死在
+paused/00:00 且无提示。
+
+### B60-5【P1】休眠/合盖时长全额计入 Flowtime 专注
+useMultiPomodoroTimer.ts:252-262——tick 用 now-lastTickAt 差值累加，唤醒第一拍
+把睡眠时长全部加进 elapsed（合盖 1 小时回来记录 85 分钟专注），duration 统计
+全线失真；倒计时模式则直接跳完成且 completedAt 记唤醒时刻。
+
+### B60-6【P1】落库时长=完成时刻的配置值，与实际专注脱钩
+useMultiPomodoroTimer.ts:302-304——倒计时记录取 effectiveDuration(state)（完成
+瞬间重求值），专注中改设置 25→50 则落库 50 分钟；startedAt/elapsed 有数据未用。
+
+### B60-7【P1】今日专注分钟数=条数×全局配置
+stores/pomodoro.ts:270-273——today.work 是记录条数，getter 乘全局 workDuration；
+存在项目覆盖/Flowtime 时首页「今日专注 X 分钟」必错（90 分钟 Flowtime 只算 25）。
+
+### B60-8【P1】任务优先级「高」(3) 落库被钳成 2（中）
+PomodoroRepository.ts:936 clampPriority 只允许 0-2，UI 四档（TaskEditDialog
+<option value=3>高）；每次选「高」存盘回读变「中」。
+
+### B60-9【P1】Flowtime 正计时累计秒数重启即丢
+PomodoroTimerStateRepository.ts:58-65 parseState 重建对象丢 elapsed 字段
+（写入侧带 elapsed），恢复时 snapshot.elapsed ?? 0 归零——暂停中的 Flowtime
+重启后累计清零。
+
+### B60-10【P1】任务「预估偏差」永远是 0/空（actual_ms 无写入路径）
+PomodoroRepository.ts:853+TaskCompletionStats.vue:43——只有 addTask INSERT 写
+actual_ms=0，无 UPDATE 累加；偏差查询 AND actual_ms>0 恒空集，UI 渲染空白/
+均偏差恒 0 分，与详情抽屉实时计算互相矛盾。
+
+### B60-11【P2】任务行标题区=「查看详情」按钮：选中语义被详情吞掉（运行时实测复现）
+TaskListPanel.vue:27-33 row-title 是 open-detail 按钮、占 row-body 全宽——
+用户点任务名想选中开始专注，实际弹全屏抽屉打断；高频操作（选中）只能点行内
+缝隙。叠加 B60-12 抽屉难关，点开容易关掉难。
+
+### B60-12【P2】详情抽屉「收起」按钮死交互
+TaskDetailDrawer.vue:116-120,199,218——面板显隐绑 store.selectedRecordId，
+close 事件写的 selectedRecordIdLocal 只写不读；点收起面板纹丝不动（实测复现）。
+
+### B60-13【P2】番茄时间轴把所有「专注」标成「长休息」
+TaskDetailDrawer.vue:246 modeLabel 缺 work 分支 return '长休息'——每条专注
+记录文字必错（dot 颜色仍按 work，图文自相矛盾）。
+
+### B60-14【P2】工具栏浮层锚死 bottom:84px + 两个浮层可同位叠置
+index.vue:1480-1496——按旧布局调的值，去壳后工具栏垂直居中，高窗口下浮层与
+按钮脱节约 180px；特殊休息与声景浮层不互斥，同时开时同坐标叠置。
+
+### B60-15【P2】编辑弹窗内「新建项目」立即落库挂到任务，取消不回滚
+index.vue:810-815 handleCreateProject 直写 updateTask(projectId)，绕过弹窗
+保存/取消模型（弹窗内 pendingProjectName 本有「保存才生效」机制被架过）。
+
+### B60-16【P2】项目时长覆盖只作用于计时引擎，界面全按全局时长显示
+index.vue:202/301/309/345 传 settings.workDuration，计时用 :449
+effectiveSettings——覆盖 50 分钟后工具栏仍显示「25 分钟」、预估换算全部偏差。
+
+### B60-17【P2】严格模式点模式切换静默无效（无 disabled 无提示）
+index.vue:698-700 strictPauseBlocked 直接 return，ModeSelector 无 disabled 态。
+
+### B60-18【P2】完成率分母口径错：区间完成数 ÷ 历史全部任务
+PomodoroRepository.ts:823-828——分子带 [from,to) 区间，分母 created_at<to
+无下界（终身积压稀释）。
+
+### B60-19【P2】每任务平均番茄把未绑定的自由番茄计入分子
+PomodoroRepository.ts:838-844——pom_count 含 task_id IS NULL，task_count 不含。
+
+### B60-20【P2】热力图行标签用行序号冒充星期，>7 天时标签空白
+HourHeatmap.vue:12,33,36——day 是「距区间起始偏移」却拿 dayNames[d] 当星期；
+近 30 天时 dayNames[7..29]=undefined，第 8 行起全空。
+
+### B60-21【P2】暂停/恢复循环导致 60s/30s 预警重复播报
+useMultiPomodoroTimer.ts:383-385——start() 无条件清 warned 并按当前 timeLeft
+重设 warnBase，多次恢复反复触发同一阈值。
+
+### B60-22【P2】严格模式 blur 判定未排除应用自身窗口
+index.vue:676-681——点自家迷你悬浮窗/托盘也 failStrict()，当轮番茄作废
+（惩罚正常动作；strictBlurFails 默认开）。
+
+### B60-23【P2】MiniTimer 双真相：主窗关闭后永久漂移冻死在 00:00
+MiniTimer.vue:110-116 本地自减 + usePomodoroAppBridge.ts:240-246 节流推送，
+无对账；主窗销毁后快照一路自减到 0 冻死、isRunning 恒 true。
+
+### B60-24【P2】focusMode 只存内存快照，重启静默丢失
+PomodoroIntegrationService.ts:178-185——setFocusMode 不走 prefRepository，
+专注模式（含静默通知判定）重启后无声回关。
+
+### B60-25【P3】散件五条
+- 番茄记录 started_at=ended_at=完成时刻，skip 记满时长（PomodoroRepository:412）
+- 导出文件名日期用 toISOString（UTC），UTC+ 早晨差一天（exportTaskRecords:122）
+- 每日趋势固定 24h 步进，DST 回拨时区丢一天数据（PomodoroRepository:690-705）
+- 详情抽屉汇总卡单位「h」配中文时长文案「25分 h」（TaskDetailDrawer:29-31）
+- index.vue isFullscreen 只写不读（全屏按钮无 active 态）；TaskList.vue 零引用死件
+
+### 运行时实测结论（playwright 黑盒）
+- 布局：默认 1450 与 900×620 下均无真实溢出（zf-root sw+80/sh+180 全来自
+  装饰 bg-blob，overflow:hidden 裁剪、pointer-events:none，无碍）
+- B60-11/12 实测复现（点标题弹全屏抽屉、收起无效）
+- 暂停冻结/连点竞态未能在遮罩修复前驱动（代码审计已覆盖：B60-1/21）
+
+### B60 修复批次建议
+- 批A（P0+数据正确性）：B60-1/2/3/4/8/9 —— 计时状态机守卫 + 优先级钳制 +
+  elapsed 持久化
+- 批B（统计口径）：B60-5/6/7/10/18/19/25 —— 时长/计数口径统一为真实 duration
+- 批C（交互与页面）：B60-11/12/13/14/15/16/17/22 —— 任务行语义分区 + 抽屉
+  关闭链 + 浮层锚定 + 覆盖时长全局贯通
+- 批D（长尾）：B60-20/21/23/24

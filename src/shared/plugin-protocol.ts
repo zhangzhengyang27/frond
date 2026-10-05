@@ -46,8 +46,9 @@ export type PluginList = PluginListItem[]
 
 // ─── Form 基元（M5.2）：胶囊内字段式表单的字段协议 ───
 
-/** Form 字段控件类型（缺省 'text'；password 为单行掩码输入） */
-export type FormFieldType = 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'password'
+/** Form 字段控件类型（缺省 'text'；password 为单行掩码输入；date/time 走原生日期/时间控件） */
+export type FormFieldType =
+  'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'time' | 'password'
 
 /** Form 基元字段 */
 export interface FormField {
@@ -227,7 +228,7 @@ export function sanitizePluginSearchItems(raw: unknown): PluginSearchItem[] {
     if (!isValidSearchAction(rec.action)) continue
     const entry: PluginSearchItem = {
       title,
-      action: rec.action as PluginItemAction
+      action: rec.action
     }
     if (typeof rec.subtitle === 'string') entry.subtitle = rec.subtitle.trim().slice(0, 200)
     if (typeof rec.icon === 'string') entry.icon = rec.icon.trim().slice(0, 40)
@@ -432,6 +433,7 @@ const FORM_FIELD_TYPES: ReadonlySet<string> = new Set([
   'select',
   'checkbox',
   'date',
+  'time',
   'password'
 ])
 

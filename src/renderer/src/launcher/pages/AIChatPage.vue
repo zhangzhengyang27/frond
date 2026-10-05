@@ -616,9 +616,9 @@ onBeforeUnmount(() => {
 
 .ai-preset-menu {
   position: absolute;
-  top: 100%;
+  /* 输入栏在页面底部：向下弹会被 capsule-list 底边裁掉（透明窗裁剪同款坑），向上弹入消息区 */
+  bottom: calc(100% + 4px);
   right: 12px;
-  margin-top: 4px;
   width: 240px;
   background: var(--launcher-popover-bg);
   border: 1px solid var(--launcher-border);

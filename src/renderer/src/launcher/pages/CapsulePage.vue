@@ -53,6 +53,8 @@ function onBreadcrumb(): void {
 
 <style scoped>
 .capsule-page {
+  /* .launcher 是纵向 flex：不撑满则整页收缩成内容高，底栏悬在列表下而非窗底 */
+  flex: 1;
   display: flex;
   flex-direction: column;
   padding-bottom: 4px;
@@ -61,9 +63,9 @@ function onBreadcrumb(): void {
 .capsule-page-body {
   flex: 1;
   min-height: 0;
-}
-
-.capsule-page-body.has-detail {
+  /* 始终 flex：让 .capsule-list 撑满到 hints 顶。只在 has-detail 开 flex 时，
+     无 detail 页（表单类）的列表会塌缩成内容高——overflow 裁掉 absolute 浮层
+     （picker 面板）还带出滚动条，窗口下半的空区不在容器里 */
   display: flex;
   align-items: stretch;
 }

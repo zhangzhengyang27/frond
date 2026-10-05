@@ -121,19 +121,31 @@ export interface LauncherPageView {
 /** 视图 id：内联页 + 插件的两态 */
 export type LauncherViewId = FirstPartyPage | 'pluginform' | 'pluginlist'
 
-/** 创建日程表单（V4 P0-1 批次4 第三档：Form 基元写回系统日历） */
-const EVENT_FORM_FIELDS: FormField[] = [
-  { key: 'title', label: '标题', placeholder: '例如：与团队同步' },
-  { key: 'date', label: '开始日期', type: 'date' },
-  { key: 'time', label: '开始时间', placeholder: 'HH:mm，如 14:30' },
-  {
-    key: 'duration',
-    label: '时长',
-    type: 'select',
-    options: ['30 分钟', '1 小时', '90 分钟', '2 小时'],
-    initial: '1 小时'
-  }
-]
+/** 创建日程表单（V4 P0-1 批次4 第三档：Form 基元写回系统日历）。
+ *  date/time 走原生控件（value 恰是提交端解析的 YYYY-MM-DD / HH:mm）；
+ *  date 默认今天——工厂函数每次渲染现取，放模块常量会跨天过期。 */
+function eventFormFields(): FormField[] {
+  return [
+    { key: 'title', label: '标题', placeholder: '例如：与团队同步' },
+    { key: 'date', label: '开始日期', type: 'date', initial: todayLabel() },
+    { key: 'time', label: '开始时间', type: 'time' },
+    {
+      key: 'duration',
+      label: '时长',
+      type: 'select',
+      options: ['30 分钟', '1 小时', '90 分钟', '2 小时'],
+      initial: '1 小时'
+    }
+  ]
+}
+
+/** 原生 date input 的 value 格式（本地时区的今天） */
+function todayLabel(): string {
+  const d = new Date()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mm}-${dd}`
+}
 
 /** 添加快捷链接表单 */
 const QL_FORM_FIELDS: FormField[] = [
@@ -167,7 +179,7 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
   eventform: {
     component: FormPage,
     name: 'eventform',
-    props: () => ({ fields: EVENT_FORM_FIELDS, submitLabel: '创建日程' }),
+    props: () => ({ fields: eventFormFields(), submitLabel: '创建日程' }),
     on: (ctx) => ({
       submit: (v) => ctx.createCalendarEvent((v ?? {}) as FormValues),
       cancel: () => ctx.popPage()

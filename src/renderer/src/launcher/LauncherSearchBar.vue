@@ -15,6 +15,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
+import PopoverSelect from './pages/PopoverSelect.vue'
 import type { KindFilter } from './pages/clipboardLogic'
 import type { ArgSlot } from '@shared/argSlots'
 
@@ -76,6 +77,15 @@ const text = computed({
   get: () => props.modelValue,
   set: (v: string) => emit('update:modelValue', v)
 })
+/** 剪贴板类型筛选候选（值与 clipboardLogic 的 KindFilter 对齐） */
+const FILTER_OPTIONS = [
+  { value: 'all', label: '全部' },
+  { value: 'text', label: '文本' },
+  { value: 'link', label: '链接' },
+  { value: 'image', label: '图片' },
+  { value: 'files', label: '文件' }
+]
+
 const filter = computed({
   get: () => props.clipFilter,
   set: (v: KindFilter) => emit('update:clipFilter', v)
@@ -186,19 +196,17 @@ defineExpose({ focus, element: () => inputEl.value, barHeight })
     />
     <div v-if="!argMode" class="launcher-search-right">
       <span v-if="pluginOpen" class="launcher-search-plugin">{{ pluginName }}</span>
-      <!-- I6：剪贴板页类型筛选迁入搜索栏右侧（Raycast All Types 位置） -->
-      <select
+      <!-- I6：剪贴板页类型筛选迁入搜索栏右侧（Raycast All Types 位置）。
+           原生 select 的选项 popup 在透明窗里渲染不出来（点击无反应），用 DOM 内下拉 -->
+      <PopoverSelect
         v-else-if="showFilter"
-        v-model="filter"
+        :model-value="filter"
         class="launcher-search-filter"
+        :options="FILTER_OPTIONS"
         aria-label="按类型筛选"
-      >
-        <option value="all">全部</option>
-        <option value="text">文本</option>
-        <option value="link">链接</option>
-        <option value="image">图片</option>
-        <option value="files">文件</option>
-      </select>
+        testid="clip-filter"
+        @update:model-value="(v: string) => emit('update:clipFilter', v as KindFilter)"
+      />
       <button v-else class="launcher-search-ai" @mousedown.prevent="emit('ai')">
         Quick AI <kbd>⇥</kbd>
       </button>
@@ -294,13 +302,6 @@ defineExpose({ focus, element: () => inputEl.value, barHeight })
   height: 28px;
   font-size: 12px;
   color: var(--launcher-text-dim);
-  background: var(--launcher-input-bg);
-  border: 1px solid var(--launcher-hairline);
-  border-radius: 7px;
-  padding: 0 4px;
-  cursor: pointer;
-  outline: none;
-  box-sizing: border-box;
 }
 
 .launcher-search-ai {

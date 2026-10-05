@@ -41,20 +41,30 @@
 
     <!-- 提醒时间选择 -->
     <div v-if="showTimePicker" class="reminder-time-picker">
-      <select v-model="quickTime" class="reminder-time-select" @change="onQuickTimeChange">
-        <option value="">不提醒</option>
-        <option value="1h">1 小时后</option>
-        <option value="3h">3 小时后</option>
-        <option value="tomorrow9">明天上午 9 点</option>
-        <option value="tomorrow14">明天下午 2 点</option>
-        <option value="custom">自定义…</option>
-      </select>
-      <input
-        v-if="quickTime === 'custom'"
-        v-model="customTime"
-        type="datetime-local"
-        class="reminder-time-custom"
+      <!-- 原生 select/datetime-local 的 popup 在透明窗里渲染不出来（点击无反应），
+           用 DOM 内下拉 + 日期/时间面板替代 -->
+      <PopoverSelect
+        class="reminder-time-select"
+        :model-value="quickTime"
+        :options="QUICK_TIME_OPTIONS"
+        aria-label="提醒时间"
+        testid="reminder-quick-time"
+        @update:model-value="onQuickTimePick"
       />
+      <template v-if="quickTime === 'custom'">
+        <NativePickerField
+          v-model="customDate"
+          mode="date"
+          aria-label="提醒日期"
+          class="reminder-time-custom"
+        />
+        <NativePickerField
+          v-model="customTimeHm"
+          mode="time"
+          aria-label="提醒时间"
+          class="reminder-time-custom"
+        />
+      </template>
     </div>
 
     <!-- 标签切换 -->
@@ -124,6 +134,18 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import AppIcon from '@renderer/components/AppIcon.vue'
 import CalendarPage from './CalendarPage.vue'
+import PopoverSelect from './PopoverSelect.vue'
+import NativePickerField from './NativePickerField.vue'
+
+/** 快捷提醒时间候选（value 是存储语义，label 是显示文案） */
+const QUICK_TIME_OPTIONS = [
+  { value: '', label: '不提醒' },
+  { value: '1h', label: '1 小时后' },
+  { value: '3h', label: '3 小时后' },
+  { value: 'tomorrow9', label: '明天上午 9 点' },
+  { value: 'tomorrow14', label: '明天下午 2 点' },
+  { value: 'custom', label: '自定义…' }
+]
 
 interface Reminder {
   id: string
@@ -144,7 +166,17 @@ const props = defineProps<{ query?: string }>()
 const newTitle = ref('')
 const showTimePicker = ref(false)
 const quickTime = ref('')
-const customTime = ref('')
+/** 自定义提醒时刻拆成日期/时间两个字段（原生 datetime-local 的面板在透明窗弹不出） */
+const customDate = ref('')
+const customTimeHm = ref('')
+const customTime = computed({
+  get: () => (customDate.value && customTimeHm.value ? `${customDate.value}T${customTimeHm.value}` : ''),
+  set: (v: string) => {
+    const m = /^([\d-]+)T([\d:]+)$/.exec(v)
+    customDate.value = m?.[1] ?? ''
+    customTimeHm.value = m?.[2] ?? ''
+  }
+})
 const activeTab = ref<'active' | 'completed'>('active')
 const reminders = ref<Reminder[]>([])
 
@@ -269,6 +301,11 @@ function parseNaturalLanguage(text: string): { title: string; remindAt: number |
   }
 
   return { title: title || text, remindAt }
+}
+
+function onQuickTimePick(v: string): void {
+  quickTime.value = v
+  onQuickTimeChange()
 }
 
 function onQuickTimeChange(): void {

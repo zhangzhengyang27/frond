@@ -39,6 +39,8 @@ export function groupSchedule(events: ScheduleEvent[], now: Date): ScheduleGroup
   const todayStart = startOfDay(now)
   const byDay = new Map<number, ScheduleEvent[]>()
   for (const e of events) {
+    // NaN < todayStart 恒为 false，坏时间戳不挡自会漏进分组——显式挡在门口
+    if (!Number.isFinite(e.startMs) || !Number.isFinite(e.endMs)) continue
     if (e.startMs < todayStart) continue
     const key = startOfDay(new Date(e.startMs))
     const bucket = byDay.get(key)

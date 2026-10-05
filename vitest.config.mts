@@ -29,7 +29,7 @@ export default defineConfig({
     // references/**：外部参考仓库（ueli/vicinae，见 .gitignore）自带测试，不属本仓库测试面
     // scripts/ 只排可执行脚本本身（.mjs），测试文件仍要收：release-preflight 的判定是纯函数，
     // 判错的代价是「不能发的版本被发出去」
-    exclude: ['e2e/**', 'scripts/**/*.{js,mjs,cjs}', '**/node_modules/**', 'references/**'],
+    exclude: ['e2e/**', 'scripts/**/*.{js,mjs,cjs}', '**/node_modules/**', 'references/**', 'test-results/**'],
     // 全量跑时 112 个测试文件并行抢 CPU，默认 5s 用例超时会把「纯静态扫描」型用例
     // 打成 STACK_TRACE_ERROR 假红（vitest 的超时占位错误）：ipcContract 全量 106.7s
     // vs solo 14.4s，renderer-api-parity 全量 10.6s vs solo 2.4s，而两者 solo 都是绿的

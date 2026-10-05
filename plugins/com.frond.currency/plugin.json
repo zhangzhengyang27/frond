@@ -2,14 +2,21 @@
   "id": "com.frond.currency",
   "name": "汇率转换",
   "version": "2.0.0",
-  "description": "实时汇率转换：支持 160+ 货币，从剪贴板读取金额，一键复制转换结果",
+  "description": "实时汇率转换（React 标杆）：160+ 货币、收藏货币对、24h 离线缓存、货币选择与金额表单",
   "author": "Frond",
   "main": "index.html",
   "commands": [
     {
       "code": "convert",
       "title": "汇率转换",
-      "description": "输入金额和货币对，查看实时汇率并复制结果"
+      "description": "输入金额和货币对，查看实时汇率并复制结果",
+      "arguments": [
+        {
+          "name": "q",
+          "type": "text",
+          "placeholder": "金额与货币对，如 100 usd cny（可空）"
+        }
+      ]
     }
   ],
   "preferences": [
@@ -51,7 +58,6 @@
     }
   ],
   "permissions": [
-    "clipboard.read",
     "net",
     "clipboard.write"
   ],

@@ -73,6 +73,10 @@
       function pushHistory(input, output) {
         return loadHistory().then(function (list) {
           list = list.filter(function (h) { return !(h.input === input && h.output === output) })
+          // 前缀滚动：连续键入（本次 input 以最新一条开头）时替换最新一条，避免逐字符前缀灌满历史
+          if (list.length > 0 && input !== list[0].input && input.indexOf(list[0].input) === 0) {
+            list.shift()
+          }
           list.unshift({ input: input, output: output, ts: Date.now() })
           return api.db.put('history', { list: list.slice(0, 20) })
         }).catch(function () {})

@@ -12,6 +12,7 @@ import { useFolders } from '@composables/useFolders'
 import { useAsyncGuard } from '@composables/useAsyncGuard'
 import { useDismissablePopup } from '@composables/useDismissablePopup'
 import { confirm } from '@composables/useConfirm'
+import { useToast } from '@composables/useToast'
 import { formatSmartDate } from '@utils/format'
 import type { Snippet } from '@preload/index.d'
 
@@ -34,6 +35,9 @@ const props = defineProps<{
   folderId: string | null
   libraryFilter: 'all' | 'inbox' | 'favorites' | 'trash'
   folders: FolderLike[]
+  /** B58：标签筛选（与 folderId 互斥，由 Sidebar 保证）；undefined = 未启用 */
+  selectedTagId?: string | null
+  tags?: Array<{ id: string; name: string }>
 }>()
 
 const emit = defineEmits<{
@@ -74,6 +78,10 @@ const TITLE: Record<'all' | 'inbox' | 'favorites' | 'trash', string> = {
 }
 
 const listTitle = computed(() => {
+  // B58：标签视图标题（Sidebar 已保证互斥：选标签时 folderId 为 null）
+  if (props.selectedTagId) {
+    return props.tags?.find((t) => t.id === props.selectedTagId)?.name ?? '标签'
+  }
   if (props.folderId) return findFolderById(props.folderId)?.name ?? TITLE[props.libraryFilter]
   return TITLE[props.libraryFilter]
 })
@@ -117,6 +125,8 @@ async function loadSnippets(mode: LoadMode = 'refresh'): Promise<void> {
         // B56-2：库视图（无选中文件夹）必须显式 null——?? undefined 会抹掉 null，
         // 主进程的 folder_id IS NULL（收件箱）过滤门槛 folderId !== undefined 永假
         folderId: props.folderId ?? (props.libraryFilter === 'inbox' ? null : undefined),
+        // B58：标签筛选（Sidebar 保证与 folderId 互斥，不会出现交集双过滤）
+        tagId: props.selectedTagId ?? undefined,
         isDeleted: isTrash,
         isFavorites: props.libraryFilter === 'favorites' ? true : undefined,
         isInbox: props.libraryFilter === 'inbox' ? true : undefined,
@@ -156,13 +166,16 @@ function select(snippet: Snippet): void {
   emit('update:selectedSnippet', snippet)
 }
 
-/** B56-4：新建片段——落在当前文件夹视图（库视图不归属），创建即选中进编辑器 */
+/** B56-4：新建片段——落在当前文件夹视图（库视图不归属），创建即选中进编辑器；
+ *  B58：继承所在文件夹的默认语言（此前恒 plaintext，文件夹的 defaultLanguage 是死字段） */
 async function createSnippet(): Promise<void> {
   try {
+    const defaultLanguage =
+      props.folders.find((f) => f.id === props.folderId)?.defaultLanguage || 'plaintext'
     const created = await window.api.snippet.addSnippet({
       name: '未命名片段',
       description: '',
-      contents: [{ id: '', label: '代码 1', value: '', language: 'plaintext' }],
+      contents: [{ id: '', label: '代码 1', value: '', language: defaultLanguage }],
       tagIds: [],
       isDeleted: false,
       isFavorites: false,
@@ -179,6 +192,37 @@ async function createSnippet(): Promise<void> {
 function closeContextMenu(): void {
   showContextMenu.value = false
   contextTarget.value = null
+}
+
+// B58：导入/导出入口——IPC 全链（对话框、幂等去重、20MB 上限）早已就绪，
+// 此前渲染端无任何调用方，备份/迁移是断头路。反馈走 toast
+const toast = useToast()
+
+async function exportAll(): Promise<void> {
+  try {
+    const res = await window.api.snippet.exportAll()
+    if (res?.ok) {
+      toast.success(`已导出 ${res.count} 个片段`, { description: res.filePath })
+    } else if (res && !res.canceled) {
+      toast.error('导出失败', { description: res.error })
+    }
+  } catch (error) {
+    toast.error('导出失败', { description: (error as Error).message })
+  }
+}
+
+async function importFromFile(): Promise<void> {
+  try {
+    const res = await window.api.snippet.importFile()
+    if (res?.ok) {
+      toast.success(`导入完成：新增 ${res.imported} · 跳过 ${res.skipped}`)
+      await loadSnippets('refresh')
+    } else if (res && !res.canceled) {
+      toast.error('导入失败', { description: res.error })
+    }
+  } catch (error) {
+    toast.error('导入失败', { description: (error as Error).message })
+  }
 }
 
 async function openContextMenu(snippet: Snippet, event: MouseEvent): Promise<void> {
@@ -305,7 +349,6 @@ watch(searchInput, (value) => {
 // 批3：debouncedSearch 加入重拉源——搜索真正下沉 SQL（此前仅前端过滤，SQL search 是死代码）
 // B56 键盘导航：↑↓ 移动选中（输入框焦点时不抢）、Enter 复制选中项首个内容
 function onListKeydown(e: KeyboardEvent): void {
-  console.log('[probe] key:', e.key, 'len:', snippets.value.length, 'target:', (e.target as HTMLElement)?.className?.slice?.(0, 30))
   const t = e.target as HTMLElement | null
   if (
     t &&
@@ -339,7 +382,7 @@ function onListKeydown(e: KeyboardEvent): void {
 }
 
 watch(
-  () => [props.folderId, props.libraryFilter, debouncedSearch.value],
+  () => [props.folderId, props.libraryFilter, props.selectedTagId, debouncedSearch.value],
   () => {
     closeContextMenu()
     // B56-5：视图切换后旧选中项大概率不在新列表——清空，Editor 不再悬空展示
@@ -382,6 +425,27 @@ onBeforeUnmount(() => {
       <div class="mb-2 flex items-center gap-2">
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium text-fg-primary">{{ listTitle }}</h2>
         <span class="shrink-0 text-xs text-fg-tertiary">{{ total }}</span>
+        <!-- B58：导入/导出入口（备份与迁移；回收站视图不显示） -->
+        <button
+          v-if="libraryFilter !== 'trash'"
+          type="button"
+          data-testid="snippet-import"
+          class="shrink-0 text-fg-muted hover:text-brand-500"
+          title="从 JSON 导入片段"
+          @click="importFromFile"
+        >
+          <AppIcon icon="ri-upload-line" :size="14" />
+        </button>
+        <button
+          v-if="libraryFilter !== 'trash'"
+          type="button"
+          data-testid="snippet-export"
+          class="shrink-0 text-fg-muted hover:text-brand-500"
+          title="导出全部片段为 JSON"
+          @click="exportAll"
+        >
+          <AppIcon icon="ri-download-line" :size="14" />
+        </button>
         <!-- B56-4：新建片段入口（此前全 UI 无任何创建路径，空态引导成了断头路） -->
         <button
           v-if="libraryFilter !== 'trash'"

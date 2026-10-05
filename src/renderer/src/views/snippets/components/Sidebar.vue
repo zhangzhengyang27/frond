@@ -5,11 +5,13 @@
  * preload 的 window.api.folder.*。父级不给 folders 兜底加载，所以首次 getFolders 在这里做，
  * 并把结果回写父级（SnippetList / Editor 都读同一份 folders）。
  */
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import UModal from '@components/ui/UModal.vue'
+import USelect from '@components/ui/USelect.vue'
 import { confirm } from '@composables/useConfirm'
 import { useFolders } from '@composables/useFolders'
+import { SNIPPET_LANGUAGES } from '@shared/snippetLanguages'
 
 interface FolderLike {
   id: string
@@ -22,12 +24,16 @@ const props = defineProps<{
   selectedFolderId: string | null
   libraryFilter: 'all' | 'inbox' | 'favorites' | 'trash'
   folders: FolderLike[]
+  /** B58：选中的标签（与文件夹/库视图互斥）；undefined = 不启用标签筛选 */
+  selectedTagId?: string | null
 }>()
 
 const emit = defineEmits<{
   'update:selectedFolderId': [id: string | null]
   'update:libraryFilter': [value: 'all' | 'inbox' | 'favorites' | 'trash']
   'update:folders': [folders: FolderLike[]]
+  'update:selectedTagId': [id: string | null]
+  'update:tags': [tags: Array<{ id: string; name: string }>]
   'snippet-moved': []
 }>()
 
@@ -49,7 +55,7 @@ const folderCount = computed(() => props.folders.length)
 const { loadFolders, loadFolderTree } = useFolders()
 
 async function reload(): Promise<void> {
-  await Promise.all([loadFolders(), loadFolderTree()])
+  await Promise.all([loadFolders(), loadFolderTree(), loadTags()])
   emit(
     'update:folders',
     (await window.api.folder.getFolders()).map((f) => ({
@@ -61,10 +67,31 @@ async function reload(): Promise<void> {
   )
 }
 
-// B56-3：window.prompt 在 Electron 渲染端直接抛异常——文件夹建/改名改 UModal 输入弹窗
-const folderDialog = ref<{ mode: 'create' | 'rename'; folder: FolderLike | null; name: string } | null>(
-  null
-)
+// B58：标签清单——侧栏筛选 + 列表标题解析共用；片段打标/摘标会触发
+// updateSnippet 广播，这里订阅同一信号保持新鲜
+const tags = ref<Array<{ id: string; name: string }>>([])
+
+async function loadTags(): Promise<void> {
+  try {
+    const list = await window.api.tag.getTags()
+    tags.value = list.map((t) => ({ id: t.id, name: t.name }))
+    emit('update:tags', tags.value)
+  } catch (error) {
+    console.error('[Sidebar] 读取标签失败:', error)
+  }
+}
+const offSnippetsChanged = window.api.onSnippetsChanged(() => void loadTags())
+onBeforeUnmount(() => offSnippetsChanged())
+
+// B56-3：window.prompt 在 Electron 渲染端直接抛异常——文件夹建/改名改 UModal 输入弹窗。
+// B58：弹窗带「默认语言」选择（该字段此前全 UI 无写入方，是个死字段）——
+// 新建片段继承所在文件夹的默认语言
+const folderDialog = ref<{
+  mode: 'create' | 'rename'
+  folder: FolderLike | null
+  name: string
+  language: string
+} | null>(null)
 const folderInputRef = ref<HTMLInputElement | null>(null)
 // v-model 不接受可选链：用 computed 代理读写
 const folderDialogName = computed({
@@ -73,14 +100,27 @@ const folderDialogName = computed({
     if (folderDialog.value) folderDialog.value.name = v
   }
 })
+const folderDialogLanguage = computed({
+  get: () => folderDialog.value?.language ?? '',
+  set: (v: string | number) => {
+    if (folderDialog.value) folderDialog.value.language = String(v)
+  }
+})
+// 头部空选项 = 不设默认语言
+const folderLanguageOptions = [{ value: '', label: '不设默认' }, ...SNIPPET_LANGUAGES]
 
 function openCreateFolder(): void {
-  folderDialog.value = { mode: 'create', folder: null, name: '' }
+  folderDialog.value = { mode: 'create', folder: null, name: '', language: '' }
   void nextTick(() => folderInputRef.value?.focus())
 }
 
 function openRenameFolder(folder: FolderLike): void {
-  folderDialog.value = { mode: 'rename', folder, name: folder.name }
+  folderDialog.value = {
+    mode: 'rename',
+    folder,
+    name: folder.name,
+    language: folder.defaultLanguage ?? ''
+  }
   void nextTick(() => folderInputRef.value?.focus())
 }
 
@@ -88,9 +128,17 @@ async function confirmFolderDialog(): Promise<void> {
   const dlg = folderDialog.value
   if (!dlg || !dlg.name.trim()) return
   if (dlg.mode === 'create') {
-    await window.api.folder.addFolder({ name: dlg.name.trim(), parentId: null })
+    await window.api.folder.addFolder({
+      name: dlg.name.trim(),
+      parentId: null,
+      // exactOptionalPropertyTypes：不设默认时不带键
+      ...(dlg.language ? { defaultLanguage: dlg.language } : {})
+    })
   } else if (dlg.folder) {
-    await window.api.folder.updateFolder(dlg.folder.id, { name: dlg.name.trim() })
+    await window.api.folder.updateFolder(dlg.folder.id, {
+      name: dlg.name.trim(),
+      defaultLanguage: dlg.language
+    })
   }
   folderDialog.value = null
   await reload()
@@ -100,10 +148,22 @@ function pickLibrary(key: 'all' | 'inbox' | 'favorites' | 'trash'): void {
   emit('update:libraryFilter', key)
   // 库视图与文件夹互斥：切回库视图要清掉文件夹选中，否则列表按两个条件取交集会空
   emit('update:selectedFolderId', null)
+  emit('update:selectedTagId', null)
 }
 
 function pickFolder(id: string): void {
   emit('update:selectedFolderId', props.selectedFolderId === id ? null : id)
+  emit('update:selectedTagId', null)
+}
+
+/** B58：标签筛选——与文件夹/库视图互斥（交集过滤口径已证明易空） */
+function pickTag(id: string): void {
+  const next = props.selectedTagId === id ? null : id
+  emit('update:selectedTagId', next)
+  if (next) {
+    emit('update:selectedFolderId', null)
+    emit('update:libraryFilter', 'all')
+  }
 }
 
 
@@ -200,6 +260,31 @@ onMounted(() => {
           <AppIcon icon="delete-bin-6-line" :size="13" />
         </button>
       </div>
+
+      <!-- B58：标签筛选（此前标签只写不读——编辑器可打标，但没有任何消费入口） -->
+      <div class="flex items-center justify-between px-2.5 pb-1 pt-3">
+        <span class="text-[11px] font-medium uppercase tracking-wide text-fg-tertiary">
+          标签 · {{ tags.length }}
+        </span>
+      </div>
+      <p v-if="tags.length === 0" class="px-2.5 py-2 text-xs text-fg-tertiary">
+        在编辑器里给片段加标签
+      </p>
+      <button
+        v-for="tag in tags"
+        :key="tag.id"
+        type="button"
+        class="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px]"
+        :class="
+          props.selectedTagId === tag.id
+            ? 'bg-brand-500/10 text-fg-brand'
+            : 'text-fg-secondary hover:bg-surface-hover'
+        "
+        @click="pickTag(tag.id)"
+      >
+        <AppIcon icon="price-tag-3-line" :size="14" />
+        <span class="truncate">{{ tag.name }}</span>
+      </button>
     </div>
   </aside>
 
@@ -220,6 +305,17 @@ onMounted(() => {
         data-testid="folder-name-input"
         @keydown.enter="confirmFolderDialog"
       />
+      <div class="mt-3">
+        <span class="mb-1 block text-[11px] text-fg-tertiary">
+          默认语言（在此文件夹新建片段时自动套用）
+        </span>
+        <USelect
+          v-model="folderDialogLanguage"
+          :options="folderLanguageOptions"
+          class="w-full"
+          data-testid="folder-language-select"
+        />
+      </div>
       <div class="mt-4 flex justify-end gap-2">
         <button
           type="button"

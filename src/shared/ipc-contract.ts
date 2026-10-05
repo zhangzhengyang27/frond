@@ -1062,6 +1062,11 @@ export interface IpcContract {
     req: void
     res: SnippetImportResult & { ok: boolean; canceled?: boolean; error?: string }
   }
+  /** B58：触发词冲突查询（编辑器实时提示）；无冲突返回 undefined */
+  'snippet:findTriggerConflict': {
+    req: { trigger: string; excludeId: string }
+    res: { id: string; name: string } | undefined
+  }
 
   'clip:addClip': {
     req: { videoId: string; startTime: number; endTime: number; label?: string }

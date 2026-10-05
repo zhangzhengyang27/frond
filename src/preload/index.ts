@@ -202,7 +202,10 @@ const api = {
     /** B3：导出全部片段为 JSON 文件（弹出保存对话框） */
     exportAll: () => typedInvoke('snippet:exportAll'),
     /** B3：从 JSON 文件导入片段（弹出选择对话框，同 id 去重合并） */
-    importFile: () => typedInvoke('snippet:importFile')
+    importFile: () => typedInvoke('snippet:importFile'),
+    /** B58：查询与该触发词冲突的其它片段（编辑器实时提示用） */
+    findTriggerConflict: (trigger: string, excludeId: string) =>
+      typedInvoke('snippet:findTriggerConflict', { trigger, excludeId })
   },
   // 标签相关 API
   tag: {

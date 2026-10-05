@@ -1225,3 +1225,54 @@ claimRecordingStart 原子防重入闸、combineEpoch 代际号防 rAF 复活、
   全面替换 MediaRecorder/webm 路线，管线成熟度经过同体量验证。根因①可由此消亡。
 - 小件可换：gifenc（活跃）替代自研 GIF 编码逻辑。区域浮层/倒计时/全局快捷键无现成
   库，保留自研（按 B57-12 修）。
+
+## 2026-10-05 发现（PM 产品评审：片段模块断头路 + 细节正确性，B58 编号，同日修复）
+
+> 背景：B56 后用户要求「以 PM 视角评审片段模块并优化细节」。三条链路盘点（管理/
+> 快取/扩展）后发现三个「后端全链就绪、UI 零入口」的断头路 + 若干正确性细节。
+> 批A（断头路收口）+ 批B（正确性细节）当日全修，测试钉死。
+
+### B58-1【P0】导入/导出幽灵功能——IPC 全链就绪、渲染端零调用
+- snippet:exportAll / snippet:importFile（ipc/snippets.ts）含对话框绑定、幂等去重、
+  20MB 上限，SnippetTransferService 纯逻辑完备——但 preload 之外无任何调用方，
+  备份/迁移不可达。✅ 列表头加导入/导出入口 + toast 反馈（新增/跳过计数），
+  e2e 钉入口存在性（回收站视图隐藏）。
+
+### B58-2【P0】标签只写不读——编辑器可打标，无任何消费入口
+- TagInput 完整可用，但侧栏/列表无标签筛选，search_text 也不含标签名。
+- 连带真 bug：tagId JOIN 变体 `ORDER BY rowid` 歧义列（snip_tags 同名 rowid）——
+  此路径此前无调用方，加筛选即崩（snippetTagSearch.test.ts 首个消费者抓出）。
+  ✅ 侧栏标签分区（与文件夹/库互斥）+ 列表 tagId 过滤 + 搜索 EXISTS 命中标签名
+  （buildSnippetQuery/quickSearch，FROM 统一 s 别名 + s.rowid 限定）。
+
+### B58-3【P1】触发词冲突检测死代码——repo.findTriggerConflict 无消费者
+- 同触发词片段谁生效全看 DB 顺序，静默失效。✅ 新增 snippet:findTriggerConflict
+  IPC（契约+preload），编辑器输入 300ms 防抖实时提示冲突方名称（保存仍允许）。
+
+### B58-4【P1】formatCode 读 props 陈旧值——防抖窗口内格式化丢输入
+- B56-1 同族（copyCode 修了、formatCode 漏了）：⌘⇧F 在 500ms 窗口内会把刚键入
+  字符用旧内容格式化结果顶掉并落库。✅ 先 flushPendingContentWrites 再取编辑器实时值。
+
+### B58-5【P1】snippets:changed 广播死代码——delete/restore 永不广播
+- broadcastSnippetsChanged() 写在 return 之后（delete/restore 两处不可达），
+  胶囊页 onSnippetsChanged 收不到通知；importFile 成功路径也缺广播。
+  ✅ 三处移正/补齐。
+
+### B58-6【P2】细节族
+- 新建片段不继承 folder.defaultLanguage（死字段）：✅ 文件夹对话框补默认语言
+  USelect（SNIPPET_LANGUAGES 抽 @shared/snippetLanguages 双方共用）+ createSnippet 继承。
+- 编辑器无删除入口：✅ 头部加「移入回收站」（confirm + snippetDeleted 事件驱动列表重建）。
+- 触发词提示只列 3 个占位符：✅ 补 {datetime}/{cursor}/{{参数}}，清 2026-09-23「待核」重建注释。
+- 调试残留：✅ SnippetList [probe] console.log、Editor 空 watch、snippets-ui.spec.mjs
+  5 处死变量（lint error 源）。
+- updateTrigger 无值不变 guard（blur 即写库 updatedAt 跳顶）：✅ 补齐（同 name/description 口径）。
+
+### B58 延后账（P2，不阻塞）
+- 胶囊片段页只认 contents[0]，多块片段其余块快取链路不可达；胶囊页唤起走
+  getSnippets 全量解密重路径（quickSearch 轻路径未覆盖）。
+- 回车仅复制不粘贴到前台应用（主进程有注入能力，涉及产品决策）。
+- 回收站无保留期自动清理；语言清单缺 Go/Rust/C/C++/Ruby/PHP/Swift/Kotlin。
+
+### 门禁终态（B58）
+typecheck 0；lint 0 error；unit 199 文件 1396 passed；e2e snippets 域 24/24
+（snippets-ui 5 + deep 6 + crud 8 + b58 新增 5）+ capsule-actions/launcher 回归绿。

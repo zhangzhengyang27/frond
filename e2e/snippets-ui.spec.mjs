@@ -124,8 +124,8 @@ test('2. 列表头「+」新建片段：创建即入列并选中（B56-4）', as
 
 test('3. 编辑器切 tab 输入不丢（B56-1）', async () => {
   // 用 API 造一个双代码块片段，选中它
-  const created = await main.evaluate(async () => {
-    const s = await window.api.snippet.addSnippet({
+  await main.evaluate(async () => {
+    await window.api.snippet.addSnippet({
       name: 'UI-双块-切tab',
       description: '',
       contents: [
@@ -136,13 +136,12 @@ test('3. 编辑器切 tab 输入不丢（B56-1）', async () => {
       isDeleted: false,
       isFavorites: false
     })
-    return s
   })
-  await main.evaluate((id) => {
+  await main.evaluate(() => {
     window.location.hash = '#/settings'
   })
   await main.waitForTimeout(500)
-  await main.evaluate((id) => {
+  await main.evaluate(() => {
     window.location.hash = '#/snippets'
   })
   // 选中它：列表里点它的名字（后台有索引活动时列表装载可能偏慢，放宽到 30s）
@@ -177,11 +176,6 @@ test('3. 编辑器切 tab 输入不丢（B56-1）', async () => {
     return { value: cm?.CodeMirror?.getValue() ?? null }
   })
   console.log('[PROBE-A]', JSON.stringify(probeA))
-  // DB 真值：content-of-A 是否落库
-  const dbCheck = await main.evaluate(() => {
-    const list = window.api.snippet ? null : null
-    return null
-  })
   const allSnips = await main.evaluate(async () => {
     const list = await window.api.snippet.getSnippets({ isDeleted: false })
     return list.map((s) => ({ name: s.name, first: s.contents?.[0]?.value?.slice(0, 30) }))

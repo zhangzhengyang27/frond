@@ -41,6 +41,7 @@ import 'codemirror/mode/markdown/markdown'
 import 'codemirror/mode/sql/sql'
 import 'codemirror/mode/shell/shell'
 import 'codemirror/mode/yaml/yaml'
+import { SNIPPET_LANGUAGES } from '@shared/snippetLanguages'
 
 interface Props {
   snippet?: Snippet | null
@@ -48,6 +49,7 @@ interface Props {
 
 interface Emits {
   (e: 'update:snippet', value: Snippet | null): void
+  (e: 'snippetDeleted', id: string): void
 }
 
 const props = defineProps<Props>()
@@ -70,13 +72,6 @@ const offSnippetSynced = onSnippetSynced((synced) => {
   if (selectedSnippetContent.value && live != null && live !== syncedVal) return
   emit('update:snippet', synced)
 })
-watch(
-  () => props.snippet,
-  () => {
-    // B56-1：props 回流（sync emit → 父级）触发本 watch——空体占位，保持依赖追踪
-  }
-)
-
 // B56-6：丢编辑窗口收敛——卸载（切路由）、窗口失焦、隐藏（Cmd+H/切屏）都先落盘。
 // 写链在模块层，组件卸载后 IPC 照常完成
 const flushCurrent = (): void => {
@@ -183,23 +178,7 @@ function getLanguageMode(language: string): string {
 }
 
 // 编辑器语言下拉选项（供 USelect 使用；与 getLanguageMode 支持的模式保持一致）
-const languageOptions = [
-  { value: 'plaintext', label: 'Plain Text' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'python', label: 'Python' },
-  { value: 'java', label: 'Java' },
-  { value: 'html', label: 'HTML' },
-  { value: 'css', label: 'CSS' },
-  { value: 'scss', label: 'SCSS' },
-  { value: 'json', label: 'JSON' },
-  { value: 'xml', label: 'XML' },
-  { value: 'markdown', label: 'Markdown' },
-  { value: 'sql', label: 'SQL' },
-  { value: 'bash', label: 'Bash' },
-  { value: 'shell', label: 'Shell' },
-  { value: 'yaml', label: 'YAML' }
-]
+const languageOptions = SNIPPET_LANGUAGES
 
 function getCursorPosition(): void {
   if (!editor) return
@@ -411,6 +390,7 @@ watch(
       currentContentIndex.value = 0
       lastLoadedSnippetId.value = newSnippetId
       editingTabIndex.value = null
+      triggerConflict.value = null
       if (props.snippet && !props.snippet.description) {
         isShowDescription.value = false
       }
@@ -692,9 +672,67 @@ async function updateDescription(description: string): Promise<void> {
 // 更新文本扩展触发词（M5.1）
 async function updateTrigger(trigger: string): Promise<void> {
   if (!props.snippet) return
+  // B56-5 同口径：值未变不写库——change 在 blur 时也触发，无谓写库会让
+  // updatedAt 跳顶、列表选中弹回
+  if (trigger === (props.snippet.trigger ?? '')) return
   const updated = await window.api.snippet.updateSnippet(props.snippet.id, { trigger })
   if (updated) {
     emit('update:snippet', updated)
+  }
+}
+
+// B58：触发词冲突实时检测——两个片段同触发词时扩展只会命中其一，
+// 此前无任何提示（repo.findTriggerConflict 一直没有消费者）。
+// 输入 300ms 防抖查一次；保存仍允许，只提示不拦截
+const triggerConflict = ref<string | null>(null)
+let triggerConflictTimer: number | null = null
+
+async function checkTriggerConflict(trigger: string): Promise<void> {
+  if (!props.snippet) return
+  const t = trigger.trim()
+  if (!t) {
+    triggerConflict.value = null
+    return
+  }
+  try {
+    const conflict = await window.api.snippet.findTriggerConflict(t, props.snippet.id)
+    triggerConflict.value = conflict?.name ?? null
+  } catch {
+    triggerConflict.value = null
+  }
+}
+
+function onTriggerInput(value: string): void {
+  if (triggerConflictTimer !== null) window.clearTimeout(triggerConflictTimer)
+  triggerConflictTimer = window.setTimeout(() => {
+    triggerConflictTimer = null
+    void checkTriggerConflict(value)
+  }, 300)
+}
+
+async function onTriggerChange(event: Event): Promise<void> {
+  const value = (event.target as HTMLInputElement).value.trim()
+  await updateTrigger(value)
+  void checkTriggerConflict(value)
+}
+
+// B58：编辑器内直接移入回收站（此前必须回列表右键）
+async function trashSnippet(): Promise<void> {
+  if (!props.snippet) return
+  const ok = await confirm({
+    title: `移入回收站「${props.snippet.name || '未命名片段'}」？`,
+    message: '可随时在回收站中恢复。',
+    confirmText: '移入回收站',
+    danger: true
+  })
+  if (!ok) return
+  try {
+    const id = props.snippet.id
+    await window.api.snippet.deleteSnippet(id)
+    emit('snippetDeleted', id)
+    emit('update:snippet', null)
+  } catch (error) {
+    console.error('移入回收站失败:', error)
   }
 }
 
@@ -976,7 +1014,11 @@ function handleSelectSnippet(snippetId: string): void {
 
 // 格式化代码
 async function formatCode(): Promise<void> {
-  if (!editor || !selectedSnippetContent.value) return
+  if (!editor || !selectedSnippetContent.value || !props.snippet) return
+
+  // B56-1 同族：props 快照在 500ms 防抖窗口内是陈旧的——先落盘在飞输入，
+  // 再取编辑器实时值参与格式化，否则会把刚键入的字符用旧内容格式化结果顶掉
+  await flushPendingContentWrites(props.snippet.id)
 
   const availableLang = [
     'css',
@@ -996,7 +1038,7 @@ async function formatCode(): Promise<void> {
   }
 
   const lang = selectedSnippetContent.value.language
-  const value = selectedSnippetContent.value.value
+  const value = editor.getValue()
 
   if (!value.trim()) return
 
@@ -1159,6 +1201,16 @@ onMounted(() => {
               <AppIcon icon="ri-add-line" :size="17" />
             </button>
           </UTooltip>
+          <UTooltip content="移入回收站" position="bottom">
+            <button
+              type="button"
+              data-testid="snippet-trash"
+              class="flex size-8 items-center justify-center rounded-md text-fg-tertiary transition-colors duration-fast hover:bg-surface-hover hover:text-fg-danger"
+              @click="trashSnippet"
+            >
+              <AppIcon icon="ri-delete-bin-line" :size="17" />
+            </button>
+          </UTooltip>
         </div>
       </div>
 
@@ -1170,18 +1222,31 @@ onMounted(() => {
             :value="snippet?.trigger || ''"
             type="text"
             class="w-40 shrink-0 rounded-md border border-line-subtle bg-surface-1 px-2 py-1 font-mono text-xs text-fg-primary outline-none focus:border-brand-500/40"
+            :class="triggerConflict ? 'border-danger/60' : ''"
             placeholder="触发词，如 ;sig"
             spellcheck="false"
-            @change="(e) => updateTrigger((e.target as HTMLInputElement).value.trim())"
+            data-testid="snippet-trigger-input"
+            @input="onTriggerInput(($event.target as HTMLInputElement).value)"
+            @change="onTriggerChange"
           />
           <span class="min-w-0 flex-1 truncate text-[11px] text-fg-tertiary">
-            <!-- 待核：以下 416 行模板与样式由 2026-09-23 按同文件较早副本（_recovery-partials/zcode-older）回填，本 revision 若在此区间另有改动需人工比对 -->
-            在任意应用键入该关键词再按空格/回车即展开第一块内容；支持占位符
+            在任意应用键入触发词再按空格/回车即展开第一块内容；占位符
             <code class="font-mono">{date}</code>
             <code class="font-mono">{time}</code>
-            <code class="font-mono">{clipboard}</code>（需在启动器管理页开启）
+            <code class="font-mono">{datetime}</code>
+            <code class="font-mono">{clipboard}</code>
+            <code class="font-mono">{cursor}</code>（展开后光标落此）、
+            <code v-pre class="font-mono">{{参数名}}</code>
+            展开时询问；需在启动器管理页开启
           </span>
         </div>
+        <p
+          v-if="triggerConflict"
+          class="mb-0 mt-1.5 text-[11px] text-danger"
+          data-testid="trigger-conflict"
+        >
+          与片段「{{ triggerConflict }}」的触发词重复，扩展时只有其中一个会生效
+        </p>
       </div>
 
       <!-- 描述区域 -->

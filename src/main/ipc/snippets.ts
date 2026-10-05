@@ -93,8 +93,10 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
   typedHandle('snippet:deleteSnippet', (_event, { id }) => {
     const result = snippetStore.deleteSnippet(id)
     textExpansion.invalidateTriggers()
-    return result
+    // 广播必须在 return 之前——此前写在 return 之后是死代码，
+    // 胶囊页 onSnippetsChanged 收不到删除通知
     broadcastSnippetsChanged()
+    return result
   })
 
   typedHandle('snippet:permanentlyDeleteSnippet', (_event, { id }) =>
@@ -104,8 +106,8 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
   typedHandle('snippet:restoreSnippet', (_event, { id }) => {
     const result = snippetStore.restoreSnippet(id)
     textExpansion.invalidateTriggers()
-    return result
     broadcastSnippetsChanged()
+    return result
   })
 
   typedHandle('snippet:duplicateSnippet', (_event, { id }) => {
@@ -180,7 +182,13 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
       snippetRepository.importMany(toImport as Snippet[])
       // 新片段可能携带触发词，触发词缓存需重建
       textExpansion.invalidateTriggers()
+      broadcastSnippetsChanged()
     }
     return { ok: true, imported: toImport.length, skipped, total: parsed.snippets.length }
   })
+
+  // B58：触发词冲突查询——编辑器输入触发词时实时提示重复（此前 repo 方法无任何消费者）
+  typedHandle('snippet:findTriggerConflict', (_event, { trigger, excludeId }) =>
+    snippetRepository.findTriggerConflict(String(trigger ?? ''), String(excludeId ?? ''))
+  )
 }

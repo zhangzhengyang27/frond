@@ -230,13 +230,21 @@ export class SnippetRepository {
     // B42：搜索下沉 SQL——search_text 是 name/description/trigger/contents 的明文投影
     // （写入路径同步维护，迁移 032 建、033 补 trigger）。LIKE 默认 ASCII 大小写不敏感
     // （CJK 无大小写，语义等价旧 JS toLowerCase 比较）；通配符按字面义转义，
-    // 与旧 includes 行为一致
+    // 与旧 includes 行为一致。
+    // B58：追加标签名匹配（EXISTS 子查询）——此前标签只写不读，按标签名搜不到
+    // 是标签闭环缺失的一半；子查询关联主表别名 s（两个分支的 FROM 统一用 s）
     if (filters?.search) {
-      wheres.push(`search_text LIKE ? ESCAPE '\\'`)
-      params.push(`%${filters.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`)
+      wheres.push(
+        `(search_text LIKE ? ESCAPE '\\' OR EXISTS (
+           SELECT 1 FROM snip_tags stq JOIN tag_tags tq ON tq.id = stq.tag_id
+           WHERE stq.snippet_id = s.id AND tq.name LIKE ? ESCAPE '\\'))`
+      )
+      const like = `%${filters.search.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
+      params.push(like, like)
     }
 
-    let sql = `SELECT * FROM snip_snippets`
+    // 两个分支统一 s 别名：search 的 EXISTS 关联引用不随分支切换
+    let sql = `SELECT s.* FROM snip_snippets s`
     if (filters?.tagId) {
       sql = `SELECT s.* FROM snip_snippets s
              INNER JOIN snip_tags st ON st.snippet_id = s.id
@@ -254,8 +262,10 @@ export class SnippetRepository {
 
   getSnippets(filters?: SnippetFilter): Snippet[] {
     const { sql, params } = this.buildSnippetQuery(filters)
+    // s. 限定符必须带：tagId JOIN 变体里 rowid 在两张表都存在，裸写是歧义列
+    // （B58 标签筛选首次真正走到这条路径就暴露了）
     const rows = this.db
-      .prepare(`${sql} ORDER BY updated_at DESC, rowid DESC`)
+      .prepare(`${sql} ORDER BY s.updated_at DESC, s.rowid DESC`)
       .all(...params) as SnippetRow[]
     return this.attachRelations(rows)
   }
@@ -273,10 +283,12 @@ export class SnippetRepository {
     return this.db
       .prepare(
         `SELECT id, title AS name, language FROM snip_snippets
-         WHERE deleted_at IS NULL AND search_text LIKE ? ESCAPE '\\'
+         WHERE deleted_at IS NULL AND (search_text LIKE ? ESCAPE '\\' OR EXISTS (
+           SELECT 1 FROM snip_tags stq JOIN tag_tags tq ON tq.id = stq.tag_id
+           WHERE stq.snippet_id = snip_snippets.id AND tq.name LIKE ? ESCAPE '\\'))
          ORDER BY updated_at DESC, rowid DESC LIMIT ?`
       )
-      .all(like, limit) as Array<{ id: string; name: string; language: string }>
+      .all(like, like, limit) as Array<{ id: string; name: string; language: string }>
   }
 
   /** B56：触发词冲突查询——同触发词的其它在册片段（排除自身与回收站）；无冲突返回 undefined */
@@ -306,7 +318,7 @@ export class SnippetRepository {
       this.db.prepare(`SELECT COUNT(*) AS n FROM (${sql})`).get(...params) as { n: number }
     ).n
     const rows = this.db
-      .prepare(`${sql} ORDER BY updated_at DESC, rowid DESC LIMIT ? OFFSET ?`)
+      .prepare(`${sql} ORDER BY s.updated_at DESC, s.rowid DESC LIMIT ? OFFSET ?`)
       .all(...params, limit, offset) as SnippetRow[]
     return { items: this.attachRelations(rows), total }
   }

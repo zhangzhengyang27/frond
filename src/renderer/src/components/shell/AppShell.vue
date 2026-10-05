@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import TopBar from './TopBar.vue'
-import UToastProvider from '../ui/UToastProvider.vue'
-import UConfirmProvider from '../ui/UConfirmProvider.vue'
-import { useModuleShortcuts } from '../../composables/useModuleShortcuts'
-import { useTheme } from '../../composables/useTheme'
-
-useModuleShortcuts()
-void useTheme().initTheme()
+// B59：UToastProvider / UConfirmProvider 已上移 App.vue 根层——去壳路由
+// （/snippets 等）不挂本组件，留在这里会让确认弹窗与 toast 在模块页消失
 </script>
 
 <template>
@@ -16,9 +11,5 @@ void useTheme().initTheme()
     <main class="app-scroll flex-1 min-w-0 overflow-auto">
       <slot />
     </main>
-    <!-- 全局 Toast 容器 -->
-    <UToastProvider />
-    <!-- 全局确认弹窗容器（useConfirm） -->
-    <UConfirmProvider />
   </div>
 </template>

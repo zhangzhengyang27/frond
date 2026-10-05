@@ -116,7 +116,10 @@ const router = createRouter({
     {
       path: '/snippets',
       name: 'snippets',
-      component: () => import('../views/snippets/index.vue')
+      component: () => import('../views/snippets/index.vue'),
+      // B59：重型工作模块全出血——三栏管理面就是整个窗口，不套壳。
+      // 壳顶栏的 logo/全局搜索/快捷图标对工作模块全是噪音（用户实测反馈）
+      meta: { window: 'overlay' }
     },
     {
       path: '/screenRecorder',

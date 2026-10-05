@@ -40,8 +40,8 @@
 
 | 值 | 语义（注释原文位置） | 运行时消费点 | 现表中的路由 | 怎么被加载 |
 | --- | --- | --- | --- | --- |
-| `shell` | 主窗口页面，`AppShell` 包裹；导航可见性由 `MODULES` 决定（`router/index.ts:9-10`） | `App.vue:31-33` 判定显壳；`App.vue:54-56` 判定 app 级单例只装主窗 | `/`、`/migration`、`/about`、`/launcher`、`/pomodoro`、`/snippets`、`/screenRecorder{,/record,/history,/playback}`（`router/index.ts:60-157`） | 主窗口 `createAppWindow()`（`main/index.ts:483` → `windows.ts:31`） |
-| `overlay` | 主窗口内的沉浸式覆盖层，无壳（`router/index.ts:11`） | 同上（`App.vue:32` 的 `!== 'shell'` 分支） | `/settings`（`router/index.ts:71`）、`/screenRecorder/clip`（`:154`） | 同一主窗口进程内导航 |
+| `shell` | 主窗口页面，`AppShell` 包裹；导航可见性由 `MODULES` 决定（`router/index.ts:9-10`） | `App.vue:31-33` 判定显壳；`App.vue:54-56` 判定 app 级单例只装主窗 | `/`、`/migration`、`/about`、`/launcher`、`/pomodoro`、`/screenRecorder{,/record,/history,/playback}`（`router/index.ts:60-157`） | 主窗口 `createAppWindow()`（`main/index.ts:483` → `windows.ts:31`） |
+| `overlay` | 主窗口内的沉浸式覆盖层，无壳（`router/index.ts:11`） | 同上（`App.vue:32` 的 `!== 'shell'` 分支） | `/settings`（`router/index.ts:71`）、`/screenRecorder/clip`（`:154`）、`/snippets`（B59：重型工作模块全出血，三栏管理面即整个窗口） | 同一主窗口进程内导航 |
 | `floating` | 主进程创建的独立悬浮窗，以 hash 直接加载（`router/index.ts:12-13`） | **无**（见下方警示） | `/mini-timer`（`:108`）、`/floating-note`（`:115`）、`/screenshot/pin`（`:122`） | 独立 `BrowserWindow` + `index.html` 带 hash |
 | `capsule` | 启动台胶囊窗：独立入口 `launcher.html`，**无对应路由**，列出仅为语义完整（`router/index.ts:14`） | **无** | 无 | `launcher/window.ts:55-61` |
 

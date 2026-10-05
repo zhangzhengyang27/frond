@@ -1326,3 +1326,15 @@ snippets-capsule-b58c 3/3（内容全文可搜、⌘→ 切块 Enter 复制活�
   状态徽章）+ 控制坞（56px 大圆 REC 键，录制中变形为方块停止键，暂停/保存/
   设置图标键）」两列布局（标记侧栏收窄为玻璃卡）；PreviewPanel 契约钉同步
   （图标键以 aria-label 为断言口径，badge 保留中文状态词）。
+
+## 2026-10-05 发现（用户实测截图：片段模块裹着「设置」壳）
+
+### B59【P1】重型模块套壳——片段页挂着 logo/全局搜索/设置图标，窗口标题错标「设置」（已修）
+- /snippets 无 meta.window → 缺省 shell → AppShell 顶栏全套；且 SettingsView 的
+  `document.title = '设置'` 跨路由滞留，片段页标题也挂「设置」。
+- ✅ /snippets 改 overlay 全出血（三栏管理面即整个窗口），高度 h-screen
+  （沿用 --shell-topbar-h 会留 40px 死空间）；⌘1-9 模块快捷键与主题初始化上移
+  App.vue（去壳路由不挂 AppShell，留在壳里会在模块页失灵）；Toast/Confirm 容器
+  上移 App.vue 根层——与 CommandPalette 同一解耦道理（e2e 抓出去壳后确认弹窗
+  消失的回归）；窗口标题 App.vue 按 route.name 接管（ROUTE_TITLES 表）。
+- 同根候选（本轮未动）：/screenRecorder、/pomodoro 仍在壳里；若同样反馈再收。

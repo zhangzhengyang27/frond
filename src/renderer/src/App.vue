@@ -1,16 +1,47 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import RouteLoading from './components/RouteLoading.vue'
 import CommandPalette from './components/shell/CommandPalette.vue'
 import AppShell from './components/shell/AppShell.vue'
 import SettingsModal from './components/SettingsModal.vue'
+import UToastProvider from './components/ui/UToastProvider.vue'
+import UConfirmProvider from './components/ui/UConfirmProvider.vue'
 import { useAppMenu } from './composables/useAppMenu'
 import { installTrackpadSwipe } from './composables/useTrackpadGesture'
 import { ensurePomodoroBridgeSync } from './composables/usePomodoroAppBridge'
+import { useModuleShortcuts } from './composables/useModuleShortcuts'
+import { useTheme } from './composables/useTheme'
 
 // useAppMenu 需要在 setup 上下文内调用（内部取 router），install 推迟到挂载时
 const { install: installAppMenu } = useAppMenu()
+
+// B59：模块快捷键（⌘1-9）与主题初始化从 AppShell 上移——/snippets 等去壳
+// 路由不挂 AppShell，留在壳里会让快捷键在模块页失灵、主题在直落模块页时不初始化
+useModuleShortcuts()
+void useTheme().initTheme()
+
+// 窗口标题跟随路由——document.title 会覆盖 BrowserWindow 标题，且一旦设置
+// 就跨路由滞留（此前进过设置页后标题永远挂「设置」，片段页也是「设置」）
+const ROUTE_TITLES: Record<string, string> = {
+  settings: '设置',
+  snippets: '代码片段',
+  pomodoro: '番茄钟',
+  migration: '迁移中心',
+  about: '关于 Frond',
+  onboarding: '欢迎',
+  screenRecorderRecord: '屏幕录制',
+  screenRecorderHistory: '录屏历史',
+  screenRecorderPlayback: '录屏回放',
+  screenRecorderClip: '录屏剪辑'
+}
+watch(
+  () => route.name,
+  (name) => {
+    document.title = ROUTE_TITLES[String(name ?? '')] ?? 'Frond'
+  },
+  { immediate: true }
+)
 
 type LoadingVariant =
   | 'default'
@@ -26,7 +57,8 @@ const route = useRoute()
 /**
  * 壳显隐由路由 meta.window 驱动（语义定义见 router/index.ts）：
  * - shell（默认）：AppShell 包裹（顶栏 + 侧边栏）
- * - overlay：沉浸式覆盖层直接渲染（截图捕获 / 录屏剪辑画布）
+ * - overlay：无壳直接渲染（设置页 / 重型工作模块 / 录屏剪辑画布）——
+ *   B59 起 /snippets 也是 overlay：三栏管理面即整个窗口，壳顶栏是噪音
  * - ?immersive=1（IA v2 阶段C）：启动台 / ⌘K 打开的独立模块窗口，
  *   无壳直接渲染模块本身——搜什么就只看什么
  */
@@ -117,8 +149,6 @@ const loadingDelay = computed(() => {
         <component :is="Component" />
         <template #fallback>
           <RouteLoading :variant="loadingVariant" :delay="loadingDelay" />
-          <!-- 设置模态浮层（主窗/沉浸窗内设置统一形态，B58 后续） -->
-          <SettingsModal />
         </template>
       </Suspense>
     </router-view>
@@ -139,4 +169,13 @@ const loadingDelay = computed(() => {
   <!-- 命令面板（⌘K）：主窗全局能力——Home 删除后主窗可能落在 /settings 等无壳路由，
        面板必须与路由解耦（2026-10-04 实测反馈） -->
   <CommandPalette />
+
+  <!-- 全局 Toast / 确认弹窗容器：同 CommandPalette 道理必须挂根层——
+       B59 前挂在 AppShell 里，/snippets 去壳后确认弹窗与 toast 在模块页整个消失 -->
+  <UToastProvider />
+  <UConfirmProvider />
+
+  <!-- 设置模态浮层：必须挂模板根层（全窗口常驻）。曾误插进沉浸分支的
+       Suspense #fallback 插槽——该插槽仅在路由加载瞬间渲染，模态等于不存在 -->
+  <SettingsModal />
 </template>

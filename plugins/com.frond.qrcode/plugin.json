@@ -1,7 +1,7 @@
 {
   "id": "com.frond.qrcode",
   "name": "二维码生成器",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "生成二维码：输入文本/URL/联系方式，本地生成，支持纠错级别和尺寸调整，一键复制图片",
   "author": "Frond",
   "main": "index.html",
@@ -18,15 +18,27 @@
       "label": "尺寸(像素)",
       "type": "select",
       "default": "256",
-      "options": ["128", "256", "512"]
+      "options": [
+        "128",
+        "256",
+        "512"
+      ]
     },
     {
       "name": "ecc",
       "label": "纠错级别",
       "type": "select",
       "default": "M",
-      "options": ["L", "M", "Q", "H"]
+      "options": [
+        "L",
+        "M",
+        "Q",
+        "H"
+      ]
     }
   ],
-  "permissions": ["clipboard.read"]
+  "permissions": [
+    "clipboard.read",
+    "clipboard.write"
+  ]
 }

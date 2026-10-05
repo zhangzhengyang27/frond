@@ -84,7 +84,7 @@
     {
       "id": "com.frond.qrcode",
       "name": "二维码生成器",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "description": "生成二维码：输入文本/URL/联系方式，本地生成，支持纠错级别和尺寸调整，一键复制图片",
       "author": "Frond",
       "download": "./plugins/com.frond.qrcode"

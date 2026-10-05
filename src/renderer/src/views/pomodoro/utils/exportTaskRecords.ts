@@ -119,7 +119,13 @@ function bulkFileBaseName({ projectName, from, to }: BulkExportArgs): string {
         .replace(/\s+/g, '_')
         .slice(0, 30)
     : 'all'
-  const fmt = (ts: number): string => new Date(ts).toISOString().slice(0, 10)
+  // B60-25：本地日期（此前 toISOString 取 UTC，UTC+ 时区早晨导出文件名差一天）
+  const fmt = (ts: number): string => {
+    const d = new Date(ts)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate()
+    ).padStart(2, '0')}`
+  }
   return `frond_pomodoro_bulk_${safeProject}_${fmt(from)}_to_${fmt(to)}`
 }
 

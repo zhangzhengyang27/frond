@@ -80,7 +80,9 @@ function createTimer(): PomodoroTimer {
         projectId: payload.projectId,
         type: payload.type,
         duration: payload.duration,
-        completedAt: Date.now()
+        completedAt: Date.now(),
+        // B60-25a：真实开始时刻（可选字段，exactOptionalPropertyTypes 下条件带键）
+        ...(payload.startedAt != null ? { startedAt: payload.startedAt } : {})
       })
       if (settings.value.soundEnabled) playSound()
       speak(settings, payload.type === 'work' ? '番茄完成，休息一下' : '休息结束，继续加油')

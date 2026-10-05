@@ -268,8 +268,13 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
 
   // ─── getters ───
   const todayFocusMinutes = computed(() => {
-    if (!statistics.value || !settings.value) return 0
-    return statistics.value.today.work * settings.value.workDuration
+    // B60-7：按今日记录的真实时长求和——此前 = 条数 × 全局 workDuration，
+    // 存在项目覆盖 / Flowtime / 特殊休息时首页「今日专注」必错
+    const ms = todayRecords.value.reduce(
+      (sum, r) => (r.type === 'work' ? sum + r.duration : sum),
+      0
+    )
+    return Math.round(ms / 60_000)
   })
 
   const completedTasks = computed(() => tasks.value.filter((t) => t.completed))

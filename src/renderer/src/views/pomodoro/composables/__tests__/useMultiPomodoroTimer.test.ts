@@ -33,6 +33,7 @@ function makeTimer(overrides: Partial<Options> = {}) {
     duration: number
     taskId: string | null
     taskTitle: string | null
+    startedAt: number | null
   }> = []
   const notifies: Array<{ projectId: string; event: string; message?: string | undefined }> = []
   const persists: Array<{ projectId: string; state: PersistedTimerState }> = []
@@ -677,5 +678,64 @@ describe('B60 批A：完成链互斥与守卫', () => {
     expect(api.getTimer('p1').timeLeft).toBe(5 * 60)
     expect(errSpy).toHaveBeenCalled()
     errSpy.mockRestore()
+  })
+})
+
+// ── B60 批B：真实时长与补差钳制 ──────────────────────────────
+describe('B60 批B：真实时长与补差钳制', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('B60-5：tick 补差钳制——休眠 10 分钟只按上限 120s 计入 Flowtime', async () => {
+    const { api } = makeTimer({ isFlowtime: () => true })
+    api.start('p1')
+    const t = api.getTimer('p1')
+    t.lastTickAt = Date.now() - 10 * 60 * 1000
+    await vi.advanceTimersByTimeAsync(1100)
+    expect(api.getTimer('p1').elapsed).toBe(120)
+  })
+
+  it('B60-5：倒计时同样受补差钳制（休眠不瞬跳完成）', async () => {
+    const { api, completes } = makeTimer()
+    api.start('p1')
+    const t = api.getTimer('p1')
+    t.lastTickAt = Date.now() - 60 * 60 * 1000 // 合盖 1 小时
+    await vi.advanceTimersByTimeAsync(1100)
+    // 此前：timeLeft 直接扣光 → 立即完成落库；现在只扣 120s
+    expect(completes).toHaveLength(0)
+    expect(api.getTimer('p1').timeLeft).toBe(25 * 60 - 120)
+  })
+
+  it('B60-6：倒计时 skip 按实际专注秒数落库（非配置满额）', async () => {
+    const { api, completes } = makeTimer()
+    api.start('p1')
+    await vi.advanceTimersByTimeAsync(10_000)
+    await api.skip('p1')
+    expect(completes).toHaveLength(1)
+    expect(completes[0]!.duration).toBe(10_000)
+  })
+
+  it('B60-6：自然完成的时长收敛到配置值（真实累计 = 满额）', async () => {
+    const { api, completes } = makeTimer()
+    api.start('p1')
+    await vi.advanceTimersByTimeAsync(25 * 60 * 1000 + 5000)
+    expect(completes).toHaveLength(1)
+    expect(completes[0]!.duration).toBe(25 * 60 * 1000)
+  })
+
+  it('B60-25a：onComplete 带真实开始时刻 firstStartedAt', async () => {
+    const { api, completes } = makeTimer()
+    api.start('p1')
+    const firstStart = api.getTimer('p1').firstStartedAt
+    expect(firstStart).toBeGreaterThan(0)
+    await vi.advanceTimersByTimeAsync(3000)
+    await api.skip('p1')
+    expect(completes[0]!.startedAt).toBe(firstStart)
+    // 完成后清空（下一轮重新记）
+    expect(api.getTimer('p1').firstStartedAt).toBeNull()
   })
 })

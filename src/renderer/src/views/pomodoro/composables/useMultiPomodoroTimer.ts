@@ -53,6 +53,8 @@ export interface TimerState {
   consecutiveCount: number
   lastTickAt: number
   startedAt: number | null
+  /** B60-25a：本轮番茄的真实开始时刻（跨暂停保留；完成/重置/切模式清空） */
+  firstStartedAt: number | null
   /** 长休息刚结束标志（用于 UI 显示 resume banner） */
   justFinishedLongBreak: boolean
   /** Flowtime：本次专注已累计秒数（work 正计时时 = timeLeft） */
@@ -84,6 +86,8 @@ interface UseMultiPomodoroTimerOptions {
     duration: number
     taskId: string | null
     taskTitle: string | null
+    /** B60-25a：真实开始时刻（休眠补差后由仓库层回退 completedAt） */
+    startedAt: number | null
     taskById: (id: string) => { title: string } | undefined
   }) => void | Promise<void>
   notify: (
@@ -118,6 +122,13 @@ export interface PersistedTimerState {
 
 const WARN_THRESHOLDS = [60, 30]
 
+/**
+ * B60-5：单拍补差上限。interval 被后台节流冻结 1-2 分钟时按真实墙钟补差是
+ * 对的（用户确实在专注）；但系统休眠/合盖数分钟到数小时不该全额计入——
+ * 超过上限的部分视为休眠丢弃。
+ */
+const MAX_TICK_CATCH_UP_SEC = 120
+
 const DEFAULT_STATE = (projectId: string, mode: TimerMode = 'work'): TimerState => ({
   projectId,
   mode,
@@ -127,6 +138,7 @@ const DEFAULT_STATE = (projectId: string, mode: TimerMode = 'work'): TimerState 
   consecutiveCount: 0,
   lastTickAt: 0,
   startedAt: null,
+  firstStartedAt: null,
   justFinishedLongBreak: false,
   elapsed: 0,
   warnBase: 0,
@@ -254,7 +266,11 @@ export function useMultiPomodoroTimer(
       if (state.status !== 'running') continue
       let elapsedSec = 1
       if (state.lastTickAt > 0) {
-        elapsedSec = Math.max(1, Math.floor((now - state.lastTickAt) / 1000))
+        // B60-5：补差钳到上限——休眠全程不计入专注
+        elapsedSec = Math.min(
+          MAX_TICK_CATCH_UP_SEC,
+          Math.max(1, Math.floor((now - state.lastTickAt) / 1000))
+        )
       }
       state.lastTickAt = now
 
@@ -263,6 +279,11 @@ export function useMultiPomodoroTimer(
         state.elapsed += elapsedSec
         state.timeLeft = state.elapsed
         continue
+      }
+
+      // B60-6：倒计时 work 也累计真实专注秒数（落库口径，跨暂停由 elapsed 持久化）
+      if (state.mode === 'work') {
+        state.elapsed += elapsedSec
       }
 
       if (state.timeLeft > 0) {
@@ -302,10 +323,17 @@ export function useMultiPomodoroTimer(
       const specialTotalSec = state.specialBreakTotalSec
       const prevConsecutive = state.consecutiveCount
       const prevMode = state.mode
-      // 时长必须在迁移前取值：effectiveDuration 读 state.mode，切阶段后就变了
+      const firstStartedAt = state.firstStartedAt
+      // 时长必须在迁移前取值：effectiveDuration 读 state.mode，切阶段后就变了。
+      // B60-6：work 落库口径 = 真实专注秒数（跨暂停累计，含休眠钳制）——
+      // 此前取「完成瞬间重求值的配置时长」，专注中改设置/覆盖都会失真
       const durationSec =
         override?.durationSec ??
-        (specialTotalSec != null ? specialTotalSec : effectiveDuration(state))
+        (specialTotalSec != null
+          ? specialTotalSec
+          : prevMode === 'work'
+            ? Math.max(1, state.elapsed)
+            : effectiveDuration(state))
 
       // B60-1：状态迁移同步先行——UI 立即看到下一阶段，落库 await 只负责记录
       if (prevMode === 'work') {
@@ -335,6 +363,7 @@ export function useMultiPomodoroTimer(
       state.warned = []
       state.specialBreak = false
       state.specialBreakTotalSec = null
+      state.firstStartedAt = null
       state.warnBase = state.timeLeft
 
       // B60-4：落库失败不再冻结状态机——迁移已生效，仅丢这条记录并留痕
@@ -347,6 +376,7 @@ export function useMultiPomodoroTimer(
           duration: durationSec * 1000,
           taskId: state.currentTaskId,
           taskTitle: task?.title ?? null,
+          startedAt: firstStartedAt,
           taskById: options.taskById
         })
       } catch (error) {
@@ -410,6 +440,8 @@ export function useMultiPomodoroTimer(
     state.justFinishedLongBreak = false
     state.warned = []
     state.warnBase = isFlowtimeWork(state) ? 0 : state.timeLeft
+    // B60-25a：本轮番茄首次开始的真实时刻（跨暂停保留，pause 不清）
+    if (state.firstStartedAt == null) state.firstStartedAt = Date.now()
     state.status = 'running'
     state.startedAt = Date.now()
     state.lastTickAt = Date.now()
@@ -461,6 +493,7 @@ export function useMultiPomodoroTimer(
     state.status = 'idle'
     state.lastTickAt = 0
     state.startedAt = null
+    state.firstStartedAt = null
     state.warned = []
     state.specialBreak = false
     state.specialBreakTotalSec = null
@@ -501,6 +534,7 @@ export function useMultiPomodoroTimer(
     state.status = 'idle'
     state.lastTickAt = 0
     state.startedAt = null
+    state.firstStartedAt = null
     state.warned = []
     if (isFlowtimeWork(state)) {
       state.elapsed = 0
@@ -548,6 +582,7 @@ export function useMultiPomodoroTimer(
     }
     state.mode = mode
     state.warned = []
+    state.firstStartedAt = null
     state.specialBreak = false
     state.specialBreakTotalSec = null
     if (isFlowtimeWork(state)) {

@@ -42,6 +42,8 @@ export interface PomodoroRecord {
   type: 'work' | 'shortBreak' | 'longBreak'
   duration: number
   completedAt: number
+  /** B60-25a：真实开始时刻（缺省退化为 completedAt，兼容旧调用方） */
+  startedAt?: number | undefined
   date: string // YYYY-MM-DD
 }
 
@@ -403,22 +405,40 @@ export class PomodoroRepository {
     const ts = now()
     const id = uuidv4()
     const state = record.type
-    this.db
-      .prepare(
-        `INSERT INTO pom_pomodoros (id, started_at, ended_at, duration_ms, state, task_id, task_title, note, project_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        id,
-        ts,
-        ts,
-        record.duration,
-        state,
-        record.taskId ?? null,
-        record.taskTitle ?? null,
-        null, // note 字段保持为空，用户可以通过 updateRecordNote 添加备注
-        record.projectId ?? null
-      )
+    // B60-25a：优先用调用方给的真实开始时刻（此前 started_at=ended_at=完成时刻，
+    // 详情/导出的「开始时间」全靠 completedAt-duration 反推，skip 场景误差整段）
+    const startedAt =
+      typeof record.startedAt === 'number' &&
+      record.startedAt > 0 &&
+      record.startedAt < ts
+        ? Math.floor(record.startedAt)
+        : ts
+    const tx = this.db.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO pom_pomodoros (id, started_at, ended_at, duration_ms, state, task_id, task_title, note, project_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          id,
+          startedAt,
+          ts,
+          record.duration,
+          state,
+          record.taskId ?? null,
+          record.taskTitle ?? null,
+          null, // note 字段保持为空，用户可以通过 updateRecordNote 添加备注
+          record.projectId ?? null
+        )
+      // B60-10：work 番茄累加任务 actual_ms——此前该列只有 INSERT 的 0，
+      // 「预估偏差」查询 AND actual_ms > 0 恒空集，功能从未活过
+      if (state === 'work' && record.taskId) {
+        this.db
+          .prepare(`UPDATE pom_tasks SET actual_ms = actual_ms + ? WHERE id = ?`)
+          .run(record.duration, record.taskId)
+      }
+    })
+    tx()
     const r: PomodoroRecord = {
       id,
       type: record.type,
@@ -426,6 +446,7 @@ export class PomodoroRepository {
       completedAt: ts,
       date: dateOf(ts)
     }
+    if (startedAt !== ts) r.startedAt = startedAt
     if (record.taskId) r.taskId = record.taskId
     if (record.taskTitle) r.taskTitle = record.taskTitle
     if (record.projectId) r.projectId = record.projectId
@@ -658,10 +679,18 @@ export class PomodoroRepository {
    */
   getDailyTrend(days: number, endDate: number = Date.now()): DailyTrendPoint[] {
     const safeDays = Math.max(1, Math.min(180, Math.floor(days)))
-    const end = new Date(endDate)
-    end.setHours(0, 0, 0, 0)
-    const start = end.getTime() - (safeDays - 1) * 24 * 60 * 60 * 1000
-    const endExclusive = end.getTime() + 24 * 60 * 60 * 1000
+    // B60-25：日历日迭代而非固定 24h 步进——DST 回拨时区里固定步进会让
+    // 本地日期重复/缺席，缺席日的记录被 continue 丢弃
+    const endDay = new Date(endDate)
+    endDay.setHours(0, 0, 0, 0)
+    const dayKeys: string[] = []
+    const cursor = new Date(endDay)
+    for (let i = 0; i < safeDays; i++) {
+      dayKeys.unshift(dateOf(cursor.getTime()))
+      cursor.setDate(cursor.getDate() - 1)
+    }
+    const start = localDayRange(dayKeys[0]!).start
+    const endExclusive = localDayRange(dayKeys[dayKeys.length - 1]!).end
 
     const pomodoroRows = this.db
       .prepare(
@@ -687,10 +716,9 @@ export class PomodoroRepository {
       .all(start, endExclusive) as Array<{ completed_at: number }>
 
     const byDay = new Map<string, DailyTrendPoint>()
-    for (let i = 0; i < safeDays; i++) {
-      const ts = start + i * 24 * 60 * 60 * 1000
-      byDay.set(dateOf(ts), {
-        date: dateOf(ts),
+    for (const key of dayKeys) {
+      byDay.set(key, {
+        date: key,
         workMinutes: 0,
         shortBreakMinutes: 0,
         longBreakMinutes: 0,
@@ -774,10 +802,18 @@ export class PomodoroRepository {
    */
   getFocusHeatmap(days: number, endDate: number = Date.now()): HeatmapCell[] {
     const safeDays = Math.max(1, Math.min(60, Math.floor(days)))
+    // B60-25：与 getDailyTrend 同款日历日迭代（DST 安全）；day = 日序号，
+    // cell.date 带真实日期（前端标签应读 date 而非拿序号当星期）
     const end = new Date(endDate)
     end.setHours(0, 0, 0, 0)
-    const start = end.getTime() - (safeDays - 1) * 24 * 60 * 60 * 1000
-    const endExclusive = end.getTime() + 24 * 60 * 60 * 1000
+    const dayDates: string[] = []
+    const cursor = new Date(end)
+    for (let i = 0; i < safeDays; i++) {
+      dayDates.unshift(dateOf(cursor.getTime()))
+      cursor.setDate(cursor.getDate() - 1)
+    }
+    const start = localDayRange(dayDates[0]!).start
+    const endExclusive = localDayRange(dayDates[dayDates.length - 1]!).end
 
     const rows = this.db
       .prepare(
@@ -790,22 +826,18 @@ export class PomodoroRepository {
 
     const cells: HeatmapCell[] = []
     const map = new Map<string, HeatmapCell>()
-    for (let i = 0; i < safeDays; i++) {
-      const ts = start + i * 24 * 60 * 60 * 1000
-      const date = dateOf(ts)
+    dayDates.forEach((date, i) => {
       for (let h = 0; h < 24; h++) {
         const cell: HeatmapCell = { day: i, hour: h, date, workMinutes: 0 }
         cells.push(cell)
         map.set(`${i}-${h}`, cell)
       }
-    }
+    })
+    const dayIndexByDate = new Map(dayDates.map((d, i) => [d, i]))
     for (const row of rows) {
-      const ts = row.started_at
-      const dayTs = new Date(ts)
-      dayTs.setHours(0, 0, 0, 0)
-      const day = Math.round((dayTs.getTime() - start) / (24 * 60 * 60 * 1000))
-      const hour = new Date(ts).getHours()
-      if (day < 0 || day >= safeDays) continue
+      const hour = new Date(row.started_at).getHours()
+      const day = dayIndexByDate.get(dateOf(row.started_at))
+      if (day === undefined) continue
       const cell = map.get(`${day}-${hour}`)
       if (!cell) continue
       cell.workMinutes += Math.round(row.duration_ms / 60_000)
@@ -823,9 +855,9 @@ export class PomodoroRepository {
     const totalRow = this.db
       .prepare(
         `SELECT COUNT(*) AS n FROM pom_tasks
-         WHERE created_at < ? AND deleted_at IS NULL`
+         WHERE created_at >= ? AND created_at < ? AND deleted_at IS NULL`
       )
-      .get(safeTo) as { n: number }
+      .get(safeFrom, safeTo) as { n: number }
 
     const completedRow = this.db
       .prepare(
@@ -837,7 +869,8 @@ export class PomodoroRepository {
 
     const pomRow = this.db
       .prepare(
-        `SELECT COUNT(*) AS pom_count, COUNT(DISTINCT task_id) AS task_count
+        // B60-19：COUNT(task_id) 不计 NULL——自由番茄此前灌大「每任务平均番茄」
+        `SELECT COUNT(task_id) AS pom_count, COUNT(DISTINCT task_id) AS task_count
          FROM pom_pomodoros
          WHERE state = 'work' AND started_at >= ? AND started_at < ?`
       )

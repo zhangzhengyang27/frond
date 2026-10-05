@@ -128,5 +128,13 @@ export default defineConfig(
       '@typescript-eslint/explicit-function-return-type': 'off'
     }
   },
+  // 移植库（qrcode 插件的 QR 编码器，2026-10-05 抽自 index.html）：ES5 var 语义下
+  // 同函数作用域重声明是合法且刻意的（原生实现依赖提升），no-redeclare 不适用。
+  {
+    files: ['plugins/com.frond.qrcode/lib.js'],
+    rules: {
+      'no-redeclare': 'off'
+    }
+  },
   eslintConfigPrettier
 )

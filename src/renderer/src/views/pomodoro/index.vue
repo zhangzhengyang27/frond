@@ -1,24 +1,14 @@
 <template>
   <div class="zf-root" :data-mode="currentMode">
-    <!-- 氛围光斑（模式驱动，随 data-mode 缓变） -->
     <div class="zf-bg-blob zf-bg-blob--a" aria-hidden="true" />
     <div class="zf-bg-blob zf-bg-blob--b" aria-hidden="true" />
 
-    <!-- ═══ 顶栏：brand · 番茄循环 · 后台项目（一条发丝线） ═══ -->
+    <!-- ═══ 顶栏：brand · 后台项目 · 工具图标排 ═══ -->
     <header class="zf-topbar">
       <div class="zf-topbar-side">
         <span class="zf-brand-dot" aria-hidden="true" />
         <span class="zf-brand-name">ZenFocus</span>
       </div>
-
-      <!-- 模式切换（顶栏中央：唯一的状态控制） -->
-      <ModeSelector
-        :current-mode="currentMode"
-        :switch-locked="strictPauseBlocked"
-        settings-title="番茄钟设置"
-        @switch="switchMode"
-        @open-settings="showSettings = true"
-      />
 
       <div class="zf-topbar-side zf-topbar-side--right">
         <div v-if="backgroundProjects.length" class="zf-bg-chips">
@@ -41,12 +31,91 @@
             全部停止
           </button>
         </div>
+
+        <div class="zf-toolrow">
+          <button
+            ref="specialBreakToggleRef"
+            type="button"
+            class="zf-tool-ic"
+            :class="{ active: isSpecialBreak }"
+            title="特殊休息（午休 / 晚饭，不占番茄循环）"
+            @click="toggleSpecialBreakPop"
+          >
+            <AppIcon icon="ri-restaurant-line" />
+          </button>
+          <button
+            ref="soundscapeToggleRef"
+            type="button"
+            class="zf-tool-ic"
+            :class="{ active: soundscape.current.value !== 'none' }"
+            title="声景白噪音"
+            @click="toggleSoundscapePop"
+          >
+            <AppIcon
+              :icon="soundscape.current.value !== 'none' ? 'ri-music-2-fill' : 'ri-music-line'"
+            />
+          </button>
+          <button
+            type="button"
+            class="zf-tool-ic"
+            :class="{ active: isFlowtime }"
+            :title="isFlowtime ? '切换为倒计时番茄' : '切换为正计时（Flowtime）'"
+            @click="toggleTimerStyle"
+          >
+            <AppIcon :icon="isFlowtime ? 'ri-timer-flash-line' : 'ri-timer-line'" />
+          </button>
+          <button type="button" class="zf-tool-ic" title="迷你窗口" @click="toggleMiniWindow">
+            <AppIcon icon="ri-picture-in-picture-line" />
+          </button>
+          <button
+            type="button"
+            class="zf-tool-ic"
+            :class="{ active: focusModeEnabled }"
+            :title="focusModeEnabled ? '退出专注模式' : '专注模式'"
+            @click="toggleFocusMode"
+          >
+            <AppIcon :icon="focusModeEnabled ? 'ri-moon-fill' : 'ri-moon-line'" />
+          </button>
+          <button type="button" class="zf-tool-ic" title="全屏" @click="toggleFullscreen">
+            <AppIcon icon="ri-fullscreen-line" />
+          </button>
+          <span class="zf-toolrow-divider" />
+          <button type="button" class="zf-tool-ic" title="专注统计" @click="openStats">
+            <AppIcon icon="ri-bar-chart-box-line" />
+          </button>
+        </div>
       </div>
     </header>
 
-    <!-- ═══ 舞台：巨环即页面 ═══ -->
-    <main class="zf-stage">
-      <!-- 浮动提示堆栈 -->
+    <!-- ═══ 单列主内容（Pomofocus 范式：页签→计时器→主按钮→任务） ═══ -->
+    <main class="zf-column">
+      <!-- 1. 模式页签：紧贴计时器上方 -->
+      <ModeSelector
+        :current-mode="currentMode"
+        :switch-locked="strictPauseBlocked"
+        settings-title="番茄钟设置"
+        @switch="switchMode"
+        @open-settings="showSettings = true"
+      />
+
+      <!-- 2. 会话进度：第 N 个番茄 / 本组 M 个 -->
+      <div
+        class="zf-session"
+        :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}（每 ${sessionDots.total} 个番茄进入长休息）`"
+      >
+        <span class="zf-session-count">第 {{ sessionDots.completed + 1 }} 个</span>
+        <span class="zf-session-dots">
+          <span
+            v-for="i in sessionDots.total"
+            :key="i"
+            class="zf-session-dot"
+            :class="{ done: i <= sessionDots.completed, next: i === sessionDots.completed + 1 }"
+          />
+        </span>
+        <span class="zf-session-count zf-session-count--muted">共 {{ sessionDots.total }} 个</span>
+      </div>
+
+      <!-- 浮动提示堆栈（恢复 / 切模式确认 / 严格作废） -->
       <transition name="zf-pop">
         <div v-if="showLongBreakResumeBanner" class="zf-banner">
           <div class="zf-banner-text">
@@ -58,7 +127,6 @@
           </button>
         </div>
       </transition>
-
       <transition name="zf-pop">
         <div v-if="showModeConfirm" class="zf-banner">
           <div class="zf-banner-text">
@@ -75,7 +143,6 @@
           </div>
         </div>
       </transition>
-
       <transition name="zf-pop">
         <div v-if="strictFailHint" class="zf-banner zf-banner--warn">
           <div class="zf-banner-text">
@@ -85,20 +152,7 @@
         </div>
       </transition>
 
-      <!-- 会话语境：循环圆点贴着环（本组第 N 个 / 每 N 个进长休息） -->
-      <div
-        class="zf-session"
-        :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}（每 ${sessionDots.total} 个番茄进入长休息）`"
-      >
-        <span
-          v-for="i in sessionDots.total"
-          :key="i"
-          class="zf-session-dot"
-          :class="{ done: i <= sessionDots.completed, next: i === sessionDots.completed + 1 }"
-        />
-      </div>
-
-      <!-- 巨环 -->
+      <!-- 3. 计时器 -->
       <TimerRing
         :time-left="timeLeft"
         :duration="duration"
@@ -110,201 +164,66 @@
         :flowtime="flowtimeWork"
       />
 
-      <!-- 当下一行：状态 · 任务 · 主控（舞台上的唯一操作行） -->
-      <div v-if="currentTask" class="zf-nowline">
-        <span class="zf-nowline-status" :class="{ live: isRunning }">
+      <!-- 4. 大号主按钮（页面的唯一主动作） -->
+      <div class="zf-cta-row">
+        <button
+          v-if="!isRunning"
+          type="button"
+          class="zf-cta"
+          @click="startTimer"
+        >
+          <AppIcon icon="ri-play-fill" />开始专注
+        </button>
+        <button
+          v-else
+          type="button"
+          class="zf-cta zf-cta--pause"
+          :disabled="strictPauseBlocked"
+          :title="strictPauseBlocked ? '严格模式：不允许暂停' : ''"
+          @click="pauseTimer"
+        >
+          <AppIcon :icon="strictPauseBlocked ? 'ri-lock-line' : 'ri-pause-fill'" />{{
+            strictPauseBlocked ? '严格模式中' : '暂停'
+          }}
+        </button>
+        <button
+          v-if="flowtimeWork && (isRunning || isPaused) && elapsed >= 10"
+          type="button"
+          class="zf-cta zf-cta--ghost"
+          title="结束并记录本次正计时"
+          @click="handleFinishFlowtime"
+        >
+          <AppIcon icon="ri-stop-circle-line" />完成
+        </button>
+      </div>
+
+      <!-- 5. 当前任务卡 -->
+      <section v-if="currentTask" class="zf-current">
+        <span class="zf-current-tag" :class="{ live: isRunning }">
           <span class="zf-blink-dot" />
-          {{ isRunning ? '专注中' : isPaused ? '已暂停' : '待开始' }}
+          {{ isRunning ? '正在专注' : isPaused ? '已暂停' : '待开始' }}
         </span>
-        <h2 class="zf-nowline-title" :title="currentTask.title">{{ currentTask.title }}</h2>
-        <div class="zf-nowline-actions">
-          <button
-            v-if="!isRunning"
-            type="button"
-            class="zf-btn zf-btn--filled zf-btn--hero"
-            @click="startTimer"
-          >
-            <AppIcon icon="ri-play-fill" />开始专注
-          </button>
-          <button
-            v-else
-            type="button"
-            class="zf-btn zf-btn--filled zf-btn--hero"
-            :disabled="strictPauseBlocked"
-            :title="strictPauseBlocked ? '严格模式：不允许暂停' : ''"
-            @click="pauseTimer"
-          >
-            <AppIcon :icon="strictPauseBlocked ? 'ri-lock-line' : 'ri-pause-fill'" />{{
-              strictPauseBlocked ? '严格中' : '暂停'
-            }}
-          </button>
-          <button
-            v-if="flowtimeWork && (isRunning || isPaused) && elapsed >= 10"
-            type="button"
-            class="zf-btn zf-btn--ghost"
-            title="结束并记录本次正计时"
-            @click="handleFinishFlowtime"
-          >
-            <AppIcon icon="ri-stop-circle-line" />完成
-          </button>
-          <button
-            type="button"
-            class="zf-btn zf-btn--icon"
-            title="清除当前任务"
-            @click="handleClearCurrentTask"
-          >
-            <AppIcon icon="ri-close-line" />
-          </button>
-        </div>
-      </div>
-      <div v-else class="zf-nowline zf-nowline--empty">
-        <AppIcon icon="ri-lightbulb-flash-line" />
-        <span v-if="showProjectSelector">从右侧任务列表选一个开始专注</span>
+        <span class="zf-current-title" :title="currentTask.title">{{ currentTask.title }}</span>
+        <span class="zf-current-pomos" title="今日已完成 / 预估番茄">🍅 {{ currentTaskPomos }}</span>
+        <button
+          type="button"
+          class="zf-btn zf-btn--icon"
+          title="清除当前任务"
+          @click="handleClearCurrentTask"
+        >
+          <AppIcon icon="ri-close-line" />
+        </button>
+      </section>
+      <div v-else class="zf-current zf-current--empty">
+        <span v-if="showProjectSelector">在下方任务清单点选一个任务开始</span>
         <span v-else>创建项目并添加任务，即可开始专注</span>
-        <button v-if="showProjectSelector" type="button" class="zf-btn zf-btn--filled" @click="panelOpen = true">
-          选择任务
-        </button>
       </div>
-    </main>
 
-    <!-- ═══ Dock：底部悬浮工具排 ═══ -->
-    <div class="zf-dock-wrap">
-      <!-- 特殊休息时长浮层 -->
-      <transition name="zf-pop">
-        <div
-          v-if="specialBreakOpen"
-          ref="specialBreakPopRef"
-          role="menu"
-          aria-label="特殊休息时长"
-          class="zf-dock-pop"
-        >
-          <div class="zf-sound-grid">
-            <button
-              v-for="m in SPECIAL_BREAK_OPTIONS"
-              :key="m"
-              type="button"
-              class="zf-sound-chip"
-              role="menuitem"
-              @click="handleSpecialBreak(m)"
-            >
-              <AppIcon icon="ri-time-line" />
-              <span>{{ m }} 分钟</span>
-            </button>
-          </div>
-        </div>
-      </transition>
-
-      <!-- 声景选择浮层 -->
-      <transition name="zf-pop">
-        <div
-          v-if="soundscapeOpen"
-          ref="soundscapePopRef"
-          role="menu"
-          aria-label="声景白噪音"
-          class="zf-dock-pop"
-        >
-          <div class="zf-sound-grid">
-            <button
-              v-for="sc in SOUNDSCAPES"
-              :key="sc.id"
-              type="button"
-              class="zf-sound-chip"
-              :class="{ active: soundscape.current.value === sc.id }"
-              role="menuitem"
-              @click="pickSoundscape(sc.id)"
-            >
-              <AppIcon :icon="sc.icon" />
-              <span>{{ sc.label }}</span>
-            </button>
-          </div>
-          <div class="zf-sound-volume">
-            <AppIcon icon="ri-volume-down-line" />
-            <input
-              type="range"
-              min="0"
-              max="100"
-              :value="Math.round(soundscapeVolume * 100)"
-              @input="onSoundscapeVolume"
-            />
-            <AppIcon icon="ri-volume-up-line" />
-          </div>
-        </div>
-      </transition>
-
-      <nav class="zf-dock">
-        <button
-          type="button"
-          class="zf-dock-btn"
-          :class="{ active: panelOpen }"
-          title="任务面板"
-          @click="panelOpen = !panelOpen"
-        >
-          <AppIcon icon="ri-layout-right-2-line" />
-        </button>
-        <button type="button" class="zf-dock-btn" title="专注统计" @click="openStats">
-          <AppIcon icon="ri-bar-chart-box-line" />
-        </button>
-        <span class="zf-dock-divider" />
-        <button type="button" class="zf-dock-btn" title="全屏" @click="toggleFullscreen">
-          <AppIcon icon="ri-fullscreen-line" />
-        </button>
-        <button
-          ref="specialBreakToggleRef"
-          type="button"
-          class="zf-dock-btn"
-          :class="{ active: isSpecialBreak }"
-          title="特殊休息（午休 / 晚饭，不占番茄循环）"
-          @click="toggleSpecialBreakPop"
-        >
-          <AppIcon icon="ri-restaurant-line" />
-        </button>
-        <button
-          ref="soundscapeToggleRef"
-          type="button"
-          class="zf-dock-btn"
-          :class="{ active: soundscape.current.value !== 'none' }"
-          title="声景白噪音"
-          @click="toggleSoundscapePop"
-        >
-          <AppIcon
-            :icon="soundscape.current.value !== 'none' ? 'ri-music-2-fill' : 'ri-music-line'"
-          />
-        </button>
-        <button
-          type="button"
-          class="zf-dock-btn"
-          :class="{ active: isFlowtime }"
-          :title="isFlowtime ? '切换为倒计时番茄' : '切换为正计时（Flowtime）'"
-          @click="toggleTimerStyle"
-        >
-          <AppIcon :icon="isFlowtime ? 'ri-timer-flash-line' : 'ri-timer-line'" />
-        </button>
-        <button type="button" class="zf-dock-btn" title="迷你窗口" @click="toggleMiniWindow">
-          <AppIcon icon="ri-picture-in-picture-line" />
-        </button>
-        <button
-          type="button"
-          class="zf-dock-btn"
-          :class="{ active: focusModeEnabled }"
-          :title="focusModeEnabled ? '退出专注模式' : '专注模式'"
-          @click="toggleFocusMode"
-        >
-          <AppIcon :icon="focusModeEnabled ? 'ri-moon-fill' : 'ri-moon-line'" />
-        </button>
-      </nav>
-    </div>
-
-    <!-- ═══ 任务面板：右侧滑出（按需） ═══ -->
-    <transition name="zf-flyout">
-      <aside v-if="panelOpen" class="zf-flyout">
-        <div class="zf-flyout-head">
-          <div class="zf-avatar">
-            <AppIcon icon="ri-user-smile-line" />
-          </div>
-          <div class="zf-greeting">
-            <span class="zf-greeting-title">今天也要加油</span>
-            <span class="zf-greeting-sub">已完成 {{ statistics.today.work }} 个番茄钟</span>
-          </div>
+      <!-- 6. 任务清单（同列下方，Pomofocus 式） -->
+      <section class="zf-tasks">
+        <header class="zf-tasks-head">
+          <h4 class="zf-tasks-title">任务清单</h4>
+          <span class="zf-tasks-meta">{{ focusedTasks.length }} 个</span>
           <button
             type="button"
             class="zf-new-task-compact"
@@ -312,55 +231,85 @@
             @click="openCreateDialog"
           >
             <AppIcon icon="ri-add-line" />
-            <span>新建</span>
+            <span>新建任务</span>
           </button>
-          <button type="button" class="zf-btn zf-btn--icon" title="关闭面板" @click="panelOpen = false">
-            <AppIcon icon="ri-close-line" />
+        </header>
+        <TaskListPanel
+          :tasks="focusedTasks"
+          :projects="projects"
+          :current-task-id="currentTaskId"
+          :work-duration="effective.workDuration"
+          @select="handleSelectTask"
+          @start="handleStartTask"
+          @complete="handleCompleteTask"
+          @edit="handleEditTask"
+          @open-detail="handleOpenTaskDetail"
+          @delete="handleDeleteTask"
+        />
+      </section>
+    </main>
+
+    <!-- Dock 弹层改挂顶栏工具（特殊休息 / 声景） -->
+    <transition name="zf-pop">
+      <div
+        v-if="specialBreakOpen"
+        ref="specialBreakPopRef"
+        role="menu"
+        aria-label="特殊休息时长"
+        class="zf-tool-pop"
+      >
+        <div class="zf-sound-grid">
+          <button
+            v-for="m in SPECIAL_BREAK_OPTIONS"
+            :key="m"
+            type="button"
+            class="zf-sound-chip"
+            role="menuitem"
+            @click="handleSpecialBreak(m)"
+          >
+            <AppIcon icon="ri-time-line" />
+            <span>{{ m }} 分钟</span>
           </button>
         </div>
-
-        <div class="zf-flyout-scroll">
-          <TodayStatsBar
-            :work-count="statistics.today.work"
-            :work-duration="effective.workDuration"
-            :streak="store.streak"
-          />
-          <FocusAssets class="zf-streak" />
-          <TaskListPanel
-            :tasks="focusedTasks"
-            :projects="projects"
-            :current-task-id="currentTaskId"
-            :work-duration="effective.workDuration"
-            @select="handleSelectTask"
-            @start="handleStartTask"
-            @complete="handleCompleteTask"
-            @edit="handleEditTask"
-            @open-detail="handleOpenTaskDetail"
-            @delete="handleDeleteTask"
-          />
-          <FocusRecordPanel :records="todayRecords" />
+      </div>
+    </transition>
+    <transition name="zf-pop">
+      <div
+        v-if="soundscapeOpen"
+        ref="soundscapePopRef"
+        role="menu"
+        aria-label="声景白噪音"
+        class="zf-tool-pop"
+      >
+        <div class="zf-sound-grid">
+          <button
+            v-for="sc in SOUNDSCAPES"
+            :key="sc.id"
+            type="button"
+            class="zf-sound-chip"
+            :class="{ active: soundscape.current.value === sc.id }"
+            role="menuitem"
+            @click="pickSoundscape(sc.id)"
+          >
+            <AppIcon :icon="sc.icon" />
+            <span>{{ sc.label }}</span>
+          </button>
         </div>
-
-        <div class="zf-flyout-foot">
-          <div class="zf-progress">
-            <div class="zf-progress-meta">
-              <span>今日进度</span>
-              <span class="zf-progress-num"
-                >{{ Math.min(100, Math.round((statistics.today.work / 8) * 100)) }}%</span
-              >
-            </div>
-            <div class="zf-progress-track">
-              <div
-                class="zf-progress-fill"
-                :style="{ width: Math.min(100, (statistics.today.work / 8) * 100) + '%' }"
-              />
-            </div>
-          </div>
+        <div class="zf-sound-volume">
+          <AppIcon icon="ri-volume-down-line" />
+          <input
+            type="range"
+            min="0"
+            max="100"
+            :value="Math.round(soundscapeVolume * 100)"
+            @input="onSoundscapeVolume"
+          />
+          <AppIcon icon="ri-volume-up-line" />
         </div>
-      </aside>
+      </div>
     </transition>
 
-    <!-- ═══ 统计：全屏报告层 ═══ -->
+    <!-- ═══ 统计全屏报告层（今日速览 + 图表 + 记录） ═══ -->
     <transition name="zf-fade">
       <div v-if="statsOverlay" class="zf-stats-overlay">
         <header class="zf-stats-head">
@@ -370,7 +319,14 @@
           </button>
         </header>
         <div class="zf-stats-body">
+          <TodayStatsBar
+            :work-count="statistics.today.work"
+            :work-duration="effective.workDuration"
+            :streak="store.streak"
+          />
+          <FocusAssets class="zf-streak" />
           <StatisticsPanel />
+          <FocusRecordPanel :records="todayRecords" />
         </div>
       </div>
     </transition>
@@ -497,15 +453,21 @@ const focusedTasks = computed(() => {
 const showSettings = ref(false)
 // 新建任务弹窗开关（true 时显示创建弹窗）
 const creatingTask = ref(false)
-// B61 结构重构：拆掉常驻侧栏——任务面板按需滑出，统计升级为全屏报告层
-const panelOpen = ref(false)
+// B61v3：单列布局——任务清单内联主列，统计全屏报告层
 const statsOverlay = ref(false)
 
-// 番茄循环进度（顶栏圆点）：本组已完成 N / 每 interval 个进长休息
+// 番茄循环进度：本组已完成 N / 每 interval 个进长休息
 const sessionDots = computed(() => {
   const interval = Math.max(2, effective.value.longBreakInterval)
   const completed = focusedTimerState.value?.consecutiveCount ?? 0
   return { total: interval, completed: completed % interval }
+})
+
+// 当前任务今日完成的番茄数（当前任务卡的 🍅 N/M）
+const currentTaskPomos = computed(() => {
+  if (!currentTaskId.value) return 0
+  return todayRecords.value.filter((r) => r.type === 'work' && r.taskId === currentTaskId.value)
+    .length
 })
 
 // 模式切换确认弹窗
@@ -623,18 +585,13 @@ function stopAllTimers(): void {
 // B61：统计全屏层——进入时预载周数据
 async function openStats(): Promise<void> {
   statsOverlay.value = true
-  panelOpen.value = false
   await store.loadStats('week')
 }
 
-// Esc：统计层 → 关层；任务面板 → 收起（统计层优先）
+// Esc：关闭统计层
 function onGlobalKey(e: KeyboardEvent): void {
   if (e.key !== 'Escape') return
-  if (statsOverlay.value) {
-    statsOverlay.value = false
-  } else if (panelOpen.value) {
-    panelOpen.value = false
-  }
+  if (statsOverlay.value) statsOverlay.value = false
 }
 
 function toggleFullscreen(): void {
@@ -912,10 +869,9 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ═══ B61 结构重构 · 「舞台式」═══
-   巨环独占全屏 = 唯一主角；工具收进底部 Dock；任务面板按需滑出；
-   统计全屏报告层。层级：氛围光斑(0) < 舞台(1) < 顶栏/Dock(20/30)
-   < 面板(40) < 统计层(50) < 弹窗(1000, UModal teleport)。 */
+/* ═══ B61v3 · 单列范式（Pomofocus 验证过的布局语言）═══
+   模式页签 → 会话进度 → 巨环 → 大号主按钮 → 当前任务卡 → 任务清单，
+   全部在一条 max-width 560 的居中列里。工具收顶栏，统计全屏。 */
 .zf-root {
   position: relative;
   height: 100%;
@@ -949,7 +905,7 @@ onBeforeUnmount(() => {
   --pomo-mode-glow: var(--pomo-long-glow);
 }
 
-/* ─── 氛围光斑（收在画布内） ─── */
+/* ─── 氛围光斑 ─── */
 .zf-bg-blob {
   position: absolute;
   border-radius: 50%;
@@ -977,13 +933,13 @@ onBeforeUnmount(() => {
   opacity: 0.32;
 }
 
-/* ─── 顶栏：一条发丝线 ─── */
+/* ─── 顶栏 ─── */
 .zf-topbar {
   position: relative;
   z-index: 20;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--pomo-surface-border);
@@ -998,6 +954,7 @@ onBeforeUnmount(() => {
 
 .zf-topbar-side--right {
   justify-content: flex-end;
+  flex-wrap: wrap;
 }
 
 .zf-brand-dot {
@@ -1016,7 +973,7 @@ onBeforeUnmount(() => {
   color: var(--pomo-text-muted);
 }
 
-/* 后台项目 chips（顶栏右侧，只有活跃时出现） */
+/* 后台项目 chips */
 .zf-bg-chips {
   display: flex;
   align-items: center;
@@ -1073,302 +1030,53 @@ onBeforeUnmount(() => {
   background: rgba(255, 59, 48, 0.06);
 }
 
-/* ─── 舞台：巨环即页面 ─── */
-.zf-stage {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: safe center;
-  gap: 26px;
-  padding: 24px 32px 96px; /* 底部给 Dock 留位 */
-  min-width: 0;
-  overflow-y: auto;
-}
-
-/* 会话圆点：环的正上方，本组循环进度 */
-.zf-session {
+/* 顶栏工具图标排 */
+.zf-toolrow {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.zf-session-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--pomo-outline-variant);
-  transition: background 0.4s, box-shadow 0.4s, transform 0.4s;
-}
-
-.zf-session-dot.done {
-  background: var(--pomo-mode);
-}
-
-.zf-session-dot.next {
-  background: var(--pomo-mode-soft);
-  box-shadow: inset 0 0 0 1.5px var(--pomo-mode);
-  transform: scale(1.15);
-}
-
-/* ─── 浮动提示堆栈（横幅） ─── */
-.zf-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: min(440px, 90%);
-  padding: 12px 18px;
-  background: var(--pomo-surface);
-  border: 1px solid var(--pomo-surface-border);
-  border-radius: 14px;
-  box-shadow: var(--pomo-shadow-elevated);
-}
-
-.zf-banner--warn {
-  border-color: rgba(255, 159, 10, 0.35);
-  background: rgba(255, 159, 10, 0.07);
-}
-
-.zf-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.zf-banner-text {
-  display: flex;
-  flex-direction: column;
   gap: 2px;
 }
 
-.zf-banner-text strong {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--pomo-text-strong);
-}
-
-.zf-banner-text span {
-  font-size: 12px;
-  color: var(--pomo-text-muted);
-}
-
-/* ─── 当下一行：状态 · 任务 · 主控 ─── */
-.zf-nowline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: min(560px, 92%);
-}
-
-.zf-nowline-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 11px;
-  background: var(--pomo-surface-container);
-  border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--pomo-text-muted);
-  flex-shrink: 0;
-  transition: background 0.8s ease, color 0.8s ease;
-}
-
-.zf-nowline-status.live {
-  background: var(--pomo-mode-soft);
-  color: var(--pomo-mode);
-}
-
-.zf-blink-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--pomo-text-muted);
-}
-
-.zf-nowline-status.live .zf-blink-dot {
-  background: var(--pomo-mode);
-  animation: zf-blink 1.6s infinite both;
-}
-
-.zf-nowline-title {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 14.5px;
-  font-weight: 550;
-  color: var(--pomo-text-strong);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.zf-nowline-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.zf-nowline--empty {
-  justify-content: center;
-  gap: 10px;
-  padding: 12px 20px;
-  border: 1px dashed var(--pomo-outline-variant);
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--pomo-text-muted);
-}
-
-.zf-nowline--empty i {
-  font-size: 17px;
-  color: var(--pomo-mode);
-}
-
-/* ─── Buttons ─── */
-.zf-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition:
-    transform 0.15s,
-    box-shadow 0.2s,
-    opacity 0.15s,
-    background 0.3s;
-}
-
-.zf-btn--filled {
-  padding: 8px 18px;
-  background: var(--pomo-mode);
-  color: var(--pomo-on-accent);
-  border-radius: 999px;
-  font-size: 13px;
-  box-shadow: 0 4px 14px var(--pomo-mode-glow);
-}
-
-.zf-btn--hero {
-  padding: 10px 24px;
-  font-size: 14px;
-}
-
-.zf-btn--filled:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px var(--pomo-mode-glow);
-  opacity: 0.94;
-}
-
-.zf-btn--filled:active {
-  transform: translateY(0) scale(0.98);
-}
-
-.zf-btn--filled:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.zf-btn--ghost {
-  padding: 8px 16px;
-  background: transparent;
-  color: var(--pomo-text-soft);
-  border: 1px solid var(--pomo-outline-variant);
-  border-radius: 999px;
-  font-size: 13px;
-}
-
-.zf-btn--ghost:hover {
-  background: var(--pomo-surface-container);
-  color: var(--pomo-text-strong);
-}
-
-.zf-btn--icon {
+.zf-tool-ic {
   width: 32px;
   height: 32px;
-  padding: 0;
-  justify-content: center;
-  background: transparent;
-  color: var(--pomo-text-muted);
-  border-radius: 50%;
-  font-size: 15px;
-}
-
-.zf-btn--icon:hover {
-  background: var(--pomo-surface-container);
-  color: var(--pomo-text-strong);
-}
-
-/* ─── Dock：底部悬浮工具排（真悬浮层，吃 surface 卡质感） ─── */
-.zf-dock-wrap {
-  position: absolute;
-  left: 50%;
-  bottom: 20px;
-  z-index: 30;
-  transform: translateX(-50%);
-}
-
-.zf-dock {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 10px;
-  background: var(--pomo-glass-bg-elevated);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--pomo-glass-border-elevated);
-  border-radius: 16px;
-  box-shadow: var(--pomo-shadow-elevated);
-}
-
-.zf-dock-btn {
-  width: 38px;
-  height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: none;
   background: transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 17px;
+  font-size: 16px;
   color: var(--pomo-text-muted);
   transition:
     background 0.2s,
-    color 0.2s,
-    transform 0.15s;
+    color 0.2s;
 }
 
-.zf-dock-btn:hover {
+.zf-tool-ic:hover {
   background: var(--pomo-surface-container);
   color: var(--pomo-text-strong);
-  transform: translateY(-2px);
 }
 
-.zf-dock-btn.active {
+.zf-tool-ic.active {
   background: var(--pomo-mode-soft);
   color: var(--pomo-mode);
 }
 
-.zf-dock-divider {
+.zf-toolrow-divider {
   width: 1px;
-  height: 20px;
+  height: 18px;
   background: var(--pomo-outline-variant);
-  margin: 0 5px;
+  margin: 0 6px;
 }
 
-/* Dock 弹层（特殊休息 / 声景）：锚在 Dock 正上方 */
-.zf-dock-pop {
-  position: absolute;
-  bottom: calc(100% + 12px);
-  left: 50%;
-  z-index: 35;
-  transform: translateX(-50%);
+/* 顶栏弹层（特殊休息 / 声景）：挂顶栏右缘下方 */
+.zf-tool-pop {
+  position: fixed;
+  top: 52px;
+  right: 20px;
+  z-index: 45;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1429,8 +1137,345 @@ onBeforeUnmount(() => {
   accent-color: var(--pomo-work);
 }
 
-/* 新建任务紧凑按钮（面板头部） */
+/* ─── 单列主内容 ─── */
+.zf-column {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+}
+
+.zf-column::-webkit-scrollbar {
+  width: 5px;
+}
+
+.zf-column::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zf-column::-webkit-scrollbar-thumb {
+  background: var(--pomo-outline-variant);
+  border-radius: 3px;
+}
+
+/* 会话进度：第 N 个 · 圆点 · 共 M 个 */
+.zf-session {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zf-session-count {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pomo-mode);
+  transition: color 0.8s ease;
+}
+
+.zf-session-count--muted {
+  color: var(--pomo-text-faint);
+  font-weight: 500;
+}
+
+.zf-session-dots {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.zf-session-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pomo-outline-variant);
+  transition: background 0.4s, box-shadow 0.4s, transform 0.4s;
+}
+
+.zf-session-dot.done {
+  background: var(--pomo-mode);
+}
+
+.zf-session-dot.next {
+  background: var(--pomo-mode-soft);
+  box-shadow: inset 0 0 0 1.5px var(--pomo-mode);
+  transform: scale(1.15);
+}
+
+/* ─── 浮动提示横幅 ─── */
+.zf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 12px 18px;
+  background: var(--pomo-surface);
+  border: 1px solid var(--pomo-surface-border);
+  border-radius: 14px;
+  box-shadow: var(--pomo-shadow-elevated);
+}
+
+.zf-banner--warn {
+  border-color: rgba(255, 159, 10, 0.35);
+  background: rgba(255, 159, 10, 0.07);
+}
+
+.zf-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zf-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zf-banner-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pomo-text-strong);
+}
+
+.zf-banner-text span {
+  font-size: 12px;
+  color: var(--pomo-text-muted);
+}
+
+/* ─── 大号主按钮：页面的唯一主动作 ─── */
+.zf-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.zf-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 200px;
+  padding: 13px 34px;
+  border: none;
+  border-radius: 999px;
+  background: var(--pomo-mode);
+  color: var(--pomo-on-accent);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 6px 22px var(--pomo-mode-glow);
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s,
+    opacity 0.15s,
+    background 0.3s;
+}
+
+.zf-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px var(--pomo-mode-glow);
+  opacity: 0.96;
+}
+
+.zf-cta:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 暂停态：中性灰——与运行态的模式色形成状态对比 */
+.zf-cta--pause {
+  background: var(--pomo-paused);
+  box-shadow: none;
+}
+
+.zf-cta--pause:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.zf-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.zf-cta--ghost {
+  min-width: 0;
+  background: transparent;
+  color: var(--pomo-text-soft);
+  border: 1px solid var(--pomo-outline-variant);
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 22px;
+}
+
+.zf-cta--ghost:hover {
+  background: var(--pomo-surface-container);
+  color: var(--pomo-text-strong);
+  box-shadow: none;
+}
+
+.zf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s,
+    opacity 0.15s,
+    background 0.3s;
+}
+
+.zf-btn--filled {
+  padding: 8px 18px;
+  background: var(--pomo-mode);
+  color: var(--pomo-on-accent);
+  border-radius: 999px;
+  font-size: 13px;
+  box-shadow: 0 4px 14px var(--pomo-mode-glow);
+}
+
+.zf-btn--filled:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--pomo-mode-glow);
+  opacity: 0.94;
+}
+
+.zf-btn--filled:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.zf-btn--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  background: transparent;
+  color: var(--pomo-text-muted);
+  border-radius: 50%;
+  font-size: 15px;
+}
+
+.zf-btn--icon:hover {
+  background: var(--pomo-surface-container);
+  color: var(--pomo-text-strong);
+}
+
+/* ─── 当前任务卡 ─── */
+.zf-current {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--pomo-surface);
+  border: 1px solid var(--pomo-surface-border);
+  border-left: 3px solid var(--pomo-mode);
+  border-radius: 12px;
+  box-shadow: var(--pomo-shadow-card);
+  transition: border-color 0.8s ease;
+}
+
+.zf-current--empty {
+  justify-content: center;
+  border-left: 1px solid var(--pomo-surface-border);
+  border-style: dashed;
+  box-shadow: none;
+  font-size: 13px;
+  color: var(--pomo-text-muted);
+}
+
+.zf-current-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  background: var(--pomo-surface-container);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pomo-text-muted);
+  flex-shrink: 0;
+  transition: background 0.8s ease, color 0.8s ease;
+}
+
+.zf-current-tag.live {
+  background: var(--pomo-mode-soft);
+  color: var(--pomo-mode);
+}
+
+.zf-blink-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--pomo-text-muted);
+}
+
+.zf-current-tag.live .zf-blink-dot {
+  background: var(--pomo-mode);
+  animation: zf-blink 1.6s infinite both;
+}
+
+.zf-current-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--pomo-text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zf-current-pomos {
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--pomo-text-muted);
+  flex-shrink: 0;
+}
+
+/* ─── 任务清单（同列下方） ─── */
+.zf-tasks {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.zf-tasks-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zf-tasks-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--pomo-text-strong);
+}
+
+.zf-tasks-meta {
+  font-size: 12px;
+  color: var(--pomo-text-faint);
+}
+
 .zf-new-task-compact {
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -1460,139 +1505,6 @@ onBeforeUnmount(() => {
 
 .zf-new-task-compact:active {
   transform: translateY(0) scale(0.97);
-}
-
-/* ─── 任务面板：右侧滑出（按需） ─── */
-.zf-flyout {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(380px, 92vw);
-  padding: 18px 18px 14px;
-  background: var(--pomo-surface);
-  border-left: 1px solid var(--pomo-surface-border);
-  box-shadow: var(--pomo-shadow-elevated);
-}
-
-.zf-flyout-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.zf-avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--pomo-mode-soft);
-  color: var(--pomo-mode);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  transition: background 0.8s ease, color 0.8s ease;
-  flex-shrink: 0;
-}
-
-.zf-greeting {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex: 1;
-  min-width: 0;
-}
-
-.zf-greeting-title {
-  font-size: 14px;
-  font-weight: 650;
-  color: var(--pomo-text-strong);
-}
-
-.zf-greeting-sub {
-  font-size: 11.5px;
-  color: var(--pomo-text-muted);
-}
-
-.zf-flyout-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  padding-right: 4px;
-}
-
-.zf-flyout-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-
-.zf-flyout-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.zf-flyout-scroll::-webkit-scrollbar-thumb {
-  background: var(--pomo-outline-variant);
-  border-radius: 3px;
-}
-
-.zf-flyout-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--pomo-outline);
-}
-
-.zf-streak {
-  margin-bottom: -4px;
-}
-
-.zf-flyout-foot {
-  flex-shrink: 0;
-}
-
-/* ─── 今日进度（面板底） ─── */
-.zf-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding-top: 12px;
-  border-top: 1px solid var(--pomo-surface-border);
-}
-
-.zf-progress-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pomo-text-muted);
-}
-
-.zf-progress-num {
-  font-variant-numeric: tabular-nums;
-  color: var(--pomo-mode);
-  font-weight: 650;
-  transition: color 0.8s ease;
-}
-
-.zf-progress-track {
-  height: 4px;
-  border-radius: 2px;
-  background: var(--pomo-surface-container);
-  overflow: hidden;
-}
-
-.zf-progress-fill {
-  height: 100%;
-  border-radius: 2px;
-  background: var(--pomo-mode);
-  transition:
-    width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    background 0.8s ease;
 }
 
 /* ─── 统计全屏报告层 ─── */
@@ -1628,7 +1540,23 @@ onBeforeUnmount(() => {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   padding-top: 16px;
+}
+
+.zf-stats-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.zf-stats-body::-webkit-scrollbar-thumb {
+  background: var(--pomo-outline-variant);
+  border-radius: 3px;
+}
+
+.zf-streak {
+  margin-bottom: -4px;
 }
 
 /* ─── Keyframes & Transitions ─── */
@@ -1653,16 +1581,6 @@ onBeforeUnmount(() => {
 .zf-pop-leave-to {
   opacity: 0;
   transform: translateY(-8px) scale(0.98);
-}
-
-.zf-flyout-enter-active,
-.zf-flyout-leave-active {
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.zf-flyout-enter-from,
-.zf-flyout-leave-to {
-  transform: translateX(100%);
 }
 
 .zf-fade-enter-active,

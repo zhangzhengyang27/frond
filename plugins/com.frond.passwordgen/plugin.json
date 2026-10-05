@@ -1,7 +1,7 @@
 {
   "id": "com.frond.passwordgen",
   "name": "密码生成器",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "生成安全随机密码：可配置长度、大小写/数字/符号，支持批量生成，一键复制",
   "author": "Frond",
   "main": "index.html",
@@ -18,7 +18,14 @@
       "label": "密码长度",
       "type": "select",
       "default": "16",
-      "options": ["8", "12", "16", "20", "24", "32"]
+      "options": [
+        "8",
+        "12",
+        "16",
+        "20",
+        "24",
+        "32"
+      ]
     },
     {
       "name": "uppercase",
@@ -49,8 +56,14 @@
       "label": "生成数量",
       "type": "select",
       "default": "1",
-      "options": ["1", "5", "10"]
+      "options": [
+        "1",
+        "5",
+        "10"
+      ]
     }
   ],
-  "permissions": []
+  "permissions": [
+    "clipboard.write"
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "id": "com.frond.uuid",
   "name": "UUID 生成器",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "生成 UUID v4：支持批量生成、大写/小写、无连字符格式，一键复制",
   "author": "Frond",
   "main": "index.html",
@@ -18,15 +18,26 @@
       "label": "生成数量",
       "type": "select",
       "default": "1",
-      "options": ["1", "5", "10", "20"]
+      "options": [
+        "1",
+        "5",
+        "10",
+        "20"
+      ]
     },
     {
       "name": "format",
       "label": "格式",
       "type": "select",
       "default": "lowercase",
-      "options": ["lowercase", "uppercase", "nohyphen"]
+      "options": [
+        "lowercase",
+        "uppercase",
+        "nohyphen"
+      ]
     }
   ],
-  "permissions": []
+  "permissions": [
+    "clipboard.write"
+  ]
 }

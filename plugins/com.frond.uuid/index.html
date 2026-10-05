@@ -5,119 +5,79 @@
     <title>UUID 生成器</title>
   </head>
   <body>
+    <script src="lib.js"></script>
     <script>
       var api = window.launcherApi
+      var Lib = window.FrondUuidLib
+      var lastResults = []
+      var lastCount = 5
 
       api.onEnter(function () {
-        api.setSubInput('回车生成 UUID，或输入数量…')
-        generate()
+        api.setSubInput('输入数量（默认 5）…')
+        api.renderList(buildItems(), { id: 'root' })
       })
 
       api.onSubInputChange(function (data) {
-        var text = data && typeof data.text === 'string' ? data.text : ''
-        var n = parseInt(text, 10)
-        if (!isNaN(n) && n > 0) {
-          generate(n)
-        } else {
-          generate()
-        }
+        var n = parseInt((data && data.text) || '', 10)
+        lastCount = isNaN(n) ? 5 : Math.max(1, Math.min(100, n))
+        api.renderList(buildItems(), { id: 'root' })
       })
 
-      function uuidv4() {
-        // 使用 crypto.getRandomValues 生成高质量随机 UUID
-        if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-          var bytes = new Uint8Array(16)
-          crypto.getRandomValues(bytes)
-          bytes[6] = (bytes[6] & 0x0f) | 0x40
-          bytes[8] = (bytes[8] & 0x3f) | 0x80
-          var hex = []
-          for (var i = 0; i < 16; i++) {
-            hex.push(bytes[i].toString(16).padStart(2, '0'))
+      function buildItems() {
+        var v4s = Lib.generate(lastCount, 'std')
+        var v7 = Lib.uuidv7()
+        lastResults = v4s.concat([v7], v4s.map(function (u) { return Lib.formatUuid(u, 'upper') }))
+        var items = v4s.map(function (u, i) {
+          return {
+            title: u,
+            subtitle: 'UUID v4（随机）',
+            icon: 'fingerprint-line',
+            actions: [{ label: '复制', type: 'callback', payload: 'copy:' + i, hint: '↵' }]
           }
-          return (
-            hex[0] +
-            hex[1] +
-            hex[2] +
-            hex[3] +
-            '-' +
-            hex[4] +
-            hex[5] +
-            '-' +
-            hex[6] +
-            hex[7] +
-            '-' +
-            hex[8] +
-            hex[9] +
-            '-' +
-            hex[10] +
-            hex[11] +
-            hex[12] +
-            hex[13] +
-            hex[14] +
-            hex[15]
+        })
+        items.push({
+          title: v7,
+          subtitle: 'UUID v7（时间有序，RFC 9562）',
+          icon: 'time-line',
+          actions: [{ label: '复制', type: 'callback', payload: 'copy:' + v4s.length, hint: '↵' }]
+        })
+        items.push({
+          title: '切换格式：大写 / 无连字符 / URN',
+          subtitle: '对上方 ' + v4s.length + ' 条 v4 追加变体条目',
+          icon: 'exchange-line',
+          actions: [
+            { label: '大写变体', type: 'callback', payload: 'fmt:upper' },
+            { label: '无连字符变体', type: 'callback', payload: 'fmt:compact' },
+            { label: 'URN 变体', type: 'callback', payload: 'fmt:urn' }
+          ]
+        })
+        return items
+      }
+
+      api.onAction(function (data) {
+        var p = data && data.action && typeof data.action.payload === 'string' ? data.action.payload : ''
+        if (p.indexOf('copy:') === 0) {
+          var idx = Number(p.slice(5))
+          var content = lastResults[idx]
+          if (typeof content !== 'string') return
+          api.copyText(content).then(function () { api.showHud('已复制') }).catch(function () {})
+        } else if (p.indexOf('fmt:') === 0) {
+          var fmt = p.slice(4)
+          var v4s = lastResults.slice(0, lastCount)
+          var variants = v4s.map(function (u) { return Lib.formatUuid(u, fmt) })
+          lastResults = lastResults.concat(variants)
+          api.renderList(
+            variants.map(function (u, i) {
+              return {
+                title: u,
+                subtitle: 'UUID v4 · ' + fmt,
+                icon: 'fingerprint-line',
+                actions: [{ label: '复制', type: 'callback', payload: 'copy:' + (lastCount + 1 + i), hint: '↵' }]
+              }
+            }),
+            { id: 'root' }
           )
         }
-        // 降级：Math.random
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-          var r = (Math.random() * 16) | 0
-          var v = c === 'x' ? r : (r & 0x3) | 0x8
-          return v.toString(16)
-        })
-      }
-
-      function formatUuid(uuid, format) {
-        if (format === 'uppercase') return uuid.toUpperCase()
-        if (format === 'nohyphen') return uuid.replace(/-/g, '')
-        return uuid
-      }
-
-      function generate(overrideCount) {
-        Promise.all([api.preferences.get('count'), api.preferences.get('format')]).then(
-          function (results) {
-            var countPref = results[0] && results[0].ok && results[0].value ? results[0].value : '1'
-            var formatPref =
-              results[1] && results[1].ok && results[1].value ? results[1].value : 'lowercase'
-            var count = overrideCount || parseInt(countPref, 10) || 1
-            count = Math.min(Math.max(count, 1), 50)
-
-            var uuids = []
-            for (var i = 0; i < count; i++) {
-              uuids.push(formatUuid(uuidv4(), formatPref))
-            }
-
-            var items = uuids.map(function (uuid, idx) {
-              return {
-                title: uuid,
-                subtitle: count > 1 ? '第 ' + (idx + 1) + ' 个' : 'UUID v4',
-                icon: 'fingerprint-line',
-                accessories: [formatPref],
-                detail:
-                  '**' + uuid + '**\n\n- 版本: UUID v4\n- 格式: ' + formatPref + '\n- 回车复制',
-                detailFormat: 'markdown',
-                actions: [
-                  { label: '复制', type: 'copy', payload: uuid, hint: '↵' },
-                  count > 1
-                    ? { label: '复制全部', type: 'copy', payload: uuids.join('\n'), hint: '⌘1' }
-                    : { label: '重新生成', type: 'callback', hint: '⌘1' }
-                ]
-              }
-            })
-
-            // 添加"重新生成"条目
-            items.push({
-              title: '重新生成',
-              subtitle: '生成新的 ' + count + ' 个 UUID',
-              icon: 'refresh-line',
-              actions: [{ label: '重新生成', type: 'callback', hint: '↵' }]
-            })
-
-            api.renderList(items)
-          }
-        )
-      }
-
-      api.onAction(function () {
-        generate()
       })
     </script>
   </body>

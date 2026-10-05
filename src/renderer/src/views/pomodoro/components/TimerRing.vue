@@ -72,7 +72,8 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
 .ring-wrap {
   position: relative;
   /* B61 舞台式：环即页面主角 */
-  width: min(56vh, 440px);
+  /* B61v3：环固定尺寸——不随窗口高度膨胀（vh 联动会让高窗口里环失控变大） */
+  width: 360px;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -160,7 +161,7 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
 
 /* B61：时间即主角——超大细体，tabular 防跳动 */
 .time {
-  font-size: clamp(48px, 11vh, 92px);
+  font-size: 72px;
   font-weight: 250;
   letter-spacing: -0.03em;
   line-height: 1;

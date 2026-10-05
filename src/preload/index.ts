@@ -206,7 +206,15 @@ const api = {
     importFile: () => typedInvoke('snippet:importFile'),
     /** B58：查询与该触发词冲突的其它片段（编辑器实时提示用） */
     findTriggerConflict: (trigger: string, excludeId: string) =>
-      typedInvoke('snippet:findTriggerConflict', { trigger, excludeId })
+      typedInvoke('snippet:findTriggerConflict', { trigger, excludeId }),
+    /** B58 批C：胶囊轻路径索引（不解密 contents） */
+    getIndex: () => typedInvoke('snippet:getIndex'),
+    /** B58 批C：复制指定块并粘贴到前台应用（⇧↵；无授权退化为仅复制） */
+    pasteToForeground: (id: string, blockIndex?: number) =>
+      typedInvoke('snippet:pasteToForeground', {
+        id,
+        ...(blockIndex != null ? { blockIndex } : {})
+      })
   },
   // 标签相关 API
   tag: {

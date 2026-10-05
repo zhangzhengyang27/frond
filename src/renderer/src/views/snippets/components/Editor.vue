@@ -41,6 +41,13 @@ import 'codemirror/mode/markdown/markdown'
 import 'codemirror/mode/sql/sql'
 import 'codemirror/mode/shell/shell'
 import 'codemirror/mode/yaml/yaml'
+// B58 批C：语言清单扩充（clike 覆盖 java/c/cpp/kotlin）
+import 'codemirror/mode/clike/clike'
+import 'codemirror/mode/go/go'
+import 'codemirror/mode/rust/rust'
+import 'codemirror/mode/swift/swift'
+import 'codemirror/mode/ruby/ruby'
+import 'codemirror/mode/php/php'
 import { SNIPPET_LANGUAGES } from '@shared/snippetLanguages'
 
 interface Props {
@@ -160,6 +167,15 @@ function getLanguageMode(language: string): string {
     javascript: 'javascript',
     typescript: 'javascript', // TypeScript 使用 JavaScript 模式
     python: 'python',
+    java: 'text/x-java', // clike
+    go: 'go',
+    rust: 'rust',
+    c: 'text/x-csrc', // clike
+    cpp: 'text/x-c++src', // clike
+    kotlin: 'text/x-kotlin', // clike
+    swift: 'swift',
+    ruby: 'ruby',
+    php: 'php',
     html: 'htmlmixed', // HTML 需要使用 htmlmixed 模式
     css: 'css',
     scss: 'css',

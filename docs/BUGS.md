@@ -1267,15 +1267,29 @@ claimRecordingStart 原子防重入闸、combineEpoch 代际号防 rAF 复活、
   5 处死变量（lint error 源）。
 - updateTrigger 无值不变 guard（blur 即写库 updatedAt 跳顶）：✅ 补齐（同 name/description 口径）。
 
-### B58 延后账（P2，不阻塞）
-- 胶囊片段页只认 contents[0]，多块片段其余块快取链路不可达；胶囊页唤起走
-  getSnippets 全量解密重路径（quickSearch 轻路径未覆盖）。
-- 回车仅复制不粘贴到前台应用（主进程有注入能力，涉及产品决策）。
-- 回收站无保留期自动清理；语言清单缺 Go/Rust/C/C++/Ruby/PHP/Swift/Kotlin。
+### B58 批C（2026-10-05 同日续，用户选定延后账全做）——延后账五件全清
+- 胶囊多块不可达 + 唤起全库解密重路径：✅ SnippetsPage 重构——列表走
+  `snippet:getIndex` 轻路径（不解密 contents，块数子查询就地位）；内容全文匹配
+  改靠 `snippet:quickSearch`（SQL search_text 明文投影，覆盖反而比旧的 80 字符
+  首块预览更全）；详情按需 `getSnippetById` + 缓存，块 chips + ⌘←/→ 切换，
+  复制/粘贴取活动块（此前永远只有第一块可达）。
+- 回车仅复制不粘贴：✅ `snippet:pasteToForeground` IPC（写剪贴板 → 收起胶囊 →
+  PASTE_DELAY_MS 后注入 ⌘V，复用 cliphist:pasteBack 范式），胶囊 ⇧↵ 接线；
+  无辅助功能授权时注入失败但内容已在剪贴板，保留窗口供手动粘贴。
+  真实 ⌘V 注入不在 e2e 驱动范围（会打进测试机前台应用），e2e 只钉接线错误路径。
+- 回收站保留期：✅ `purgeExpiredTrash(30)`（junction 随清、事务），启动时执行；
+  保留期暂硬编码 30 天（TRASH_RETENTION_DAYS），设置 UI 待产品需要再加。
+- 语言清单：✅ +Go/Rust/C/C++/Kotlin/Swift/Ruby/PHP（SNIPPET_LANGUAGES 扩至 23，
+  CodeMirror 补 clike/go/rust/swift/ruby/php mode）；顺手修 java 在下拉里有选项
+  但 modeMap 无映射（恒无高亮）的潜伏缺失。
+- 余留（下次排批候选）：根搜索 snippetItem 仍只复制首块（胶囊页是多块入口）；
+  保留期无设置 UI；胶囊页搜索本地模糊 + SQL 合并的排序未做使用频次加权。
 
-### 门禁终态（B58）
-typecheck 0；lint 0 error；unit 199 文件 1396 passed；e2e snippets 域 24/24
-（snippets-ui 5 + deep 6 + crud 8 + b58 新增 5）+ capsule-actions/launcher 回归绿。
+### 门禁终态（B58 批C）
+typecheck 0；lint 0 error；unit 1402 passed（+capsuleIndex 3）；e2e 29/29
+（snippets-ui 5 + deep 6 + crud 8 + b58 5 + capsule-actions 5）+ 胶囊页新增
+snippets-capsule-b58c 3/3（内容全文可搜、⌘→ 切块 Enter 复制活动块读真实剪贴板、
+粘贴接线错误路径）。
 
 ## 2026-10-05 发现（用户真机测试：点录屏落设置页）
 

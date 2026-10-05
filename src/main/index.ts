@@ -73,6 +73,7 @@ import {
 } from './modules'
 // SQLite 单例
 import { installDatabase, uninstallDatabase } from './db/database'
+import { snippetRepository, TRASH_RETENTION_DAYS } from './db/repos/SnippetRepository'
 import { runDataMigrations } from './db/dataMigrations'
 import { runRecordingHistoryMigration } from './db/dataMigrationsRecording'
 import { runPomodoroDurationMsMigration } from './db/dataMigrationsPomodoro'
@@ -422,6 +423,14 @@ void app.whenReady().then(() => {
 
   // 片段文本扩展（M5.1）：按配置订阅全局按键（无触发词时无副作用）
   textExpansion.start()
+
+  // 回收站保留期（B58 批C）：软删除超 30 天的片段启动时永久清除
+  try {
+    const purged = snippetRepository.purgeExpiredTrash(TRASH_RETENTION_DAYS)
+    if (purged > 0) console.log(`[snippets] 回收站保留期清理：${purged} 条`)
+  } catch (error) {
+    console.warn('[snippets] 回收站保留期清理失败:', (error as Error).message)
+  }
 
   // 系统命令 / 窗口管理通道（M2）
   registerSystemCommandIpc()

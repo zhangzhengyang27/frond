@@ -1,9 +1,11 @@
-import { BrowserWindow, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, clipboard, type IpcMainInvokeEvent } from 'electron'
 import { readFile, writeFile, stat } from 'fs/promises'
 import type { Snippet, SnippetDataStore } from '../stores/SnippetDataStore'
 import { snippetRepository } from '../db/repos/SnippetRepository'
 import { textExpansion } from '../modules/textExpansion'
 import { showOpenDialogFor, showSaveDialogFor } from '../modules/dialogs'
+import { getLauncherWindow } from '../launcher/window'
+import { pasteToActiveApp, PASTE_DELAY_MS } from '../utils/pasteKeystroke'
 import {
   buildExportPayload,
   parseImportPayload,
@@ -191,4 +193,26 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
   typedHandle('snippet:findTriggerConflict', (_event, { trigger, excludeId }) =>
     snippetRepository.findTriggerConflict(String(trigger ?? ''), String(excludeId ?? ''))
   )
+
+  // B58 批C：胶囊轻路径索引——列表/搜索投影就地位，不再全库解密 contents
+  typedHandle('snippet:getIndex', () => snippetRepository.getIndex())
+
+  // B58 批C：粘贴到前台应用（胶囊 ⇧↵）——写剪贴板 → 收起胶囊 → 延迟注入 ⌘V。
+  // 无辅助功能授权时注入失败但内容已在剪贴板，调用方退化为手动粘贴
+  typedHandle('snippet:pasteToForeground', async (_event, { id, blockIndex }) => {
+    const snippet = snippetRepository.getSnippetById(String(id ?? ''))
+    if (!snippet) return { ok: false, error: 'snippet not found' }
+    const idx = Number(blockIndex) || 0
+    const value = snippet.contents[idx]?.value ?? snippet.contents[0]?.value ?? ''
+    if (!value) return { ok: false, error: 'snippet is empty' }
+    clipboard.writeText(value)
+    getLauncherWindow()?.hide()
+    try {
+      await new Promise((resolve) => setTimeout(resolve, PASTE_DELAY_MS))
+      await pasteToActiveApp()
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: (error as Error).message }
+    }
+  })
 }

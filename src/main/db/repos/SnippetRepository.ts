@@ -24,6 +24,9 @@ import { encryptText, decryptText } from '../../utils/crypto'
 
 export type SnippetContentType = 'text' | 'rich'
 
+/** 回收站保留期（天）：超过即启动时永久清除（B58 批C；主流片段管理器惯例 30 天） */
+export const TRASH_RETENTION_DAYS = 30
+
 export interface SnippetContent {
   id: string
   label: string
@@ -306,6 +309,34 @@ export class SnippetRepository {
     )
   }
 
+  /**
+   * B58 批C：胶囊轻路径索引——列表/搜索所需的投影就地位（不解密 contents），
+   * 替代 SnippetsPage 每次唤起 getSnippets 的全库 AES；块数用子查询计数。
+   */
+  getIndex(): Array<{
+    id: string
+    name: string
+    description: string
+    language: string
+    blockCount: number
+  }> {
+    return this.db
+      .prepare(
+        `SELECT s.id, s.title AS name, s.description, s.language,
+                (SELECT COUNT(*) FROM snip_snippet_contents c WHERE c.snippet_id = s.id) AS blockCount
+         FROM snip_snippets s
+         WHERE s.deleted_at IS NULL
+         ORDER BY s.updated_at DESC, s.rowid DESC`
+      )
+      .all() as Array<{
+      id: string
+      name: string
+      description: string
+      language: string
+      blockCount: number
+    }>
+  }
+
   /** 批3：分页列表（SnippetList 专用）。total = 同过滤条件总数；写入后按已加载量重拉不跳页 */
   listSnippets(
     filters: SnippetFilter,
@@ -501,6 +532,26 @@ export class SnippetRepository {
       const delTags = this.db.prepare(`DELETE FROM snip_tags WHERE snippet_id = ?`)
       for (const id of ids) delTags.run(id)
       const r = this.db.prepare(`DELETE FROM snip_snippets WHERE deleted_at IS NOT NULL`).run()
+      return r.changes
+    })
+    return tx()
+  }
+
+  /** 回收站保留期（B58 批C）：软删除超过 retentionDays 的片段永久清除，返回清理数 */
+  purgeExpiredTrash(retentionDays = TRASH_RETENTION_DAYS): number {
+    const cutoff = now() - retentionDays * 24 * 60 * 60 * 1000
+    const ids = (
+      this.db
+        .prepare(`SELECT id FROM snip_snippets WHERE deleted_at IS NOT NULL AND deleted_at < ?`)
+        .all(cutoff) as Array<{ id: string }>
+    ).map((r) => r.id)
+    if (ids.length === 0) return 0
+    const placeholders = ids.map(() => '?').join(',')
+    const tx = this.db.transaction(() => {
+      this.db.prepare(`DELETE FROM snip_tags WHERE snippet_id IN (${placeholders})`).run(...ids)
+      const r = this.db
+        .prepare(`DELETE FROM snip_snippets WHERE id IN (${placeholders})`)
+        .run(...ids)
       return r.changes
     })
     return tx()

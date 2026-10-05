@@ -1067,6 +1067,22 @@ export interface IpcContract {
     req: { trigger: string; excludeId: string }
     res: { id: string; name: string } | undefined
   }
+  /** B58 批C：胶囊轻路径索引（不解密 contents，替代全库解密重路径） */
+  'snippet:getIndex': {
+    req: void
+    res: Array<{
+      id: string
+      name: string
+      description: string
+      language: string
+      blockCount: number
+    }>
+  }
+  /** B58 批C：复制指定块并粘贴到前台应用（胶囊 ⇧↵）；无授权时退化仅复制 */
+  'snippet:pasteToForeground': {
+    req: { id: string; blockIndex?: number }
+    res: { ok: boolean; error?: string }
+  }
 
   'clip:addClip': {
     req: { videoId: string; startTime: number; endTime: number; label?: string }

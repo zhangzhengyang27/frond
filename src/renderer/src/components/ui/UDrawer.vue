@@ -46,8 +46,12 @@ const close = (): void => {
   emit('update:modelValue', false)
 }
 
-const onOverlayClick = (): void => {
-  if (props.closeOnOverlay) close()
+// 外点关闭：以派发时固定的 composedPath 判定——contains() 查的是活体 DOM，
+// 面板内按钮的 handler 可能在同一次派发里改掉 DOM（如 v-if 卸载）造成误判外点
+const onOverlayClick = (e: MouseEvent): void => {
+  if (!props.closeOnOverlay) return
+  if (panelRef.value && e.composedPath().includes(panelRef.value)) return
+  close()
 }
 
 const onKeydown = (e: KeyboardEvent): void => {
@@ -106,7 +110,7 @@ const sizeCls: Record<string, string> = {
 <template>
   <Teleport to="body">
     <Transition name="udrawer">
-      <div v-if="modelValue" class="fixed inset-0 z-[1000]" @click.self="onOverlayClick">
+      <div v-if="modelValue" class="fixed inset-0 z-[1000]" @click="onOverlayClick">
         <div class="absolute inset-0 bg-overlay backdrop-blur-[2px]" aria-hidden="true" />
         <div
           ref="panelRef"

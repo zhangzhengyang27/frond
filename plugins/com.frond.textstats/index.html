@@ -5,281 +5,136 @@
     <title>文本统计</title>
   </head>
   <body>
+    <script src="lib.js"></script>
     <script>
       var api = window.launcherApi
+      var Lib = window.FrondTextstatsLib
+      var lastOutput = null
+      var lastResults = []
+      var lastInput = ''
 
       api.onEnter(function () {
-        api.setSubInput('统计剪贴板文本，或输入文本…')
+        api.setSubInput('输入或粘贴要统计的文本…')
         api
           .readText()
           .then(function (res) {
-            var text = res || ''
-            if (text && text.trim()) {
-              process(text)
-            } else {
-              showEmpty()
-            }
+            var text = (res || '').trim()
+            text ? process(text) : showEmpty()
           })
-          .catch(function () {
-            showEmpty()
-          })
+          .catch(function () { showEmpty() })
       })
 
       api.onSubInputChange(function (data) {
-        var text = data && typeof data.text === 'string' ? data.text : ''
-        if (text && text.trim()) {
-          process(text)
-        } else {
-          showEmpty()
-        }
+        var text = data && typeof data.text === 'string' ? data.text.trim() : ''
+        text ? process(text) : showEmpty()
       })
 
       function showEmpty() {
-        api.renderList([
-          {
-            title: '文本统计',
-            subtitle: '剪贴板为空，请复制文本或在上方输入',
-            icon: 'bar-chart-line',
-            detail:
-              '**文本统计**\n\n统计以下指标：\n- 总字符数（含空格/换行）\n- 不含空白字符数\n- 中文字符数\n- 英文单词数\n- 行数\n- 段落数\n- 字节数（UTF-8）\n\n回车复制统计结果。',
-            detailFormat: 'markdown',
-            actions: [{ label: '等待输入', type: 'callback', hint: '↵' }]
-          }
-        ])
-      }
-
-      function countBytes(text) {
-        // UTF-8 字节数
-        var bytes = 0
-        for (var i = 0; i < text.length; i++) {
-          var code = text.charCodeAt(i)
-          if (code < 0x80) bytes += 1
-          else if (code < 0x800) bytes += 2
-          else if (code >= 0xd800 && code <= 0xdbff) {
-            bytes += 4
-            i++
-          } else bytes += 3
-        }
-        return bytes
-      }
-
-      function topWords(text, count) {
-        // 简单词频统计（中文按字，英文按词）
-        var freq = {}
-        // 英文单词
-        var words = text.toLowerCase().match(/[a-zA-Z]+/g) || []
-        for (var i = 0; i < words.length; i++) {
-          if (words[i].length > 1) freq[words[i]] = (freq[words[i]] || 0) + 1
-        }
-        // 中文字
-        var chars = text.match(/[\u4e00-\u9fa5]/g) || []
-        for (var i = 0; i < chars.length; i++) {
-          freq[chars[i]] = (freq[chars[i]] || 0) + 1
-        }
-        var sorted = Object.entries(freq).sort(function (a, b) {
-          return b[1] - a[1]
-        })
-        return sorted.slice(0, count)
+        api.renderList([{title: '示例：粘贴一段文章', subtitle: '字符/词/行/字节/阅读时长 + 词频 Top10', icon: 'file-list-line',
+          detail: '**文本统计**\n\n- 统计组：字符数、词数（CJK 逐字）、行数、UTF-8 字节、阅读时长\n- 词频 Top10 分组\n- 回车复制统计摘要。',
+          detailFormat: 'markdown',
+          actions: [{ label: '填入示例', type: 'callback', payload: 'demo:Frond 让桌面效率触手可及', hint: '↵' }]
+        }], { id: 'root' })
       }
 
       function process(text) {
-        var totalChars = text.length
-        var noWhitespace = text.replace(/\s/g, '').length
-        var chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length
-        var englishWords = (text.match(/[a-zA-Z]+/g) || []).length
-        var digits = (text.match(/[0-9]/g) || []).length
-        var lines = text.split('\n').length
-        var nonEmptyLines = text.split('\n').filter(function (l) {
-          return l.trim()
-        }).length
-        var paragraphs = text.split(/\n\s*\n/).filter(function (p) {
-          return p.trim()
-        }).length
-        var bytes = countBytes(text)
-        var sentences = (text.match(/[.!?。！？]/g) || []).length
-
-        var preview = text.length > 100 ? text.slice(0, 100) + '…' : text
-
-        var statsText =
-          '总字符数: ' +
-          totalChars +
-          '\n' +
-          '不含空白: ' +
-          noWhitespace +
-          '\n' +
-          '中文字符: ' +
-          chineseChars +
-          '\n' +
-          '英文单词: ' +
-          englishWords +
-          '\n' +
-          '数字字符: ' +
-          digits +
-          '\n' +
-          '总行数: ' +
-          lines +
-          '\n' +
-          '非空行: ' +
-          nonEmptyLines +
-          '\n' +
-          '段落数: ' +
-          paragraphs +
-          '\n' +
-          '句子数: ' +
-          sentences +
-          '\n' +
-          '字节数(UTF-8): ' +
-          bytes
-
-        var items = [
-          {
-            title: '总字符数: ' + totalChars,
-            subtitle: '不含空白: ' + noWhitespace + ' · 字节: ' + bytes,
-            icon: 'bar-chart-line',
-            accessories: ['总览'],
-            detail:
-              '**文本预览**\n\n```\n' +
-              preview +
-              '\n```\n\n**统计结果**\n\n' +
-              '| 指标 | 数值 |\n|---|---|\n' +
-              '| 总字符数 | ' +
-              totalChars +
-              ' |\n' +
-              '| 不含空白 | ' +
-              noWhitespace +
-              ' |\n' +
-              '| 中文字符 | ' +
-              chineseChars +
-              ' |\n' +
-              '| 英文单词 | ' +
-              englishWords +
-              ' |\n' +
-              '| 数字字符 | ' +
-              digits +
-              ' |\n' +
-              '| 总行数 | ' +
-              lines +
-              ' |\n' +
-              '| 非空行 | ' +
-              nonEmptyLines +
-              ' |\n' +
-              '| 段落数 | ' +
-              paragraphs +
-              ' |\n' +
-              '| 句子数 | ' +
-              sentences +
-              ' |\n' +
-              '| 字节数(UTF-8) | ' +
-              bytes +
-              ' |\n\n回车复制统计结果。',
-            detailFormat: 'markdown',
-            actions: [
-              { label: '复制统计', type: 'copy', payload: statsText, hint: '↵' },
-              { label: '复制原文', type: 'copy', payload: text, hint: '⌘1' }
-            ]
-          },
-          {
-            title: '中文字符: ' + chineseChars,
-            subtitle:
-              '占比: ' +
-              (totalChars > 0 ? ((chineseChars / totalChars) * 100).toFixed(1) : 0) +
-              '%',
-            icon: 'character-recognition-line',
-            accessories: ['中文'],
-            detail:
-              '**中文字符统计**\n\n- 数量: ' +
-              chineseChars +
-              '\n- 占比: ' +
-              (totalChars > 0 ? ((chineseChars / totalChars) * 100).toFixed(1) : 0) +
-              '%',
-            detailFormat: 'markdown',
-            actions: [{ label: '复制统计', type: 'copy', payload: statsText, hint: '↵' }]
-          },
-          {
-            title: '英文单词: ' + englishWords,
-            subtitle:
-              '平均词长: ' +
-              (englishWords > 0
-                ? ((text.match(/[a-zA-Z]+/g) || []).join('').length / englishWords).toFixed(1)
-                : 0) +
-              ' 字符',
-            icon: 'english-input',
-            accessories: ['英文'],
-            detail:
-              '**英文单词统计**\n\n- 单词数: ' +
-              englishWords +
-              '\n- 平均词长: ' +
-              (englishWords > 0
-                ? ((text.match(/[a-zA-Z]+/g) || []).join('').length / englishWords).toFixed(1)
-                : 0) +
-              ' 字符',
-            detailFormat: 'markdown',
-            actions: [{ label: '复制统计', type: 'copy', payload: statsText, hint: '↵' }]
-          },
-          {
-            title: '行数: ' + lines + ' · 段落: ' + paragraphs,
-            subtitle: '非空行: ' + nonEmptyLines + ' · 句子: ' + sentences,
-            icon: 'list-unordered',
-            accessories: ['结构'],
-            detail:
-              '**结构统计**\n\n- 总行数: ' +
-              lines +
-              '\n- 非空行: ' +
-              nonEmptyLines +
-              '\n- 段落数: ' +
-              paragraphs +
-              '\n- 句子数: ' +
-              sentences +
-              '\n- 平均段长: ' +
-              (paragraphs > 0 ? (totalChars / paragraphs).toFixed(0) : 0) +
-              ' 字符',
-            detailFormat: 'markdown',
-            actions: [{ label: '复制统计', type: 'copy', payload: statsText, hint: '↵' }]
-          }
-        ]
-
-        // 词频 Top 10
-        var top = topWords(text, 10)
-        if (top.length > 0) {
-          items.push({
-            title: '高频词 Top ' + Math.min(top.length, 10),
-            subtitle: top
-              .slice(0, 5)
-              .map(function (w) {
-                return w[0] + '(' + w[1] + ')'
-              })
-              .join(' · '),
-            icon: 'fire-line',
-            accessories: ['词频'],
-            detail:
-              '**高频词 Top ' +
-              Math.min(top.length, 10) +
-              '**\n\n' +
-              top
-                .map(function (w, idx) {
-                  return idx + 1 + '. `' + w[0] + '` — ' + w[1] + ' 次'
-                })
-                .join('\n'),
-            detailFormat: 'markdown',
-            actions: [
-              {
-                label: '复制词频',
-                type: 'copy',
-                payload: top
-                  .map(function (w) {
-                    return w[0] + ': ' + w[1]
-                  })
-                  .join('\n'),
-                hint: '↵'
-              }
-            ]
-          })
+        lastInput = text
+        var results = Lib.convert(text)
+        if (!results || !results.length) return showError(text)
+        lastResults = results.map(function (r) { return r.output })
+        var first = results[0]
+        if (first.output !== lastOutput) {
+          lastOutput = first.output
+          pushHistory(text, '字符 ' + first.output)
         }
-
-        api.renderList(items)
+        loadHistory().then(function (hist) {
+          api.renderList(buildItems(results, hist), { id: 'root' })
+        })
       }
 
-      api.onAction(function () {})
+      function showError(text) {
+        lastResults = [text]
+        api.renderList([{
+          title: '统计失败',
+          subtitle: '空文本无法统计',
+          icon: 'error-warning-line',
+          actions: [{ label: '复制原文', type: 'callback', payload: 'copy:0', hint: '↵' }]
+        }], { id: 'root' })
+      }
+
+      // ── 历史公约实现 ──
+      function loadHistory() {
+        return api.db.get('history').then(function (res) {
+          var d = res && res.data
+          return d && Array.isArray(d.list) ? d.list : []
+        }).catch(function () { return [] })
+      }
+      function pushHistory(input, output) {
+        return loadHistory().then(function (list) {
+          list = list.filter(function (h) { return !(h.input === input && h.output === output) })
+          list.unshift({ input: input, output: output, ts: Date.now() })
+          return api.db.put('history', { list: list.slice(0, 20) })
+        }).catch(function () {})
+      }
+      function buildItems(results, hist) {
+        var items = results.map(function (r, i) { return {
+          title: r.title, subtitle: r.subtitle || undefined,
+          icon: r.icon || 'checkbox-circle-line',
+          section: r.section, detail: r.detail || undefined, detailFormat: r.detail ? 'markdown' : undefined,
+          accessories: r.accessories,
+          actions: (r.actions || [{ label: '复制结果', type: 'callback', payload: 'copy:' + i, hint: '↵' }])
+        } })
+        hist.forEach(function (h) { items.push({
+          title: String(h.output).slice(0, 60),
+          subtitle: '输入: ' + String(h.input).slice(0, 60),
+          icon: 'history-line', section: '历史',
+          actions: [
+            { label: '复制该结果', type: 'callback', payload: 'copyh:' + h.ts, hint: '↵' },
+            { label: '以该输入重算', type: 'callback', payload: 'recalc:' + h.input.slice(0, 500) },
+            { label: '删除该条', type: 'callback', payload: 'del:' + h.ts }
+          ]
+        }) })
+        if (hist.length) items.push({
+          title: '清空历史（' + hist.length + ' 条）', icon: 'delete-bin-line',
+          actions: [{ label: '清空', type: 'callback', payload: 'clear-history' }]
+        })
+        return items
+      }
+
+      api.onAction(function (data) {
+        var p = data && data.action && typeof data.action.payload === 'string' ? data.action.payload : ''
+        if (p.indexOf('copy:') === 0) {
+          var idx = Number(p.slice(5))
+          var content = lastResults[idx]
+          if (typeof content !== 'string') return
+          api.copyText(content).then(function () { api.showHud('已复制') }).catch(function () {})
+        } else if (p.indexOf('copyh:') === 0) {
+          var ts = Number(p.slice(6))
+          loadHistory().then(function (list) {
+            var hit = list.filter(function (h) { return h.ts === ts })[0]
+            if (hit) return api.copyText(hit.output).then(function () { api.showHud('已复制') })
+          }).catch(function () {})
+        } else if (p === 'clear-history') {
+          api.alert({ title: '清空历史', message: '确定清空全部历史记录？',
+            actions: [{ id: 'ok', title: '清空', style: 'destructive' }, { id: 'cancel', title: '取消', style: 'cancel' }]
+          }).then(function (id) {
+            if (id !== 'ok') return
+            api.db.put('history', { list: [] }).then(function () { lastOutput = null; showEmpty() })
+          })
+        } else if (p.indexOf('del:') === 0) {
+          var delTs = Number(p.slice(4))
+          loadHistory().then(function (list) {
+            return api.db.put('history', { list: list.filter(function (h) { return h.ts !== delTs }) })
+          }).then(function () {
+            lastOutput = null
+            lastInput ? process(lastInput) : showEmpty()
+          })
+        } else if (p.indexOf('recalc:') === 0) {
+          process(p.slice(7))
+        } else if (p.indexOf('demo:') === 0) {
+          process(p.slice(5))
+        }
+      })
     </script>
   </body>
 </html>

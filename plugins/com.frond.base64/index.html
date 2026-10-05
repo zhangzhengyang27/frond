@@ -5,8 +5,10 @@
     <title>Base64 编解码</title>
   </head>
   <body>
+    <script src="lib.js"></script>
     <script>
       var api = window.launcherApi
+      var Lib = window.FrondBase64Lib
       var currentCmd = 'encode'
 
       api.onEnter(function (data) {
@@ -60,13 +62,16 @@
           var result = ''
           var actionName = ''
           if (currentCmd === 'encode') {
-            // UTF-8 安全的 Base64 编码
-            result = btoa(unescape(encodeURIComponent(text)))
+            // UTF-8 安全的 Base64 编码（lib.js 与测试同份实现）
+            result = Lib.encode(text)
             actionName = '编码'
           } else {
-            // Base64 解码 → UTF-8
-            result = decodeURIComponent(escape(atob(text)))
+            // Base64 解码 → UTF-8；非法输入 lib 返回 null
+            result = Lib.decode(text)
             actionName = '解码'
+          }
+          if (result === null || result === undefined) {
+            throw new Error('输入不是有效的 Base64 字符串')
           }
           showResult(actionName + '完成', result, result.length, actionName)
         } catch (e) {

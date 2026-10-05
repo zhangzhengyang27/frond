@@ -6,7 +6,8 @@
 <template>
   <div class="mini-root" @click="toggleMainWindow" @contextmenu.prevent="onHide">
     <div class="ring-wrap">
-      <svg class="ring" viewBox="0 0 100 100">
+      <!-- 类名不能叫 ring：TW4 全局工具类 .ring = 1px currentcolor 方框阴影 -->
+      <svg class="zf-arc" viewBox="0 0 100 100">
         <circle class="bg" cx="50" cy="50" r="46" />
         <circle
           class="fg"
@@ -198,7 +199,7 @@ body {
   justify-content: center;
 }
 
-.ring {
+.zf-arc {
   position: absolute;
   inset: 0;
   width: 100%;

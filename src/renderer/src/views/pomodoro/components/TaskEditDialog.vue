@@ -32,17 +32,19 @@
             <input v-model="form.estimate" type="number" min="0" step="0.5" placeholder="0" />
           </label>
           <div class="field field--third">
-            <span class="field-label">项目</span>
+            <span class="field-label field-label--split">
+              项目
+              <button type="button" class="link-btn" @click="showNewProject = !showNewProject">
+                <AppIcon icon="add" />
+                新建项目
+              </button>
+            </span>
             <select v-model="form.projectId">
               <option value="">无项目</option>
               <option v-for="project in projects" :key="project.id" :value="project.id">
                 {{ project.name }}
               </option>
             </select>
-            <button type="button" class="link-btn" @click="showNewProject = !showNewProject">
-              <AppIcon icon="add" />
-              新建项目
-            </button>
           </div>
         </div>
 
@@ -234,7 +236,7 @@ onMounted(() => {
 
 .field-row {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 10px;
   flex-wrap: wrap;
 }
@@ -248,6 +250,13 @@ onMounted(() => {
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--pomo-dialog-muted);
+}
+
+/* 三列等构（标签行 + 控件）后控件顶对齐；「新建项目」收进标签行不撑高列 */
+.field-label--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .field input,
@@ -278,7 +287,6 @@ onMounted(() => {
 }
 
 .link-btn {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -287,6 +295,7 @@ onMounted(() => {
   background: transparent;
   cursor: pointer;
   font-size: 11px;
+  font-weight: 500;
   color: var(--pomo-accent);
 }
 

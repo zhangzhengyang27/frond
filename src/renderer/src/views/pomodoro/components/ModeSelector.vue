@@ -53,10 +53,11 @@ const options: Array<{ value: TimerMode; label: string; icon: string }> = [
 </script>
 
 <style scoped>
+/* B61：分段控件安静化——活动段浮起为白卡 + 模式色文字（不再色块填充） */
 .mode-selector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .segmented {
@@ -65,7 +66,7 @@ const options: Array<{ value: TimerMode; label: string; icon: string }> = [
   gap: 2px;
   padding: 3px;
   background: var(--pomo-surface-container-low);
-  border: 1px solid var(--pomo-glass-border);
+  border: 1px solid var(--pomo-surface-border);
   border-radius: 999px;
 }
 
@@ -73,17 +74,18 @@ const options: Array<{ value: TimerMode; label: string; icon: string }> = [
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 5px 13px;
   border: none;
   border-radius: 999px;
   background: transparent;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 550;
   color: var(--pomo-text-muted);
   transition:
     background 0.2s,
-    color 0.2s;
+    color 0.3s,
+    box-shadow 0.2s;
 }
 
 .segment:hover {
@@ -105,30 +107,31 @@ const options: Array<{ value: TimerMode; label: string; icon: string }> = [
 }
 
 .segment.active {
-  color: var(--pomo-on-accent);
+  background: var(--pomo-surface);
+  box-shadow: var(--pomo-shadow-card);
 }
 
 .segment.is-work.active {
-  background: var(--pomo-work);
+  color: var(--pomo-work);
 }
 
 .segment.is-shortBreak.active {
-  background: var(--pomo-short);
+  color: var(--pomo-short);
 }
 
 .segment.is-longBreak.active {
-  background: var(--pomo-long);
+  color: var(--pomo-long);
 }
 
 .gear {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--pomo-glass-border);
+  border: none;
   border-radius: 50%;
-  background: var(--pomo-surface-container);
+  background: transparent;
   cursor: pointer;
   font-size: 15px;
   color: var(--pomo-text-muted);
@@ -140,7 +143,7 @@ const options: Array<{ value: TimerMode; label: string; icon: string }> = [
 
 .gear:hover {
   color: var(--pomo-text-strong);
-  background: var(--pomo-surface-variant);
+  background: var(--pomo-surface-container);
   transform: rotate(30deg);
 }
 </style>

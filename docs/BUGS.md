@@ -1535,3 +1535,21 @@ PomodoroIntegrationService.ts:178-185——setFocusMode 不走 prefRepository，
   冻死）、focusMode 走 prefRepository 持久化。
 - 门禁终态：typecheck 0 / lint 0 error / unit 1284 / e2e pomodoro+snippets+
   heavy-window 20/20。运行时实测（临时探针）复现 B60-11/12 后已随批C 修复。
+
+### B61d 修复记录（2026-10-05，用户截图四连反馈）
+- 左上角 ZenFocus brand 移除（顶栏三段 grid 保留空侧占位居中）。
+- 环外「黑色边框」真凶落案：svg class="ring" 撞 Tailwind 4 全局工具类 .ring
+  （--tw-ring-shadow: 0 0 0 1px currentcolor → 320px 环外 1px 墨色方框）。
+  此前两轮投诉各删过 halo 圆盘均无效——那从来不是凶器。TimerRing/MiniTimer
+  svg 改名 zf-arc；modal-overlay-close.spec.mjs 钉「无 box-shadow + 无 svg.ring」。
+- 新建任务弹窗项目列错位丑态：align-items:flex-end + 链接按钮撑高列 →
+  「新建项目」收进「项目」标签行，三列等构顶对齐。
+- 弹窗/抽屉外点关闭（全局原语级 bug）：@click.self 挂在外层容器，而点击目标
+  永远是铺满容器的遮罩背景子 div，.self 永不命中；contains() 守卫又会在
+  同一次派发内 v-if 卸载时误判外点（新建项目→确定 必现）→ composedPath
+  守卫双修 UModal/UDrawer，回归钉四用例。
+- 无任何项目时空态显示 00:00 → 兜底显示专注时长（新装首屏 25:00）。
+- e2e launch-smoke title 断言跟上 ROUTE_TITLES watcher（新鲜启动=「欢迎」）。
+- 门禁：typecheck 0 / lint 0 error / unit 1299 / smoke 12/12 / 新钉 4/4。
+  另：用户实例长期不重启会新旧混杂（主进程旧尺寸 + 渲染端 HMR 半更新），
+  「边框还在」类反馈先要求完全重启再查。

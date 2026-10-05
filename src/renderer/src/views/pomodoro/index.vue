@@ -3,12 +3,9 @@
     <div class="zf-bg-blob zf-bg-blob--a" aria-hidden="true" />
     <div class="zf-bg-blob zf-bg-blob--b" aria-hidden="true" />
 
-    <!-- ═══ 顶栏：brand · 后台项目 · 工具图标排 ═══ -->
+    <!-- ═══ 顶栏：（空侧 · 模式页签 · 后台项目+工具图标排） ═══ -->
     <header class="zf-topbar">
-      <div class="zf-topbar-side">
-        <span class="zf-brand-dot" aria-hidden="true" />
-        <span class="zf-brand-name">ZenFocus</span>
-      </div>
+      <div class="zf-topbar-side" />
 
       <!-- 模式页签（顶栏中段，用户指定） -->
       <ModeSelector
@@ -512,7 +509,10 @@ const currentMode = computed<TimerMode>(() => focusedTimerState.value?.mode ?? '
 const status = computed<TimerStatus>(() => focusedTimerState.value?.status ?? 'idle')
 const isRunning = computed(() => status.value === 'running')
 const isPaused = computed(() => status.value === 'paused')
-const timeLeft = computed(() => focusedTimerState.value?.timeLeft ?? 0)
+// 无焦点项目（一个项目都没建）时兜底显示专注时长，避免新装用户看到 00:00
+const timeLeft = computed(
+  () => focusedTimerState.value?.timeLeft ?? effective.value.workDuration * 60
+)
 const currentTaskId = computed(() => focusedTimerState.value?.currentTaskId ?? null)
 
 // ─── P0-2 / P1-4：计时风格与严格模式 ───
@@ -966,22 +966,6 @@ onBeforeUnmount(() => {
 .zf-topbar-side--right {
   justify-content: flex-end;
   flex-wrap: wrap;
-}
-
-.zf-brand-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--pomo-mode);
-  box-shadow: 0 0 10px var(--pomo-mode-glow);
-  transition: background 0.8s ease, box-shadow 0.8s ease;
-}
-
-.zf-brand-name {
-  font-size: 13px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  color: var(--pomo-text-muted);
 }
 
 /* 后台项目 chips */

@@ -6,7 +6,8 @@
     :aria-label="`${hint} ${timeText}`"
   >
     <div class="ring-wrap">
-      <svg class="ring" viewBox="0 0 100 100" aria-hidden="true">
+      <!-- 类名不能叫 ring：TW4 全局工具类 .ring = 1px currentcolor 方框阴影（B61 边框悬案真凶） -->
+      <svg class="zf-arc" viewBox="0 0 100 100" aria-hidden="true">
         <circle class="ring-track" cx="50" cy="50" :r="RADIUS" />
         <circle
           class="ring-progress"
@@ -80,7 +81,7 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
   justify-content: center;
 }
 
-.ring {
+.zf-arc {
   position: absolute;
   inset: 0;
   width: 100%;

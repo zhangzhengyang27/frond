@@ -206,8 +206,10 @@ function estimateLabel(task: PomodoroTask): string {
 }
 
 .task-row.current {
-  border-color: var(--pomo-work);
+  /* B61：选中态 = 左侧模式色竖条 + 极淡底（替代满圈边框的喧闹） */
+  border-color: transparent;
   background: var(--pomo-work-soft);
+  box-shadow: inset 3px 0 0 var(--pomo-work);
 }
 
 .row-check {

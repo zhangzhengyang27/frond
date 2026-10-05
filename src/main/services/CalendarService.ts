@@ -119,6 +119,28 @@ function toView(raw: RawEvent): CalendarEventView {
   }
 }
 
+/**
+ * JXA 循环把每条事件先 JSON.stringify 成字符串、外层再整体 stringify 一次
+ * （buildQueryScript 的历史既定行为），解一层后 events 实际是字符串数组——
+ * 直接当对象用则字段全 undefined，到 UI 就是「(无标题) + NaN 时间」。
+ * 这里归一化成对象数组：字符串再解一层，坏条目丢弃而不是让 NaN 流下去。
+ */
+export function normalizeRawEvents(events: unknown[]): RawEvent[] {
+  const out: RawEvent[] = []
+  for (const e of events) {
+    let raw: unknown = e
+    if (typeof e === 'string') {
+      try {
+        raw = JSON.parse(e)
+      } catch {
+        continue
+      }
+    }
+    if (raw !== null && typeof raw === 'object') out.push(raw as RawEvent)
+  }
+  return out
+}
+
 class CalendarService {
   private cached: { at: number; next: CalendarEventView | null; auth: CalendarAuth } | null = null
   private joinedKeys = new Set<string>()
@@ -280,7 +302,7 @@ JSON.stringify({ ok: !!ok })
         if (parsed.status === 0) void this.requestAccess()
         return { auth, events: [] }
       }
-      return { auth: 'authorized', events: parsed.events ?? [] }
+      return { auth: 'authorized', events: normalizeRawEvents(parsed.events ?? []) }
     } catch (error) {
       // 超时/无辅助工具等：静默降级为无日程（不阻塞启动器）
       console.warn('[Calendar] 查询失败:', (error as Error).message)

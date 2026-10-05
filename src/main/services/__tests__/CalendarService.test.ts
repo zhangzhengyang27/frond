@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { mapAuthStatus, extractAndSortMeetings } from '../CalendarService'
+import { mapAuthStatus, extractAndSortMeetings, normalizeRawEvents } from '../CalendarService'
 
 /**
  * V4 批次4：日历授权状态映射（纯函数）。
@@ -50,5 +50,46 @@ describe('extractAndSortMeetings', () => {
 
   it('空输入返回空数组', () => {
     expect(extractAndSortMeetings([], now)).toEqual([])
+  })
+})
+
+describe('normalizeRawEvents（JXA 双重序列化解包）', () => {
+  // buildQueryScript 的 JXA 循环把每条事件先 JSON.stringify 成字符串再进外层 JSON，
+  // 解一层后元素仍是字符串——不归一化则字段全 undefined，到 UI 就是 (无标题)+NaN。
+  const inner = JSON.stringify({
+    title: '周会',
+    start: 100,
+    end: 200,
+    allDay: false,
+    location: '',
+    notes: '',
+    url: ''
+  })
+
+  it('字符串元素解包成对象', () => {
+    expect(normalizeRawEvents([inner])).toEqual([
+      {
+        title: '周会',
+        start: 100,
+        end: 200,
+        allDay: false,
+        location: '',
+        notes: '',
+        url: ''
+      }
+    ])
+  })
+
+  it('对象元素原样保留（兼容 JXA 端未来去掉内层序列化）', () => {
+    const obj = { title: 't', start: 1, end: 2, allDay: true, location: '', notes: '', url: '' }
+    expect(normalizeRawEvents([obj])).toEqual([obj])
+  })
+
+  it('混合数组与坏条目：可解析的留、解析不了和不合类型的丢，不抛', () => {
+    expect(normalizeRawEvents([inner, '{broken', 42, null]).map((e) => e.title)).toEqual(['周会'])
+  })
+
+  it('空输入返回空数组', () => {
+    expect(normalizeRawEvents([])).toEqual([])
   })
 })

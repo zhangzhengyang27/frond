@@ -353,11 +353,93 @@ launcherApi.popView()                                                // 退一�
 - 传统 UI 模式（自己挂 BrowserView 画界面的插件）用不到这条：那种插件里导航是你自己的事。
   这条栈服务的是「宿主原样渲染插件数据」的声明式插件。
 
+## 2026-10 协议扩展（条目视觉 / 分组 / HUD）
+
+以下字段全部**可选、向后兼容**，fail-closed 清洗：写错时该字段被剥掉，不会破坏整条。
+
+### icon：颜色块与图片
+
+```js
+api.renderList([
+  // 纯字符串（原有形态）：remixicon 名（不含 ri- 前缀）
+  { title: 'A', icon: 'plug-2', actions: [...] },
+  // 颜色染色：tintColor 只认 #rgb / #rrggbb
+  { title: 'B', icon: { value: 'palette-line', tintColor: '#ff3b30' }, actions: [...] },
+  // 图片缩略图：data:image/png;base64 开头，总长 ≤ 65536 字符，超限剥除并 console 警告
+  { title: 'C', icon: { value: 'qr-code-line', dataUrl: dataUrl }, actions: [...] }
+])
+```
+
+渲染优先级：`dataUrl` > `tintColor` > 默认图标。
+
+### section：列表分组
+
+```js
+api.renderList([
+  { title: 'MD5',  section: '算法', actions: [...] },
+  { title: 'SHA256', section: '算法', actions: [...] },
+  { title: '词频', section: '词频 Top10', actions: [...] }
+])
+```
+
+- 渲染层把**相邻同名**（trim 后）的 `section` 聚合为组头；组头不占键盘选择位。
+- 清洗上限：40 字符，超长截断。
+
+### accessories：tag 徽章
+
+```js
+{ title: '结果', accessories: ['纯文本', { tag: 'AA ✓', tone: 'success' }, { tag: 'X' }] }
+```
+
+- `tag` ≤12 字符；`tone` 只认 `success / warn / danger / default`，写错剥 tone 保留 tag。
+- 最多 3 个，与文本配件混用。
+
+### showHud：轻提示
+
+```js
+api.copyText(text).then(function () { api.showHud('已复制') })
+```
+
+- 胶囊窗内 1.5s 自动淡出；**无需 permissions 声明**（与 notify 同级的纯 UI 反馈）。
+- 复制动作公约：**callback 动作**（`{ type: 'callback', payload: 'copy:<index>' }`）→
+  `onAction` 里 `copyText` + `showHud`。宿主 copy 类型动作会在复制后直接隐藏胶囊，发不了 HUD。
+- 长输出别塞 payload：动作 payload 清洗上限 **2000 字符**，超长内容用「索引 → onAction 里
+  从缓存变量取全文」的写法（见 `plugins/com.frond.*` 各转换器的 `lastResults`）。
+
+### 历史记录公约（转换类插件参考实现）
+
+db key `history`，值 `{ list: [{ input, output, ts }] }` ≤20 条；列表 = 结果条目 +
+历史组（`section: '历史'`）+ 尾部「清空历史」（`api.alert` 二次确认）。完整实现见
+`plugins/com.frond.base64/index.html`。
+
+### lib.js 测试基建
+
+插件纯函数抽到 `lib.js`（UMD 双导出），vitest 直接测——`plugins/<id>/lib.test.js`
+会被根 vitest 配置自动收录，无需改任何配置：
+
+```js
+;(function (root, factory) {
+  var api = factory()
+  if (typeof module === 'object' && module.exports) module.exports = api
+  if (root && typeof root === 'object') root.FrondXxxLib = api
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  return { /* 纯函数 */ }
+})
+```
+
+**升版本须知**：改了插件内容必须同步递增 `plugin.json` 的 `version` **和** 仓库根
+`plugins.json`（静态市场索引）的对应条目——审计测试（pluginManifestAudit）会对不上就红。
+内置插件（`plugins/` 下）当前统一为 `2.0.0`。
+
 ## 内置示例
 
-- `example-plugin/`：完整演示声明式列表、偏好、网络、通知
+- `example-plugin/`：完整演示声明式列表、偏好、网络、通知、**新协议字段**（`fancy` 命令）
 - `example-react/`：React 视图 API 演示（List / Detail / ActionPanel / Form / 导航）
+- `plugins/com.frond.base64/`：lib.js + vitest 单测基建样板
 - `plugins/com.frond.quickfolders/`：常用目录快速访问
+- `plugins/com.frond.currency/`：React 高端插件（List.Section / push 货币选择 / Form / db 缓存；
+  构建见 `scripts/build-currency-plugin.mjs`——⚠ esbuild 会把「顶层 void/async IIFE」入口
+  整段 tree-shake，须 `treeShaking: false`，详见脚本内注释）
 
 ## 调试
 

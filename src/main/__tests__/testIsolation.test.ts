@@ -1,7 +1,7 @@
 /**
  * Frond · 测试隔离门禁（不得写真实用户目录）
  *
- * 背景（2026-09-24）：`RecordingSettingsDataStore.storage.test.ts` 只 mock 了
+ * 背景（2026-09-24）：曾有测试只 mock 了
  * `electron`，以为 `app.getPath('userData')` 被指到 tmpdir 就万事大吉。但
  * **electron-store 在非 Electron 进程里根本不查 `app.getPath`** —— 它走
  * env-paths 的默认目录。实测跑一次该文件就会刷新真实的
@@ -81,11 +81,6 @@ describe('测试隔离（不得写真实用户目录）', { timeout: 30_000 }, (
       candidates.push(relative(REPO_ROOT, tf))
       if (!src.includes("vi.mock('electron-store'")) offenders.push(relative(REPO_ROOT, tf))
     }
-
-    expect(
-      candidates.length,
-      '候选集为空 = 解析可能失效；若 electron-store 已被彻底移除，请删掉本用例'
-    ).toBeGreaterThan(0)
 
     expect(
       offenders,

@@ -15,14 +15,33 @@
  *   `import type` 同样会把被引模块编进 web 程序（typecheck:web），曾因此报
  *   `resources/icon.png?asset` 找不到（已在 src/renderer/src/env.d.ts 补声明兜住）
  */
-import type { Marker } from '../main/services/MarkerService'
+export interface RecordingHistory {
+  id: string
+  filename: string
+  filePath: string
+  duration: number
+  fileSize?: number | undefined
+  thumbnail?: string | undefined
+  createdAt: number
+  recordingId?: string | undefined
+}
+
+
+/** 标记（原 MarkerService 返回形状内联；录屏功能已移除，保留契约类型供旧数据） */
+export interface Marker {
+  id: string
+  label: string
+  timestamp: number
+  color?: string | undefined
+  recordingId?: string | undefined
+}
+
 import type { PluginStateSnapshot } from './plugin-protocol'
 import type { EditorSettings, Preferences } from '../main/stores/PreferencesDataStore'
 import type { PopToRootMode } from './popToRoot'
 import type { Density } from './density'
 import type { CapsuleGlass } from './capsuleGlass'
 import type { TelemetryMode } from './types'
-import type { RecordingStatus as RepoRecordingStatus } from '../main/db/repos/RecordingRepository'
 import type { ThemeDefinition } from './themeSchema'
 import type { UserThemeRejection } from '../main/modules/userThemes'
 import type { UpdateStatus } from '../renderer/src/types/update'
@@ -93,10 +112,6 @@ import type { notesRepository, NoteFilter } from '../main/db/repos/NotesReposito
 import type { SnippetFilter } from '../main/db/repos/SnippetRepository'
 import type { SnippetDataStore } from '../main/stores/SnippetDataStore'
 import type { FolderDataStore } from '../main/stores/FolderDataStore'
-import type {
-  RecordingHistoryService,
-  RecordingHistory
-} from '../main/services/RecordingHistoryService'
 import type { SystemInfo as FrondSystemInfo } from '../main/ipc/system'
 import type { SystemInfo as HardwareInfo } from '../main/services/SystemInfoService'
 import type { NotificationType, NotificationOptions } from '../main/services/NotificationService'
@@ -106,15 +121,28 @@ import type {
 } from '../main/services/ClipboardHistoryService'
 import type { focusShield } from '../main/modules/focusShield'
 import type { screenshotIndexService } from '../main/services/ScreenshotIndexService'
-import type {
-  RecordingSettingsDataStore,
-  QUALITY_PRESETS
-} from '../main/stores/RecordingSettingsDataStore'
-import type {
-  ClipService,
-  Clip,
-  ExportOptions as ClipExportOptions
-} from '../main/services/ClipService'
+export interface Clip {
+  id: string
+  videoId?: string | undefined
+  startTime: number
+  endTime: number
+  label?: string | undefined
+}
+export interface ClipExportOptions {
+  format: 'mp4' | 'webm' | 'gif'
+  resolution: 720 | 1080 | 1440 | 2160
+  fps: 30 | 60
+  videoBitrateKbps?: number | undefined
+  audioBitrateKbps?: number | undefined
+  clips: Array<{ startTime: number; endTime: number; label?: string | undefined }>
+  outputPath: string
+  introPath?: string | undefined
+  outroPath?: string | undefined
+  backgroundMusic?: { path: string; volume?: number } | undefined
+  transition?: 'fade' | 'cut' | 'slide' | undefined
+  fadeDurationSec?: number | undefined
+  gifPreset?: 'compact' | 'standard' | 'high' | undefined
+}
 import type { SnippetImportResult } from '../main/services/SnippetTransferService'
 import type { Quicklink } from './commands'
 import type { AIConfig, AIChatMessage, AIChatSession, AIModelPreset } from './ai'
@@ -140,7 +168,6 @@ import type { MenuBarItem } from './menuBar'
 /** 插件运行上下文（plugapi:getContext 的字段从这里派生，避免第二次定义形状） */
 type PluginCtx = NonNullable<ReturnType<typeof getContextBySender>>
 /** 质量预设的键（'low' | 'medium' | 'high'，取自 QUALITY_PRESETS 本身） */
-type QualityKey = keyof typeof QUALITY_PRESETS
 /** 同步备份/恢复同形返回 */
 type SyncRunResult = { ok: boolean; count?: number; error?: string }
 
@@ -221,42 +248,6 @@ export interface IpcContract {
   'update:download': { req: void; res: void }
   'update:install': { req: void; res: void }
 
-  // ─────────── 录制（1.0 新通道；基于 SQLite repos；旧 recording-history:* / recording-settings:* /
-  //                   screen-recorder:* 暂保留 6 个月，见 docs/modules/07-screen-recorder.md）───────────
-  'recording.list': {
-    req: {
-      filter?: {
-        status?: RecordingStatus | RecordingStatus[]
-        search?: string
-        sinceMs?: number
-        untilMs?: number
-      }
-      limit?: number
-      offset?: number
-    }
-    res: { items: RecordingSummary[]; total: number }
-  }
-  'recording.get': {
-    req: { id: string }
-    res: { recording: RecordingSummary | null }
-  }
-  'recording.delete': {
-    req: { id: string; hard?: boolean; deleteFile?: boolean }
-    res: { ok: boolean }
-  }
-  // ─────────── 标记（marker:*，2026-09-19 起单对象入参）───────────
-  'marker:addMarker': {
-    req: { recordingId: string; timestamp: number; label?: string }
-    res: Marker
-  }
-  'marker:getMarkers': { req: { recordingId: string }; res: Marker[] }
-  'marker:updateMarker': {
-    req: { recordingId: string; markerId: string; updates: Partial<Marker> }
-    res: Marker | null
-  }
-  'marker:removeMarker': { req: { recordingId: string; markerId: string }; res: boolean }
-  'marker:clearMarkers': { req: { recordingId: string }; res: void }
-  'marker:exportToCSV': { req: { recordingId: string }; res: string }
 
   // ─────────── 日志与遥测（log:*）───────────
   'log:getMode': { req: void; res: TelemetryMode }
@@ -275,218 +266,6 @@ export interface IpcContract {
   // ─────────── 自动更新其余通道（update:*）───────────
   'update:getStatus': { req: void; res: UpdateStatus }
   'update:getCurrentVersion': { req: void; res: string }
-  'recording.settings.get': {
-    req: void
-    res: RecordingDefaultSettings
-  }
-  'recording.settings.patch': {
-    req: Partial<RecordingDefaultSettings>
-    res: RecordingDefaultSettings
-  }
-  'recording.settings.reset': {
-    req: void
-    res: RecordingDefaultSettings
-  }
-  'recording.recovery.scan': {
-    req: void
-    res: {
-      orphans: Array<{
-        recordingId: string | null
-        filePath: string
-        fileSize: number
-        mtimeMs: number
-      }>
-    }
-  }
-  'recording.recovery.recover': {
-    // recordingId：scan 返回的孤儿行 id（D4 行级精确恢复；缺省按精确路径解析）
-    req: { filePath: string; recordingId?: string }
-    res: { recordingId: string }
-  }
-  'recording.recovery.discard': {
-    // 行级精确删除（recordingId 优先）；filePath 按精确路径匹配，不再按 basename 跨目录猜
-    req: { filePath?: string; recordingId?: string }
-    res: { ok: boolean }
-  }
-  // ── PR-3: 暂停/恢复段管理 ─────────────────────────────────────
-  'recording.start': {
-    req: { fileName: string; defaultSavePath?: string | null }
-    res: { recordingId: string }
-  }
-  'recording.finalize': {
-    req: {
-      recordingId: string
-      finalFilePath: string
-      fileSize: number
-      durationMs: number
-    }
-    res: { ok: boolean }
-  }
-  'recording.segments.open': {
-    req: { recordingId: string }
-    res: { segmentId: number; segIndex: number; startedAt: number }
-  }
-  'recording.segments.close': {
-    req: { recordingId: string; segmentId?: number }
-    res: { ok: boolean; reason?: 'no open segment' }
-  }
-  'recording.segments.list': {
-    req: { recordingId: string }
-    res: {
-      items: Array<{
-        id: number
-        segIndex: number
-        startedAt: number
-        endedAt: number | null
-        state: 'committed' | 'discarded'
-      }>
-    }
-  }
-  'recording.segments.totalDuration': {
-    req: { recordingId: string; asOf?: number }
-    res: { totalMs: number }
-  }
-  // ── PR-4: 区域选择 / 系统音频探测 ─────────────────────────────
-  // 取消不再抛 Error('canceled') 信封（P3·B57-14）：统一返回 { canceled: true }；
-  // scaleFactor = 区域所在显示器（跨屏时为 primary），渲染端换算物理像素用
-  'recording.region.open': {
-    req: void
-    res: { region: { x: number; y: number; width: number; height: number } } | { canceled: true }
-  }
-  'recording.region.openForDisplay': {
-    req: { displayId: number }
-    res:
-      | {
-          region: { x: number; y: number; width: number; height: number }
-          displayId: number
-          crossDisplay: boolean
-          scaleFactor: number
-        }
-      | { canceled: true }
-  }
-  'recording.region.openCrossDisplay': {
-    req: void
-    res:
-      | {
-          region: { x: number; y: number; width: number; height: number }
-          displayId: number
-          crossDisplay: boolean
-          scaleFactor: number
-        }
-      | { canceled: true }
-  }
-  'recording.region.listDisplays': {
-    req: void
-    res: Array<{
-      id: number
-      bounds: { x: number; y: number; width: number; height: number }
-      workArea: { x: number; y: number; width: number; height: number }
-      scaleFactor: number
-      isPrimary: boolean
-    }>
-  }
-  'recording.region.cancel': {
-    req: void
-    res: { ok: boolean }
-  }
-  'recording.systemAudio.probe': {
-    req: {
-      devices: Array<{ kind: string; deviceId: string; label: string }>
-    }
-    res: {
-      available: boolean
-      matches: string[]
-      recommendedDeviceId?: string | undefined
-    }
-  }
-  // cursor 位置通过 webContents.send 单向推送：
-  //   'cursor:position' { x, y }
-  //   'cursor:stop' void
-  'recording.cursor.start': {
-    req: void
-    res: { ok: boolean }
-  }
-  'recording.cursor.stop': {
-    req: void
-    res: { ok: boolean }
-  }
-  // PR-5b: 单录制导出（转码）
-  'recording.export.start': {
-    req: {
-      recordingId: string
-      sourcePath: string
-      outputPath: string
-      format: 'mp4' | 'webm' | 'gif'
-      resolution: 720 | 1080 | 1440 | 2160
-      fps: 30 | 60
-      videoBitrateKbps?: number
-      audioBitrateKbps?: number
-      // PR-6
-      introPath?: string
-      outroPath?: string
-      backgroundMusic?: { path: string; volume?: number }
-      transition?: 'fade' | 'cut' | 'slide'
-      fadeDurationSec?: number | undefined
-      // PR-7c
-      gifPreset?: 'compact' | 'standard' | 'high'
-    }
-    res: { jobId: string }
-  }
-  'recording.export.cancel': {
-    req: { jobId: string }
-    res: { ok: boolean }
-  }
-  'recording.export.getInfo': {
-    req: { filePath: string }
-    res: { ok: boolean; durationSec?: number | undefined }
-  }
-  // PR-7a: 全局快捷键
-  'recording.shortcut.getConfig': {
-    req: void
-    res: {
-      enabled: boolean
-      start: string
-      togglePause: string
-    }
-  }
-  'recording.shortcut.setConfig': {
-    req: {
-      enabled?: boolean
-      start?: string
-      togglePause?: string
-    }
-    res: {
-      enabled: boolean
-      start: string
-      togglePause: string
-    }
-  }
-  'recording.shortcut.registered': {
-    req: void
-    res: { accels: string[] }
-  }
-  'recording.shortcut.attach': {
-    req: void
-    res: { ok: boolean }
-  }
-  'recording.shortcut.detach': {
-    req: void
-    res: { ok: boolean }
-  }
-  // PR-7a: pause/resume toggle（由全局快捷键 togglePause 触发）
-  'recording.togglePause': {
-    req: void
-    res: { ok: boolean; paused?: boolean }
-  }
-  // PR-7b: 倒计时
-  'recording.countdown.start': {
-    req: { seconds: number; reason: 'recording' }
-    res: { ok: true } | { ok: false; error: string }
-  }
-  'recording.countdown.cancel': {
-    req: void
-    res: { ok: true }
-  }
 
   // ─────────── 番茄钟（pomodoro:*，2026-09-19 起单对象入参）───────────
   // 原先是位置参数（如 addTask(title, options)）；req 折成对象后，preload 那层仍对
@@ -1084,33 +863,6 @@ export interface IpcContract {
     res: { ok: boolean; error?: string }
   }
 
-  'clip:addClip': {
-    req: { videoId: string; startTime: number; endTime: number; label?: string }
-    res: ReturnType<ClipService['addClip']>
-  }
-  'clip:removeClip': { req: { videoId: string; clipId: string }; res: boolean }
-  'clip:updateClip': {
-    req: { videoId: string; clipId: string; updates: Partial<Clip> }
-    res: ReturnType<ClipService['updateClip']>
-  }
-  'clip:getClips': { req: { videoId: string }; res: ReturnType<ClipService['getClips']> }
-  'clip:clearClips': { req: { videoId: string }; res: void }
-  'clip:previewClip': {
-    req: { videoPath: string; clip: Clip }
-    res: Awaited<ReturnType<ClipService['previewClip']>>
-  }
-  'clip:exportClips': {
-    req: { videoPath: string; options: ClipExportOptions }
-    res: { success: boolean; outputPath?: string; error?: string }
-  }
-  'clip:getVideoInfo': {
-    req: { videoPath: string }
-    res: Awaited<ReturnType<ClipService['getVideoInfo']>>
-  }
-  'clip:selectVideoFile': { req: void; res: string | null }
-  'clip:selectAudioFile': { req: void; res: string | null }
-  'clip:selectSavePath': { req: void; res: string | null }
-
   // ─────────── 文件夹（folder:*）───────────
   'folder:selectSavePath': {
     req: { defaultName?: string; filters?: Array<{ name: string; extensions: string[] }> }
@@ -1175,61 +927,7 @@ export interface IpcContract {
     res: Awaited<ReturnType<typeof screenshotIndexService.pasteLatest>>
   }
 
-  'recording-settings:getSettings': {
-    req: void
-    res: ReturnType<RecordingSettingsDataStore['getSettings']>
-  }
-  'recording-settings:updateSettings': {
-    req: Parameters<RecordingSettingsDataStore['updateSettings']>[0]
-    res: ReturnType<RecordingSettingsDataStore['updateSettings']>
-  }
-  'recording-settings:resetToDefaults': {
-    req: void
-    res: ReturnType<RecordingSettingsDataStore['resetToDefaults']>
-  }
-  'recording-settings:getQualityPreset': {
-    req: { quality: QualityKey }
-    res: (typeof QUALITY_PRESETS)[QualityKey]
-  }
 
-  // ─────────── 旧录制历史（recording-history:*，与 recording.* 并存 6 个月）───────────
-  'recording-history:getHistory': {
-    req: void
-    res: ReturnType<RecordingHistoryService['getHistory']>
-  }
-  'recording-history:getHistoryByDateRange': {
-    req: { start: number; end: number }
-    res: ReturnType<RecordingHistoryService['getHistoryByDateRange']>
-  }
-  'recording-history:addHistory': {
-    req: Omit<RecordingHistory, 'id' | 'createdAt'>
-    res: ReturnType<RecordingHistoryService['addHistory']>
-  }
-  'recording-history:deleteHistory': {
-    req: { id: string }
-    res: ReturnType<RecordingHistoryService['deleteHistory']>
-  }
-  'recording-history:clearHistory': { req: void; res: boolean }
-  'recording-history:generateThumbnail': {
-    req: { videoPath: string }
-    res: Awaited<ReturnType<RecordingHistoryService['generateThumbnail']>>
-  }
-  'recording-history:updateThumbnail': {
-    req: { id: string }
-    res: Awaited<ReturnType<RecordingHistoryService['updateThumbnail']>>
-  }
-  'recording-history:getStatistics': {
-    req: void
-    res: ReturnType<RecordingHistoryService['getStatistics']>
-  }
-  'recording-history:openFile': {
-    req: { filePath: string }
-    res: { success: boolean; error?: string }
-  }
-  'recording-history:showInFolder': {
-    req: { filePath: string }
-    res: { success: boolean; error?: string }
-  }
 
   // ─────────── 系统信息 / 通知 / 剪贴板历史 / 悬浮窗 / 专注屏蔽 ───────────
   // 两个同名不同义的 SystemInfo（系统路径信息 vs 硬件信息）必须分别起别名，
@@ -1516,24 +1214,6 @@ export interface IpcContract {
     res: { ok: boolean; error?: string }
   }
 
-  'screen-recorder:getSources': {
-    req: {
-      options: {
-        types: Array<'screen' | 'window'>
-        thumbnailSize?: { width: number; height: number }
-      }
-    }
-    /** Electron desktopCapturer 的源列表（name/thumbnail/displayId…） */
-    res: Array<{ name: string; id: string; thumbnail: string; displayId?: number }>
-  }
-  'screen-recorder:requestPermission': {
-    req: void
-    res: { success: boolean; message: string }
-  }
-  'screen-recorder:checkPermission': {
-    req: void
-    res: { hasPermission: boolean; message?: string }
-  }
   // ── macOS 权限面板（P-3.5）：真状态 / 真申请 / 真跳转 ──
   'permissions:probe': { req: void; res: PermissionStatus[] }
   'permissions:request': {
@@ -1545,37 +1225,7 @@ export interface IpcContract {
     res: { ok: boolean; error?: string }
   }
   /** extension：录制引擎决定容器（mediarecorder=webm，webcodecs=mp4）；缺省 webm 兼容旧渲染端 */
-  'screen-recorder:getDefaultSavePath': {
-    req: { extension?: 'webm' | 'mp4' } | void
-    res: string
-  }
-  'screen-recorder:selectSavePath': {
-    req: { extension?: 'webm' | 'mp4' } | void
-    res: string | null
-  }
-  'screen-recorder:beginWrite': {
-    req: { filePath: string }
-    res: { ok: boolean; error?: string }
-  }
-  'screen-recorder:appendChunk': {
-    req: { filePath: string; chunk: Uint8Array }
-    res: { ok: boolean; error?: string }
-  }
   /** 分片写盘与一次性写盘共用同一返回形状（成功带 filePath/historyId，失败带 error） */
-  'screen-recorder:abortWrite': { req: { filePath: string }; res: { ok: boolean } }
-  'screen-recorder:endWrite': {
-    req: { filePath: string; duration?: number; recordingId?: string }
-    res: { success: boolean; filePath?: string; historyId?: string; error?: string }
-  }
-  'screen-recorder:saveFile': {
-    req: {
-      filePath: string
-      buffer: Uint8Array
-      duration?: number
-      recordingId?: string
-    }
-    res: { success: boolean; filePath?: string; historyId?: string; error?: string }
-  }
 
   'pomodoro:dispatchShortcut': {
     req: { action: 'toggle' | 'skip' | 'reset' }
@@ -1589,7 +1239,7 @@ export interface IpcContract {
  * 'discarded'（那是 SegmentState 的成员，属于 rec_segments 不是 rec_recordings），
  * 两份定义一漂移，渲染端就会拿到永不出现的状态值。
  */
-export type RecordingStatus = RepoRecordingStatus
+export type RecordingStatus = 'recording' | 'paused' | 'completed' | 'failed' | 'recovered'
 
 export interface RecordingSummary {
   id: string

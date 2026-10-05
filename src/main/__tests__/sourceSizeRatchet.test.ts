@@ -32,7 +32,6 @@ const KNOWN_OVER_1000 = [
   'renderer/src/views/pomodoro/index.vue', // 1539
   'renderer/src/views/snippets/components/Editor.vue', // 1515
   'renderer/src/views/settings/LauncherManagePanel.vue', // 1395
-  'preload/index.ts' // 1131
 ]
 
 /** 体量哨兵基线：任何文件不得超过此行数（= 当前最大者）。

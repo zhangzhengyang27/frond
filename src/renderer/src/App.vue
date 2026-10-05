@@ -50,10 +50,6 @@ watch(
 type LoadingVariant =
   | 'default'
   | 'editor'
-  | 'recorder-record'
-  | 'recorder-history'
-  | 'recorder-playback'
-  | 'recorder-clip'
   | 'capture'
 
 /**
@@ -109,22 +105,6 @@ const loadingVariant = computed<LoadingVariant>(() => {
 
   if (routeName === 'snippets') {
     return 'editor'
-  }
-
-  if (routeName === 'screenRecorderRecord') {
-    return 'recorder-record'
-  }
-
-  if (routeName === 'screenRecorderHistory') {
-    return 'recorder-history'
-  }
-
-  if (routeName === 'screenRecorderPlayback') {
-    return 'recorder-playback'
-  }
-
-  if (routeName === 'screenRecorderClip') {
-    return 'recorder-clip'
   }
 
   if (routeName === 'screenshot' || routeName === 'screenshotCapture') {

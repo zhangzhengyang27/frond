@@ -122,38 +122,6 @@ const router = createRouter({
       // B59：重型工作模块全出血——三栏管理面就是整个窗口，不套壳。
       // 壳顶栏的 logo/全局搜索/快捷图标对工作模块全是噪音（用户实测反馈）
       meta: { window: 'overlay' }
-    },
-    {
-      path: '/screenRecorder',
-      component: () => import('../views/screenRecorder/Layout.vue'),
-      redirect: '/screenRecorder/record',
-      // B59a：meta 挂父级，子路由经 vue-router 的 matched 合并继承；
-      // clip 子路由自己的 overlay 声明不受影响
-      meta: { window: 'overlay' },
-      children: [
-        {
-          path: 'record',
-          name: 'screenRecorderRecord',
-          component: () => import('../views/screenRecorder/pages/RecordPage.vue')
-        },
-        {
-          path: 'history',
-          name: 'screenRecorderHistory',
-          component: () => import('../views/screenRecorder/pages/HistoryPage.vue')
-        },
-        {
-          path: 'playback',
-          name: 'screenRecorderPlayback',
-          component: () => import('../views/screenRecorder/pages/PlaybackPage.vue')
-        },
-        {
-          path: 'clip',
-          name: 'screenRecorderClip',
-          component: () => import('../views/screenRecorder/pages/ClipPage.vue'),
-          // 剪辑画布：主窗口内沉浸式覆盖层（AppShell 隐藏）
-          meta: { window: 'overlay' }
-        }
-      ]
     }
   ]
 })

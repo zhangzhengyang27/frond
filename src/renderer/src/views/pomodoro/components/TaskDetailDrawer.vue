@@ -234,8 +234,7 @@ function startScreenshot(): void {
 }
 
 function goRecordingView(): void {
-  // 路由表中录屏模块是 /screenRecorder（#/recording 不存在 → 主内容区空白）
-  window.location.hash = '#/screenRecorder'
+  window.location.hash = '#/snippets'
 }
 
 function selectRecord(id: string): void {

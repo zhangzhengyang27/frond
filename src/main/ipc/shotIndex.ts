@@ -19,9 +19,9 @@ export function registerShotIndexIpc(): void {
   typedHandle('shotidx:scan', async () => {
     try {
       const r = await screenshotIndexService.scan()
-      return { success: true, added: r.added }
+      return { success: true as const, added: r.added }
     } catch (error) {
-      return { success: false, error: (error as Error).message }
+      return { success: false as const, error: (error as Error).message }
     }
   })
 

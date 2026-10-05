@@ -37,7 +37,6 @@ const routeWindows = new Map<string, BrowserWindow>()
  */
 export const HEAVY_MODULE_WINDOW_SIZES: Record<string, { width: number; height: number }> = {
   snippets: { width: 1040, height: 660 },
-  screenRecorder: { width: 1040, height: 680 },
   pomodoro: { width: 900, height: 620 }
 }
 

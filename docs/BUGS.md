@@ -1363,3 +1363,27 @@ snippets-capsule-b58c 3/3（内容全文可搜、⌘→ 切块 Enter 复制活�
 - e2e/heavy-module-window.spec.mjs 2 钉（紧凑尺寸 / openModule 开独立窗不挤主窗）；
   顺手修 e2eConfigIntegrity 误报（title() 断言改渲染端 document.title）。
 - 门禁：typecheck 0 / lint 0 error / unit 1403 / 目标 e2e 28/28。
+
+## 2026-10-05 决策（用户指令：录屏功能整体移除）
+
+> 用户终裁：「直接移除录屏的功能」。此前 B57 全域修复 + Mediabunny 管线迁移 +
+> 两轮 UI 重设计（41d5537/55220ba 等 8 笔提交）后仍不满意，功能按贴图先例整体下线。
+>
+### 移除清单（本次提交）
+- 模块表/路由/HEAVY 集合/TopBar 与 loadingVariant 分支/TaskDetailDrawer 跳转目标
+- renderer：views/screenRecorder 整目录 + composables×7（useScreenRecorder/
+  useStreamManager/useSourceSelection/useCursorHighlight/useMarkers/recordingActions/
+  useRecordingShortcuts/useRecordingPipeline/useVideoClip）
+- main：ipc×8（screenRecorder/screenRecorderSave/recording/recordingHistory/
+  recordingSettings/recordingSavePathGrants/markers/clips）+ services/recording 整目录
+  + MarkerService/RecordingHistoryService + repos×5 + dataMigrationsRecording
+- preload 六个 API 块 + 录制域推送监听；契约五组通道段与相关类型内联清理
+- 门禁同步：ipcContract 下界 391→340、rebuildLedger 33→24、sourceSizeRatchet
+  preload/index.ts 出榜（降回 1000 行内）、testIsolation 候选集断言放宽
+  （electron-store 仅剩 SearchHistoryService 且无直测引用）
+- **数据不动**：rec_recordings/rec_segments/rec_markers 表保留（历史数据无损），
+  用户磁盘上的录像文件不动，recording-history.json 不删——将来若复刻录屏，
+  老记录仍可读
+### 验证
+单测 171 文件/1253 全绿 · typecheck 双侧 0 · e2e 113 通过+1 skipped ·
+lint/ratchet/ghostClasses 绿 · 幽灵 API 引用清零。

@@ -37,36 +37,11 @@ export {
 } from './FolderRepository'
 export { UsageRepository, usageRepository } from './UsageRepository'
 export {
-  RecordingRepository,
-  recordingRepository,
-  type RecordingRow,
-  type RecordingStatus,
-  type RecordingQuality,
-  type CursorStyle,
-  type RecordingFilter,
-  type ListOptions
-} from './RecordingRepository'
-export { MarkerRepository, markerRepository, type MarkerRow } from './MarkerRepository'
-export {
   ReminderRepository,
   reminderRepository,
   type Reminder,
   type ReminderFilter
 } from './ReminderRepository'
-export {
-  RecordingSegmentRepository,
-  recordingSegmentRepository,
-  type SegmentRow,
-  type SegmentState
-} from './RecordingSegmentRepository'
-export {
-  RecordingSettingsRepository,
-  recordingSettingsRepository,
-  type RecordingDefaultSettings,
-  type AudioKind,
-  DEFAULT_RECORDING_SETTINGS,
-  RECORDING_SETTINGS_KEY
-} from './RecordingSettingsRepository'
 export {
   ShotIndexRepository,
   shotIndexRepository,

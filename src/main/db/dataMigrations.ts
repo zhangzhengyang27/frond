@@ -23,7 +23,6 @@ import { database } from './database'
 import {
   prefRepository,
   tagRepository,
-  RECORDING_SETTINGS_KEY,
   pomodoroRepository,
   snippetRepository,
   folderRepository
@@ -110,8 +109,6 @@ export function runDataMigrations(): MigrationResult {
   migrateAliasesFromLegacyStore()
   migrateAiFromLegacyStore()
   migrateClipsFromLegacyStore()
-  migrateRecordingSettingsFromLegacyStore()
-  migrateMarkersFromLegacyStore()
 
   // 兼容旧 v1 标记：如果发现 v1 done，标记为 v2 done（v1 已包含的 4 类不再重复执行）
   const v1Done = db
@@ -453,6 +450,7 @@ export function migrateClipsFromLegacyStore(): void {
 }
 
 /** 这一路曾经把值写到 'recording.settings'，而生产读的是 RECORDING_SETTINGS_KEY */
+const RECORDING_SETTINGS_KEY = 'recording.default'
 const WRONG_RECORDING_SETTINGS_KEY = 'recording.settings'
 
 /**

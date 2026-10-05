@@ -1,5 +1,4 @@
 import { showSaveDialogFor } from '../modules/dialogs'
-import { grantRecordingSavePath } from './recordingSavePathGrants'
 import { typedHandle, typedHandleLogged } from './typedIpc'
 import type { FolderDataStore } from '../stores/FolderDataStore'
 import type { BrowserWindow } from 'electron'
@@ -21,7 +20,6 @@ export function registerFoldersIpcHandlers(
         })
     })
     if (result.canceled || !result.filePath) return null
-    grantRecordingSavePath(result.filePath)
     return result.filePath
   })
 

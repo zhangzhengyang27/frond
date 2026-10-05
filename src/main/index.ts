@@ -39,13 +39,6 @@ import {
   registerSnippetIpcHandlers,
   registerApplicationsIpcHandlers,
   registerFoldersIpcHandlers,
-  registerClipsIpcHandlers,
-  registerMarkersIpcHandlers,
-  registerRecordingIpcHandlers,
-  registerRecordingHistoryIpcHandlers,
-  registerRecordingSettingsIpcHandlers,
-  registerScreenRecorderIpcHandlers,
-  registerScreenRecorderSaveIpcHandlers,
   registerUsageIpcHandlers,
   registerAutoUpdateIpcHandlers,
   registerSystemInfoIpcHandlers,
@@ -76,7 +69,6 @@ import {
 import { installDatabase, uninstallDatabase } from './db/database'
 import { snippetRepository, TRASH_RETENTION_DAYS } from './db/repos/SnippetRepository'
 import { runDataMigrations } from './db/dataMigrations'
-import { runRecordingHistoryMigration } from './db/dataMigrationsRecording'
 import { runPomodoroDurationMsMigration } from './db/dataMigrationsPomodoro'
 import { installGlobalLogHandlers, log } from './services/LogService'
 // 平台差异集中工具
@@ -301,15 +293,6 @@ void app.whenReady().then(() => {
   } catch (error) {
     console.error('[Main] 数据迁移失败:', error)
   }
-  // v3：recording-history.json → rec_recordings（此前从未接线，属死代码；有错不标记可重试）
-  try {
-    const v3 = runRecordingHistoryMigration()
-    if (v3.ran && v3.errors.length > 0) {
-      log.warn('dataMigration.v3', `部分录制历史导入失败（${v3.errors.length} 条），下次启动重试`)
-    }
-  } catch (error) {
-    console.error('[Main] 录制历史迁移失败:', error)
-  }
   // v4：番茄钟 duration_ms 存量秒值 ×1000 修正（必须在 v2 legacy 导入之后）
   try {
     runPomodoroDurationMsMigration()
@@ -494,16 +477,6 @@ void app.whenReady().then(() => {
   // e2e perf-baseline 经 app.evaluate 直接取 metrics，不走 IPC
   setTimeout(logMemorySnapshot, 5000)
   memorySnapshotTimer = setInterval(logMemorySnapshot, 10 * 60 * 1000)
-
-  // 注册屏幕录制相关 IPC 处理器（模块化）
-  registerScreenRecorderIpcHandlers(() => mainWindow)
-  registerScreenRecorderSaveIpcHandlers()
-  registerRecordingHistoryIpcHandlers()
-  registerRecordingSettingsIpcHandlers()
-  registerMarkersIpcHandlers()
-  // 录制新通道（recording.*，SQLite rec_recordings 链路）：渲染端按 RecordingAPI 调用
-  registerRecordingIpcHandlers(() => mainWindow)
-  registerClipsIpcHandlers(() => mainWindow)
 
   // Raycast 化：主窗口 autoShow=false，不自动显示，只作为后台支撑
   mainWindow = createAppWindow(undefined, false)

@@ -244,9 +244,9 @@ describe('IPC 登记册（shared/ipc-contract.ts）不得含虚构通道', { tim
   })
 
   it('登记册覆盖只增不减', () => {
-    // 迁移是逐家族推进的（415 个通道里已接 391 个）。没有下界的话，
+    // 迁移是逐家族推进的。没有下界的话，
     // 一次「先删掉登记不确定的条目」的重构就能悄悄把约定退回成文档。
-    expect(contractKeys().length).toBeGreaterThanOrEqual(391)
+    expect(contractKeys().length).toBeGreaterThanOrEqual(340)
   })
 })
 
@@ -295,8 +295,7 @@ describe('IPC contract (E2E 烟雾测试)', { timeout: 120_000 }, () => {
 
     // 已核实为动态 / 间接注册的 channel 白名单（主进程经变量/辅助函数 send，
     // 字面量不在 main 静态可达范围内）：
-    // - ai:stream-chunk / clip:exportProgress / recording:export:* /
-    //   recording:countdown:* / cursor:position / pomodoro:integration:traySnapshot
+    // - ai:stream-chunk / cursor:position / pomodoro:integration:traySnapshot
     //   → 各 service 持 target.webContents 按需推送
     // - app:refresh-applications / app:openCommandPalette / app:openSettings /
     //   app:openAbout → appMenu/全局快捷键经 sendToRenderer 转发
@@ -309,13 +308,7 @@ describe('IPC contract (E2E 烟雾测试)', { timeout: 120_000 }, () => {
       // 这两条同样经 appMenu 的 sendToRenderer 转发（静态扫不到 send 的字面量）
       'pomodoro:focusProject',
       'ai:stream-chunk',
-      'clip:exportProgress',
-      'cursor:position',
-      'recording:export:progress',
-      'recording:export:done',
-      'recording:countdown:tick',
-      'recording:countdown:begun',
-      'recording:countdown:cancel'
+      'cursor:position'
     ])
     const unexpected = missing.filter((ch) => !DYNAMIC_CHANNELS.has(ch))
 
@@ -534,7 +527,7 @@ describe('环境 / 仓库 sanity', () => {
  *
  * 例外（有意为之，不在本门禁范围）：
  * - 契约里 req 为 void 的通道：handler 本来就忽略入参，形状无从错位。
- * - 不在契约里的通道（screenshot:* / platform:* / video:readFile）：preload 侧用
+ * - 不在契约里的通道（screenshot:* / platform:*）：preload 侧用
  *   裸 ipcRenderer.invoke + 位置参数，两端形状一致、行为正确；把它们收进契约
  *   是另一件事（要同时改 preload 与 req/res 定义）。
  */
@@ -645,8 +638,7 @@ describe('IPC 单对象入参门禁（req 非 void ⇒ 必须 typedHandle）', {
       'screenshot:getWindowList',
       'screenshot:captureWindow',
       'screenshot:startCapture',
-      'screenshot:endCapture',
-      'video:readFile'
+      'screenshot:endCapture'
     ]
     for (const ch of knownOutsideContract) {
       expect(flags.has(ch), `${ch} 不该出现在登记册里（若已收编请更新本用例）`).toBe(false)

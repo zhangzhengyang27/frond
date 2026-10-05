@@ -57,17 +57,6 @@ export const MODULES: ModuleMeta[] = [
     shortcut: '1'
   },
   {
-    id: 'screenRecorder',
-    routeName: 'screenRecorderRecord',
-    path: '/screenRecorder/record',
-    label: '录屏',
-    description: '录制 / 历史 / 回放 / 剪辑',
-    icon: 'record-circle',
-    group: 'creation',
-    category: 'tool',
-    shortcut: '2'
-  },
-  {
     id: 'pomodoro',
     routeName: 'pomodoro',
     path: '/pomodoro',
@@ -137,8 +126,4 @@ export const PENDING_MODULES: PendingModule[] = []
  * 主进程窗口尺寸表见 modules/windows.ts HEAVY_MODULE_WINDOW_SIZES，键与本集合一致；
  * 渲染端（⌘1-9 / useAppMenu 消费方）以此判断走 openModule IPC 还是窗口内路由。
  */
-export const HEAVY_MODULE_IDS: ReadonlySet<string> = new Set([
-  'snippets',
-  'screenRecorder',
-  'pomodoro'
-])
+export const HEAVY_MODULE_IDS: ReadonlySet<string> = new Set(['snippets', 'pomodoro'])

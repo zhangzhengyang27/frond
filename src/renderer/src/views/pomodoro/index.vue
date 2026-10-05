@@ -10,6 +10,15 @@
         <span class="zf-brand-name">ZenFocus</span>
       </div>
 
+      <!-- 模式页签（顶栏中段，用户指定） -->
+      <ModeSelector
+        :current-mode="currentMode"
+        :switch-locked="strictPauseBlocked"
+        settings-title="番茄钟设置"
+        @switch="switchMode"
+        @open-settings="showSettings = true"
+      />
+
       <div class="zf-topbar-side zf-topbar-side--right">
         <div v-if="backgroundProjects.length" class="zf-bg-chips">
           <span
@@ -88,16 +97,8 @@
     </header>
 
     <!-- ═══ 单列主内容（Pomofocus 范式：页签→计时器→主按钮→任务） ═══ -->
-    <main class="zf-column">
-      <!-- 1. 模式页签：紧贴计时器上方 -->
-      <ModeSelector
-        :current-mode="currentMode"
-        :switch-locked="strictPauseBlocked"
-        settings-title="番茄钟设置"
-        @switch="switchMode"
-        @open-settings="showSettings = true"
-      />
-
+    <main class="zf-stage">
+      <div class="zf-column">
       <!-- 2. 会话进度：第 N 个番茄 / 本组 M 个 -->
       <div
         class="zf-session"
@@ -249,6 +250,7 @@
           @delete="handleDeleteTask"
         />
       </section>
+      </div>
     </main>
 
     <!-- Dock 弹层改挂顶栏工具（特殊休息 / 声景） -->
@@ -947,11 +949,11 @@ onBeforeUnmount(() => {
 .zf-topbar {
   position: relative;
   z-index: 20;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 10px 20px;
+  padding: 8px 20px;
   border-bottom: 1px solid var(--pomo-surface-border);
 }
 
@@ -1148,11 +1150,31 @@ onBeforeUnmount(() => {
 }
 
 /* ─── 单列主内容 ─── */
-.zf-column {
+/* B61v3：滚动容器 = 全宽 stage（滚动条贴窗右缘），column 只负责居中 */
+.zf-stage {
   position: relative;
   z-index: 1;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.zf-stage::-webkit-scrollbar {
+  width: 5px;
+}
+
+.zf-stage::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zf-stage::-webkit-scrollbar-thumb {
+  background: var(--pomo-outline-variant);
+  border-radius: 3px;
+}
+
+.zf-column {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1160,20 +1182,7 @@ onBeforeUnmount(() => {
   width: 100%;
   max-width: 560px;
   margin: 0 auto;
-  padding: 28px 24px 48px;
-}
-
-.zf-column::-webkit-scrollbar {
-  width: 5px;
-}
-
-.zf-column::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.zf-column::-webkit-scrollbar-thumb {
-  background: var(--pomo-outline-variant);
-  border-radius: 3px;
+  padding: 24px 24px 48px;
 }
 
 /* 会话进度：第 N 个 · 圆点 · 共 M 个 */

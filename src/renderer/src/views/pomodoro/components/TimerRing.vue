@@ -20,8 +20,8 @@
         />
       </svg>
       <div class="ring-center">
+        <!-- B61：环心只放时间 + 模式（任务标题在聚焦条，此前两处重复） -->
         <div class="time">{{ timeText }}</div>
-        <div v-if="label" class="label" :title="label">{{ label }}</div>
         <div v-if="hint" class="hint">{{ hint }}</div>
       </div>
     </div>
@@ -29,7 +29,8 @@
 </template>
 
 <script setup lang="ts">
-/** 2026-09-23 重建件（原件全盘无副本，按 index.vue 的用法与 props/emits 契约重建）。 */
+/** 2026-09-23 重建件（原件全盘无副本，按 index.vue 的用法与 props/emits 契约重建）。
+ *  B61 重构：细线巨环 + 超大细体时间——时间字符串是整个页面的视觉锚点。 */
 import { computed } from 'vue'
 import type { TimerMode } from '../../../stores/pomodoro'
 import { formatCountdown } from '@utils/format'
@@ -46,7 +47,7 @@ interface Props {
 }
 const props = defineProps<Props>()
 
-const RADIUS = 45
+const RADIUS = 46
 const circumference = 2 * Math.PI * RADIUS
 
 // duration 为 0（正计时）时不做除法：直接画满环
@@ -70,11 +71,19 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
 
 .ring-wrap {
   position: relative;
-  width: min(46vh, 340px);
+  /* B61 舞台式：环即页面主角 */
+  width: min(56vh, 440px);
   aspect-ratio: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* 环后一圈模式色光晕：把环从纸面上轻轻托起 */
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--pomo-ring-halo, transparent) 0%,
+    transparent 68%
+  );
 }
 
 .ring {
@@ -96,22 +105,34 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
   stroke-width: var(--pomo-ring-width);
   transition:
     stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-    stroke 0.4s;
+    stroke 0.8s ease;
 }
 
 .is-work .ring-progress {
   stroke: var(--pomo-work);
-  filter: drop-shadow(0 0 10px var(--pomo-work-glow));
+  filter: drop-shadow(0 0 8px var(--pomo-work-glow));
 }
 
 .is-shortBreak .ring-progress {
   stroke: var(--pomo-short);
-  filter: drop-shadow(0 0 10px var(--pomo-short-glow));
+  filter: drop-shadow(0 0 8px var(--pomo-short-glow));
 }
 
 .is-longBreak .ring-progress {
   stroke: var(--pomo-long);
-  filter: drop-shadow(0 0 10px var(--pomo-long-glow));
+  filter: drop-shadow(0 0 8px var(--pomo-long-glow));
+}
+
+.is-work .ring-wrap {
+  --pomo-ring-halo: var(--pomo-work-soft);
+}
+
+.is-shortBreak .ring-wrap {
+  --pomo-ring-halo: var(--pomo-short-soft);
+}
+
+.is-longBreak .ring-wrap {
+  --pomo-ring-halo: var(--pomo-long-soft);
 }
 
 .running .ring-progress {
@@ -119,7 +140,7 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
 }
 
 .paused .ring-progress {
-  opacity: 0.55;
+  opacity: 0.5;
   filter: none;
 }
 
@@ -133,34 +154,26 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  max-width: 72%;
+  gap: 6px;
+  max-width: 78%;
 }
 
+/* B61：时间即主角——超大细体，tabular 防跳动 */
 .time {
-  font-size: clamp(30px, 6vh, 46px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: clamp(48px, 11vh, 92px);
+  font-weight: 250;
+  letter-spacing: -0.03em;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--pomo-text-strong);
 }
 
-.label {
-  max-width: 100%;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--pomo-text-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .hint {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--pomo-text-muted);
+  color: var(--pomo-text-faint);
 }
 
 @keyframes ring-breathe {
@@ -169,7 +182,7 @@ const timeText = computed(() => formatCountdown(Math.max(0, Math.round(props.tim
     opacity: 1;
   }
   50% {
-    opacity: 0.78;
+    opacity: 0.82;
   }
 }
 </style>

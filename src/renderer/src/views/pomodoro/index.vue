@@ -1,15 +1,17 @@
 <template>
-  <div class="zf-root">
-    <!-- Ambient Background -->
+  <div class="zf-root" :data-mode="currentMode">
+    <!-- 氛围光斑（模式驱动，随 data-mode 缓变） -->
     <div class="zf-bg-blob zf-bg-blob--a" aria-hidden="true" />
     <div class="zf-bg-blob zf-bg-blob--b" aria-hidden="true" />
 
-    <!-- Glass Header -->
-    <header class="zf-header">
-      <div class="zf-brand">
+    <!-- ═══ 顶栏：brand · 番茄循环 · 后台项目（一条发丝线） ═══ -->
+    <header class="zf-topbar">
+      <div class="zf-topbar-side">
         <span class="zf-brand-dot" aria-hidden="true" />
         <span class="zf-brand-name">ZenFocus</span>
       </div>
+
+      <!-- 模式切换（顶栏中央：唯一的状态控制） -->
       <ModeSelector
         :current-mode="currentMode"
         :switch-locked="strictPauseBlocked"
@@ -17,108 +19,37 @@
         @switch="switchMode"
         @open-settings="showSettings = true"
       />
+
+      <div class="zf-topbar-side zf-topbar-side--right">
+        <div v-if="backgroundProjects.length" class="zf-bg-chips">
+          <span
+            v-for="bg in backgroundProjects"
+            :key="bg.projectId"
+            class="zf-bg-chip"
+            :title="`${bg.name} · ${bg.timeLeftFormatted}`"
+          >
+            <span class="zf-dot zf-dot--sm" :style="{ background: bg.color }" />
+            {{ bg.name }} · {{ bg.timeLeftFormatted }}
+          </span>
+          <button
+            v-if="hasAnyActiveBackground"
+            type="button"
+            class="zf-stop-all"
+            title="停止所有项目中的计时器"
+            @click="stopAllTimers"
+          >
+            全部停止
+          </button>
+        </div>
+      </div>
     </header>
 
-    <!-- Body: 70/30 Split -->
-    <div class="zf-body">
-      <!-- ═══ Main Stage ═══ -->
-      <main class="zf-main">
-        <!-- Background Projects (only show when other projects have active timers) -->
-        <div v-if="backgroundProjects.length" class="zf-project-row">
-          <div class="zf-bg-chips">
-            <span
-              v-for="bg in backgroundProjects"
-              :key="bg.projectId"
-              class="zf-bg-chip"
-              :title="`${bg.name} · ${bg.timeLeftFormatted}`"
-            >
-              <span class="zf-dot zf-dot--sm" :style="{ background: bg.color }" />
-              {{ bg.name }} · {{ bg.timeLeftFormatted }}
-            </span>
-            <button
-              v-if="hasAnyActiveBackground"
-              type="button"
-              class="zf-stop-all"
-              title="停止所有项目中的计时器"
-              @click="stopAllTimers"
-            >
-              全部停止
-            </button>
-          </div>
-        </div>
-
-        <!-- Focus Card -->
-        <section class="zf-focus-card" :class="{ 'is-empty': !currentTask }">
-          <template v-if="currentTask">
-            <div class="zf-focus-indicator" :class="{ live: isRunning }">
-              <span class="zf-blink-dot" />
-              <span class="zf-focus-tag">{{
-                isRunning ? '专注中' : isPaused ? '已暂停' : '待开始'
-              }}</span>
-            </div>
-            <h2 class="zf-focus-title" :title="currentTask.title">{{ currentTask.title }}</h2>
-            <div class="zf-focus-actions">
-              <button
-                v-if="!isRunning"
-                type="button"
-                class="zf-btn zf-btn--filled"
-                @click="startTimer"
-              >
-                <AppIcon icon="ri-play-fill" />开始
-              </button>
-              <button
-                v-else
-                type="button"
-                class="zf-btn zf-btn--filled"
-                :disabled="strictPauseBlocked"
-                :title="strictPauseBlocked ? '严格模式：不允许暂停' : ''"
-                @click="pauseTimer"
-              >
-                <AppIcon :icon="strictPauseBlocked ? 'ri-lock-line' : 'ri-pause-fill'" />{{
-                  strictPauseBlocked ? '严格中' : '暂停'
-                }}
-              </button>
-              <button
-                v-if="flowtimeWork && (isRunning || isPaused) && elapsed >= 10"
-                type="button"
-                class="zf-btn"
-                title="结束并记录本次正计时"
-                @click="handleFinishFlowtime"
-              >
-                <AppIcon icon="ri-stop-circle-line" />完成
-              </button>
-              <button
-                type="button"
-                class="zf-btn zf-btn--icon"
-                title="清除当前任务"
-                @click="handleClearCurrentTask"
-              >
-                <AppIcon icon="ri-close-line" />
-              </button>
-            </div>
-          </template>
-          <div v-else class="zf-focus-empty">
-            <AppIcon icon="ri-lightbulb-flash-line" />
-            <span v-if="showProjectSelector">从右侧任务列表选一个开始专注</span>
-            <span v-else>创建项目并添加任务，即可开始专注</span>
-          </div>
-        </section>
-
-        <!-- Timer Ring -->
-        <TimerRing
-          :time-left="timeLeft"
-          :duration="duration"
-          :mode="currentMode"
-          :is-running="isRunning"
-          :is-paused="isPaused"
-          :label="currentTask?.title ?? ''"
-          :hint="currentModeLabel"
-          :flowtime="flowtimeWork"
-        />
-
-        <!-- Long Break Resume Banner -->
-        <div v-if="showLongBreakResumeBanner" class="zf-resume-banner">
-          <div class="zf-resume-text">
+    <!-- ═══ 舞台：巨环即页面 ═══ -->
+    <main class="zf-stage">
+      <!-- 浮动提示堆栈 -->
+      <transition name="zf-pop">
+        <div v-if="showLongBreakResumeBanner" class="zf-banner">
+          <div class="zf-banner-text">
             <strong>长休息结束</strong>
             <span>准备好下一轮专注吗？</span>
           </div>
@@ -126,14 +57,15 @@
             开始下一轮
           </button>
         </div>
+      </transition>
 
-        <!-- Mode Switch Confirm -->
-        <div v-if="showModeConfirm" class="zf-resume-banner">
-          <div class="zf-resume-text">
+      <transition name="zf-pop">
+        <div v-if="showModeConfirm" class="zf-banner">
+          <div class="zf-banner-text">
             <strong>切换模式</strong>
             <span>计时器正在运行，切换将重置当前计时，确定吗？</span>
           </div>
-          <div class="zf-resume-actions">
+          <div class="zf-banner-actions">
             <button class="zf-btn zf-btn--icon" type="button" @click="showModeConfirm = false">
               <AppIcon icon="ri-close-line" />
             </button>
@@ -142,71 +74,110 @@
             </button>
           </div>
         </div>
+      </transition>
 
-        <!-- 严格模式：失焦作废提示 -->
-        <div v-if="strictFailHint" class="zf-resume-banner">
-          <div class="zf-resume-text">
+      <transition name="zf-pop">
+        <div v-if="strictFailHint" class="zf-banner zf-banner--warn">
+          <div class="zf-banner-text">
             <strong>严格模式</strong>
             <span>检测到离开窗口，本番茄已作废</span>
           </div>
         </div>
+      </transition>
 
-        <!-- B60-14：toolbar+浮层包一层 relative 锚定（浮层随工具条走）；
-             两个浮层互斥（此前可同时打开、同位叠置） -->
-        <div class="zf-toolbar-wrap">
-          <div class="zf-toolbar">
-          <button type="button" class="zf-tool-btn" title="全屏" @click="toggleFullscreen">
-            <AppIcon icon="ri-fullscreen-line" />
-          </button>
-          <button
-            ref="specialBreakToggleRef"
-            type="button"
-            class="zf-tool-btn"
-            :class="{ active: isSpecialBreak }"
-            title="特殊休息（午休 / 晚饭，不占番茄循环）"
-            @click="toggleSpecialBreakPop"
-          >
-            <AppIcon icon="ri-restaurant-line" />
-          </button>
-          <button
-            ref="soundscapeToggleRef"
-            type="button"
-            class="zf-tool-btn"
-            :class="{ active: soundscape.current.value !== 'none' }"
-            title="声景白噪音"
-            @click="toggleSoundscapePop"
-          >
-            <AppIcon
-              :icon="soundscape.current.value !== 'none' ? 'ri-music-2-fill' : 'ri-music-line'"
-            />
-          </button>
-          <button
-            type="button"
-            class="zf-tool-btn"
-            :class="{ active: isFlowtime }"
-            :title="isFlowtime ? '切换为倒计时番茄' : '切换为正计时（Flowtime）'"
-            @click="toggleTimerStyle"
-          >
-            <AppIcon :icon="isFlowtime ? 'ri-timer-flash-line' : 'ri-timer-line'" />
-          </button>
-          <button type="button" class="zf-tool-btn" title="迷你窗口" @click="toggleMiniWindow">
-            <AppIcon icon="ri-picture-in-picture-line" />
-          </button>
-          <button
-            type="button"
-            class="zf-tool-btn"
-            :class="{ active: focusModeEnabled }"
-            :title="focusModeEnabled ? '退出专注模式' : '专注模式'"
-            @click="toggleFocusMode"
-          >
-            <AppIcon :icon="focusModeEnabled ? 'ri-moon-fill' : 'ri-moon-line'" />
-          </button>
-          <span class="zf-tool-divider" />
-          <span class="zf-tool-label">{{ effective.workDuration }} 分钟</span>
-          </div>
+      <!-- 会话语境：循环圆点贴着环（本组第 N 个 / 每 N 个进长休息） -->
+      <div
+        class="zf-session"
+        :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}（每 ${sessionDots.total} 个番茄进入长休息）`"
+      >
+        <span
+          v-for="i in sessionDots.total"
+          :key="i"
+          class="zf-session-dot"
+          :class="{ done: i <= sessionDots.completed, next: i === sessionDots.completed + 1 }"
+        />
+      </div>
 
-          <!-- 特殊休息时长浮层 -->
-          <div v-if="specialBreakOpen" ref="specialBreakPopRef" role="menu" aria-label="特殊休息时长" class="zf-sound-pop">
+      <!-- 巨环 -->
+      <TimerRing
+        :time-left="timeLeft"
+        :duration="duration"
+        :mode="currentMode"
+        :is-running="isRunning"
+        :is-paused="isPaused"
+        :label="currentTask?.title ?? ''"
+        :hint="currentModeLabel"
+        :flowtime="flowtimeWork"
+      />
+
+      <!-- 当下一行：状态 · 任务 · 主控（舞台上的唯一操作行） -->
+      <div v-if="currentTask" class="zf-nowline">
+        <span class="zf-nowline-status" :class="{ live: isRunning }">
+          <span class="zf-blink-dot" />
+          {{ isRunning ? '专注中' : isPaused ? '已暂停' : '待开始' }}
+        </span>
+        <h2 class="zf-nowline-title" :title="currentTask.title">{{ currentTask.title }}</h2>
+        <div class="zf-nowline-actions">
+          <button
+            v-if="!isRunning"
+            type="button"
+            class="zf-btn zf-btn--filled zf-btn--hero"
+            @click="startTimer"
+          >
+            <AppIcon icon="ri-play-fill" />开始专注
+          </button>
+          <button
+            v-else
+            type="button"
+            class="zf-btn zf-btn--filled zf-btn--hero"
+            :disabled="strictPauseBlocked"
+            :title="strictPauseBlocked ? '严格模式：不允许暂停' : ''"
+            @click="pauseTimer"
+          >
+            <AppIcon :icon="strictPauseBlocked ? 'ri-lock-line' : 'ri-pause-fill'" />{{
+              strictPauseBlocked ? '严格中' : '暂停'
+            }}
+          </button>
+          <button
+            v-if="flowtimeWork && (isRunning || isPaused) && elapsed >= 10"
+            type="button"
+            class="zf-btn zf-btn--ghost"
+            title="结束并记录本次正计时"
+            @click="handleFinishFlowtime"
+          >
+            <AppIcon icon="ri-stop-circle-line" />完成
+          </button>
+          <button
+            type="button"
+            class="zf-btn zf-btn--icon"
+            title="清除当前任务"
+            @click="handleClearCurrentTask"
+          >
+            <AppIcon icon="ri-close-line" />
+          </button>
+        </div>
+      </div>
+      <div v-else class="zf-nowline zf-nowline--empty">
+        <AppIcon icon="ri-lightbulb-flash-line" />
+        <span v-if="showProjectSelector">从右侧任务列表选一个开始专注</span>
+        <span v-else>创建项目并添加任务，即可开始专注</span>
+        <button v-if="showProjectSelector" type="button" class="zf-btn zf-btn--filled" @click="panelOpen = true">
+          选择任务
+        </button>
+      </div>
+    </main>
+
+    <!-- ═══ Dock：底部悬浮工具排 ═══ -->
+    <div class="zf-dock-wrap">
+      <!-- 特殊休息时长浮层 -->
+      <transition name="zf-pop">
+        <div
+          v-if="specialBreakOpen"
+          ref="specialBreakPopRef"
+          role="menu"
+          aria-label="特殊休息时长"
+          class="zf-dock-pop"
+        >
           <div class="zf-sound-grid">
             <button
               v-for="m in SPECIAL_BREAK_OPTIONS"
@@ -221,9 +192,17 @@
             </button>
           </div>
         </div>
+      </transition>
 
-        <!-- 声景选择浮层 -->
-        <div v-if="soundscapeOpen" ref="soundscapePopRef" role="menu" aria-label="声景白噪音" class="zf-sound-pop">
+      <!-- 声景选择浮层 -->
+      <transition name="zf-pop">
+        <div
+          v-if="soundscapeOpen"
+          ref="soundscapePopRef"
+          role="menu"
+          aria-label="声景白噪音"
+          class="zf-dock-pop"
+        >
           <div class="zf-sound-grid">
             <button
               v-for="sc in SOUNDSCAPES"
@@ -250,13 +229,75 @@
             <AppIcon icon="ri-volume-up-line" />
           </div>
         </div>
-        </div>
-      </main>
+      </transition>
 
-      <!-- ═══ Glass Sidebar ═══ -->
-      <aside class="zf-sidebar">
-        <!-- Sidebar Header -->
-        <div class="zf-sidebar-head">
+      <nav class="zf-dock">
+        <button
+          type="button"
+          class="zf-dock-btn"
+          :class="{ active: panelOpen }"
+          title="任务面板"
+          @click="panelOpen = !panelOpen"
+        >
+          <AppIcon icon="ri-layout-right-2-line" />
+        </button>
+        <button type="button" class="zf-dock-btn" title="专注统计" @click="openStats">
+          <AppIcon icon="ri-bar-chart-box-line" />
+        </button>
+        <span class="zf-dock-divider" />
+        <button type="button" class="zf-dock-btn" title="全屏" @click="toggleFullscreen">
+          <AppIcon icon="ri-fullscreen-line" />
+        </button>
+        <button
+          ref="specialBreakToggleRef"
+          type="button"
+          class="zf-dock-btn"
+          :class="{ active: isSpecialBreak }"
+          title="特殊休息（午休 / 晚饭，不占番茄循环）"
+          @click="toggleSpecialBreakPop"
+        >
+          <AppIcon icon="ri-restaurant-line" />
+        </button>
+        <button
+          ref="soundscapeToggleRef"
+          type="button"
+          class="zf-dock-btn"
+          :class="{ active: soundscape.current.value !== 'none' }"
+          title="声景白噪音"
+          @click="toggleSoundscapePop"
+        >
+          <AppIcon
+            :icon="soundscape.current.value !== 'none' ? 'ri-music-2-fill' : 'ri-music-line'"
+          />
+        </button>
+        <button
+          type="button"
+          class="zf-dock-btn"
+          :class="{ active: isFlowtime }"
+          :title="isFlowtime ? '切换为倒计时番茄' : '切换为正计时（Flowtime）'"
+          @click="toggleTimerStyle"
+        >
+          <AppIcon :icon="isFlowtime ? 'ri-timer-flash-line' : 'ri-timer-line'" />
+        </button>
+        <button type="button" class="zf-dock-btn" title="迷你窗口" @click="toggleMiniWindow">
+          <AppIcon icon="ri-picture-in-picture-line" />
+        </button>
+        <button
+          type="button"
+          class="zf-dock-btn"
+          :class="{ active: focusModeEnabled }"
+          :title="focusModeEnabled ? '退出专注模式' : '专注模式'"
+          @click="toggleFocusMode"
+        >
+          <AppIcon :icon="focusModeEnabled ? 'ri-moon-fill' : 'ri-moon-line'" />
+        </button>
+      </nav>
+    </div>
+
+    <!-- ═══ 任务面板：右侧滑出（按需） ═══ -->
+    <transition name="zf-flyout">
+      <aside v-if="panelOpen" class="zf-flyout">
+        <div class="zf-flyout-head">
           <div class="zf-avatar">
             <AppIcon icon="ri-user-smile-line" />
           </div>
@@ -264,7 +305,6 @@
             <span class="zf-greeting-title">今天也要加油</span>
             <span class="zf-greeting-sub">已完成 {{ statistics.today.work }} 个番茄钟</span>
           </div>
-          <!-- 新建任务按钮移至右上角 -->
           <button
             type="button"
             class="zf-new-task-compact"
@@ -272,74 +312,68 @@
             @click="openCreateDialog"
           >
             <AppIcon icon="ri-add-line" />
-            <span>新建任务</span>
+            <span>新建</span>
+          </button>
+          <button type="button" class="zf-btn zf-btn--icon" title="关闭面板" @click="panelOpen = false">
+            <AppIcon icon="ri-close-line" />
           </button>
         </div>
 
-        <!-- Nav Tabs -->
-        <nav class="zf-nav">
-          <div class="zf-nav-indicator" :style="navIndicatorStyle" />
-          <button
-            type="button"
-            :class="['zf-nav-item', { active: sidePanelTab === 'main' }]"
-            @click="sidePanelTab = 'main'"
-          >
-            <AppIcon icon="ri-time-line" />
-            <span>今日</span>
-          </button>
-          <button
-            type="button"
-            :class="['zf-nav-item', { active: sidePanelTab === 'stats' }]"
-            @click="switchToStats"
-          >
-            <AppIcon icon="ri-bar-chart-box-line" />
-            <span>统计</span>
-          </button>
-        </nav>
-
-        <!-- Panel Content -->
-        <div class="zf-panel-scroll">
-          <template v-if="sidePanelTab === 'main'">
-            <TodayStatsBar
-              :work-count="statistics.today.work"
-              :work-duration="effective.workDuration"
-              :streak="store.streak"
-            />
-            <FocusAssets class="zf-streak" />
-            <TaskListPanel
-              :tasks="focusedTasks"
-              :projects="projects"
-              :current-task-id="currentTaskId"
-              :work-duration="effective.workDuration"
-              @select="handleSelectTask"
-              @start="handleStartTask"
-              @complete="handleCompleteTask"
-              @edit="handleEditTask"
-              @open-detail="handleOpenTaskDetail"
-              @delete="handleDeleteTask"
-            />
-            <FocusRecordPanel :records="todayRecords" />
-          </template>
-          <StatisticsPanel v-else />
+        <div class="zf-flyout-scroll">
+          <TodayStatsBar
+            :work-count="statistics.today.work"
+            :work-duration="effective.workDuration"
+            :streak="store.streak"
+          />
+          <FocusAssets class="zf-streak" />
+          <TaskListPanel
+            :tasks="focusedTasks"
+            :projects="projects"
+            :current-task-id="currentTaskId"
+            :work-duration="effective.workDuration"
+            @select="handleSelectTask"
+            @start="handleStartTask"
+            @complete="handleCompleteTask"
+            @edit="handleEditTask"
+            @open-detail="handleOpenTaskDetail"
+            @delete="handleDeleteTask"
+          />
+          <FocusRecordPanel :records="todayRecords" />
         </div>
 
-        <!-- Daily Progress -->
-        <div class="zf-progress">
-          <div class="zf-progress-meta">
-            <span>今日进度</span>
-            <span class="zf-progress-num"
-              >{{ Math.min(100, Math.round((statistics.today.work / 8) * 100)) }}%</span
-            >
-          </div>
-          <div class="zf-progress-track">
-            <div
-              class="zf-progress-fill"
-              :style="{ width: Math.min(100, (statistics.today.work / 8) * 100) + '%' }"
-            />
+        <div class="zf-flyout-foot">
+          <div class="zf-progress">
+            <div class="zf-progress-meta">
+              <span>今日进度</span>
+              <span class="zf-progress-num"
+                >{{ Math.min(100, Math.round((statistics.today.work / 8) * 100)) }}%</span
+              >
+            </div>
+            <div class="zf-progress-track">
+              <div
+                class="zf-progress-fill"
+                :style="{ width: Math.min(100, (statistics.today.work / 8) * 100) + '%' }"
+              />
+            </div>
           </div>
         </div>
       </aside>
-    </div>
+    </transition>
+
+    <!-- ═══ 统计：全屏报告层 ═══ -->
+    <transition name="zf-fade">
+      <div v-if="statsOverlay" class="zf-stats-overlay">
+        <header class="zf-stats-head">
+          <h3 class="zf-stats-title">专注统计</h3>
+          <button type="button" class="zf-btn zf-btn--icon" title="关闭" @click="statsOverlay = false">
+            <AppIcon icon="ri-close-line" />
+          </button>
+        </header>
+        <div class="zf-stats-body">
+          <StatisticsPanel />
+        </div>
+      </div>
+    </transition>
 
     <!-- ═══ Dialogs & Drawers ═══ -->
     <TaskEditDialog
@@ -463,12 +497,16 @@ const focusedTasks = computed(() => {
 const showSettings = ref(false)
 // 新建任务弹窗开关（true 时显示创建弹窗）
 const creatingTask = ref(false)
-const sidePanelTab = ref<'main' | 'stats'>('main')
+// B61 结构重构：拆掉常驻侧栏——任务面板按需滑出，统计升级为全屏报告层
+const panelOpen = ref(false)
+const statsOverlay = ref(false)
 
-// Tab 指示器位置：跟随当前 tab 滑动
-const navIndicatorStyle = computed(() => ({
-  transform: sidePanelTab.value === 'main' ? 'translateX(0)' : 'translateX(100%)'
-}))
+// 番茄循环进度（顶栏圆点）：本组已完成 N / 每 interval 个进长休息
+const sessionDots = computed(() => {
+  const interval = Math.max(2, effective.value.longBreakInterval)
+  const completed = focusedTimerState.value?.consecutiveCount ?? 0
+  return { total: interval, completed: completed % interval }
+})
 
 // 模式切换确认弹窗
 const showModeConfirm = ref(false)
@@ -582,9 +620,21 @@ function stopAllTimers(): void {
   timer?.stopAll?.()
 }
 
-async function switchToStats(): Promise<void> {
-  sidePanelTab.value = 'stats'
+// B61：统计全屏层——进入时预载周数据
+async function openStats(): Promise<void> {
+  statsOverlay.value = true
+  panelOpen.value = false
   await store.loadStats('week')
+}
+
+// Esc：统计层 → 关层；任务面板 → 收起（统计层优先）
+function onGlobalKey(e: KeyboardEvent): void {
+  if (e.key !== 'Escape') return
+  if (statsOverlay.value) {
+    statsOverlay.value = false
+  } else if (panelOpen.value) {
+    panelOpen.value = false
+  }
 }
 
 function toggleFullscreen(): void {
@@ -840,15 +890,21 @@ async function handleSaveSettings(newSettings: Partial<typeof settings.value>): 
   // focusedTimerState 通过 effective 派生自动更新
 }
 
+// B60-22：handler 是 async（blur 后要异步查前台窗口），包一层 void 满足
+// no-misused-promises；具名引用保证 add/remove 配对
+const onWindowBlurVoid = (): void => void onWindowBlur()
+
 onMounted(() => {
   // 数据加载 / 快捷键绑定 / tray 快照推送已上移 usePomodoroAppBridge（app 级单例）
   document.addEventListener('fullscreenchange', onFullscreenChange)
-  window.addEventListener('blur', onWindowBlur)
+  window.addEventListener('blur', onWindowBlurVoid)
+  window.addEventListener('keydown', onGlobalKey)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('fullscreenchange', onFullscreenChange)
-  window.removeEventListener('blur', onWindowBlur)
+  window.removeEventListener('blur', onWindowBlurVoid)
+  window.removeEventListener('keydown', onGlobalKey)
   soundscape.stop()
   unsubStrictFail()
 })
@@ -856,7 +912,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ═══ ZenFocus · Stitch Design System ═══ */
+/* ═══ B61 结构重构 · 「舞台式」═══
+   巨环独占全屏 = 唯一主角；工具收进底部 Dock；任务面板按需滑出；
+   统计全屏报告层。层级：氛围光斑(0) < 舞台(1) < 顶栏/Dock(20/30)
+   < 面板(40) < 统计层(50) < 弹窗(1000, UModal teleport)。 */
 .zf-root {
   position: relative;
   height: 100%;
@@ -872,98 +931,113 @@ onBeforeUnmount(() => {
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
+  --pomo-mode: var(--pomo-work);
+  --pomo-mode-soft: var(--pomo-work-soft);
+  --pomo-mode-glow: var(--pomo-work-glow);
+  transition: background 0.8s ease;
 }
 
-/* ─── Ambient Background ─── */
+.zf-root[data-mode='shortBreak'] {
+  --pomo-mode: var(--pomo-short);
+  --pomo-mode-soft: var(--pomo-short-soft);
+  --pomo-mode-glow: var(--pomo-short-glow);
+}
+
+.zf-root[data-mode='longBreak'] {
+  --pomo-mode: var(--pomo-long);
+  --pomo-mode-soft: var(--pomo-long-soft);
+  --pomo-mode-glow: var(--pomo-long-glow);
+}
+
+/* ─── 氛围光斑（收在画布内） ─── */
 .zf-bg-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
+  filter: blur(120px);
   pointer-events: none;
   z-index: 0;
+  opacity: 0.5;
+  transition: background 0.8s ease;
 }
 
 .zf-bg-blob--a {
-  width: 640px;
-  height: 640px;
-  top: -200px;
-  left: -120px;
-  background: var(--pomo-work-soft);
+  width: 440px;
+  height: 440px;
+  top: -6%;
+  left: -4%;
+  background: var(--pomo-mode-soft);
 }
 
 .zf-bg-blob--b {
-  width: 520px;
-  height: 520px;
-  bottom: -180px;
-  right: -80px;
-  background: var(--pomo-long-soft);
+  width: 360px;
+  height: 360px;
+  bottom: -5%;
+  right: -3%;
+  background: var(--pomo-mode-soft);
+  opacity: 0.32;
 }
 
-/* ─── Glass Header ─── */
-.zf-header {
+/* ─── 顶栏：一条发丝线 ─── */
+.zf-topbar {
   position: relative;
   z-index: 20;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 28px;
-  background: var(--pomo-glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--pomo-glass-border);
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--pomo-surface-border);
 }
 
-.zf-brand {
+.zf-topbar-side {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.zf-topbar-side--right {
+  justify-content: flex-end;
 }
 
 .zf-brand-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--pomo-work);
-  box-shadow: 0 0 12px var(--pomo-work-glow);
+  background: var(--pomo-mode);
+  box-shadow: 0 0 10px var(--pomo-mode-glow);
+  transition: background 0.8s ease, box-shadow 0.8s ease;
 }
 
 .zf-brand-name {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--pomo-text-strong);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--pomo-text-muted);
 }
 
-/* ─── Body Layout ─── */
-.zf-body {
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-
-/* ─── Main Stage ─── */
-.zf-main {
-  position: relative;
-  flex: 6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 24px 40px;
-  min-width: 0;
-  overflow-y: auto;
-}
-
-/* Project Row */
-.zf-project-row {
+/* 后台项目 chips（顶栏右侧，只有活跃时出现） */
+.zf-bg-chips {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-end;
+}
+
+.zf-bg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  background: var(--pomo-surface);
+  border: 1px solid var(--pomo-surface-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--pomo-text-soft);
+  box-shadow: var(--pomo-shadow-card);
 }
 
 .zf-dot {
@@ -978,32 +1052,12 @@ onBeforeUnmount(() => {
   height: 6px;
 }
 
-.zf-bg-chips {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.zf-bg-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  background: var(--pomo-surface-container);
-  border: 1px solid var(--pomo-outline-variant);
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pomo-text-soft);
-}
-
 .zf-stop-all {
-  padding: 5px 12px;
+  padding: 4px 11px;
   background: transparent;
   border: 1px solid var(--pomo-outline-variant);
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--pomo-text-muted);
   cursor: pointer;
@@ -1019,106 +1073,163 @@ onBeforeUnmount(() => {
   background: rgba(255, 59, 48, 0.06);
 }
 
-/* Focus Card */
-.zf-focus-card {
+/* ─── 舞台：巨环即页面 ─── */
+.zf-stage {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  gap: 26px;
+  padding: 24px 32px 96px; /* 底部给 Dock 留位 */
+  min-width: 0;
+  overflow-y: auto;
+}
+
+/* 会话圆点：环的正上方，本组循环进度 */
+.zf-session {
   display: flex;
   align-items: center;
-  gap: 14px;
-  width: 100%;
-  max-width: 560px;
-  padding: 16px 22px;
-  background: var(--pomo-glass-bg-elevated);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--pomo-glass-border-elevated);
-  border-radius: 20px;
-  box-shadow: var(--pomo-shadow-card);
-  transition:
-    box-shadow 0.3s,
-    transform 0.3s;
+  gap: 8px;
 }
 
-.zf-focus-card:hover {
+.zf-session-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pomo-outline-variant);
+  transition: background 0.4s, box-shadow 0.4s, transform 0.4s;
+}
+
+.zf-session-dot.done {
+  background: var(--pomo-mode);
+}
+
+.zf-session-dot.next {
+  background: var(--pomo-mode-soft);
+  box-shadow: inset 0 0 0 1.5px var(--pomo-mode);
+  transform: scale(1.15);
+}
+
+/* ─── 浮动提示堆栈（横幅） ─── */
+.zf-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(440px, 90%);
+  padding: 12px 18px;
+  background: var(--pomo-surface);
+  border: 1px solid var(--pomo-surface-border);
+  border-radius: 14px;
   box-shadow: var(--pomo-shadow-elevated);
-  transform: translateY(-1px);
 }
 
-.zf-focus-card.is-empty {
-  justify-content: center;
-  background: var(--pomo-glass-bg);
+.zf-banner--warn {
+  border-color: rgba(255, 159, 10, 0.35);
+  background: rgba(255, 159, 10, 0.07);
 }
 
-.zf-focus-indicator {
+.zf-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.zf-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.zf-banner-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pomo-text-strong);
+}
+
+.zf-banner-text span {
+  font-size: 12px;
+  color: var(--pomo-text-muted);
+}
+
+/* ─── 当下一行：状态 · 任务 · 主控 ─── */
+.zf-nowline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(560px, 92%);
+}
+
+.zf-nowline-status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
+  padding: 4px 11px;
   background: var(--pomo-surface-container);
   border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pomo-text-muted);
   flex-shrink: 0;
+  transition: background 0.8s ease, color 0.8s ease;
 }
 
-.zf-focus-indicator.live {
-  background: var(--pomo-work-soft);
+.zf-nowline-status.live {
+  background: var(--pomo-mode-soft);
+  color: var(--pomo-mode);
 }
 
 .zf-blink-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--pomo-work);
+  background: var(--pomo-text-muted);
 }
 
-.zf-focus-indicator.live .zf-blink-dot {
-  animation: zf-blink 1.4s infinite both;
+.zf-nowline-status.live .zf-blink-dot {
+  background: var(--pomo-mode);
+  animation: zf-blink 1.6s infinite both;
 }
 
-.zf-focus-tag {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--pomo-text-muted);
-}
-
-.zf-focus-indicator.live .zf-focus-tag {
-  color: var(--pomo-work);
-}
-
-.zf-focus-title {
+.zf-nowline-title {
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 14.5px;
+  font-weight: 550;
   color: var(--pomo-text-strong);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.zf-focus-actions {
+.zf-nowline-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
 
-.zf-focus-empty {
-  display: flex;
-  align-items: center;
+.zf-nowline--empty {
+  justify-content: center;
   gap: 10px;
+  padding: 12px 20px;
+  border: 1px dashed var(--pomo-outline-variant);
+  border-radius: 999px;
   font-size: 13px;
   color: var(--pomo-text-muted);
-  padding: 4px 0;
 }
 
-.zf-focus-empty i {
-  font-size: 18px;
-  color: var(--pomo-work);
+.zf-nowline--empty i {
+  font-size: 17px;
+  color: var(--pomo-mode);
 }
 
-/* Buttons */
+/* ─── Buttons ─── */
 .zf-btn {
   display: inline-flex;
   align-items: center;
@@ -1130,102 +1241,92 @@ onBeforeUnmount(() => {
     transform 0.15s,
     box-shadow 0.2s,
     opacity 0.15s,
-    background 0.2s;
+    background 0.3s;
 }
 
 .zf-btn--filled {
-  padding: 9px 20px;
-  background: var(--pomo-work);
+  padding: 8px 18px;
+  background: var(--pomo-mode);
   color: var(--pomo-on-accent);
   border-radius: 999px;
   font-size: 13px;
-  box-shadow: 0 4px 14px var(--pomo-work-glow);
+  box-shadow: 0 4px 14px var(--pomo-mode-glow);
+}
+
+.zf-btn--hero {
+  padding: 10px 24px;
+  font-size: 14px;
 }
 
 .zf-btn--filled:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px var(--pomo-work-glow);
-  opacity: 0.92;
+  box-shadow: 0 6px 20px var(--pomo-mode-glow);
+  opacity: 0.94;
 }
 
 .zf-btn--filled:active {
   transform: translateY(0) scale(0.98);
 }
 
+.zf-btn--filled:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.zf-btn--ghost {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--pomo-text-soft);
+  border: 1px solid var(--pomo-outline-variant);
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.zf-btn--ghost:hover {
+  background: var(--pomo-surface-container);
+  color: var(--pomo-text-strong);
+}
+
 .zf-btn--icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   justify-content: center;
-  background: var(--pomo-surface-container);
+  background: transparent;
   color: var(--pomo-text-muted);
   border-radius: 50%;
   font-size: 15px;
 }
 
 .zf-btn--icon:hover {
-  background: var(--pomo-surface-variant);
+  background: var(--pomo-surface-container);
   color: var(--pomo-text-strong);
 }
 
-/* Session Dots - removed */
-
-/* Resume Banner */
-.zf-resume-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  width: 100%;
-  max-width: 480px;
-  padding: 14px 20px;
-  background: var(--pomo-glass-bg-elevated);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--pomo-outline-variant);
-  border-radius: 16px;
-  box-shadow: var(--pomo-shadow-card);
-  animation: zf-fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+/* ─── Dock：底部悬浮工具排（真悬浮层，吃 surface 卡质感） ─── */
+.zf-dock-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 30;
+  transform: translateX(-50%);
 }
 
-.zf-resume-actions {
+.zf-dock {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.zf-resume-text {
-  display: flex;
-  flex-direction: column;
   gap: 2px;
+  padding: 6px 10px;
+  background: var(--pomo-glass-bg-elevated);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--pomo-glass-border-elevated);
+  border-radius: 16px;
+  box-shadow: var(--pomo-shadow-elevated);
 }
 
-.zf-resume-text strong {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--pomo-text-strong);
-}
-
-.zf-resume-text span {
-  font-size: 12px;
-  color: var(--pomo-text-muted);
-}
-
-/* Toolbar */
-.zf-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: var(--pomo-glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--pomo-glass-border);
-  border-radius: 999px;
-  box-shadow: var(--pomo-shadow-card);
-}
-
-.zf-tool-btn {
+.zf-dock-btn {
   width: 38px;
   height: 38px;
   display: inline-flex;
@@ -1233,7 +1334,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   border: none;
   background: transparent;
-  border-radius: 50%;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 17px;
   color: var(--pomo-text-muted);
@@ -1243,282 +1344,40 @@ onBeforeUnmount(() => {
     transform 0.15s;
 }
 
-.zf-tool-btn:hover {
+.zf-dock-btn:hover {
   background: var(--pomo-surface-container);
   color: var(--pomo-text-strong);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
-.zf-tool-btn.active {
-  background: var(--pomo-work-soft);
-  color: var(--pomo-work);
+.zf-dock-btn.active {
+  background: var(--pomo-mode-soft);
+  color: var(--pomo-mode);
 }
 
-.zf-tool-divider {
+.zf-dock-divider {
   width: 1px;
   height: 20px;
   background: var(--pomo-outline-variant);
-  margin: 0 6px;
+  margin: 0 5px;
 }
 
-.zf-tool-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pomo-text-muted);
-  padding: 0 6px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* ─── Sidebar ─── */
-.zf-sidebar {
-  flex: 4;
-  min-width: 360px;
-  max-width: 560px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 24px 20px;
-  background: var(--pomo-glass-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-left: 1px solid var(--pomo-glass-border);
-  box-shadow: var(--pomo-shadow-sidebar);
-  overflow: hidden;
-}
-
-.zf-sidebar-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.zf-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--pomo-work-soft), var(--pomo-long-soft));
-  border: 2px solid var(--pomo-glass-border-elevated);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: var(--pomo-work);
-  flex-shrink: 0;
-}
-
-.zf-greeting {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.zf-greeting-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--pomo-text-strong);
-}
-
-.zf-greeting-sub {
-  font-size: 12px;
-  color: var(--pomo-text-muted);
-}
-
-/* 新建任务紧凑按钮（header 右侧） */
-.zf-new-task-compact {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
-  background: var(--pomo-work);
-  color: var(--pomo-on-accent);
-  border: none;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 3px 10px var(--pomo-work-glow);
-  transition:
-    transform 0.15s,
-    box-shadow 0.2s,
-    opacity 0.15s;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.zf-new-task-compact:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px var(--pomo-work-glow);
-  opacity: 0.92;
-}
-
-.zf-new-task-compact:active {
-  transform: translateY(0) scale(0.97);
-}
-
-/* Nav — 滑动指示器设计 */
-.zf-nav {
-  position: relative;
-  display: flex;
-  border-bottom: 1.5px solid var(--pomo-outline-variant);
-}
-
-/* 滑动背景块 */
-.zf-nav-indicator {
+/* Dock 弹层（特殊休息 / 声景）：锚在 Dock 正上方 */
+.zf-dock-pop {
   position: absolute;
-  bottom: -1.5px;
-  left: 0;
-  width: 50%;
-  height: 2.5px;
-  background: var(--pomo-work);
-  border-radius: 2px 2px 0 0;
-  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-  pointer-events: none;
-}
-
-.zf-nav-item {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 10px 12px 9px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--pomo-text-muted);
-  transition: color 0.2s;
-  position: relative;
-}
-
-.zf-nav-item:hover:not(.active) {
-  color: var(--pomo-text-soft);
-}
-
-.zf-nav-item.active {
-  color: var(--pomo-work);
-  font-weight: 600;
-}
-
-/* Panel Scroll */
-.zf-panel-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding-right: 4px;
-}
-
-.zf-panel-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-
-.zf-panel-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.zf-panel-scroll::-webkit-scrollbar-thumb {
-  background: var(--pomo-outline-variant);
-  border-radius: 3px;
-}
-
-.zf-panel-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--pomo-outline);
-}
-
-.zf-streak {
-  margin-bottom: -4px;
-}
-
-/* Progress */
-.zf-progress {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--pomo-glass-border);
-}
-
-.zf-progress-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--pomo-text-muted);
-}
-
-.zf-progress-num {
-  font-variant-numeric: tabular-nums;
-  color: var(--pomo-work);
-  font-weight: 600;
-}
-
-.zf-progress-track {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--pomo-surface-container);
-  overflow: hidden;
-}
-
-.zf-progress-fill {
-  height: 100%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--pomo-work), var(--pomo-long));
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ─── Keyframes ─── */
-@keyframes zf-blink {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes zf-fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ═══ P0-3 · 声景选择浮层 ═══ */
-/* B60-14：wrap 锚定——浮层随工具条走（此前锚死 bottom:84px 是旧布局调值，
-   去壳后工具条垂直居中，高窗口下浮层与按钮脱节约 180px） */
-.zf-toolbar-wrap {
-  position: relative;
-}
-
-.zf-sound-pop {
-  position: absolute;
-  bottom: calc(100% + 10px);
+  bottom: calc(100% + 12px);
   left: 50%;
-  z-index: 30;
+  z-index: 35;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 14px;
+  padding: 12px;
   background: var(--pomo-glass-bg-elevated);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--pomo-glass-border-elevated);
-  border-radius: var(--radius-lg, 14px);
+  border-radius: 14px;
   box-shadow: var(--pomo-shadow-elevated);
 }
 
@@ -1568,5 +1427,251 @@ onBeforeUnmount(() => {
 .zf-sound-volume input[type='range'] {
   flex: 1;
   accent-color: var(--pomo-work);
+}
+
+/* 新建任务紧凑按钮（面板头部） */
+.zf-new-task-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 13px;
+  background: var(--pomo-mode);
+  color: var(--pomo-on-accent);
+  border: none;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 3px 10px var(--pomo-mode-glow);
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s,
+    opacity 0.15s,
+    background 0.3s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.zf-new-task-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px var(--pomo-mode-glow);
+  opacity: 0.94;
+}
+
+.zf-new-task-compact:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* ─── 任务面板：右侧滑出（按需） ─── */
+.zf-flyout {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(380px, 92vw);
+  padding: 18px 18px 14px;
+  background: var(--pomo-surface);
+  border-left: 1px solid var(--pomo-surface-border);
+  box-shadow: var(--pomo-shadow-elevated);
+}
+
+.zf-flyout-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.zf-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--pomo-mode-soft);
+  color: var(--pomo-mode);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.8s ease, color 0.8s ease;
+  flex-shrink: 0;
+}
+
+.zf-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.zf-greeting-title {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--pomo-text-strong);
+}
+
+.zf-greeting-sub {
+  font-size: 11.5px;
+  color: var(--pomo-text-muted);
+}
+
+.zf-flyout-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding-right: 4px;
+}
+
+.zf-flyout-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.zf-flyout-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zf-flyout-scroll::-webkit-scrollbar-thumb {
+  background: var(--pomo-outline-variant);
+  border-radius: 3px;
+}
+
+.zf-flyout-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--pomo-outline);
+}
+
+.zf-streak {
+  margin-bottom: -4px;
+}
+
+.zf-flyout-foot {
+  flex-shrink: 0;
+}
+
+/* ─── 今日进度（面板底） ─── */
+.zf-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pomo-surface-border);
+}
+
+.zf-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pomo-text-muted);
+}
+
+.zf-progress-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--pomo-mode);
+  font-weight: 650;
+  transition: color 0.8s ease;
+}
+
+.zf-progress-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pomo-surface-container);
+  overflow: hidden;
+}
+
+.zf-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--pomo-mode);
+  transition:
+    width 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.8s ease;
+}
+
+/* ─── 统计全屏报告层 ─── */
+.zf-stats-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 28px 24px;
+  background: var(--pomo-bg-base);
+  overflow: hidden;
+}
+
+.zf-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--pomo-surface-border);
+}
+
+.zf-stats-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--pomo-text-strong);
+}
+
+.zf-stats-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 16px;
+}
+
+/* ─── Keyframes & Transitions ─── */
+@keyframes zf-blink {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.zf-pop-enter-active,
+.zf-pop-leave-active {
+  transition:
+    opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zf-pop-enter-from,
+.zf-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+}
+
+.zf-flyout-enter-active,
+.zf-flyout-leave-active {
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.zf-flyout-enter-from,
+.zf-flyout-leave-to {
+  transform: translateX(100%);
+}
+
+.zf-fade-enter-active,
+.zf-fade-leave-active {
+  transition: opacity 0.24s ease;
+}
+
+.zf-fade-enter-from,
+.zf-fade-leave-to {
+  opacity: 0;
 }
 </style>

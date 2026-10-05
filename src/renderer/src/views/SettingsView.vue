@@ -31,6 +31,17 @@ void initTheme()
 
 const router = useRouter()
 
+// B57 后续：设置页无返回按钮曾让主窗/独立窗「迷路」在设置态。
+// ESC = 有历史就回退；无历史（独立设置窗首屏）就隐藏窗口（Raycast 式）
+function handleSettingsEsc(e: KeyboardEvent): void {
+  if (e.key !== 'Escape') return
+  if (window.history.state?.back != null) {
+    void router.back()
+  } else {
+    void window.api.hideMainWindow()
+  }
+}
+
 // ── Raycast 风格：左侧分类边栏 ──
 interface SettingsSection {
   id: string
@@ -574,6 +585,14 @@ async function saveShieldWebsites(): Promise<void> {
   }
 }
 
+onMounted(() => {
+  window.addEventListener('keydown', handleSettingsEsc)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleSettingsEsc)
+})
+
 onMounted(async () => {
   try {
     appVersion.value = await window.api.update.getCurrentVersion()
@@ -766,7 +785,7 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
 
     <!-- ═══ 右侧内容区 ═══ -->
     <main class="flex-1 overflow-y-auto">
-      <div class="mx-auto w-full max-w-[520px] px-6 py-8">
+      <div class="mx-auto w-full max-w-[720px] px-6 py-8">
         <!-- ═══ 通用 ═══ -->
         <template v-if="activeSection === 'general'">
           <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-fg-primary">通用</h1>

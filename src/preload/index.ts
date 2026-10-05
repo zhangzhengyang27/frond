@@ -44,6 +44,7 @@ const api = {
   launchApplication: (appPath: string) => typedInvoke('launch-application', { appPath }),
   /** 本 webContents 是否为主窗口（App 级单例只在主窗口初始化） */
   isPrimaryWindow: () => typedInvoke('app:isPrimaryWindow') as Promise<boolean>,
+  hideMainWindow: () => typedInvoke('app:hideMainWindow'),
   // ⌘R 刷新应用列表（主进程 watcher 拦截按键后转发；返回取消订阅函数）
   onRefreshApplications: (cb: () => void): (() => void) => {
     const l = (): void => cb()

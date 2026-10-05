@@ -1276,3 +1276,16 @@ claimRecordingStart 原子防重入闸、combineEpoch 代际号防 rAF 复活、
 ### 门禁终态（B58）
 typecheck 0；lint 0 error；unit 199 文件 1396 passed；e2e snippets 域 24/24
 （snippets-ui 5 + deep 6 + crud 8 + b58 新增 5）+ capsule-actions/launcher 回归绿。
+
+## 2026-10-05 发现（用户真机测试：点录屏落设置页）
+
+### B58【P1】route-taken「让位回 Hub」在 Home 退役后坠入设置页（已修）
+- 链路：主窗正显示模块路由 → 胶囊点同模块 → 沉浸窗接管 → 主进程发
+  `app:route-taken` → 主窗 useAppMenu 让位 `router.push('/')`（useAppMenu.ts:44）
+  → Home 退役后 `/` 重定向 `/settings` → 主窗永久停在无返回的设置页。
+  用户猜测方向正确：「设置页没有返回按钮，就一直是设置页」。
+- 修复：让位改 `app:hideMainWindow`（新增 IPC，Raycast 式主窗退后台）；
+  SettingsView 补 ESC 兜底（有历史 back / 无历史隐藏窗口）+ 右侧内容区
+  max-w 520→720（用户同步诉求）。
+- 待办（用户提议，未实施）：设置页改弹窗形态——涉及多入口（tray/深链/⌘K/
+  独立 800×786 窗）的 IA 决策，待与用户对齐后实施。

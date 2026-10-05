@@ -384,6 +384,15 @@ void app.whenReady().then(() => {
     return mainWindow?.webContents.id === event.sender.id
   })
 
+  // 隐藏主窗口（Raycast 式退后台）。用途：模块路由被沉浸窗接管时主窗「让位」、
+  // 设置页 ESC 无历史可退时兜底——替代旧实现 router.push('/')（Home 退役后
+  // '/' 重定向 /settings，主窗会永久停在设置页）
+  typedHandle('app:hideMainWindow', () => {
+    const main = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+    if (main?.isVisible()) main.hide()
+    return undefined
+  })
+
   // 剪贴板历史：IPC + 轮询启动（will-quit 时停止）
   registerClipboardHistoryIpc()
   clipboardHistory.start()

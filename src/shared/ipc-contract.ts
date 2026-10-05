@@ -1436,6 +1436,8 @@ export interface IpcContract {
   'launch-application': { req: { appPath: string }; res: { success: boolean; error?: string } }
   'create-new-window': { req: { route: string }; res: boolean }
   'app:isPrimaryWindow': { req: void; res: boolean }
+  /** 隐藏主窗口（route-taken 让位 / 设置页 ESC 兜底；Raycast 式主窗退后台） */
+  'app:hideMainWindow': { req: void; res: void }
 
   'find:files': {
     req: { query: string; limit?: number | undefined; opts?: FileSearchOptions | undefined }

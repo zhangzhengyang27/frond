@@ -41,7 +41,9 @@ export function useAppMenu(): {
         window.api.launcher.onAppRouteTaken(({ path }) => {
           const target = path.split('?')[0]
           if (route.path === target) {
-            void router.push('/')
+            // 让位 = 隐藏主窗（Raycast 式退后台）。旧实现 push('/')——Home 页
+            // 退役后 '/' 重定向 /settings，主窗会永久停在无返回的设置页
+            void window.api.hideMainWindow()
           }
         })
       )

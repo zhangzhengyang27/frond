@@ -28,6 +28,7 @@ import type {
   PomodoroTraySnapshot
 } from '../../shared/pomodoroIntegration'
 import { log } from './LogService'
+import { trayDescribe } from './PomodoroIntegrationService.trayText'
 
 export type {
   PomodoroNotificationMode,
@@ -252,35 +253,13 @@ export class PomodoroIntegrationService {
   /**
    * 推出一份适合直接展示的简短文本，供 tray 菜单使用。
    * 状态 + 任务名 + 倒计时。无任务时只显示模式。
+   * 文案规则在 PomodoroIntegrationService.trayText（纯函数，可单测），这里只做委托。
    */
   describeTraySnapshot(snapshot: PomodoroTraySnapshot = this.snapshot): {
     primary: string
     secondary: string
   } {
-    if (!snapshot.isRunning && !snapshot.currentMode) {
-      return { primary: '番茄钟空闲', secondary: '尚未开始' }
-    }
-    const modeLabel =
-      snapshot.currentMode === 'work'
-        ? '专注中'
-        : snapshot.currentMode === 'shortBreak'
-          ? '短休息'
-          : snapshot.currentMode === 'longBreak'
-            ? '长休息'
-            : '空闲'
-    const projectTag = snapshot.projectName ? ` · ${snapshot.projectName}` : ''
-    const task = snapshot.taskTitle?.trim() ? ` · ${snapshot.taskTitle.trim()}` : ''
-    const time = formatMinutes(snapshot.timeLeftSeconds)
-    const bgCount = snapshot.backgroundProjects.length
-    const bgTail = bgCount > 0 ? ` · +${bgCount} 后台` : ''
-    const primary = `${modeLabel}${projectTag}${task}`
-    const focusPrefix = snapshot.focusMode ? '🔕 专注中 · ' : ''
-    return {
-      primary: `${focusPrefix}${primary}`,
-      secondary: time
-        ? `剩余 ${time} · 今日 ${snapshot.todayCompleted} 番茄${bgTail}`
-        : `今日 ${snapshot.todayCompleted} 番茄${bgTail}`
-    }
+    return trayDescribe(snapshot)
   }
 
   // ─── Notification dispatch ───

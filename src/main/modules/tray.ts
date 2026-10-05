@@ -4,9 +4,9 @@
  * 设计（来源：docs/DECISIONS.md「Dock / Tray 菜单重构」+ IA v2 阶段C「入口优先级」）
  * - 菜单构建统一在 src/main/modules/appMenu.ts（与 dockMenu 共用）
  * - 中部：Quick Switch（最近使用 + 收藏）+ 全局动作
- * - macOS：tray 左键点击唤起/收起启动台胶囊（IA v2：胶囊 > 托盘 > 主窗口）；
- *   右键保留「打开主窗口」作为回退路径
- * - Win / Linux：tray 右键 = 完整菜单，双击 = 主窗口
+ * - 全平台：点击 tray 弹完整菜单（macOS 由系统对 setContextMenu 的原生接管实现，
+ *   左/右键同一份；Win/Linux 手动 popUpContextMenu），内含「打开主窗口」回退路径
+ * - Win / Linux：双击 = 主窗口
  */
 
 import { BrowserWindow, Tray, nativeImage } from 'electron'
@@ -31,6 +31,17 @@ let currentPomodoroFocusedProjectId: string | null = null
 /** 给 appMenu builder 调用：拿最新番茄钟状态快照（描述文本） */
 export function getPomodoroStatus(): { primary: string; secondary: string } {
   return pomodoroIntegrationService().describeTraySnapshot()
+}
+
+/**
+ * 给 appMenu builder 调用：番茄钟控制项（label 已按运行态定好）。
+ * 无会话（currentMode 空）返回 null——空闲时点「开始专注」缺项目/时长上下文，
+ * 语义含糊，不如不显示；已有会话才提供 暂停/继续（toggle，与全局快捷键同一路径）。
+ */
+export function getPomodoroControl(): { label: string } | null {
+  const snap = pomodoroIntegrationService().getTraySnapshot()
+  if (!snap.currentMode) return null
+  return { label: snap.isRunning ? '暂停专注' : '继续专注' }
 }
 
 /** 给 appMenu builder 调用：拿可切换焦点的项目列表 */
@@ -169,6 +180,9 @@ export function createTray(
     get pomodoroStatus(): { primary: string; secondary: string } {
       return getPomodoroStatus()
     },
+    get pomodoroControl(): { label: string } | null {
+      return getPomodoroControl()
+    },
     get pomodoroProjects(): Array<{ id: string; name: string; isActive: boolean }> {
       return getPomodoroProjects()
     },
@@ -178,11 +192,13 @@ export function createTray(
   }
 
   // 点击 tray 一律弹菜单（2026-10-04 用户实测反馈：左键点击不应默认打开启动器）。
-  // macOS 采用标准模式：只 setContextMenu，左键由**系统原生**弹出——自己监听
-  // click 再 popUpContextMenu 的两条路都试过不通（同步弹出 → 菜单项点击不派发；
-  // defer 弹出 → 实测依然无响应，与系统管理的 NSStatusItem 菜单互相打架）。
-  // 菜单内容刷新靠下方的事件驱动 + 60s 兜底（buildAndSetAppMenu 内部 setContextMenu
-  // 替换后，系统下次弹出即用新内容）。
+  // macOS 采用标准模式：只 setContextMenu，左/右键都由**系统原生**弹出同一份菜单——
+  // 自己监听 click 再 popUpContextMenu 的两条路都试过不通（同步弹出 → 菜单项点击
+  // 不派发；defer 弹出 → 实测依然无响应，与系统管理的 NSStatusItem 菜单互相打架）；
+  // setContextMenu 之后 mac 也不再派发 click/right-click 事件（右键「打开窗口」的
+  // 旧路径随之失效，改由菜单里的「打开主窗口」承担）。菜单内容刷新靠下方的事件
+  // 驱动 + 60s 兜底（buildAndSetAppMenu 内部 setContextMenu 替换后，系统下次弹出
+  // 即用新内容）。
   if (!isMac()) {
     tray.on('click', () => {
       buildAndSetAppMenu('tray', tray, ctx)
@@ -190,13 +206,7 @@ export function createTray(
     })
   }
 
-  if (isMac()) {
-    tray.on('right-click', () => {
-      // macOS：tray 不弹菜单，菜单走 dock（右键 dock）
-      // 右键 tray 这里就当「打开窗口」用
-      toggleWindow(getMainWindow)
-    })
-  } else {
+  if (!isMac()) {
     tray.on('double-click', () => {
       toggleWindow(getMainWindow)
     })

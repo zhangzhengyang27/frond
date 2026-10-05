@@ -1,0 +1,84 @@
+import { describe, it, expect } from 'vitest'
+import {
+  sanitizePluginListIcon,
+  sanitizePluginSection,
+  sanitizePluginAccessories,
+  sanitizePluginHudTitle,
+  PLUGIN_MAX_ICON_DATAURL
+} from '../plugin-protocol'
+
+describe('sanitizePluginListIcon', () => {
+  it('纯字符串向后兼容：trim + 截 40 字符', () => {
+    expect(sanitizePluginListIcon('ri-plug-2')).toBe('ri-plug-2')
+    expect(sanitizePluginListIcon('  ri-git-branch  ')).toBe('ri-git-branch')
+    expect(sanitizePluginListIcon('x'.repeat(50))).toBe('x'.repeat(40))
+  })
+  it('对象：value 必填非空，其余字段剥离保留', () => {
+    expect(sanitizePluginListIcon({ value: 'ri-git-branch', tintColor: '#ff0' })).toEqual({
+      value: 'ri-git-branch',
+      tintColor: '#ff0'
+    })
+    expect(sanitizePluginListIcon({ value: '  ri-plug-2 ' })).toEqual({ value: 'ri-plug-2' })
+  })
+  it('tintColor 仅 #rgb/#rrggbb，非法剥除', () => {
+    expect(sanitizePluginListIcon({ value: 'a', tintColor: 'red' })).toEqual({ value: 'a' })
+    expect(sanitizePluginListIcon({ value: 'a', tintColor: '#ffff' })).toEqual({ value: 'a' })
+    expect(sanitizePluginListIcon({ value: 'a', tintColor: '#A1B2C3' })).toEqual({
+      value: 'a',
+      tintColor: '#A1B2C3'
+    })
+  })
+  it(`dataUrl：合法前缀且 ≤ ${PLUGIN_MAX_ICON_DATAURL} 保留；压线接受、超限剥除但保留 value/tintColor`, () => {
+    const ok = 'data:image/png;base64,' + 'A'.repeat(100)
+    expect(sanitizePluginListIcon({ value: 'a', dataUrl: ok })).toEqual({ value: 'a', dataUrl: ok })
+    const edge = 'data:image/png;base64,' + 'A'.repeat(PLUGIN_MAX_ICON_DATAURL - 22) // 总长恰 65536
+    const edgeOut = sanitizePluginListIcon({ value: 'a', dataUrl: edge })
+    expect(typeof edgeOut === 'object' && edgeOut?.dataUrl).toBe(edge)
+    const over = edge + 'X'
+    expect(sanitizePluginListIcon({ value: 'a', tintColor: '#fff', dataUrl: over })).toEqual({
+      value: 'a',
+      tintColor: '#fff'
+    })
+  })
+  it('dataUrl 前缀错 / 非字符串 / value 缺失 → 整体 undefined', () => {
+    expect(sanitizePluginListIcon({ value: 'a', dataUrl: 'http://x/y.png' })).toEqual({ value: 'a' })
+    expect(sanitizePluginListIcon({ dataUrl: 'data:image/png;base64,AA' })).toBeUndefined()
+    expect(sanitizePluginListIcon(42)).toBeUndefined()
+  })
+})
+
+describe('sanitizePluginSection', () => {
+  it('trim + 截 40，空串/非字符串 → undefined', () => {
+    expect(sanitizePluginSection('  结果 ')).toBe('结果')
+    expect(sanitizePluginSection('s'.repeat(50))).toBe('s'.repeat(40))
+    expect(sanitizePluginSection('   ')).toBeUndefined()
+    expect(sanitizePluginSection(7)).toBeUndefined()
+  })
+})
+
+describe('sanitizePluginAccessories', () => {
+  it('纯字符串元素向后兼容（trim、截 40、空剔除、≤3）', () => {
+    expect(sanitizePluginAccessories([' AA ', ''])).toEqual(['AA'])
+    expect(sanitizePluginAccessories(['1', '2', '3', '4'])).toEqual(['1', '2', '3'])
+  })
+  it('tag 对象：截 12、tone 白名单外剥 tone、非字符串剔除', () => {
+    expect(sanitizePluginAccessories([{ tag: ' AAAA ' }])).toEqual([{ tag: 'AAAA' }])
+    expect(sanitizePluginAccessories([{ tag: 'AAA', tone: 'nope' }])).toEqual([{ tag: 'AAA' }])
+    expect(sanitizePluginAccessories([{ tag: 'AA', tone: 'danger' }])).toEqual([
+      { tag: 'AA', tone: 'danger' }
+    ])
+    expect(sanitizePluginAccessories([{ tone: 'danger' }, 5, 'ok'])).toEqual(['ok'])
+  })
+  it('非数组 → undefined；空数组 → undefined', () => {
+    expect(sanitizePluginAccessories('x')).toBeUndefined()
+    expect(sanitizePluginAccessories([])).toBeUndefined()
+  })
+})
+
+describe('sanitizePluginHudTitle', () => {
+  it('trim + 截 80；空 → null', () => {
+    expect(sanitizePluginHudTitle(' 已复制 ')).toBe('已复制')
+    expect(sanitizePluginHudTitle('h'.repeat(100))).toBe('h'.repeat(80))
+    expect(sanitizePluginHudTitle('  ')).toBeNull()
+  })
+})

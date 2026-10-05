@@ -14,13 +14,20 @@
           @click="runDefault(index)"
         >
           <div class="plist-icon">
-            <AppIcon :icon="item.icon || 'plug-2'" :size="16" />
+            <AppIcon
+              :icon="typeof item.icon === 'object' ? item.icon?.value || 'plug-2' : item.icon || 'plug-2'"
+              :size="16"
+            />
           </div>
           <div class="plist-text">
             <div class="plist-title">{{ item.title }}</div>
             <div v-if="item.subtitle" class="plist-sub">{{ item.subtitle }}</div>
           </div>
-          <span v-for="a in item.accessories ?? []" :key="a" class="plist-accessory">{{ a }}</span>
+          <span
+            v-for="(a, ai) in item.accessories ?? []"
+            :key="ai"
+            class="plist-accessory"
+          >{{ typeof a === 'object' ? a.tag : a }}</span>
         </div>
       </div>
     </div>

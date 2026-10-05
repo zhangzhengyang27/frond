@@ -12,16 +12,38 @@
  *        └─ callback：sendHook('Action', { item, action }) 回插件
  */
 
+/** icon 对象形状（2026-10-05 spec 3.1）：value 为 remixicon 名（不含 ri- 前缀） */
+export interface PluginListItemIcon {
+  value: string
+  tintColor?: string | undefined
+  dataUrl?: string | undefined
+}
+/** icon 合法形状：纯字符串（向后兼容）或对象 */
+export type PluginListIcon = string | PluginListItemIcon
+
+/** tag 徽章（spec 3.4）：右侧配件的对象形态 */
+export interface PluginAccessoryTag {
+  tag: string
+  tone?: 'default' | 'success' | 'warn' | 'danger'
+}
+
+export const PLUGIN_MAX_ICON_DATAURL = 65536
+export const PLUGIN_MAX_SECTION_LEN = 40
+export const PLUGIN_MAX_TAG_LEN = 12
+export const PLUGIN_MAX_HUD_TITLE = 80
+
 /** 插件列表条目 */
 export interface PluginListItem {
   title: string
   subtitle?: string | undefined
-  /** remixicon 名称（不含 ri- 前缀），缺省 plug-2 */
-  icon?: string | undefined
+  /** remixicon 名称（不含 ri- 前缀）或 { value, tintColor, dataUrl }，缺省 plug-2 */
+  icon?: PluginListIcon | undefined
   /** 关键词（搜索副输入框过滤由插件自管；这里用于宿主高亮兜底） */
   keywords?: string[]
-  /** 右侧配件文本（如大小 / 日期） */
-  accessories?: string[] | undefined
+  /** 右侧配件：文本或 tag 徽章（≤3） */
+  accessories?: Array<string | PluginAccessoryTag> | undefined
+  /** 分组名（渲染层相邻同名聚合为组头） */
+  section?: string | undefined
   /** Detail 面板内容（选中即显示；渲染格式由 detailFormat 决定） */
   detail?: string | undefined
   /** Detail 渲染格式：'text' 纯文本（缺省，向后兼容）；'markdown' 走 marked + sanitize 渲染 */
@@ -265,8 +287,9 @@ export interface PluginViewAction extends PluginItemAction {
 export interface PluginViewListItem {
   title: string
   subtitle?: string | undefined
-  icon?: string | undefined
-  accessories?: string[] | undefined
+  icon?: PluginListIcon | undefined
+  accessories?: Array<string | PluginAccessoryTag> | undefined
+  section?: string | undefined
   keywords?: string[]
   detail?: string | undefined
   detailFormat?: 'text' | 'markdown' | undefined
@@ -525,6 +548,73 @@ export function parsePluginForm(raw: unknown): ParsedPluginForm | null {
     form.submitLabel = node.submitLabel.trim().slice(0, 60)
   }
   return form
+}
+
+// ─── 列表条目新字段清洗（2026-10-05 spec 3.1/3.2/3.4，fail-closed 与既有清洗器同风格）───
+
+const TAG_TONES = new Set(['default', 'success', 'warn', 'danger'])
+const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
+const DATAURL_PREFIX = 'data:image/png;base64,'
+
+export function sanitizePluginListIcon(raw: unknown): PluginListIcon | undefined {
+  if (typeof raw === 'string') {
+    const v = raw.trim().slice(0, 40)
+    return v === '' ? undefined : v
+  }
+  if (typeof raw !== 'object' || raw === null) return undefined
+  const rec = raw as Record<string, unknown>
+  if (typeof rec.value !== 'string') return undefined
+  const value = rec.value.trim().slice(0, 40)
+  if (value === '') return undefined
+  const icon: PluginListItemIcon = { value }
+  if (typeof rec.tintColor === 'string' && HEX_COLOR_RE.test(rec.tintColor.trim())) {
+    icon.tintColor = rec.tintColor.trim()
+  }
+  if (
+    typeof rec.dataUrl === 'string' &&
+    rec.dataUrl.startsWith(DATAURL_PREFIX) &&
+    rec.dataUrl.length <= PLUGIN_MAX_ICON_DATAURL
+  ) {
+    icon.dataUrl = rec.dataUrl
+  }
+  return icon
+}
+
+export function sanitizePluginSection(raw: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined
+  const v = raw.trim().slice(0, PLUGIN_MAX_SECTION_LEN)
+  return v === '' ? undefined : v
+}
+
+export function sanitizePluginAccessories(
+  raw: unknown
+): Array<string | PluginAccessoryTag> | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const out: Array<string | PluginAccessoryTag> = []
+  for (const el of raw) {
+    if (out.length >= 3) break
+    if (typeof el === 'string') {
+      const v = el.trim().slice(0, 40)
+      if (v !== '') out.push(v)
+    } else if (typeof el === 'object' && el !== null) {
+      const rec = el as Record<string, unknown>
+      if (typeof rec.tag !== 'string') continue
+      const tag = rec.tag.trim().slice(0, PLUGIN_MAX_TAG_LEN)
+      if (tag === '') continue
+      const acc: PluginAccessoryTag = { tag }
+      if (typeof rec.tone === 'string' && TAG_TONES.has(rec.tone)) {
+        acc.tone = rec.tone as NonNullable<PluginAccessoryTag['tone']>
+      }
+      out.push(acc)
+    }
+  }
+  return out.length > 0 ? out : undefined
+}
+
+export function sanitizePluginHudTitle(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const v = raw.trim().slice(0, PLUGIN_MAX_HUD_TITLE)
+  return v === '' ? null : v
 }
 
 // ─── 插件敏感权限（声明制，2026-09-11 决策）───

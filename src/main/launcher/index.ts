@@ -8,6 +8,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import { hideLauncherWindow, showLauncherWindow, toggleLauncherWindow } from './window'
 import { registerLauncherIpc } from './ipc'
 import { registerAllHotkeys } from './hotkeys'
+import { HEAVY_MODULE_WINDOW_SIZES, openHeavyModuleWindow } from '../modules/windows'
 
 /** 主窗口跳转到模块（复用 app:openModule 通道；主窗隐藏时先唤起） */
 function openModuleInMainWindow(
@@ -32,6 +33,11 @@ export function registerLauncher(getMainWindow: () => BrowserWindow | null): voi
   ipcMain.on('launcher:show', () => showLauncherWindow())
   ipcMain.on('launcher:openModule', (_e, payload: { moduleId?: string; path?: string }) => {
     if (!payload?.path || !payload?.moduleId) return
+    // B59b：重型工作模块走独立小窗（此前挤主窗——片段页 ⌘↵ / 动作面板都经此通道）
+    if (payload.moduleId in HEAVY_MODULE_WINDOW_SIZES) {
+      openHeavyModuleWindow(payload.moduleId, payload.path, getMainWindow)
+      return
+    }
     openModuleInMainWindow(payload.moduleId, payload.path, getMainWindow)
   })
 

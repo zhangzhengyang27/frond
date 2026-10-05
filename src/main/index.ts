@@ -59,6 +59,7 @@ import {
 // 主进程模块统一导入
 import {
   createAppWindow,
+  windowSizeForRoute,
   createAppTray,
   destroyTrayTimer,
   setupAppDockMenu,
@@ -368,10 +369,12 @@ void app.whenReady().then(() => {
     // Raycast 化：设置窗口使用更小的尺寸，更接近 Raycast 设置窗口
     // 注意：route 可能带 ?immersive=1 查询参数，所以用 startsWith 判断
     // 尺寸严格对齐 Raycast 设置窗口：800 x 786
+    // B59b：重型工作模块走各自的紧凑尺寸（此前吃 1450×950 全局默认——用户反馈「窗口太大」）
     if (route.startsWith('/settings')) {
       createAppWindow(route, true, 800, 786)
     } else {
-      createAppWindow(route)
+      const size = windowSizeForRoute(route, { width: 1450, height: 950 })
+      createAppWindow(route, true, size.width, size.height)
     }
     // 通知主窗口：独立模块窗已接管该路由；若主窗口正显示同一路由则让位回 Hub
     // （避免「胶囊开出沉浸窗 + 主窗口还停在同模块」的两份界面）

@@ -4,7 +4,7 @@
  */
 
 // 窗口相关
-export { createWindow as createAppWindow } from './windows'
+export { createWindow as createAppWindow, windowSizeForRoute } from './windows'
 
 // 系统托盘相关
 export { createTray as createAppTray, destroyTrayTimer } from './tray'

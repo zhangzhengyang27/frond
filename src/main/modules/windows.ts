@@ -30,6 +30,59 @@ function resolveWindowBackground(): string {
  */
 const routeWindows = new Map<string, BrowserWindow>()
 
+/**
+ * B59b：重型工作模块的独立窗尺寸——这些模块开独立窗（不挤主窗），
+ * 此前吃 createWindow 的 1450×950 全局默认，用户反馈「窗口太大」。
+ * 键与 shared/modules.ts 的 HEAVY_MODULE_IDS 一致。
+ */
+export const HEAVY_MODULE_WINDOW_SIZES: Record<string, { width: number; height: number }> = {
+  snippets: { width: 1040, height: 660 },
+  screenRecorder: { width: 1040, height: 680 },
+  pomodoro: { width: 900, height: 620 }
+}
+
+/**
+ * B59b：按路由前缀取独立窗尺寸（create-new-window 通道用——胶囊/⌘K 的
+ * 沉浸窗此前全吃 1450×950 默认）。query 参数（?immersive=1）不参与匹配。
+ */
+export function windowSizeForRoute(
+  route: string,
+  fallback: { width: number; height: number }
+): { width: number; height: number } {
+  for (const [id, size] of Object.entries(HEAVY_MODULE_WINDOW_SIZES)) {
+    const prefix = `/${id}`
+    if (route === prefix || route.startsWith(`${prefix}/`) || route.startsWith(`${prefix}?`)) {
+      return size
+    }
+  }
+  return fallback
+}
+
+/**
+ * B59b：重型模块 → 独立小窗（复用优先）。路由键统一带 ?immersive=1——
+ * 与胶囊 commandRunner 的 createNewWindow(`${path}?immersive=1`) 同键，
+ * 三个入口（launcher:openModule / 菜单 / ⌘K）自然收敛到同一个窗口。
+ * 主窗若停在同模块路由则让位（app:route-taken，同 create-new-window 语义）。
+ */
+export function openHeavyModuleWindow(
+  moduleId: string,
+  path: string,
+  getMainWindow: () => BrowserWindow | null
+): BrowserWindow {
+  const size = HEAVY_MODULE_WINDOW_SIZES[moduleId] ?? { width: 1000, height: 660 }
+  const win = createWindow(`${path}?immersive=1`, true, size.width, size.height)
+  // usage 记账跟随新窗渲染端（useAppMenu 在每个 index.html 窗口安装，
+  // 收到 app:openModule 会 recordUse + router.push；时序错过只丢一次计数）
+  win.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      if (!win.isDestroyed()) win.webContents.send('app:openModule', { moduleId, path })
+    }, 250)
+  })
+  const main = getMainWindow()
+  if (main && !main.isDestroyed()) main.webContents.send('app:route-taken', { path })
+  return win
+}
+
 export function createWindow(
   route?: string,
   autoShow = true,

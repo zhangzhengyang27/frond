@@ -1349,3 +1349,17 @@ snippets-capsule-b58c 3/3（内容全文可搜、⌘→ 切块 Enter 复制活�
   渲染，标题从此不更新——用户截图实锤）。route 前置修复，e2e 钉
   `main.title()==='代码片段'` 断言（snippets-ui-b58 用例1）。
 - 门禁：typecheck 0 / lint 0 error / snippets+pomodoro+recording-clip e2e 31/31。
+
+### B59b（2026-10-05 用户实测续：模块窗口太大）
+- 「代码片段/番茄钟/录屏窗口太大」根因两层：① 独立窗吃 createWindow 的
+  1450×950 全局默认（胶囊/⌘K 的 create-new-window 沉浸窗）；② 片段页 ⌘↵ /
+  动作面板 / 菜单栏的 launcher:openModule / appMenu 入口挤主窗（1450×950）。
+- ✅ HEAVY_MODULE_WINDOW_SIZES 尺寸表（snippets 1040×660 / screenRecorder
+  1040×680 / pomodoro 900×620，shared 加 HEAVY_MODULE_IDS 单一真理）；
+  windowSizeForRoute 前缀匹配（含 ?immersive=1）；openHeavyModuleWindow 复用
+  优先 + usage 转投新窗 + 主窗 route-taken 让位。三入口全接：
+  launcher:openModule / appMenu.openModuleItem / create-new-window。
+  渲染端 ⌘1-9 重型模块改走 openModule IPC（不再 router.push 挤主窗）。
+- e2e/heavy-module-window.spec.mjs 2 钉（紧凑尺寸 / openModule 开独立窗不挤主窗）；
+  顺手修 e2eConfigIntegrity 误报（title() 断言改渲染端 document.title）。
+- 门禁：typecheck 0 / lint 0 error / unit 1403 / 目标 e2e 28/28。

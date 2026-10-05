@@ -131,3 +131,14 @@ export interface PendingModule {
 // 摘掉 PENDING 牌晋升正式模块（P-产品-06）；数组保留空集，消费方（Sidebar/BuiltinCommandProvider）
 // 无需改动。若未来有新的半成品模块，往这里加回条目。
 export const PENDING_MODULES: PendingModule[] = []
+
+/**
+ * B59b：重型工作模块——打开时走独立小窗（不挤主窗）。
+ * 主进程窗口尺寸表见 modules/windows.ts HEAVY_MODULE_WINDOW_SIZES，键与本集合一致；
+ * 渲染端（⌘1-9 / useAppMenu 消费方）以此判断走 openModule IPC 还是窗口内路由。
+ */
+export const HEAVY_MODULE_IDS: ReadonlySet<string> = new Set([
+  'snippets',
+  'screenRecorder',
+  'pomodoro'
+])

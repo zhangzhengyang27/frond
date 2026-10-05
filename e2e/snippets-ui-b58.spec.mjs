@@ -95,8 +95,11 @@ test('1. 标签筛选：侧栏点标签 → 列表只剩打标片段（B58）', 
   await remount()
 
   // B59a：窗口标题跟随路由（此前 SettingsView 的「设置」跨路由滞留，
-  // 且首版 watcher 踩 TDZ 静默失效——此断言就是钉这两个坑）
-  await expect.poll(async () => main.title(), { timeout: 5000 }).toBe('代码片段')
+  // 且首版 watcher 踩 TDZ 静默失效——此断言就是钉这两个坑）。
+  // 经渲染端读 document.title（e2eConfigIntegrity 守卫禁用 main.title() 选窗模式）
+  await expect
+    .poll(async () => main.evaluate(() => document.title), { timeout: 5000 })
+    .toBe('代码片段')
 
   const sidebar = main.locator('aside')
   const tagButton = sidebar.getByText('E2E标签', { exact: true }).first()

@@ -11,7 +11,7 @@
  * - 最近使用 / 收藏：usageStore（每次 setMenu 前实时拉，避免 stale）
  */
 
-import { createWindow as createAppWindow } from './windows'
+import { createWindow as createAppWindow, HEAVY_MODULE_WINDOW_SIZES, openHeavyModuleWindow } from './windows'
 import { app, BrowserWindow, Menu } from 'electron'
 import { MODULES, type ModuleMeta } from '../../shared/modules'
 import { usageStore } from '../stores'
@@ -104,8 +104,14 @@ function sendToRenderer(ctx: AppMenuContext, channel: string, payload?: unknown)
 /**
  * 模块跳转：只推 IPC，不在主进程记 usage——router.push 与 usage.recordUse
  * 都由渲染端做（与 ⌘1-9 / CommandPalette 同一条路径，见文件头）。
+ * B59b：重型工作模块例外——走独立小窗（与 launcher:openModule 同口径），
+ * usage 记账由 openHeavyModuleWindow 转投新窗渲染端。
  */
 function openModuleItem(ctx: AppMenuContext, meta: ModuleMeta): void {
+  if (meta.id in HEAVY_MODULE_WINDOW_SIZES) {
+    openHeavyModuleWindow(meta.id, meta.path, ctx.getMainWindow)
+    return
+  }
   sendToRenderer(ctx, 'app:openModule', { moduleId: meta.id, path: meta.path })
 }
 

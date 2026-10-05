@@ -40,6 +40,9 @@
       title="保持打开（⌘⇧K 取消）"
     ></div>
 
+    <!-- 插件 showHud 轻提示（spec 3.3）：plugapi:hud → launcher:plugin-hud → 此处 1.5s 淡出 -->
+    <PluginHud ref="pluginHud" />
+
     <!-- 结果级动作面板（M1.2 → I4 Raycast 化）：⌘K 呼出，右锚定浮层 + 底部过滤框 -->
     <div v-if="actionPanelEntry" class="launcher-actions" data-testid="action-panel">
       <div class="launcher-actions-title">{{ actionPanelEntry.title }}</div>
@@ -269,6 +272,7 @@ import {
 import { useUsageBoost } from '@renderer/composables/useUsageBoost'
 import { executeCommand } from '@renderer/utils/commandRunner'
 import DetailPanel from './components/DetailPanel.vue'
+import PluginHud from './components/PluginHud.vue'
 import {
   addDocumentListener,
   addWindowListener,
@@ -309,6 +313,7 @@ const selectedIndex = ref(0)
 const fallbackSelectedIndex = ref(0)
 /** 搜索输入区拆到子组件后，焦点由它自己管（P-1.6b 前置拆分） */
 const searchBarRef = ref<InstanceType<typeof LauncherSearchBar> | null>(null)
+const pluginHud = ref<InstanceType<typeof PluginHud> | null>(null)
 
 /**
  * P-1.3 keep-open：主进程才是生效方（blur 判定在那边），这里只镜像状态给
@@ -1558,6 +1563,13 @@ onMounted(() => {
           rerunSearch()
         }
       )
+    })
+  )
+
+  // 插件 showHud（spec 3.3）：瞬时事件不进快照，独立通道直打 HUD 组件
+  unsubscribers.push(
+    window.api.launcher.onPluginHud(({ title }) => {
+      pluginHud.value?.show(title)
     })
   )
 

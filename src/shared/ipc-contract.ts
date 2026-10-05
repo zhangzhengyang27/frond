@@ -625,6 +625,8 @@ export interface IpcContract {
   'plugapi:setExpandHeight': { req: { height: number }; res: boolean }
   'plugapi:setSubInput': { req: { placeholder: string }; res: boolean }
   'plugapi:notify': { req: { body: unknown }; res: boolean }
+  /** 插件 showHud 轻提示（spec 3.3）：纯 UI 反馈无需 manifest 权限；主进程转 launcher:plugin-hud 推送胶囊 */
+  'plugapi:hud': { req: { title: unknown }; res: boolean }
   'plugapi:copyText': { req: { text: unknown }; res: boolean }
   'plugapi:readText': { req: void; res: string }
   'plugapi:openPath': { req: { path: string }; res: boolean }

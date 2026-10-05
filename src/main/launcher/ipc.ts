@@ -48,6 +48,7 @@ import { countE2E } from '../e2eProbe'
 import {
   isActionCommand,
   sanitizeAlertRequest,
+  sanitizePluginHudTitle,
   sanitizePluginOpenableUrl
 } from '../../shared/plugin-protocol'
 import {
@@ -646,6 +647,19 @@ export function registerLauncherIpc(): void {
     if (Notification.isSupported()) {
       new Notification({ title: ctx.plugin.name, body: String(body ?? '') }).show()
     }
+    return true
+  })
+
+  // 插件 showHud（spec 3.3）：瞬时事件不进状态快照，独立推送通道打给胶囊 HUD 组件
+  typedHandle('plugapi:hud', (e, { title }) => {
+    countE2E('plugapi:hud')
+    const ctx = getContextBySender(e.sender.id)
+    if (!ctx) return false
+    const text = sanitizePluginHudTitle(title)
+    if (!text) return false
+    const win = getLauncherWindow()
+    if (!win || win.isDestroyed()) return false
+    win.webContents.send('launcher:plugin-hud', { title: text, pluginName: ctx.plugin.name })
     return true
   })
 

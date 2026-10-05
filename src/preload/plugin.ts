@@ -67,6 +67,12 @@ const launcherApi = {
   /** 系统通知（标题为插件名） */
   notify: (body: string) => typedInvoke('plugapi:notify', { body }),
 
+  /**
+   * 轻提示 HUD（spec 3.3）：胶囊窗内 1.5s 自动消失的轻反馈。
+   * 纯 UI 反馈（与 notify 同级），无需 manifest 权限声明。
+   */
+  showHud: (title: string) => typedInvoke('plugapi:hud', { title }),
+
   copyText: (text: string) => typedInvoke('plugapi:copyText', { text }),
   readText: () => typedInvoke('plugapi:readText'),
 

@@ -660,6 +660,13 @@ const api = {
       ipcRenderer.on('launcher:plugin-changed', l as never)
       return () => ipcRenderer.removeListener('launcher:plugin-changed', l as never)
     },
+    /** 插件 showHud 轻提示（spec 3.3）：瞬时事件不进快照，独立通道 */
+    onPluginHud: (cb: (payload: { title: string; pluginName: string }) => void): (() => void) => {
+      const l = (_e: unknown, payload: unknown): void =>
+        cb(payload as { title: string; pluginName: string })
+      ipcRenderer.on('launcher:plugin-hud', l as never)
+      return () => ipcRenderer.removeListener('launcher:plugin-hud', l as never)
+    },
     // #11 M2：React 表单视图提交（表单到达经 plugin-changed 快照，不再单开通道）
     pluginFormSubmit: (values: Record<string, string | boolean>) =>
       typedInvoke('launcher:plugin-form-submit', { values }),

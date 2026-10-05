@@ -306,14 +306,20 @@ async function run(): Promise<void> {
   }
 }
 
-;
-;(async () => {
-  if (booted) return
-  booted = true
-  const ctx = await getPluginContext()
-  state.query = (ctx && ctx.args && ctx.args.q) || ''
-  await loadPrefs()
-  await loadPairs()
-  await run()
-  // view 命令保持列表打开；结果经 start(<RateList />) 提交宿主（start 包 NavigationRoot）
-})
+function main(): void {
+  void (async () => {
+    if (booted) return
+    booted = true
+    try {
+      const ctx = await getPluginContext()
+      state.query = (ctx && ctx.args && ctx.args.q) || ''
+      await loadPrefs()
+      await loadPairs()
+      await run()
+    } catch (e) {
+      start(<ErrorDetail message={e instanceof Error ? e.message : String(e)} />)
+    }
+  })()
+}
+
+main()

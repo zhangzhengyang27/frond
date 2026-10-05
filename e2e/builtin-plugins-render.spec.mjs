@@ -81,10 +81,7 @@ async function installPlugin(dir) {
 }
 
 async function openAndType(main, pluginId, text) {
-  await main.evaluate(
-    ({ id, t }) => window.api.launcher.openPlugin(id),
-    { id: pluginId, t: text }
-  )
+  await main.evaluate((id) => window.api.launcher.openPlugin(id), pluginId)
   const capsule = await getCapsuleWindow()
   expect(capsule).toBeTruthy()
   await capsule.waitForLoadState('domcontentloaded')

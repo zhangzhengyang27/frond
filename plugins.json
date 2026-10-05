@@ -12,7 +12,7 @@
     {
       "id": "com.frond.colorpicker",
       "name": "颜色选择器",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "description": "颜色格式转换与选择：HEX / RGB / HSL 互转，从剪贴板读取颜色，一键复制",
       "author": "Frond",
       "download": "./plugins/com.frond.colorpicker"
@@ -116,7 +116,7 @@
     {
       "id": "com.frond.contrast",
       "name": "颜色对比度",
-      "version": "1.0.1",
+      "version": "2.0.0",
       "description": "WCAG 颜色对比度检查：输入前景色和背景色，计算对比度比率，判断 AA/AAA 合规性",
       "author": "Frond",
       "download": "./plugins/com.frond.contrast"

@@ -15,9 +15,9 @@ function resolveWindowBackground(): string {
   try {
     theme = preferencesStore.getTheme()
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：偏好未就绪时跟随系统）
-      log.debug('windows', '偏好未就绪时跟随系统', e)
-    }
+    // 批 7b 空 catch 清账（原注释：偏好未就绪时跟随系统）
+    log.debug('windows', '偏好未就绪时跟随系统', e)
+  }
   const dark = theme === 'dark' || (theme === 'auto' && nativeTheme.shouldUseDarkColors)
   // 与 tokens.css v4 的 --surface-0（亮/暗画布）保持一致，避免首帧跳色
   return dark ? '#191a1e' : '#f5f5f7'

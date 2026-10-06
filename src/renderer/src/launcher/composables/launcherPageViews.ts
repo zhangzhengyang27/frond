@@ -167,7 +167,7 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
     name: 'snippets',
     props: queryProps,
     on: (ctx) => ({
-      copied: (t) => ctx.onSnippetCopied(String(t ?? '')),
+      copied: (t) => ctx.onSnippetCopied(typeof t === 'string' ? t : ''),
       navigate: () => ctx.hideWindow()
     })
   },
@@ -189,14 +189,14 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
     component: ShotsIndexPage,
     name: 'shots',
     props: queryProps,
-    on: (ctx) => ({ 'ask-ai': (t) => ctx.askAIWithText(String(t ?? '')) })
+    on: (ctx) => ({ 'ask-ai': (t) => ctx.askAIWithText(typeof t === 'string' ? t : '') })
   },
   clips: {
     component: ClipboardPage,
     name: 'clips',
     props: (ctx) => ({ query: ctx.query(), filter: ctx.clipFilter() }),
     on: (ctx) => ({
-      'ask-ai': (t) => ctx.askAIWithText(String(t ?? '')),
+      'ask-ai': (t) => ctx.askAIWithText(typeof t === 'string' ? t : ''),
       // v-model:filter 在这套写法里就是 :filter + @update:filter 两半
       'update:filter': (v) => ctx.setClipFilter(v as KindFilter)
     })

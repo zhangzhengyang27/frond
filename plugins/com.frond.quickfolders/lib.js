@@ -10,25 +10,29 @@
   /** 旧数据（string 数组）→ 新结构 [{path, pinned, openCount}] */
   function migrate(raw) {
     if (!Array.isArray(raw)) return []
-    return raw.map(function (item) {
-      if (typeof item === 'string') return { path: item, pinned: false, openCount: 0 }
-      return {
-        path: String(item && item.path ? item.path : ''),
-        pinned: item && item.pinned === true,
-        openCount: item && typeof item.openCount === 'number' ? item.openCount : 0
-      }
-    }).filter(function (f) {
-      return f.path !== ''
-    })
+    return raw
+      .map(function (item) {
+        if (typeof item === 'string') return { path: item, pinned: false, openCount: 0 }
+        return {
+          path: String(item && item.path ? item.path : ''),
+          pinned: item && item.pinned === true,
+          openCount: item && typeof item.openCount === 'number' ? item.openCount : 0
+        }
+      })
+      .filter(function (f) {
+        return f.path !== ''
+      })
   }
 
   /** 排序：置顶优先，再按打开次数降序，最后按路径字典序 */
   function sortFolders(list) {
-    return migrate(list).slice().sort(function (a, b) {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
-      if (b.openCount !== a.openCount) return b.openCount - a.openCount
-      return a.path < b.path ? -1 : a.path > b.path ? 1 : 0
-    })
+    return migrate(list)
+      .slice()
+      .sort(function (a, b) {
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1
+        if (b.openCount !== a.openCount) return b.openCount - a.openCount
+        return a.path < b.path ? -1 : a.path > b.path ? 1 : 0
+      })
   }
 
   /** 取路径尾段为展示名；根路径 '/' 原样 */
@@ -50,5 +54,10 @@
     })
   }
 
-  return { migrate: migrate, sortFolders: sortFolders, normalizeName: normalizeName, childrenOf: childrenOf }
+  return {
+    migrate: migrate,
+    sortFolders: sortFolders,
+    normalizeName: normalizeName,
+    childrenOf: childrenOf
+  }
 })

@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  IPC_ERROR_PREFIX,
-  encodeIpcError,
-  decodeIpcError,
-  payloadFromThrown
-} from '../ipcError'
+import { IPC_ERROR_PREFIX, encodeIpcError, decodeIpcError, payloadFromThrown } from '../ipcError'
 
 describe('IPC 错误信封（批 7a）', () => {
   it('编码 → 解码往返保真', () => {

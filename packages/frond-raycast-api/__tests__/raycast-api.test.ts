@@ -292,7 +292,9 @@ describe('兼容性契约（批 6 P-产品-03：作者按 Raycast 文档写代�
     // 反向：源码里的每条都该被契约覆盖（防新降级漏文档）
     for (const d of declared) {
       const covered = contract.some((c) => d.startsWith(c))
-      expect(covered, `源码新降级「${d}」不在契约清单——请补进 docs/PLUGIN_DEVELOPMENT.md`).toBe(true)
+      expect(covered, `源码新降级「${d}」不在契约清单——请补进 docs/PLUGIN_DEVELOPMENT.md`).toBe(
+        true
+      )
     }
   })
 })

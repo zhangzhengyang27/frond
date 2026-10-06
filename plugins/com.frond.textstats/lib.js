@@ -27,7 +27,10 @@
       if (str.codePointAt(i) > 0xffff) i++
     }
     var cjk = (str.match(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length
-    var asciiWords = str.replace(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g, ' ').split(/\s+/).filter(Boolean).length
+    var asciiWords = str
+      .replace(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean).length
     var lines = str === '' ? 0 : str.split('\n').length
     var words = cjk + asciiWords
     return {
@@ -41,7 +44,10 @@
 
   /** 词频 TopN（ASCII 词按 \w+ 切，CJK 跳过——逐字无词频意义） */
   function topWords(text, n) {
-    var tokens = String(text).toLowerCase().match(/[a-z0-9_']+/g) || []
+    var tokens =
+      String(text)
+        .toLowerCase()
+        .match(/[a-z0-9_']+/g) || []
     var freq = {}
     for (var i = 0; i < tokens.length; i++) {
       freq[tokens[i]] = (freq[tokens[i]] || 0) + 1
@@ -62,11 +68,41 @@
     if (str.trim() === '') return null
     var s = stats(str)
     var out = [
-      { title: String(s.chars), subtitle: '字符数', output: String(s.chars), section: '统计', accessories: [{ tag: 'chars' }] },
-      { title: String(s.words), subtitle: '词数', output: String(s.words), section: '统计', accessories: [{ tag: 'words' }] },
-      { title: String(s.lines), subtitle: '行数', output: String(s.lines), section: '统计', accessories: [{ tag: 'lines' }] },
-      { title: String(s.bytes), subtitle: '字节数（UTF-8）', output: String(s.bytes), section: '统计', accessories: [{ tag: 'bytes' }] },
-      { title: s.readMinutes + ' 分钟', subtitle: '预计阅读时长（300 词/分钟）', output: String(s.readMinutes), section: '统计', accessories: [{ tag: 'read' }] }
+      {
+        title: String(s.chars),
+        subtitle: '字符数',
+        output: String(s.chars),
+        section: '统计',
+        accessories: [{ tag: 'chars' }]
+      },
+      {
+        title: String(s.words),
+        subtitle: '词数',
+        output: String(s.words),
+        section: '统计',
+        accessories: [{ tag: 'words' }]
+      },
+      {
+        title: String(s.lines),
+        subtitle: '行数',
+        output: String(s.lines),
+        section: '统计',
+        accessories: [{ tag: 'lines' }]
+      },
+      {
+        title: String(s.bytes),
+        subtitle: '字节数（UTF-8）',
+        output: String(s.bytes),
+        section: '统计',
+        accessories: [{ tag: 'bytes' }]
+      },
+      {
+        title: s.readMinutes + ' 分钟',
+        subtitle: '预计阅读时长（300 词/分钟）',
+        output: String(s.readMinutes),
+        section: '统计',
+        accessories: [{ tag: 'read' }]
+      }
     ]
     var tops = topWords(str, 10)
     for (var i = 0; i < tops.length; i++) {

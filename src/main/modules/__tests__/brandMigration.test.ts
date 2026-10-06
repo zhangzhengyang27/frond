@@ -68,8 +68,9 @@ describe('migrateLegacyBrandData', () => {
     expect(existsSync(join(userData(), '.leaf-key'))).toBe(false)
     expect(existsSync(join(userData(), 'launcher-plugins', 'com.frond.jwt'))).toBe(true)
     const installed = (
-      JSON.parse(readFileSync(join(userData(), 'launcher-plugins', 'installed.json'), 'utf-8')) as
-        Array<{ id: string; sourcePath: string }>
+      JSON.parse(
+        readFileSync(join(userData(), 'launcher-plugins', 'installed.json'), 'utf-8')
+      ) as Array<{ id: string; sourcePath: string }>
     )[0]
     expect(installed!.id).toBe('com.frond.jwt')
     expect(installed!.sourcePath).toBe('/x/plugins/com.frond.jwt')

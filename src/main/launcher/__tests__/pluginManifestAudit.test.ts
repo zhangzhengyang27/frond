@@ -44,7 +44,8 @@ const manifests = dirs.map((dir) => {
   return { dir, manifest: raw }
 })
 
-const marketRaw = ((JSON.parse(readFileSync(MARKET_FILE, 'utf8')) as { plugins?: unknown }).plugins ?? []) as Array<{
+const marketRaw = ((JSON.parse(readFileSync(MARKET_FILE, 'utf8')) as { plugins?: unknown })
+  .plugins ?? []) as Array<{
   id: string
   name?: string
   version?: string
@@ -110,10 +111,9 @@ describe('内置插件清单审计', () => {
         ).toBeLessThanOrEqual(3)
         for (const arg of args) {
           expect(typeof arg.name, `${dir}: 参数缺 name`).toBe('string')
-          const type = arg.type ?? 'text'
-          expect(KNOWN_ARG_TYPES.has(String(type)), `${dir}: 未知参数类型 ${String(type)}`).toBe(
-            true
-          )
+          // manifest JSON 里 type 可能塞任意值：非字符串按缺省参与判定与报错文案
+          const type = typeof arg.type === 'string' ? arg.type : 'text'
+          expect(KNOWN_ARG_TYPES.has(type), `${dir}: 未知参数类型 ${type}`).toBe(true)
           if (type === 'dropdown') {
             expect(Array.isArray(arg.data) && arg.data.length > 0, `${dir}: dropdown 无 data`).toBe(
               true

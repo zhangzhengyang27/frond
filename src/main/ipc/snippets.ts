@@ -18,17 +18,35 @@ import { typedHandle } from './typedIpc'
 const SNIPPET_IMPORT_MAX_BYTES = 20 * 1024 * 1024
 
 /** B56-4：contents 入参验型——非数组/缺 value 的条目剔除，id 由 repo 生成 */
-function sanitizeContents(raw: unknown): Array<{ id: string; label: string; value: string; language: string; contentType: 'rich' | 'text' }> {
+function sanitizeContents(raw: unknown): Array<{
+  id: string
+  label: string
+  value: string
+  language: string
+  contentType: 'rich' | 'text'
+}> {
   if (!Array.isArray(raw)) return []
   return raw
-    .filter((c): c is Record<string, unknown> => !!c && typeof c === 'object' && typeof (c as { value?: unknown }).value === 'string')
+    .filter(
+      (c): c is Record<string, unknown> =>
+        !!c && typeof c === 'object' && typeof (c as { value?: unknown }).value === 'string'
+    )
     .map((c) => {
-      const contentType = (c as { contentType?: unknown }).contentType === 'rich' ? ('rich' as const) : ('text' as const)
+      const contentType =
+        (c as { contentType?: unknown }).contentType === 'rich'
+          ? ('rich' as const)
+          : ('text' as const)
       return {
         id: typeof (c as { id?: unknown }).id === 'string' ? (c as { id: string }).id : '',
-        label: typeof (c as { label?: unknown }).label === 'string' ? (c as { label: string }).label : '代码',
+        label:
+          typeof (c as { label?: unknown }).label === 'string'
+            ? (c as { label: string }).label
+            : '代码',
         value: (c as { value: string }).value,
-        language: typeof (c as { language?: unknown }).language === 'string' ? (c as { language: string }).language : 'plaintext',
+        language:
+          typeof (c as { language?: unknown }).language === 'string'
+            ? (c as { language: string }).language
+            : 'plaintext',
         contentType
       }
     })
@@ -44,7 +62,10 @@ function broadcastSnippetsChanged(): void {
 export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void {
   // B53-3b：胶囊根搜索轻路径（LIMIT + 不解密 contents）
   typedHandle('snippet:quickSearch', (_event, { query, limit }) =>
-    snippetRepository.quickSearch(String(query ?? ''), Math.min(Math.max(Number(limit) || 3, 1), 10))
+    snippetRepository.quickSearch(
+      String(query ?? ''),
+      Math.min(Math.max(Number(limit) || 3, 1), 10)
+    )
   )
   typedHandle('snippet:getSnippets', (_event, { filters }) => snippetStore.getSnippets(filters))
 
@@ -69,7 +90,9 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
       description: typeof req.description === 'string' ? req.description : '',
       trigger: typeof req.trigger === 'string' ? req.trigger : undefined,
       folderId: typeof req.folderId === 'string' ? req.folderId : null,
-      tagIds: Array.isArray(req.tagIds) ? req.tagIds.filter((t): t is string => typeof t === 'string') : [],
+      tagIds: Array.isArray(req.tagIds)
+        ? req.tagIds.filter((t): t is string => typeof t === 'string')
+        : [],
       isFavorites: req.isFavorites === true,
       isDeleted: false,
       contents: sanitizeContents(req.contents)
@@ -86,7 +109,7 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
     const clean = { ...updates } as Record<string, unknown>
     if ('contents' in clean && !Array.isArray(clean.contents)) delete clean.contents
     if ('tagIds' in clean && !Array.isArray(clean.tagIds)) delete clean.tagIds
-    const result = snippetStore.updateSnippet(id, clean as Parameters<typeof snippetStore.updateSnippet>[1])
+    const result = snippetStore.updateSnippet(id, clean)
     textExpansion.invalidateTriggers()
     broadcastSnippetsChanged()
     return result

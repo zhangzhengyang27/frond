@@ -1,161 +1,161 @@
 <template>
   <UDrawer :model-value="open" aria-label="任务详情" @update:model-value="onVisibility">
     <div class="drawer-header">
-        <div class="drawer-eyebrow">
-          <span>任务详情</span>
-          <ProjectChip v-if="detail?.project" :project="detail.project" />
+      <div class="drawer-eyebrow">
+        <span>任务详情</span>
+        <ProjectChip v-if="detail?.project" :project="detail.project" />
+      </div>
+      <div class="drawer-title">
+        <span :class="['priority-bar', `p${detail?.task.priority ?? 0}`]" aria-hidden="true" />
+        <h2>{{ detail?.task.title || '加载中…' }}</h2>
+        <button class="icon-btn" type="button" title="关闭" @click="close">
+          <AppIcon icon="ri-close-line" />
+        </button>
+      </div>
+      <p v-if="detail?.task.description" class="drawer-description">
+        {{ detail.task.description }}
+      </p>
+    </div>
+
+    <div class="drawer-body">
+      <!-- 摘要卡片 -->
+      <section v-if="summary" class="summary-grid">
+        <div class="summary-card">
+          <span class="summary-label">已完成番茄</span>
+          <strong>{{ summary.pomodoroCount }}</strong>
+          <span class="summary-unit">个</span>
         </div>
-        <div class="drawer-title">
-          <span :class="['priority-bar', `p${detail?.task.priority ?? 0}`]" aria-hidden="true" />
-          <h2>{{ detail?.task.title || '加载中…' }}</h2>
-          <button class="icon-btn" type="button" title="关闭" @click="close">
-            <AppIcon icon="ri-close-line" />
-          </button>
+        <div class="summary-card">
+          <span class="summary-label">专注总时长</span>
+          <strong>{{ formatMinutes(summary.workMs) }}</strong>
         </div>
-        <p v-if="detail?.task.description" class="drawer-description">
-          {{ detail.task.description }}
+        <div class="summary-card">
+          <span class="summary-label">预估</span>
+          <strong>{{ summary.estimateMs ? formatMinutes(summary.estimateMs) : '—' }}</strong>
+        </div>
+        <div class="summary-card" :class="{ over: overEstimate, under: underEstimate }">
+          <span class="summary-label">偏差</span>
+          <strong>{{ formatDeviation(summary.estimateDeviationMs) }}</strong>
+          <span class="summary-unit">{{
+            summary.estimateDeviationMs == null ? '' : overEstimate ? '超出' : '低于'
+          }}</span>
+        </div>
+        <div class="summary-card summary-card-wide">
+          <span class="summary-label">首次专注</span>
+          <strong>{{ formatDate(summary.firstStartedAt) }}</strong>
+        </div>
+        <div class="summary-card summary-card-wide">
+          <span class="summary-label">最近专注</span>
+          <strong>{{ formatDate(summary.lastCompletedAt) }}</strong>
+        </div>
+      </section>
+
+      <!-- 操作区 -->
+      <section class="action-row">
+        <button class="action-btn" type="button" :disabled="!records.length" @click="exportCSV">
+          <AppIcon icon="ri-file-text-line" />
+          <span>导出 CSV</span>
+        </button>
+        <button
+          class="action-btn"
+          type="button"
+          :disabled="!records.length"
+          @click="exportMarkdown"
+        >
+          <AppIcon icon="ri-markdown-line" />
+          <span>导出 Markdown</span>
+        </button>
+        <button
+          v-if="lastExportMessage"
+          class="action-feedback"
+          :class="lastExportOk ? 'ok' : 'err'"
+          type="button"
+          disabled
+        >
+          {{ lastExportMessage }}
+        </button>
+      </section>
+
+      <!-- 时间轴 -->
+      <section class="timeline-section">
+        <header class="section-header">
+          <h3>番茄时间轴</h3>
+          <span class="section-meta">{{ records.length }} 条记录</span>
+        </header>
+
+        <p v-if="taskDetailLoading" class="empty">加载中…</p>
+        <p v-else-if="records.length === 0" class="empty">还没有专注记录，开始第一个番茄吧。</p>
+
+        <ol v-else class="timeline">
+          <li
+            v-for="record in records"
+            :key="record.id"
+            :class="['timeline-item', { selected: selectedRecordId === record.id }]"
+            @click="selectRecord(record.id)"
+          >
+            <div class="timeline-dot" :data-type="record.type" />
+            <div class="timeline-card">
+              <div class="timeline-card-head">
+                <span class="timeline-mode">{{ modeLabel(record.type) }}</span>
+                <span class="timeline-time">{{ formatTime(record.completedAt) }}</span>
+              </div>
+              <div class="timeline-card-body">
+                <span class="timeline-duration">{{ formatMinutes(record.duration) }}</span>
+                <span class="timeline-meta"
+                  >#{{ records.length - records.indexOf(record) }} / {{ records.length }}</span
+                >
+              </div>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 单番茄详情 -->
+      <PomodoroDetailPanel
+        v-if="selectedRecordId"
+        :record-id="selectedRecordId"
+        @close="store.closeRecordDetail()"
+      />
+
+      <!-- 截图关联引导（录屏模块已下线，B59 时代残留一并清理） -->
+      <section class="assets-hint">
+        <header class="section-header">
+          <h3>截图关联</h3>
+        </header>
+        <p class="hint-text">
+          截图按 ⌥⇧S（或下面的「开始截图」）；标题中包含本任务名称时会被自动索引。
         </p>
-      </div>
-
-      <div class="drawer-body">
-        <!-- 摘要卡片 -->
-        <section v-if="summary" class="summary-grid">
-          <div class="summary-card">
-            <span class="summary-label">已完成番茄</span>
-            <strong>{{ summary.pomodoroCount }}</strong>
-            <span class="summary-unit">个</span>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">专注总时长</span>
-            <strong>{{ formatMinutes(summary.workMs) }}</strong>
-          </div>
-          <div class="summary-card">
-            <span class="summary-label">预估</span>
-            <strong>{{ summary.estimateMs ? formatMinutes(summary.estimateMs) : '—' }}</strong>
-          </div>
-          <div class="summary-card" :class="{ over: overEstimate, under: underEstimate }">
-            <span class="summary-label">偏差</span>
-            <strong>{{ formatDeviation(summary.estimateDeviationMs) }}</strong>
-            <span class="summary-unit">{{
-              summary.estimateDeviationMs == null ? '' : overEstimate ? '超出' : '低于'
-            }}</span>
-          </div>
-          <div class="summary-card summary-card-wide">
-            <span class="summary-label">首次专注</span>
-            <strong>{{ formatDate(summary.firstStartedAt) }}</strong>
-          </div>
-          <div class="summary-card summary-card-wide">
-            <span class="summary-label">最近专注</span>
-            <strong>{{ formatDate(summary.lastCompletedAt) }}</strong>
-          </div>
-        </section>
-
-        <!-- 操作区 -->
-        <section class="action-row">
-          <button class="action-btn" type="button" :disabled="!records.length" @click="exportCSV">
-            <AppIcon icon="ri-file-text-line" />
-            <span>导出 CSV</span>
+        <div class="hint-actions">
+          <button class="action-btn" type="button" @click="startScreenshot">
+            <AppIcon icon="ri-camera-line" />
+            <span>开始截图</span>
           </button>
-          <button
-            class="action-btn"
-            type="button"
-            :disabled="!records.length"
-            @click="exportMarkdown"
-          >
-            <AppIcon icon="ri-markdown-line" />
-            <span>导出 Markdown</span>
-          </button>
-          <button
-            v-if="lastExportMessage"
-            class="action-feedback"
-            :class="lastExportOk ? 'ok' : 'err'"
-            type="button"
-            disabled
-          >
-            {{ lastExportMessage }}
-          </button>
-        </section>
+        </div>
+      </section>
 
-        <!-- 时间轴 -->
-        <section class="timeline-section">
-          <header class="section-header">
-            <h3>番茄时间轴</h3>
-            <span class="section-meta">{{ records.length }} 条记录</span>
-          </header>
-
-          <p v-if="taskDetailLoading" class="empty">加载中…</p>
-          <p v-else-if="records.length === 0" class="empty">还没有专注记录，开始第一个番茄吧。</p>
-
-          <ol v-else class="timeline">
-            <li
-              v-for="record in records"
-              :key="record.id"
-              :class="['timeline-item', { selected: selectedRecordId === record.id }]"
-              @click="selectRecord(record.id)"
-            >
-              <div class="timeline-dot" :data-type="record.type" />
-              <div class="timeline-card">
-                <div class="timeline-card-head">
-                  <span class="timeline-mode">{{ modeLabel(record.type) }}</span>
-                  <span class="timeline-time">{{ formatTime(record.completedAt) }}</span>
-                </div>
-                <div class="timeline-card-body">
-                  <span class="timeline-duration">{{ formatMinutes(record.duration) }}</span>
-                  <span class="timeline-meta"
-                    >#{{ records.length - records.indexOf(record) }} / {{ records.length }}</span
-                  >
-                </div>
+      <!-- M4：自由番茄（未绑定任务）记录 -->
+      <section class="free-records">
+        <header class="section-header">
+          <h3>自由番茄</h3>
+          <span class="section-meta">{{ freeRecords.length }} 条未绑定</span>
+        </header>
+        <p v-if="freeRecords.length === 0" class="empty">没有未绑定的番茄记录。</p>
+        <ol v-else class="timeline compact">
+          <li v-for="r in freeRecords" :key="r.id" class="timeline-item">
+            <div class="timeline-dot" :data-type="r.type" />
+            <div class="timeline-card">
+              <div class="timeline-card-head">
+                <span class="timeline-mode">{{ modeLabel(r.type) }}</span>
+                <span class="timeline-time">{{ formatTime(r.completedAt) }}</span>
               </div>
-            </li>
-          </ol>
-        </section>
-
-        <!-- 单番茄详情 -->
-        <PomodoroDetailPanel
-          v-if="selectedRecordId"
-          :record-id="selectedRecordId"
-          @close="store.closeRecordDetail()"
-        />
-
-        <!-- 截图关联引导（录屏模块已下线，B59 时代残留一并清理） -->
-        <section class="assets-hint">
-          <header class="section-header">
-            <h3>截图关联</h3>
-          </header>
-          <p class="hint-text">
-            截图按 ⌥⇧S（或下面的「开始截图」）；标题中包含本任务名称时会被自动索引。
-          </p>
-          <div class="hint-actions">
-            <button class="action-btn" type="button" @click="startScreenshot">
-              <AppIcon icon="ri-camera-line" />
-              <span>开始截图</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- M4：自由番茄（未绑定任务）记录 -->
-        <section class="free-records">
-          <header class="section-header">
-            <h3>自由番茄</h3>
-            <span class="section-meta">{{ freeRecords.length }} 条未绑定</span>
-          </header>
-          <p v-if="freeRecords.length === 0" class="empty">没有未绑定的番茄记录。</p>
-          <ol v-else class="timeline compact">
-            <li v-for="r in freeRecords" :key="r.id" class="timeline-item">
-              <div class="timeline-dot" :data-type="r.type" />
-              <div class="timeline-card">
-                <div class="timeline-card-head">
-                  <span class="timeline-mode">{{ modeLabel(r.type) }}</span>
-                  <span class="timeline-time">{{ formatTime(r.completedAt) }}</span>
-                </div>
-                <div class="timeline-card-body">
-                  <span class="timeline-duration">{{ formatMinutes(r.duration) }}</span>
-                </div>
+              <div class="timeline-card-body">
+                <span class="timeline-duration">{{ formatMinutes(r.duration) }}</span>
               </div>
-            </li>
-          </ol>
-        </section>
-      </div>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </div>
   </UDrawer>
 </template>
 

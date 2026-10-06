@@ -112,11 +112,7 @@ export async function getWindows(): Promise<WindowInfo[]> {
  * pid 必须为正整数；标题经转义后嵌入 AppleScript 字符串字面量
  * （execFile 不经 shell，无需防 $()/反引号，只需防 AppleScript 引号逃逸）。
  */
-export async function activateWindow(
-  pid: number,
-  title: string,
-  occurrence = 1
-): Promise<boolean> {
+export async function activateWindow(pid: number, title: string, occurrence = 1): Promise<boolean> {
   if (!Number.isInteger(pid) || pid <= 0) return false
   try {
     const escapedTitle = title.replace(/\\/g, '\\\\').replace(/"/g, '\\"')

@@ -17,7 +17,7 @@ describe('normalizeDensity', () => {
     expect(normalizeDensity('compact')).toBe('compact')
     expect(normalizeDensity('comfortable')).toBe('comfortable')
     for (const bad of [undefined, null, '', 'COMPACT', 'dense', 0, {}, []]) {
-      expect(normalizeDensity(bad), `应回落：${String(bad)}`).toBe('comfortable')
+      expect(normalizeDensity(bad), `应回落：${JSON.stringify(bad)}`).toBe('comfortable')
     }
   })
 })

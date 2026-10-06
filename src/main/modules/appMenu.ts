@@ -11,7 +11,11 @@
  * - 最近使用 / 收藏：usageStore（每次 setMenu 前实时拉，避免 stale）
  */
 
-import { createWindow as createAppWindow, HEAVY_MODULE_WINDOW_SIZES, openHeavyModuleWindow } from './windows'
+import {
+  createWindow as createAppWindow,
+  HEAVY_MODULE_WINDOW_SIZES,
+  openHeavyModuleWindow
+} from './windows'
 import { app, BrowserWindow, Menu } from 'electron'
 import { MODULES, type ModuleMeta } from '../../shared/modules'
 import { usageStore } from '../stores'
@@ -131,7 +135,9 @@ function moduleItem(
     // shortcut 存的是裸数字（语义 ⌘1-9，见 useModuleShortcuts）：不加 Mod 菜单会
     // 显示裸「1」「3」，用户按数字没反应、也看不出真实快捷键
     ...(meta.shortcut && {
-      accelerator: toAccelerator(meta.shortcut.includes('Mod') ? meta.shortcut : `Mod+${meta.shortcut}`)
+      accelerator: toAccelerator(
+        meta.shortcut.includes('Mod') ? meta.shortcut : `Mod+${meta.shortcut}`
+      )
     }),
     click: () => openModuleItem(ctx, meta)
   }

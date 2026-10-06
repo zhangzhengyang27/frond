@@ -74,7 +74,7 @@ function buildTrayIcon(): Electron.NativeImage {
     join(__dirname, '../../build/icon.icns'),
     join(process.resourcesPath || '', 'icon.png'),
     join(process.resourcesPath || '', 'icon.icns'),
-    icon as unknown as string
+    icon
   ]
 
   for (const iconPath of possibleIconPaths) {

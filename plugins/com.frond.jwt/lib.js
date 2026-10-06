@@ -12,9 +12,7 @@
     var s = String(str).replace(/-/g, '+').replace(/_/g, '/')
     while (s.length % 4 !== 0) s += '='
     if (typeof Buffer === 'function') return Buffer.from(s, 'base64').toString('utf-8')
-    return decodeURIComponent(
-      escape(atob(s))
-    )
+    return decodeURIComponent(escape(atob(s)))
   }
 
   /** 解析三段 JWT → { header, payload, signature }；结构/JSON 非法 → null */
@@ -24,7 +22,8 @@
     try {
       var header = JSON.parse(b64urlDecode(parts[0]))
       var payload = JSON.parse(b64urlDecode(parts[1]))
-      if (!header || typeof header !== 'object' || !payload || typeof payload !== 'object') return null
+      if (!header || typeof header !== 'object' || !payload || typeof payload !== 'object')
+        return null
       return { header: header, payload: payload, signature: parts[2] }
     } catch (e) {
       void e
@@ -40,12 +39,22 @@
     for (var key in payload) {
       if (!Object.prototype.hasOwnProperty.call(payload, key)) continue
       var val = payload[key]
-      var item = { title: key + ': ' + String(val), subtitle: '', output: String(val), section: 'Payload' }
+      var item = {
+        title: key + ': ' + String(val),
+        subtitle: '',
+        output: String(val),
+        section: 'Payload'
+      }
       if (TS_CLAIMS[key] && typeof val === 'number') {
         var d = new Date(val * 1000)
         var expired = key === 'exp' && d.getTime() * 1 < Date.now()
         item.subtitle = key + '（' + d.toISOString() + '）'
-        item.accessories = [{ tag: key === 'exp' ? (expired ? '已过期' : '有效') : '时间', tone: key === 'exp' ? (expired ? 'danger' : 'success') : 'default' }]
+        item.accessories = [
+          {
+            tag: key === 'exp' ? (expired ? '已过期' : '有效') : '时间',
+            tone: key === 'exp' ? (expired ? 'danger' : 'success') : 'default'
+          }
+        ]
       }
       out.push(item)
     }
@@ -63,13 +72,27 @@
         output: token,
         accessories: [
           { tag: String(d.header.alg || '?'), tone: 'default' },
-          { tag: TS_CLAIMS && typeof d.payload.exp === 'number' && d.payload.exp * 1000 < Date.now() ? '已过期' : '未过期', tone: typeof d.payload.exp === 'number' && d.payload.exp * 1000 < Date.now() ? 'danger' : 'success' }
+          {
+            tag:
+              TS_CLAIMS && typeof d.payload.exp === 'number' && d.payload.exp * 1000 < Date.now()
+                ? '已过期'
+                : '未过期',
+            tone:
+              typeof d.payload.exp === 'number' && d.payload.exp * 1000 < Date.now()
+                ? 'danger'
+                : 'success'
+          }
         ]
       }
     ]
     for (var k in d.header) {
       if (Object.prototype.hasOwnProperty.call(d.header, k)) {
-        items.push({ title: k + ': ' + String(d.header[k]), subtitle: '', output: String(d.header[k]), section: 'Header' })
+        items.push({
+          title: k + ': ' + String(d.header[k]),
+          subtitle: '',
+          output: String(d.header[k]),
+          section: 'Header'
+        })
       }
     }
     return items.concat(claimsToItems(d.payload))

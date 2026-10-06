@@ -72,9 +72,9 @@ function saveWindowState(state: WindowState): void {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
     writeFileSync(getStatePath(), JSON.stringify(state, null, 2), 'utf-8')
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：保存失败静默处理，不影响使用）
-      log.debug('floating-note', '保存失败静默处理，不影响使用', e)
-    }
+    // 批 7b 空 catch 清账（原注释：保存失败静默处理，不影响使用）
+    log.debug('floating-note', '保存失败静默处理，不影响使用', e)
+  }
 }
 
 // 保存状态的 debounce 定时器

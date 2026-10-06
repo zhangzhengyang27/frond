@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return -- 测试域：mock 收型摩擦 */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return -- 测试域：mock 收型摩擦 */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
@@ -81,11 +81,16 @@ describe('B56-1 flush 真相回流', () => {
   })
 
   it('enqueueContentsWrite 结构写同样广播新对象（结构操作后 props 同步）', async () => {
-    const fresh = { id: 's1', contents: [{ id: 'c2', label: '代码 2', value: '', language: 'plaintext' }] }
+    const fresh = {
+      id: 's1',
+      contents: [{ id: 'c2', label: '代码 2', value: '', language: 'plaintext' }]
+    }
     updateSnippet.mockResolvedValue(fresh as any)
     const seen: string[] = []
     const off = onSnippetSynced((s) => seen.push(s.id))
-    await enqueueContentsWrite('s1', [{ id: 'c2', label: '代码 2', value: '', language: 'plaintext' }])
+    await enqueueContentsWrite('s1', [
+      { id: 'c2', label: '代码 2', value: '', language: 'plaintext' }
+    ])
     expect(seen).toEqual(['s1'])
     off()
   })

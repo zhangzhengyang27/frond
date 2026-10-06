@@ -38,7 +38,10 @@
         <div v-if="projects.length > 0" class="fstat-section-title">项目分布（7 天）</div>
         <div v-if="projects.length > 0" class="fstat-projects">
           <div v-for="p in projects" :key="p.projectId ?? 'none'" class="fstat-project">
-            <span class="fstat-dot" :style="{ background: p.color || 'var(--palette-project-6)' }" />
+            <span
+              class="fstat-dot"
+              :style="{ background: p.color || 'var(--palette-project-6)' }"
+            />
             <span class="fstat-project-name">{{ p.projectName || '未归属' }}</span>
             <span class="fstat-project-min">{{ p.workMinutes }} 分</span>
           </div>
@@ -113,7 +116,7 @@ onMounted(async () => {
       window.api.pomodoro.stats.getDailyTrend(7),
       window.api.pomodoro.stats.getProjectDistribution(Date.now() - 7 * 86_400_000, Date.now())
     ])
-    trend.value = (trendResult ?? []) as TrendPoint[]
+    trend.value = trendResult ?? []
     projects.value = ((distResult ?? []) as ProjectPoint[])
       .filter((p) => p.workMinutes > 0)
       .sort((a, b) => b.workMinutes - a.workMinutes)

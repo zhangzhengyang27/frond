@@ -11,7 +11,7 @@ import type { FuzzyEngine } from '../fuzzyEngine'
  */
 
 /** 第三层拼写容错会把这种查询模糊捞回来；隔离它才能看出命中是谁给的 */
-const noTypo: FuzzyEngine = { match: () => null } as unknown as FuzzyEngine
+const noTypo: FuzzyEngine = { match: () => null }
 
 const mk = (key: string, title: string, acceptsArgs = false): SearchEntryBase =>
   ({

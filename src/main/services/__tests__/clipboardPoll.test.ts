@@ -67,8 +67,7 @@ beforeEach(() => {
   clipboardMock.readImage.mockClear()
 })
 
-const poll = (): Promise<void> =>
-  (svc as unknown as { poll(): Promise<void> }).poll()
+const poll = (): Promise<void> => (svc as unknown as { poll(): Promise<void> }).poll()
 
 describe('剪贴板 poll 指纹先行（B53-2）', () => {
   it('内容不变：只有第一轮查前台应用，后续轮零 spawn', async () => {

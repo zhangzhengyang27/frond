@@ -196,7 +196,9 @@ describe('工具清单缓存 → 命令表', () => {
     saveMcpServers([{ id: 'other', command: 'node' }])
     markConfirmed()
     expect(mcpToolCommands()).toEqual([])
-    expect((JSON.parse(prefRepository.get('mcp.toolCache') ?? '{}') as { fx?: unknown }).fx).toBeUndefined()
+    expect(
+      (JSON.parse(prefRepository.get('mcp.toolCache') ?? '{}') as { fx?: unknown }).fx
+    ).toBeUndefined()
   })
 })
 
@@ -236,7 +238,7 @@ describe('runMcpTool：回车那一刻的门槛', () => {
   it('多余的参数键发不出去（界面只该给 schema 里那些格）', async () => {
     saveMcpServers([{ id: 'fx', label: '夹具', command: process.execPath, args: [FIXTURE] }])
     markConfirmed()
-    const r = await runMcpTool('fx', 'echo', { msg: 'ok', msg2: 'x' } as Record<string, string>)
+    const r = await runMcpTool('fx', 'echo', { msg: 'ok', msg2: 'x' })
     expect(r.ok).toBe(true)
     expect(r.text).toBe('echo:ok')
   })

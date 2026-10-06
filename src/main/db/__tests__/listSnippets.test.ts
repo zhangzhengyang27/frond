@@ -119,9 +119,9 @@ describe('SnippetRepository.listSnippets（批3 分页）', () => {
       target.id
     )
     m033_snippet_search_text_trigger.up(db)
-    const row = db
-      .prepare(`SELECT search_text FROM snip_snippets WHERE id = ?`)
-      .get(target.id) as { search_text: string }
+    const row = db.prepare(`SELECT search_text FROM snip_snippets WHERE id = ?`).get(target.id) as {
+      search_text: string
+    }
     expect(row.search_text).toContain(';pay')
     expect(row.search_text).toContain(`fetch('/api/pay')`)
   })

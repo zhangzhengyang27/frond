@@ -72,7 +72,7 @@ async function activate(win: WindowInfo): Promise<void> {
 
 onMounted(async () => {
   try {
-    windows.value = (await window.api.windows.list()) as WindowInfo[]
+    windows.value = await window.api.windows.list()
   } catch (err) {
     console.warn('WindowSwitcher: list failed', err)
   } finally {

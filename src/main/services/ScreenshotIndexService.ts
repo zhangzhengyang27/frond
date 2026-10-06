@@ -128,9 +128,9 @@ class ScreenshotIndexService {
       try {
         fn()
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 监听者异常不影响扫描）
-      log.debug('screenshot-index-service', '* 监听者异常不影响扫描', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 监听者异常不影响扫描）
+        log.debug('screenshot-index-service', '* 监听者异常不影响扫描', e)
+      }
     }
     // 胶囊页刷新列表（OCR 进度是渐进的，靠推送而非轮询）
     try {
@@ -245,9 +245,9 @@ class ScreenshotIndexService {
         try {
           await worker.terminate()
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('screenshot-index-service', '* noop', e)
-    }
+          // 批 7b 空 catch 清账（原注释：* noop）
+          log.debug('screenshot-index-service', '* noop', e)
+        }
       }
     }
   }

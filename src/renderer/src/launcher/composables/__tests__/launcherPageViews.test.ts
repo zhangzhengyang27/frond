@@ -68,7 +68,7 @@ describe('pickPageView', () => {
 
   it('栈空才轮到插件：表单优先于列表（同一个插件两态都在时）', () => {
     const both = ctx({
-      pluginForm: () => ({ fields: [], submitId: 's' }) as never,
+      pluginForm: () => ({ fields: [], submitId: 's' }),
       pluginList: () => [{ title: 'x' }] as never
     })
     expect(pickPageView(null, both)?.component).toBe(LAUNCHER_PAGE_VIEWS.pluginform.component)

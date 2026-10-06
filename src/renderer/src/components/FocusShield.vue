@@ -56,7 +56,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(1200px 600px at 50% 40%, var(--shield-bg-core) 0%, var(--shield-bg-edge) 70%);
+  background: radial-gradient(
+    1200px 600px at 50% 40%,
+    var(--shield-bg-core) 0%,
+    var(--shield-bg-edge) 70%
+  );
   color: var(--shield-text);
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',

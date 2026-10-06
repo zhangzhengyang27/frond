@@ -1,7 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- 本文件就是裸 better-sqlite3 层的测试（v13 无类型），unsafe 恰是被测对象 */
 import { describe, it, expect } from 'vitest'
 import Database from 'better-sqlite3'
-import { prepareRun, prepareGet, prepareAll, prepareStmt, runStmt, getStmt, allStmt } from '../typedSql'
+import {
+  prepareRun,
+  prepareGet,
+  prepareAll,
+  prepareStmt,
+  runStmt,
+  getStmt,
+  allStmt
+} from '../typedSql'
 
 /**
  * B46 核心件 typedSql：行为与 better-sqlite3 直调完全一致（错误照抛、undefined
@@ -14,7 +21,9 @@ describe('typedSql（B46 核心件）', () => {
     db.exec('CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT NOT NULL)')
     const run = prepareRun(db, 'INSERT INTO t (name) VALUES (?)', 'a') as { changes: number }
     expect(run.changes).toBe(1)
-    expect(prepareGet<{ id: number; name: string }>(db, 'SELECT * FROM t WHERE id = ?', 1)).toMatchObject({
+    expect(
+      prepareGet<{ id: number; name: string }>(db, 'SELECT * FROM t WHERE id = ?', 1)
+    ).toMatchObject({
       id: 1,
       name: 'a'
     })

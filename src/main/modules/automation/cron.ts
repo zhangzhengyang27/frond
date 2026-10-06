@@ -57,8 +57,8 @@ function parseField(raw: string, [min, max]: [number, number]): Set<number> | nu
 export function parseCron(source: string): CronSpec | null {
   const parts = (source ?? '').trim().split(/\s+/)
   if (parts.length !== 5) return null
-  const [minutes, hours, daysOfMonth, months, daysOfWeek] = parts.map((p, i) =>
-    parseField(p, RANGES[i]!) // parts.length===5 已守卫，RANGES 恒五段
+  const [minutes, hours, daysOfMonth, months, daysOfWeek] = parts.map(
+    (p, i) => parseField(p, RANGES[i]!) // parts.length===5 已守卫，RANGES 恒五段
   )
   if (!minutes || !hours || !daysOfMonth || !months || !daysOfWeek) return null
   return { minutes, hours, daysOfMonth, months, daysOfWeek, source: parts.join(' ') }

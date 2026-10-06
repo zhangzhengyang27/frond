@@ -10,7 +10,14 @@
  * 中缀那一档补在这里：≥3 字符可命中，2 字中文仍是盲区（由上层回退系统检索承接）。
  */
 import Database from 'better-sqlite3'
-import { prepareRun, prepareGet, prepareAll, prepareStmt, runStmt, allStmt } from '../../db/typedSql'
+import {
+  prepareRun,
+  prepareGet,
+  prepareAll,
+  prepareStmt,
+  runStmt,
+  allStmt
+} from '../../db/typedSql'
 
 export interface FileIndexRow {
   path: string
@@ -129,14 +136,17 @@ export class FileIndexDb {
 
   /** 批量 upsert（单事务）；FTS 由触发器同步 */
   upsertFiles(rows: FileIndexRow[]): void {
-    const stmt = prepareStmt(this.db, `
+    const stmt = prepareStmt(
+      this.db,
+      `
       INSERT INTO files (path, parent, name, ext, size, mtime, is_dir, skeleton, content)
       VALUES (@path, @parent, @name, @ext, @size, @mtime, @isDir, @skeleton, @content)
       ON CONFLICT(path) DO UPDATE SET
         parent=excluded.parent, name=excluded.name, ext=excluded.ext,
         size=excluded.size, mtime=excluded.mtime, is_dir=excluded.is_dir,
         skeleton=excluded.skeleton, content=excluded.content
-    `)
+    `
+    )
     const tx = this.db.transaction((batch: FileIndexRow[]) => {
       for (const r of batch) {
         runStmt(stmt, {
@@ -169,7 +179,13 @@ export class FileIndexDb {
    * 误删无关目录的索引行（审查 I-2 已实证）；范围扫描更快且无转义问题。
    */
   deleteByPrefix(prefix: string): void {
-    prepareRun(this.db, 'DELETE FROM files WHERE path = ? OR (path > ? AND path < ?)', prefix, prefix, `${prefix}\uffff`)
+    prepareRun(
+      this.db,
+      'DELETE FROM files WHERE path = ? OR (path > ? AND path < ?)',
+      prefix,
+      prefix,
+      `${prefix}\uffff`
+    )
   }
 
   markDir(path: string, mtimeEpoch: number): void {
@@ -195,7 +211,11 @@ export class FileIndexDb {
   }
 
   getDirEpoch(path: string): number | null {
-    const row = prepareGet<{ mtime_epoch: number }>(this.db, 'SELECT mtime_epoch FROM dirs WHERE path = ?', path)
+    const row = prepareGet<{ mtime_epoch: number }>(
+      this.db,
+      'SELECT mtime_epoch FROM dirs WHERE path = ?',
+      path
+    )
     return row ? row.mtime_epoch : null
   }
 
@@ -211,7 +231,13 @@ export class FileIndexDb {
   /** 清掉某目录自身及其子孙的水位行（目录消失时连同索引行一起清，防水位表只增不减） */
   deleteDirsAt(path: string): void {
     const prefix = `${path}/`
-    prepareRun(this.db, 'DELETE FROM dirs WHERE path = ? OR (path > ? AND path < ?)', path, prefix, `${prefix}\uffff`)
+    prepareRun(
+      this.db,
+      'DELETE FROM dirs WHERE path = ? OR (path > ? AND path < ?)',
+      path,
+      prefix,
+      `${prefix}\uffff`
+    )
   }
 
   /** 目录子项（增量 diff 用：DB 视角的现存子文件） */
@@ -239,7 +265,10 @@ export class FileIndexDb {
       LIMIT ${Math.max(1, Math.min(200, Math.floor(opts.limit)))}
     `
     // is_dir 运行时是 0/1：沿用原直调 + cast 的既有口径（消费方按真值判断）
-    return allStmt<FileIndexHit>(prepareStmt(this.db, sql.replace('@match', '?')), `${columns} : (${match})`)
+    return allStmt<FileIndexHit>(
+      prepareStmt(this.db, sql.replace('@match', '?')),
+      `${columns} : (${match})`
+    )
   }
 
   count(): number {

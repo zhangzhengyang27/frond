@@ -49,7 +49,7 @@ function harness(
         fired = v
       }
     }
-  } as never
+  }
 }
 
 /** 2026-09-20 09:30:00 本地时间 */

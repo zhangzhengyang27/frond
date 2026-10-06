@@ -9,12 +9,13 @@
  */
 
 import { app, BrowserWindow } from 'electron'
+import { buildAndSetAppMenu, registerMenuAutoRefresh, destroyMenuAutoRefresh } from './appMenu'
 import {
-  buildAndSetAppMenu,
-  registerMenuAutoRefresh,
-  destroyMenuAutoRefresh
-} from './appMenu'
-import { getPomodoroStatus, getPomodoroControl, getPomodoroProjects, getPomodoroFocusedProjectId } from './tray'
+  getPomodoroStatus,
+  getPomodoroControl,
+  getPomodoroProjects,
+  getPomodoroFocusedProjectId
+} from './tray'
 import { isMac } from '../utils/platform'
 
 /** 清理 Dock 菜单刷新（幂等；共享 tray 侧的订阅池） */
@@ -26,9 +27,8 @@ export function setupDockMenu(getMainWindow: () => BrowserWindow | null): void {
   if (!isMac() || !app.dock) return
 
   const ctx = {
-    getMainWindow
+    getMainWindow,
     // dockMenu 没「窗口已关」场景，recreateWindow 不传
-    ,
     get pomodoroStatus(): { primary: string; secondary: string } {
       return getPomodoroStatus()
     },

@@ -49,7 +49,7 @@ export function mcpToolToEntry(c: McpToolCommand): CommandEntry {
 /** 读一次工具清单（主进程只读缓存，不 spawn）；通道不存在或读失败就一行都不出 */
 export async function loadMcpToolEntries(): Promise<CommandEntry[]> {
   try {
-    const list = (await window.api.ai.mcpToolCommands()) as McpToolCommand[]
+    const list = await window.api.ai.mcpToolCommands()
     return list.map(mcpToolToEntry)
   } catch {
     // 主进程没这条通道（旧构建）或读缓存失败：MCP 那一行都不出，别的源照常

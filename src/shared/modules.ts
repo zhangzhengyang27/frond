@@ -66,7 +66,7 @@ export const MODULES: ModuleMeta[] = [
     group: 'focus',
     category: 'tool',
     shortcut: '3'
-  },
+  }
 ]
 
 /** 按 id 找模块（主进程 dockMenu/tray 也用） */

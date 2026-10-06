@@ -66,9 +66,7 @@ const pick = (opt: Option): void => {
   if (!props.disabled && !opt.disabled) emit('update:modelValue', opt.value)
 }
 
-const boxCls = computed(() =>
-  props.variant === 'pill' ? 'flex flex-wrap gap-1.5' : 'flex gap-2'
-)
+const boxCls = computed(() => (props.variant === 'pill' ? 'flex flex-wrap gap-1.5' : 'flex gap-2'))
 
 const pillCls = (opt: Option): string => {
   const active = opt.value === props.modelValue

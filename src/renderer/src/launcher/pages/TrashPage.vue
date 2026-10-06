@@ -87,7 +87,7 @@ function formatDate(timestamp?: number): string {
 async function loadItems(): Promise<void> {
   loading.value = true
   try {
-    items.value = (await window.api.trash.list()) as TrashItem[]
+    items.value = await window.api.trash.list()
   } catch (err) {
     console.warn('TrashPage: list failed', err)
   } finally {

@@ -29,9 +29,7 @@ function handleListInvalidate(): void {
 </script>
 
 <template>
-  <div
-    class="snippets-main grid h-screen grid-cols-[210px_240px_1fr] overflow-hidden bg-surface-0"
-  >
+  <div class="snippets-main grid h-screen grid-cols-[210px_240px_1fr] overflow-hidden bg-surface-0">
     <Sidebar
       v-model:selected-folder-id="selectedFolderId"
       v-model:library-filter="libraryFilter"

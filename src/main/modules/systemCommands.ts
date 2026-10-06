@@ -89,7 +89,9 @@ export function getSystemCommandIds(): string[] {
   return [...new Set([...legacy, ...B3_COMMAND_IDS])]
 }
 
-export async function runSystemCommand(id: string): Promise<{ ok: boolean; error?: string | undefined }> {
+export async function runSystemCommand(
+  id: string
+): Promise<{ ok: boolean; error?: string | undefined }> {
   // B3 新命令优先命中；未命中回落到 M2.1 静态命令表
   const b3 = await runB3SystemCommand(id)
   if (b3) return b3
@@ -826,7 +828,9 @@ export function getWindowActionIds(): string[] {
   return WINDOW_ACTIONS.map((a) => `window.${a}`)
 }
 
-export async function runWindowAction(action: WinAction): Promise<{ ok: boolean; error?: string | undefined }> {
+export async function runWindowAction(
+  action: WinAction
+): Promise<{ ok: boolean; error?: string | undefined }> {
   let result: { ok: boolean; error?: string | undefined }
   if (!isMac()) {
     const r = await run(winWindowCommand(action), 8000)
@@ -868,9 +872,9 @@ export function registerSystemCommandIpc(): void {
         const label = id.startsWith('window.') ? '窗口操作' : '系统命令'
         new Notification({ title: `${label}失败`, body: result.error }).show()
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 通知失败静默）
-      log.debug('system-commands', '* 通知失败静默', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 通知失败静默）
+        log.debug('system-commands', '* 通知失败静默', e)
+      }
     }
     return result
   })

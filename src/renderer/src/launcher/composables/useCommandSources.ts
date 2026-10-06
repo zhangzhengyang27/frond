@@ -222,7 +222,7 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
     schedulePinyinEnrich(all)
     // P2-8：合并用户自定义别名（key = 命令 key）
     try {
-      const userAliases = (await window.api.alias.getAll()) as Record<string, string[]>
+      const userAliases = await window.api.alias.getAll()
       for (const entry of all) {
         const custom = userAliases[entry.key]
         if (custom && custom.length > 0) {

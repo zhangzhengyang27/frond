@@ -638,9 +638,7 @@ async function copyCode(): Promise<void> {
     // B56-1：先落盘再复制；编辑器可见时优先取实时值（防抖窗口内的最新输入）
     await flushPendingContentWrites(props.snippet.id)
     const live =
-      editor && isEditorVisible.value
-        ? editor.getValue()
-        : selectedSnippetContent.value.value
+      editor && isEditorVisible.value ? editor.getValue() : selectedSnippetContent.value.value
     await navigator.clipboard.writeText(live || selectedSnippetContent.value.value)
   } catch (error) {
     console.error('复制失败:', error)
@@ -667,7 +665,7 @@ async function toggleFavorite(): Promise<void> {
 async function updateName(name: string): Promise<void> {
   if (!props.snippet) return
   // B56-5：值未变不写库——否则 blur 一发 IPC、updatedAt 跳顶、选中弹回
-  if ((name) === props.snippet.name) return
+  if (name === props.snippet.name) return
   const updated = await window.api.snippet.updateSnippet(props.snippet.id, { name })
   if (updated) {
     emit('update:snippet', updated)
@@ -678,7 +676,7 @@ async function updateName(name: string): Promise<void> {
 async function updateDescription(description: string): Promise<void> {
   if (!props.snippet) return
   // B56-5：值未变不写库——否则 blur 一发 IPC、updatedAt 跳顶、选中弹回
-  if ((description) === props.snippet.description) return
+  if (description === props.snippet.description) return
   const updated = await window.api.snippet.updateSnippet(props.snippet.id, { description })
   if (updated) {
     emit('update:snippet', updated)
@@ -770,8 +768,9 @@ async function createTagAndAttach(name: string): Promise<void> {
   if (!props.snippet) return
   try {
     const existing = await window.api.tag.getTags()
-    const tag = existing.find((t) => t.name.toLowerCase() === name.toLowerCase())
-      ?? (await window.api.tag.addTag(name))
+    const tag =
+      existing.find((t) => t.name.toLowerCase() === name.toLowerCase()) ??
+      (await window.api.tag.addTag(name))
     await updateTags([...(props.snippet.tagIds ?? []), tag.id])
     allTags.value = await window.api.tag.getTags()
   } catch (error) {
@@ -1058,7 +1057,7 @@ async function formatCode(): Promise<void> {
 
   if (!value.trim()) return
 
-  let parser = lang as string
+  let parser = lang
 
   // 映射语言到 Prettier parser
   const parserMap: Record<string, string> = {
@@ -1086,7 +1085,7 @@ async function formatCode(): Promise<void> {
           label: selectedSnippetContent.value.label,
           value: formatted,
           language: selectedSnippetContent.value.language
-        } as Partial<SnippetContent>)
+        })
       }
     }
   } catch (error) {
@@ -1252,7 +1251,7 @@ onMounted(() => {
             <code class="font-mono">{datetime}</code>
             <code class="font-mono">{clipboard}</code>
             <code class="font-mono">{cursor}</code>（展开后光标落此）、
-            <code v-pre class="font-mono">{{参数名}}</code>
+            <code v-pre class="font-mono">{{ 参数名 }}</code>
             展开时询问；需在启动器管理页开启
           </span>
         </div>
@@ -1380,7 +1379,10 @@ onMounted(() => {
           v-else-if="isShowMarkdown && hasMarkdownContent"
           class="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <MarkdownPreview :content="selectedSnippetContent ?? null" @close="isShowMarkdown = false" />
+          <MarkdownPreview
+            :content="selectedSnippetContent ?? null"
+            @close="isShowMarkdown = false"
+          />
         </div>
 
         <!-- JSON 可视化 -->

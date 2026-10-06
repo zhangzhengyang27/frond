@@ -57,11 +57,16 @@ const state = {
   pairs: [] as Array<{ from: string; to: string }>
 }
 
-function convertWith(amount: number, from: string, to: string, rates: Record<string, number>): number | null {
+function convertWith(
+  amount: number,
+  from: string,
+  to: string,
+  rates: Record<string, number>
+): number | null {
   const rf = rates[from]
   const rt = rates[to]
   if (!rf || !rt) return null
-  return Math.round(((amount / rf) * rt) * 10000) / 10000
+  return Math.round((amount / rf) * rt * 10000) / 10000
 }
 
 function fmt(n: number): string {
@@ -131,7 +136,8 @@ async function loadPairs(): Promise<void> {
   const db = bridge().db
   if (!db || !db.get) return
   const stored = await db.get('pairs')
-  const list = stored && stored.data && (stored.data as { list?: Array<{ from: string; to: string }> }).list
+  const list =
+    stored && stored.data && (stored.data as { list?: Array<{ from: string; to: string }> }).list
   state.pairs = Array.isArray(list) ? list : []
 }
 
@@ -166,8 +172,16 @@ function RateList(): ReactElement {
     <List>
       <List.Item
         key="main"
-        title={main !== null ? `${fmt(state.amount)} ${state.from} = ${fmt(main)} ${state.to}` : `${state.from} → ${state.to} 不支持`}
-        subtitle={main !== null ? `1 ${state.from} = ${fmt(rates[state.to])} ${state.to} · 数据 ${cachedTag}` : '该货币对暂无汇率'}
+        title={
+          main !== null
+            ? `${fmt(state.amount)} ${state.from} = ${fmt(main)} ${state.to}`
+            : `${state.from} → ${state.to} 不支持`
+        }
+        subtitle={
+          main !== null
+            ? `1 ${state.from} = ${fmt(rates[state.to])} ${state.to} · 数据 ${cachedTag}`
+            : '该货币对暂无汇率'
+        }
         icon="exchange-line"
         accessories={[state.offline ? '离线' : '实时']}
         detail={`# ${state.from} → ${state.to}\n\n- 金额：${fmt(state.amount)}\n- 汇率：1 ${state.from} = ${fmt(rates[state.to] || NaN)} ${state.to}\n- 数据源：open.er-api.com（每 10 分钟更新）`}
@@ -177,7 +191,9 @@ function RateList(): ReactElement {
           <Action
             title="复制结果"
             onAction={() =>
-              void copyToClipboard(main !== null ? `${state.amount} ${state.from} = ${main} ${state.to}` : '')
+              void copyToClipboard(
+                main !== null ? `${state.amount} ${state.from} = ${main} ${state.to}` : ''
+              )
                 .then(() => showHud('已复制'))
                 .catch(() => showHud('复制失败'))
             }
@@ -211,7 +227,11 @@ function RateList(): ReactElement {
             return (
               <List.Item
                 key={'p' + i}
-                title={v !== null ? `${fmt(state.amount)} ${p.from} = ${fmt(v)} ${p.to}` : `${p.from} → ${p.to}`}
+                title={
+                  v !== null
+                    ? `${fmt(state.amount)} ${p.from} = ${fmt(v)} ${p.to}`
+                    : `${p.from} → ${p.to}`
+                }
                 subtitle={p.from + ' → ' + p.to}
                 icon="bookmark-line"
               >
@@ -246,7 +266,11 @@ function RateList(): ReactElement {
             return (
               <List.Item
                 key={c}
-                title={v !== null ? `${fmt(state.amount)} ${state.from} = ${fmt(v)} ${c}` : `${c} 暂无汇率`}
+                title={
+                  v !== null
+                    ? `${fmt(state.amount)} ${state.from} = ${fmt(v)} ${c}`
+                    : `${c} 暂无汇率`
+                }
                 subtitle={currencyName(c)}
                 icon="money-cny-box-line"
                 accessories={[c]}

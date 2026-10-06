@@ -408,9 +408,7 @@ export class PomodoroRepository {
     // B60-25a：优先用调用方给的真实开始时刻（此前 started_at=ended_at=完成时刻，
     // 详情/导出的「开始时间」全靠 completedAt-duration 反推，skip 场景误差整段）
     const startedAt =
-      typeof record.startedAt === 'number' &&
-      record.startedAt > 0 &&
-      record.startedAt < ts
+      typeof record.startedAt === 'number' && record.startedAt > 0 && record.startedAt < ts
         ? Math.floor(record.startedAt)
         : ts
     const tx = this.db.transaction(() => {
@@ -578,7 +576,10 @@ export class PomodoroRepository {
         .get(SETTINGS_KEY) as { value: string } | undefined
       if (raw) {
         try {
-          return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw.value) as Partial<typeof DEFAULT_SETTINGS>) }
+          return {
+            ...DEFAULT_SETTINGS,
+            ...(JSON.parse(raw.value) as Partial<typeof DEFAULT_SETTINGS>)
+          }
         } catch {
           return { ...DEFAULT_SETTINGS }
         }

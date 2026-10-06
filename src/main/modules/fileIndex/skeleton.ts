@@ -20,7 +20,7 @@ async function loadPinyin(): Promise<PinyinFn> {
           toneType: 'none',
           type: 'array',
           ...(opts ?? {})
-        }) as string[]
+        })
     })
   }
   return pinyinPromise

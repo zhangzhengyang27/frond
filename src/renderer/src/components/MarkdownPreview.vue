@@ -82,7 +82,7 @@ function renderCodeBlockEditors(): void {
     const container = document.getElementById(blockData.id)
 
     if (container) {
-      const editor = CodeMirror(container as HTMLElement, {
+      const editor = CodeMirror(container, {
         value: blockData.value,
         mode: blockData.language || 'plaintext',
         theme: isDark.value ? 'oceanic-next' : 'neo',

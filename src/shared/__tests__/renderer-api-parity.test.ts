@@ -50,7 +50,12 @@ function extractExposedApiSurface(): Set<string> {
   }
 
   // 解析器哨兵：preload 结构大改导致漏抓时先在这里失败
-  for (const sentinel of ['pomodoro.projects.getAll', 'snippet.getSnippets', 'clipHist.getEnabled', 'system.info']) {
+  for (const sentinel of [
+    'pomodoro.projects.getAll',
+    'snippet.getSnippets',
+    'clipHist.getEnabled',
+    'system.info'
+  ]) {
     expect(exposed.has(sentinel), `API 解析异常：未抓到 ${sentinel}`).toBe(true)
   }
   return exposed

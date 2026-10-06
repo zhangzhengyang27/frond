@@ -47,7 +47,9 @@ describe('sanitizePluginListIcon', () => {
     warnSpy.mockRestore()
   })
   it('dataUrl 前缀错 / 非字符串 / value 缺失 → 整体 undefined', () => {
-    expect(sanitizePluginListIcon({ value: 'a', dataUrl: 'http://x/y.png' })).toEqual({ value: 'a' })
+    expect(sanitizePluginListIcon({ value: 'a', dataUrl: 'http://x/y.png' })).toEqual({
+      value: 'a'
+    })
     expect(sanitizePluginListIcon({ dataUrl: 'data:image/png;base64,AA' })).toBeUndefined()
     expect(sanitizePluginListIcon(42)).toBeUndefined()
   })

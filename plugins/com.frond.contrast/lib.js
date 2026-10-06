@@ -12,18 +12,28 @@
     var str = String(text).trim().toLowerCase()
     var m = /^#([0-9a-f]{3})$/.exec(str)
     if (m) {
-      return { r: parseInt(m[1][0] + m[1][0], 16), g: parseInt(m[1][1] + m[1][1], 16), b: parseInt(m[1][2] + m[1][2], 16) }
+      return {
+        r: parseInt(m[1][0] + m[1][0], 16),
+        g: parseInt(m[1][1] + m[1][1], 16),
+        b: parseInt(m[1][2] + m[1][2], 16)
+      }
     }
     m = /^#([0-9a-f]{6})$/.exec(str)
     if (m) {
-      return { r: parseInt(m[1].slice(0, 2), 16), g: parseInt(m[1].slice(2, 4), 16), b: parseInt(m[1].slice(4, 6), 16) }
+      return {
+        r: parseInt(m[1].slice(0, 2), 16),
+        g: parseInt(m[1].slice(2, 4), 16),
+        b: parseInt(m[1].slice(4, 6), 16)
+      }
     }
     return null
   }
 
   /** 'fg/bg' 或 'fg bg' → { fg, bg }；任一非法 → null */
   function parsePair(text) {
-    var parts = String(text).trim().split(/[/\s]+/)
+    var parts = String(text)
+      .trim()
+      .split(/[/\s]+/)
     if (parts.length !== 2) return null
     var fg = parseHex(parts[0])
     var bg = parseHex(parts[1])
@@ -105,5 +115,12 @@
     ]
   }
 
-  return { parsePair: parsePair, parseHex: parseHex, luminance: luminance, ratio: ratio, grade: grade, convert: convert }
+  return {
+    parsePair: parsePair,
+    parseHex: parseHex,
+    luminance: luminance,
+    ratio: ratio,
+    grade: grade,
+    convert: convert
+  }
 })

@@ -34,9 +34,9 @@ export function registerCalendarIpc(): void {
         const { Notification } = await import('electron')
         new Notification({ title: '创建日程失败', body: result.error }).show()
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 通知失败静默）
-      log.debug('calendar', '* 通知失败静默', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 通知失败静默）
+        log.debug('calendar', '* 通知失败静默', e)
+      }
     }
     return result
   })

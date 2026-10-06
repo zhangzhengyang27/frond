@@ -7,7 +7,9 @@ describe('hash lib', () => {
     expect(md5('')).toBe('d41d8cd98f00b204e9800998ecf8427e')
   })
   it('sha 已知向量（async）', async () => {
-    expect(await sha('sha256', 'abc')).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
+    expect(await sha('sha256', 'abc')).toBe(
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
+    )
     expect(await sha('sha1', 'abc')).toBe('a9993e364706816aba3e25717850c26c9cd0d89d')
   })
   it('convert 五算法并列（async）', async () => {

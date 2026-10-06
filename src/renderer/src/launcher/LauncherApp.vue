@@ -303,7 +303,6 @@ import { isReservedCombo, prettyKey, resolveModifierAction } from './composables
 import { DetailToken, detailKind } from './composables/detailLogic'
 import type { CommandDetail } from '@shared/commandRegistry'
 import type { PluginListItem, PluginFormNode } from '@shared/plugin-protocol'
-import type { McpToolArg } from '@shared/mcp'
 
 /** React 表单视图（#11 M2）：主进程归一后的表单（fields + submit 元数据） */
 type PluginForm = Omit<PluginFormNode, '$t' | 'submitId'> & { submitId: string }
@@ -503,7 +502,7 @@ async function refreshSuggestions(): Promise<void> {
   }
   // P2-9：最近搜索历史（最多 5 条，排在固定动作之后）
   try {
-    const history = (await window.api.searchHistory.get()) as string[]
+    const history = await window.api.searchHistory.get()
     historyCache.value = history // B1：↑ 恢复搜索历史用（最新在前）
     for (const q of history.slice(0, 5)) {
       const key = `history:${q}`
@@ -556,7 +555,7 @@ async function loadSelectedDetail(): Promise<void> {
   try {
     const got = await (detail as () => Promise<CommandDetail | null> | CommandDetail | null)()
     if (!detailTokens.isCurrent(token)) return // 用户已换行，旧响应作废
-    currentDetail.value = (got as CommandDetail) ?? null
+    currentDetail.value = got ?? null
   } catch {
     currentDetail.value = null
   } finally {
@@ -1379,7 +1378,8 @@ onUnmounted(() => {
  * 那是另一格 Raycast 对齐拍板过的东西，不能被这个开关悄悄推翻，所以做成可选项。 */
 const { compactModePref, start: startCapsuleAppearance } = useCapsuleAppearance({
   barOnly: () => barOnlyMode.value,
-  barHeight: () => (searchBarRef.value as unknown as { barHeight(): number } | null)?.barHeight() ?? 0
+  barHeight: () =>
+    (searchBarRef.value as unknown as { barHeight(): number } | null)?.barHeight() ?? 0
 })
 const compactIdle = computed(
   () =>
@@ -1488,7 +1488,7 @@ onMounted(() => {
   // 按它给的清单现场重建成一条命令，再走与胶囊回车完全同一条路
   unsubscribers.push(
     window.api.launcher.onRunMcpTool((p) => {
-      const specs = (p.argSpecs ?? []) as McpToolArg[]
+      const specs = p.argSpecs ?? []
       const entry: CommandEntry = {
         key: `mcp:${p.serverId}:${p.tool}`,
         icon: 'tools',
@@ -1513,10 +1513,10 @@ onMounted(() => {
   void window.api.launcher.getPluginState().then((state) => {
     if (state && state.open) {
       pluginState.value = state
-      declaredList.value = (state.declaredList as PluginListItem[]) ?? null
+      declaredList.value = state.declaredList ?? null
       declaredLoading.value = state.declaredLoading === true
       declaredEmptyMessage.value = state.declaredEmptyMessage ?? null
-      pluginForm.value = (state.declaredForm as PluginForm) ?? null
+      pluginForm.value = state.declaredForm ?? null
       searchBarRef.value?.focus()
     }
   })
@@ -1526,10 +1526,10 @@ onMounted(() => {
       const wasTakenOver = tookSearchBox(pluginState.value)
       pluginState.value = state
       // 声明式列表随插件状态同步（关闭即清空）；表单视图同步（#11 M2）
-      declaredList.value = state.open ? ((state.declaredList as PluginListItem[]) ?? null) : null
+      declaredList.value = state.open ? (state.declaredList ?? null) : null
       declaredLoading.value = state.open && state.declaredLoading === true
       declaredEmptyMessage.value = state.open ? (state.declaredEmptyMessage ?? null) : null
-      pluginForm.value = state.open ? ((state.declaredForm as PluginForm) ?? null) : null
+      pluginForm.value = state.open ? (state.declaredForm ?? null) : null
       if (state.open && !wasOpen) {
         // 进入插件**且它真接管了胶囊**才清搜索词：Action 命令（headless）跑完就走，
         // 清词等于把用户刚搜出来的那一屏抹掉——Raycast 的 action 不碰搜索框

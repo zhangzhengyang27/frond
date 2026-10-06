@@ -66,9 +66,9 @@ export class PreferencesDataStore {
       try {
         return { ...EDITOR_DEFAULTS, ...(JSON.parse(raw) as Partial<EditorSettings>) }
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：fall through）
-      log.debug('preferences-data-store', 'fall through', e)
-    }
+        // 批 7b 空 catch 清账（原注释：fall through）
+        log.debug('preferences-data-store', 'fall through', e)
+      }
     }
     return EDITOR_DEFAULTS
   }
@@ -91,9 +91,9 @@ export class PreferencesDataStore {
         const parsed = JSON.parse(raw) as 'light' | 'dark' | 'auto'
         if (THEME_VALUES.includes(parsed)) return parsed
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：fall through）
-      log.debug('preferences-data-store', 'fall through', e)
-    }
+        // 批 7b 空 catch 清账（原注释：fall through）
+        log.debug('preferences-data-store', 'fall through', e)
+      }
     }
     // 默认跟随系统（v4 产品决策）：首次启动读取系统外观，设置页可手动覆盖并持久化。
     // 渲染进程 useTheme 的初值与此保持一致。

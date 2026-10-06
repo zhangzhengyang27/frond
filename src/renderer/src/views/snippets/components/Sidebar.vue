@@ -166,8 +166,6 @@ function pickTag(id: string): void {
   }
 }
 
-
-
 async function removeFolder(folder: FolderLike): Promise<void> {
   const ok = await confirm({
     title: `删除文件夹「${folder.name}」？`,

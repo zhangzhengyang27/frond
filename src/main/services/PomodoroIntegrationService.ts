@@ -170,9 +170,9 @@ export class PomodoroIntegrationService {
       try {
         l(snap)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('pomodoro-integration-service', '* noop', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* noop）
+        log.debug('pomodoro-integration-service', '* noop', e)
+      }
     }
   }
 
@@ -203,9 +203,9 @@ export class PomodoroIntegrationService {
       try {
         l(count)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('pomodoro-integration-service', '* noop', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* noop）
+        log.debug('pomodoro-integration-service', '* noop', e)
+      }
     })
   }
 
@@ -214,9 +214,9 @@ export class PomodoroIntegrationService {
       try {
         l(title)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('pomodoro-integration-service', '* noop', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* noop）
+        log.debug('pomodoro-integration-service', '* noop', e)
+      }
     })
   }
 
@@ -325,9 +325,9 @@ export class PomodoroIntegrationService {
           try {
             ttl.close()
           } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('pomodoro-integration-service', '* noop', e)
-    }
+            // 批 7b 空 catch 清账（原注释：* noop）
+            log.debug('pomodoro-integration-service', '* noop', e)
+          }
         }, 10_000)
       }
       return

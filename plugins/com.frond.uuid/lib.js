@@ -30,7 +30,17 @@
     b[6] = (b[6] & 0x0f) | 0x40
     b[8] = (b[8] & 0x3f) | 0x80
     var h = hex(b)
-    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20)
+    return (
+      h.slice(0, 8) +
+      '-' +
+      h.slice(8, 12) +
+      '-' +
+      h.slice(12, 16) +
+      '-' +
+      h.slice(16, 20) +
+      '-' +
+      h.slice(20)
+    )
   }
 
   /** RFC 9562 v7：48bit ms 时间戳大端 + 版本 7 + 变体 10xx + 31bit 随机 */
@@ -45,7 +55,17 @@
     b[6] = (b[6] & 0x0f) | 0x70
     b[8] = (b[8] & 0x3f) | 0x80
     var h = hex(b)
-    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20)
+    return (
+      h.slice(0, 8) +
+      '-' +
+      h.slice(8, 12) +
+      '-' +
+      h.slice(12, 16) +
+      '-' +
+      h.slice(16, 20) +
+      '-' +
+      h.slice(20)
+    )
   }
 
   /** fmt：'std' | 'upper' | 'compact'（无连字符） | 'urn' */

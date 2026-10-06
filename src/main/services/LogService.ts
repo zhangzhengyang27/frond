@@ -148,7 +148,14 @@ export class LogService {
     try {
       // B53-11：语句缓存 + 微批——info 攒满 LOG_BATCH_SIZE 一个事务落库；
       // warn/error 立即 flush（诊断价值最高、不接受批窗口丢失，顺带带走积压）
-      this.pending.push({ ts: entry.ts, level, scope, msg, stack: stack ?? null, meta: meta ?? null })
+      this.pending.push({
+        ts: entry.ts,
+        level,
+        scope,
+        msg,
+        stack: stack ?? null,
+        meta: meta ?? null
+      })
       if (level !== 'info' || this.pending.length >= LOG_BATCH_SIZE) this.flush()
     } catch (e) {
       // 批 7b 空 catch 清账：原注释「* 库未就绪 / 表还没迁移：内存与 console 已经留下了这条」

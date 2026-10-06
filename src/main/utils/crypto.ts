@@ -55,9 +55,9 @@ function getKey(): Buffer {
   try {
     chmodSync(keyPath, 0o600)
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 权限设置失败不影响功能）
-      log.debug('crypto', '* 权限设置失败不影响功能', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* 权限设置失败不影响功能）
+    log.debug('crypto', '* 权限设置失败不影响功能', e)
+  }
   cachedKey = newKey
   return newKey
 }
@@ -98,8 +98,8 @@ export function decryptText(ciphertext: string): string {
     const raw = Buffer.from(ciphertext.slice(ENC_PREFIX.length), 'base64')
     if (raw.length < IV_LEN + TAG_LEN) {
       // 底层工具不经 LogService（会构成 crypto→LogService→database→migrations→crypto 环，批 7a）；
-    // console 由主进程日志管道镜像
-    console.error('[crypto] decrypt failed: payload too short')
+      // console 由主进程日志管道镜像
+      console.error('[crypto] decrypt failed: payload too short')
       return ''
     }
     const iv = raw.subarray(0, IV_LEN)

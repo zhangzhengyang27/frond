@@ -237,17 +237,17 @@ export class NotesRepository {
   }
 
   getStatistics(): { total: number; trash: number; pinned: number } {
-    const total = (
-      this.db.prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0`).get()!
-    ).n
-    const trash = (
-      this.db.prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 1`).get()!
-    ).n
-    const pinned = (
-      this.db
-        .prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0 AND is_pinned = 1`)
-        .get()!
-    ).n
+    const total = this.db
+      .prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0`)
+      .get()!.n
+    const trash = this.db
+      .prepare<{ n: number }>(`SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 1`)
+      .get()!.n
+    const pinned = this.db
+      .prepare<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM notes WHERE is_deleted = 0 AND is_pinned = 1`
+      )
+      .get()!.n
     return { total, trash, pinned }
   }
 
@@ -264,9 +264,9 @@ export class NotesRepository {
     const ts = now()
     const id = uuidv4()
     // position = 当前最大 + 1
-    const maxPos = (
-      this.db.prepare<{ p: number }>(`SELECT COALESCE(MAX(position), -1) AS p FROM note_folders`).get()!
-    ).p
+    const maxPos = this.db
+      .prepare<{ p: number }>(`SELECT COALESCE(MAX(position), -1) AS p FROM note_folders`)
+      .get()!.p
     this.db
       .prepare(
         `INSERT INTO note_folders (id, name, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`

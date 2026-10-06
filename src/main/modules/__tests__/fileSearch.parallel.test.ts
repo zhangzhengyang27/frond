@@ -60,7 +60,8 @@ beforeEach(() => {
   registerFileSearchIpc()
 })
 
-const invoke = (req: unknown): Promise<unknown> => handlers.get('find:files')!({}, req) as Promise<unknown>
+const invoke = (req: unknown): Promise<unknown> =>
+  handlers.get('find:files')!({}, req) as Promise<unknown>
 
 describe('find:files 并行回退（B53-4）', () => {
   it('索引查询在飞时系统检索已起跑（并行，非串行）', async () => {

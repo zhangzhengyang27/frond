@@ -10671,7 +10671,9 @@
               Action,
               {
                 title: "\u590D\u5236\u7ED3\u679C",
-                onAction: () => void copyToClipboard(main2 !== null ? `${state.amount} ${state.from} = ${main2} ${state.to}` : "").then(() => showHud("\u5DF2\u590D\u5236")).catch(() => showHud("\u590D\u5236\u5931\u8D25"))
+                onAction: () => void copyToClipboard(
+                  main2 !== null ? `${state.amount} ${state.from} = ${main2} ${state.to}` : ""
+                ).then(() => showHud("\u5DF2\u590D\u5236")).catch(() => showHud("\u590D\u5236\u5931\u8D25"))
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(

@@ -241,10 +241,22 @@ export class ClipboardHistoryService {
   search(
     query: string,
     limit = 3
-  ): Array<{ id: string; kind: ClipboardItemKind; text?: string; firstPath?: string; keywords?: string[] }> {
+  ): Array<{
+    id: string
+    kind: ClipboardItemKind
+    text?: string
+    firstPath?: string
+    keywords?: string[]
+  }> {
     const q = query.toLowerCase()
     if (!q) return []
-    const out: Array<{ id: string; kind: ClipboardItemKind; text?: string; firstPath?: string; keywords?: string[] }> = []
+    const out: Array<{
+      id: string
+      kind: ClipboardItemKind
+      text?: string
+      firstPath?: string
+      keywords?: string[]
+    }> = []
     for (const item of this.list()) {
       const keywordHit = item.keywords?.some((k) => k.toLowerCase().includes(q)) ?? false
       if (item.kind === 'text' || item.kind === 'link') {
@@ -325,9 +337,9 @@ export class ClipboardHistoryService {
       try {
         unlinkSync(item.filePath)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('clipboard-history-service', '* noop', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* noop）
+        log.debug('clipboard-history-service', '* noop', e)
+      }
     }
     this.persist()
     return true
@@ -339,9 +351,9 @@ export class ClipboardHistoryService {
         try {
           unlinkSync(item.filePath)
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('clipboard-history-service', '* noop', e)
-    }
+          // 批 7b 空 catch 清账（原注释：* noop）
+          log.debug('clipboard-history-service', '* noop', e)
+        }
       }
     }
     this.items = []
@@ -367,7 +379,7 @@ export class ClipboardHistoryService {
   private readFilesFromClipboard(): string[] | null {
     try {
       if (process.platform === 'darwin') {
-        const formats = clipboard.availableFormats() as string[]
+        const formats = clipboard.availableFormats()
         if (!formats.includes('NSFilenamesPboardType')) return null
         const raw = clipboard.read('NSFilenamesPboardType')
         if (!raw) return null
@@ -377,7 +389,7 @@ export class ClipboardHistoryService {
         return paths.length > 0 ? paths : null
       }
       if (process.platform === 'win32') {
-        const formats = clipboard.availableFormats() as string[]
+        const formats = clipboard.availableFormats()
         if (!formats.includes('FileNameW')) return null
         const raw = clipboard.read('FileNameW')
         if (!raw) return null
@@ -440,9 +452,9 @@ export class ClipboardHistoryService {
           try {
             unlinkSync(filePath)
           } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('clipboard-history-service', '* noop', e)
-    }
+            // 批 7b 空 catch 清账（原注释：* noop）
+            log.debug('clipboard-history-service', '* noop', e)
+          }
         }
       }
     } catch (e) {
@@ -524,13 +536,16 @@ export class ClipboardHistoryService {
         return
       }
       // 3) 图片——B41-1：formats 签名变了立即重读；没变则按 IMAGE_RECHECK_MS 节流
-      const formats = clipboard.availableFormats() as string[]
+      const formats = clipboard.availableFormats()
       if (!formats.some((f) => f.startsWith('image'))) {
         this.lastImageFormatsKey = ''
         return
       }
       const formatsKey = formats.join(',')
-      if (formatsKey === this.lastImageFormatsKey && Date.now() - this.lastImageReadAt < IMAGE_RECHECK_MS) {
+      if (
+        formatsKey === this.lastImageFormatsKey &&
+        Date.now() - this.lastImageReadAt < IMAGE_RECHECK_MS
+      ) {
         return
       }
       this.lastImageReadAt = Date.now()
@@ -657,9 +672,9 @@ export class ClipboardHistoryService {
         try {
           await worker.terminate()
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('clipboard-history-service', '* noop', e)
-    }
+          // 批 7b 空 catch 清账（原注释：* noop）
+          log.debug('clipboard-history-service', '* noop', e)
+        }
       }
     }
   }
@@ -706,9 +721,9 @@ export class ClipboardHistoryService {
         try {
           unlinkSync(oldest.filePath)
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('clipboard-history-service', '* noop', e)
-    }
+          // 批 7b 空 catch 清账（原注释：* noop）
+          log.debug('clipboard-history-service', '* noop', e)
+        }
       }
     }
     // 图片文件单独限额（置顶优先保留）；超限条目直接移除——
@@ -720,9 +735,9 @@ export class ClipboardHistoryService {
         try {
           unlinkSync(item.filePath)
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* noop）
-      log.debug('clipboard-history-service', '* noop', e)
-    }
+          // 批 7b 空 catch 清账（原注释：* noop）
+          log.debug('clipboard-history-service', '* noop', e)
+        }
       }
       const idx = this.items.indexOf(item)
       if (idx >= 0) this.items.splice(idx, 1)

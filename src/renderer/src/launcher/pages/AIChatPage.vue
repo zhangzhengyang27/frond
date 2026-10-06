@@ -234,7 +234,7 @@ async function loadSessions(): Promise<void> {
 
 async function loadPresets(): Promise<void> {
   try {
-    presets.value = (await window.api.ai.listPresets()) as Preset[]
+    presets.value = await window.api.ai.listPresets()
   } catch {
     presets.value = []
   }

@@ -44,7 +44,13 @@ describe('URadioGroup', () => {
 
   it('number value 原样发出（不做 string 化）', async () => {
     const w = mount(URadioGroup, {
-      props: { modelValue: 30, options: [{ label: '30', value: 30 }, { label: '60', value: 60 }] }
+      props: {
+        modelValue: 30,
+        options: [
+          { label: '30', value: 30 },
+          { label: '60', value: 60 }
+        ]
+      }
     })
     await w.findAll('input[type=radio]')[1]!.setValue(true)
     expect(w.emitted('update:modelValue')![0]).toEqual([60])

@@ -646,7 +646,11 @@ export function registerLauncherIpc(): void {
     const ctx = getContextBySender(e.sender.id)
     if (!ctx) return false
     if (Notification.isSupported()) {
-      new Notification({ title: ctx.plugin.name, body: String(body ?? '') }).show()
+      // 插件载荷不可信：对象硬 String 会把 '[object Object]' 弹给用户，只认字符串
+      new Notification({
+        title: ctx.plugin.name,
+        body: typeof body === 'string' ? body : ''
+      }).show()
     }
     return true
   })
@@ -668,7 +672,7 @@ export function registerLauncherIpc(): void {
   typedHandle('plugapi:copyText', (e, { text }) => {
     const ctx = getContextBySender(e.sender.id)
     if (!ctx || !hasPluginPermission(ctx.plugin, 'clipboard.write')) return false
-    clipboard.writeText(String(text ?? ''))
+    clipboard.writeText(typeof text === 'string' ? text : '')
     return true
   })
 

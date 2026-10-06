@@ -124,7 +124,7 @@
         </button>
       </div>
     </div>
-      <div v-if="view === 'calendar'" class="reminder-calendar-host">
+    <div v-if="view === 'calendar'" class="reminder-calendar-host">
       <CalendarPage />
     </div>
   </div>
@@ -170,7 +170,8 @@ const quickTime = ref('')
 const customDate = ref('')
 const customTimeHm = ref('')
 const customTime = computed({
-  get: () => (customDate.value && customTimeHm.value ? `${customDate.value}T${customTimeHm.value}` : ''),
+  get: () =>
+    customDate.value && customTimeHm.value ? `${customDate.value}T${customTimeHm.value}` : '',
   set: (v: string) => {
     const m = /^([\d-]+)T([\d:]+)$/.exec(v)
     customDate.value = m?.[1] ?? ''
@@ -197,7 +198,7 @@ async function loadReminders(): Promise<void> {
     const filter: Record<string, unknown> = { isDeleted: false }
     const q = props.query?.trim()
     if (q) filter.search = q
-    reminders.value = (await window.api.reminders.list(filter)) as Reminder[]
+    reminders.value = await window.api.reminders.list(filter)
   } catch (err) {
     console.warn('[Reminder] 加载失败:', err)
   }

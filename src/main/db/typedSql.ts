@@ -13,8 +13,6 @@
  * 语义与 better-sqlite3 完全一致：错误照抛（不吞），不包事务。
  */
 
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument -- 见文件头：better-sqlite3 v13 无类型，裸转换全仓只允许发生在此文件 */
-
 import type Database from 'better-sqlite3'
 
 type AnyStatement = Database.Statement

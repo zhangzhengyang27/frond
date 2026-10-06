@@ -31,7 +31,7 @@ const KNOWN_OVER_1000 = [
   'shared/ipc-contract.ts', // 1567
   'renderer/src/views/pomodoro/index.vue', // 1539
   'renderer/src/views/snippets/components/Editor.vue', // 1515
-  'renderer/src/views/settings/LauncherManagePanel.vue', // 1395
+  'renderer/src/views/settings/LauncherManagePanel.vue' // 1395
 ]
 
 /** 体量哨兵基线：任何文件不得超过此行数（= 当前最大者）。

@@ -79,9 +79,9 @@ async function getCpuUsage(): Promise<number> {
       return Math.round((user + sys) * 10) / 10
     }
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* fallback 到 os.cpus()）
-      log.debug('system-info-service', '* fallback 到 os.cpus()', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* fallback 到 os.cpus()）
+    log.debug('system-info-service', '* fallback 到 os.cpus()', e)
+  }
   // fallback：os.cpus() 返回累计值，只能给出自启动以来的平均使用率
   const cpus = os.cpus()
   const idle = cpus.reduce((sum, cpu) => sum + cpu.times.idle, 0)

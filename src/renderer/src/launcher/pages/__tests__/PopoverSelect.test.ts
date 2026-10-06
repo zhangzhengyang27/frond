@@ -18,15 +18,18 @@ const mounted: VueWrapper[] = []
 
 function setup(modelValue = ''): VueWrapper {
   const w = mount(PopoverSelect, {
-    props: { modelValue, options: OPTIONS, 'onUpdate:modelValue': (v: string) => w.setProps({ modelValue: v }) },
+    props: {
+      modelValue,
+      options: OPTIONS,
+      'onUpdate:modelValue': (v: string) => w.setProps({ modelValue: v })
+    },
     attachTo: document.body
   })
   mounted.push(w)
   return w
 }
 
-const panel = (): HTMLElement | null =>
-  document.querySelector<HTMLElement>('.popover-select-panel')
+const panel = (): HTMLElement | null => document.querySelector<HTMLElement>('.popover-select-panel')
 
 afterEach(() => {
   while (mounted.length) mounted.pop()?.unmount()

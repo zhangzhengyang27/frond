@@ -89,10 +89,9 @@ test('1. create-new-window 开片段 → 紧凑尺寸独立窗（非 1450×950�
     route: window.location.hash
   }))
   // 视口 ≤ 窗口外框，留出余量断言紧凑（1450×950 的视口必然 >1200×750）
-  expect(
-    bounds.w,
-    `视口宽 ${bounds.w} 超过紧凑窗预期（B59b 尺寸表 1040×660）`
-  ).toBeLessThanOrEqual(1200)
+  expect(bounds.w, `视口宽 ${bounds.w} 超过紧凑窗预期（B59b 尺寸表 1040×660）`).toBeLessThanOrEqual(
+    1200
+  )
   expect(bounds.h, `视口高 ${bounds.h} 超过紧凑窗预期`).toBeLessThanOrEqual(750)
   expect(bounds.route).toContain('/snippets')
   await win.close()

@@ -38,7 +38,7 @@ describe('useUnifiedSearch 清空查询作废在飞轮次（B50）', () => {
       favorites: ref([]),
       suggestions,
       usageBoost: () => 1
-    } as unknown as Parameters<typeof useUnifiedSearch>[0])
+    })
 
     // 键入触发防抖搜索（clipHist.list 挂起）
     scheduleForQuery('abc')

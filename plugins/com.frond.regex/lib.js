@@ -37,12 +37,25 @@
       var guard = 0
       while ((m = re.exec(str)) !== null && guard < 1000) {
         guard++
-        matches.push({ index: m.index, text: m[0], groups: m.slice(1).map(function (g) { return g === undefined ? '' : g }) })
+        matches.push({
+          index: m.index,
+          text: m[0],
+          groups: m.slice(1).map(function (g) {
+            return g === undefined ? '' : g
+          })
+        })
         if (m[0] === '') re.lastIndex++
       }
     } else {
       var m1 = re.exec(str)
-      if (m1) matches.push({ index: m1.index, text: m1[0], groups: m1.slice(1).map(function (g) { return g === undefined ? '' : g }) })
+      if (m1)
+        matches.push({
+          index: m1.index,
+          text: m1[0],
+          groups: m1.slice(1).map(function (g) {
+            return g === undefined ? '' : g
+          })
+        })
     }
     return { matches: matches }
   }
@@ -59,7 +72,15 @@
   function convert(input, pattern, flags) {
     var r = test(pattern, flags, input)
     if (r.error) {
-      return [{ title: '正则非法', subtitle: r.error, icon: 'error-warning-line', matches: [], detail: null }]
+      return [
+        {
+          title: '正则非法',
+          subtitle: r.error,
+          icon: 'error-warning-line',
+          matches: [],
+          detail: null
+        }
+      ]
     }
     var items = []
     for (var i = 0; i < r.matches.length; i++) {
@@ -77,7 +98,13 @@
       })
     }
     if (!r.matches.length) {
-      items.push({ title: '无匹配', subtitle: '正则与输入没有交集', icon: 'regex-line', matches: [], section: '匹配' })
+      items.push({
+        title: '无匹配',
+        subtitle: '正则与输入没有交集',
+        icon: 'regex-line',
+        matches: [],
+        section: '匹配'
+      })
     }
     for (var c = 0; c < COMMON.length; c++) {
       items.push({

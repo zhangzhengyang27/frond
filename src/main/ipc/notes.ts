@@ -21,7 +21,7 @@ export function registerNotesIpc(): void {
     notesRepository.updateNote(id, {
       ...(typeof updates.title === 'string' && { title: updates.title }),
       ...(typeof updates.content === 'string' && { content: updates.content }),
-      ...(updates.folderId !== undefined && { folderId: updates.folderId as string | null }),
+      ...(updates.folderId !== undefined && { folderId: updates.folderId }),
       ...(typeof updates.isPinned === 'boolean' && { isPinned: updates.isPinned })
     })
   )

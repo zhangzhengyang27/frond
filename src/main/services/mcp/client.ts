@@ -78,9 +78,9 @@ function killSession(id: string): void {
   try {
     s.child.kill()
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 已经死了）
-      log.debug('client', '* 已经死了', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* 已经死了）
+    log.debug('client', '* 已经死了', e)
+  }
   sessions.delete(id)
 }
 

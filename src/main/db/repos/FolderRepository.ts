@@ -195,9 +195,7 @@ export class FolderRepository {
       // 先摘除引用（inbox 条件是 folder_id IS NULL，悬挂 id 会让片段从所有视图消失）；
       // B56：归档动作不 bump updated_at
       this.db
-        .prepare(
-          `UPDATE snip_snippets SET folder_id = NULL WHERE folder_id IN (${placeholders})`
-        )
+        .prepare(`UPDATE snip_snippets SET folder_id = NULL WHERE folder_id IN (${placeholders})`)
         .run(...idsToDelete)
       this.db
         .prepare(`DELETE FROM folder_folders WHERE id IN (${placeholders})`)

@@ -109,9 +109,9 @@ export function archiveLegacyJsonInDir(
       `done: ${result.archivedCount} archived, ${result.skippedCount} skipped, ${files.length} files in ${archiveDir}`
     )
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* ignore）
-      log.debug('legacy-archive', '* ignore', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* ignore）
+    log.debug('legacy-archive', '* ignore', e)
+  }
 
   return result
 }

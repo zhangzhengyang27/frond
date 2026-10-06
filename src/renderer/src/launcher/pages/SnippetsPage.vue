@@ -22,7 +22,9 @@
             <div class="snip-title">{{ item.entry.title }}</div>
             <div class="snip-sub">{{ item.entry.subtitle }}</div>
           </div>
-          <span v-if="item.entry.blockCount > 1" class="snip-lang">×{{ item.entry.blockCount }}</span>
+          <span v-if="item.entry.blockCount > 1" class="snip-lang"
+            >×{{ item.entry.blockCount }}</span
+          >
           <span class="snip-lang">{{ item.entry.language }}</span>
         </div>
       </div>
@@ -34,11 +36,7 @@
           <span class="snip-detail-name">{{ selected.title }}</span>
           <span v-if="selected.language" class="snip-lang">{{ selected.language }}</span>
         </div>
-        <div
-          v-if="blockLabels.length > 1"
-          class="snip-blocks"
-          data-testid="snip-blocks"
-        >
+        <div v-if="blockLabels.length > 1" class="snip-blocks" data-testid="snip-blocks">
           <button
             v-for="(label, i) in blockLabels"
             :key="`${selected.id}-block-${i}`"
@@ -105,9 +103,7 @@ const activeBlock = ref(0)
 const detailCache = new Map<string, Snippet>()
 
 const subtitleOf = (entry: SnipIndexEntry): string =>
-  entry.description ||
-  (entry.blockCount > 1 ? `${entry.blockCount} 个代码块` : '') ||
-  '空片段'
+  entry.description || (entry.blockCount > 1 ? `${entry.blockCount} 个代码块` : '') || '空片段'
 
 const selected = computed(() => results.value[selectedIndex.value]?.entry ?? null)
 
@@ -223,10 +219,7 @@ async function pasteSelected(): Promise<void> {
   const item = currentEntry()
   if (!item) return
   try {
-    const res = (await window.api.snippet.pasteToForeground(
-      item.id,
-      activeBlock.value
-    )) as { ok: boolean; error?: string }
+    const res = await window.api.snippet.pasteToForeground(item.id, activeBlock.value)
     if (res?.ok) {
       emit('copied', item.title)
     } else {
@@ -297,10 +290,15 @@ defineExpose({ handleKey })
 
 onMounted(() => {
   void load()
-  window.addEventListener('focus', () => void load())
+  // 具名句柄：匿名函数无法 removeEventListener，进出页面会累积监听器
+  const onFocus = (): void => void load()
+  window.addEventListener('focus', onFocus)
   // B56-5：主窗片段变更广播 → 胶囊页即时失效重拉（替代单纯依赖唤起时机）
   const offChanged = window.api.onSnippetsChanged(() => void load())
-  onUnmounted(() => offChanged())
+  onUnmounted(() => {
+    window.removeEventListener('focus', onFocus)
+    offChanged()
+  })
 })
 
 /** B58 批C：轻路径加载——getIndex 不解密 contents，唤起重拉不再全库 AES */

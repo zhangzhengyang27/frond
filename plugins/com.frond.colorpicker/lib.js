@@ -62,7 +62,9 @@
       else h = (r - g) / d + 4
       h /= 6
     }
-    return 'hsl(' + Math.round(h * 360) + ', ' + Math.round(s * 100) + '%, ' + Math.round(l * 100) + '%)'
+    return (
+      'hsl(' + Math.round(h * 360) + ', ' + Math.round(s * 100) + '%, ' + Math.round(l * 100) + '%)'
+    )
   }
 
   function toHsv(c) {
@@ -78,7 +80,15 @@
       else if (max === g) h = ((b - r) / d + 2) / 6
       else h = ((r - g) / d + 4) / 6
     }
-    return 'hsv(' + Math.round(h * 360) + ', ' + Math.round(max === 0 ? 0 : (d / max) * 100) + '%, ' + Math.round(max * 100) + '%)'
+    return (
+      'hsv(' +
+      Math.round(h * 360) +
+      ', ' +
+      Math.round(max === 0 ? 0 : (d / max) * 100) +
+      '%, ' +
+      Math.round(max * 100) +
+      '%)'
+    )
   }
 
   function toCmyk(c) {
@@ -90,7 +100,17 @@
     var cy = (1 - r - k) / (1 - k)
     var m = (1 - g - k) / (1 - k)
     var y = (1 - b - k) / (1 - k)
-    return 'cmyk(' + Math.round(cy * 100) + '%, ' + Math.round(m * 100) + '%, ' + Math.round(y * 100) + '%, ' + Math.round(k * 100) + '%)'
+    return (
+      'cmyk(' +
+      Math.round(cy * 100) +
+      '%, ' +
+      Math.round(m * 100) +
+      '%, ' +
+      Math.round(y * 100) +
+      '%, ' +
+      Math.round(k * 100) +
+      '%)'
+    )
   }
 
   /** 五格式并列；条目 icon 带 tintColor（spec 3.1 颜色块） */
@@ -135,5 +155,14 @@
     { name: 'white', hex: '#ffffff' }
   ]
 
-  return { parse: parse, toHex: toHex, toRgb: toRgb, toHsl: toHsl, toHsv: toHsv, toCmyk: toCmyk, convert: convert, PALETTES: PALETTES }
+  return {
+    parse: parse,
+    toHex: toHex,
+    toRgb: toRgb,
+    toHsl: toHsl,
+    toHsv: toHsv,
+    toCmyk: toCmyk,
+    convert: convert,
+    PALETTES: PALETTES
+  }
 })

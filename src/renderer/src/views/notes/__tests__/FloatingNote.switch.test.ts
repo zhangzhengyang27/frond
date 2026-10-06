@@ -10,8 +10,26 @@ import FloatingNote from '../FloatingNote.vue'
  */
 
 const notes = [
-  { id: 'n1', title: 'one', content: 'c1', folderId: null, isPinned: false, isDeleted: false, createdAt: 1, updatedAt: 1 },
-  { id: 'n2', title: 'two', content: 'c2', folderId: null, isPinned: false, isDeleted: false, createdAt: 2, updatedAt: 2 }
+  {
+    id: 'n1',
+    title: 'one',
+    content: 'c1',
+    folderId: null,
+    isPinned: false,
+    isDeleted: false,
+    createdAt: 1,
+    updatedAt: 1
+  },
+  {
+    id: 'n2',
+    title: 'two',
+    content: 'c2',
+    folderId: null,
+    isPinned: false,
+    isDeleted: false,
+    createdAt: 2,
+    updatedAt: 2
+  }
 ]
 
 const update = vi.fn(async (_id: string, _patch: Record<string, unknown>) => undefined)

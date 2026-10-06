@@ -280,7 +280,9 @@ describe('B38 墓碑随 bundle 走（正向删除传播）', () => {
   it('对端删了、本地没见过这行 → 合并后本地也删掉（以前学不到删除）', () => {
     const local = makeDb()
     insertNote(local, 'n1', '该被删的', 10)
-    local.prepare('INSERT INTO sync_state (tbl,row_key,rev,deleted_at) VALUES (?,?,?,NULL)').run('notes', 'n1', 10)
+    local
+      .prepare('INSERT INTO sync_state (tbl,row_key,rev,deleted_at) VALUES (?,?,?,NULL)')
+      .run('notes', 'n1', 10)
     const remote = makeDb()
     insertNote(remote, 'n1', 't', 10)
     const rsvc = new DataSyncService(remote)
@@ -289,7 +291,11 @@ describe('B38 墓碑随 bundle 走（正向删除传播）', () => {
     remote.prepare('DELETE FROM notes WHERE id = ?').run('n1')
     // 直接 SQL 删除要经一次合并循环才会在 state 盖墓碑戳（both-absent 分支，
     // 已有 mergeTable 测试覆盖）；此处直接种戳模拟该循环之后的状态
-    remote.prepare("INSERT OR REPLACE INTO sync_state (tbl,row_key,rev,deleted_at) VALUES ('notes','n1',10,300)").run()
+    remote
+      .prepare(
+        "INSERT OR REPLACE INTO sync_state (tbl,row_key,rev,deleted_at) VALUES ('notes','n1',10,300)"
+      )
+      .run()
     const bundle = rsvc.buildBundle()
     expect(bundle.tombstones?.['notes']?.['n1']).toBe(300)
     const r = new DataSyncService(local).mergeBundle(bundle, 9999)
@@ -300,17 +306,25 @@ describe('B38 墓碑随 bundle 走（正向删除传播）', () => {
   it('删除之后本地又改过 → 保留本地那份，墓碑入 state', () => {
     const local = makeDb()
     insertNote(local, 'n1', '删除后又被改', 40)
-    local.prepare('INSERT INTO sync_state (tbl,row_key,rev,deleted_at) VALUES (?,?,?,NULL)').run('notes', 'n1', 10)
+    local
+      .prepare('INSERT INTO sync_state (tbl,row_key,rev,deleted_at) VALUES (?,?,?,NULL)')
+      .run('notes', 'n1', 10)
     const remote = makeDb()
     insertNote(remote, 'n1', 't', 10)
     const rsvc = new DataSyncService(remote)
     rsvc.mergeBundle(new DataSyncService(local).buildBundle(), 100)
     remote.prepare('DELETE FROM notes WHERE id = ?').run('n1')
-    remote.prepare("INSERT OR REPLACE INTO sync_state (tbl,row_key,rev,deleted_at) VALUES ('notes','n1',10,30)").run()
+    remote
+      .prepare(
+        "INSERT OR REPLACE INTO sync_state (tbl,row_key,rev,deleted_at) VALUES ('notes','n1',10,30)"
+      )
+      .run()
     const bundle = rsvc.buildBundle()
     new DataSyncService(local).mergeBundle(bundle, 9999)
     expect(noteIds(local)).toContain('n1')
-    const st = local.prepare("SELECT rev, deleted_at FROM sync_state WHERE tbl='notes' AND row_key='n1'").get() as { rev: number; deleted_at: number }
+    const st = local
+      .prepare("SELECT rev, deleted_at FROM sync_state WHERE tbl='notes' AND row_key='n1'")
+      .get() as { rev: number; deleted_at: number }
     expect(st.deleted_at).not.toBeNull()
     expect(st.rev).toBe(40)
   })
@@ -322,7 +336,11 @@ describe('B38 墓碑随 bundle 走（正向删除传播）', () => {
     const rsvc = new DataSyncService(remote)
     rsvc.mergeBundle(new DataSyncService(local).buildBundle(), 100)
     remote.prepare('DELETE FROM notes WHERE id = ?').run('n1')
-    remote.prepare("INSERT OR REPLACE INTO sync_state (tbl,row_key,rev,deleted_at) VALUES ('notes','n1',10,300)").run()
+    remote
+      .prepare(
+        "INSERT OR REPLACE INTO sync_state (tbl,row_key,rev,deleted_at) VALUES ('notes','n1',10,300)"
+      )
+      .run()
     new DataSyncService(local).mergeBundle(rsvc.buildBundle(), 9999)
     // 第三方（旧备份）把 rev 10 的 n1 推回来
     const third = makeDb()

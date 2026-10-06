@@ -8,80 +8,80 @@
       :style="panelStyle"
       @keydown="onPanelKey"
     >
-    <!-- 日历模式：月视图 -->
-    <template v-if="mode === 'date'">
-      <div class="picker-head">
-        <button class="picker-nav" type="button" aria-label="上一月" @click="shiftMonth(-1)">
-          ‹
-        </button>
-        <span class="picker-month">{{ viewYear }} 年 {{ viewMonth + 1 }} 月</span>
-        <button class="picker-nav" type="button" aria-label="下一月" @click="shiftMonth(1)">
-          ›
-        </button>
-      </div>
-      <div class="picker-weeks">
-        <span v-for="w in WEEKDAYS" :key="w" class="picker-week">{{ w }}</span>
-      </div>
-      <div class="picker-grid">
-        <button
-          v-for="(cell, i) in cells"
-          :key="i"
-          type="button"
-          class="picker-day"
-          :class="{
-            dim: cell.dim,
-            today: cell.today,
-            selected: cell.selected,
-            cursor: i === cursorIndex
-          }"
-          @click="pickDay(cell)"
-          @mouseenter="cursorIndex = i"
-        >
-          {{ cell.day }}
-        </button>
-      </div>
-    </template>
+      <!-- 日历模式：月视图 -->
+      <template v-if="mode === 'date'">
+        <div class="picker-head">
+          <button class="picker-nav" type="button" aria-label="上一月" @click="shiftMonth(-1)">
+            ‹
+          </button>
+          <span class="picker-month">{{ viewYear }} 年 {{ viewMonth + 1 }} 月</span>
+          <button class="picker-nav" type="button" aria-label="下一月" @click="shiftMonth(1)">
+            ›
+          </button>
+        </div>
+        <div class="picker-weeks">
+          <span v-for="w in WEEKDAYS" :key="w" class="picker-week">{{ w }}</span>
+        </div>
+        <div class="picker-grid">
+          <button
+            v-for="(cell, i) in cells"
+            :key="i"
+            type="button"
+            class="picker-day"
+            :class="{
+              dim: cell.dim,
+              today: cell.today,
+              selected: cell.selected,
+              cursor: i === cursorIndex
+            }"
+            @click="pickDay(cell)"
+            @mouseenter="cursorIndex = i"
+          >
+            {{ cell.day }}
+          </button>
+        </div>
+      </template>
 
-    <!-- 时间模式：时 / 分两列 -->
-    <template v-else>
-      <div class="picker-time-cols">
-        <div class="picker-time-col">
-          <div class="picker-col-title">时</div>
-          <div class="picker-col-scroll">
-            <button
-              v-for="h in 24"
-              :key="h"
-              type="button"
-              class="picker-cell"
-              :class="{ selected: h - 1 === hour, cursor: h - 1 === cursorHour }"
-              @click="pickTime(h - 1, minute)"
-              @mouseenter="cursorHour = h - 1"
-            >
-              {{ String(h - 1).padStart(2, '0') }}
-            </button>
+      <!-- 时间模式：时 / 分两列 -->
+      <template v-else>
+        <div class="picker-time-cols">
+          <div class="picker-time-col">
+            <div class="picker-col-title">时</div>
+            <div class="picker-col-scroll">
+              <button
+                v-for="h in 24"
+                :key="h"
+                type="button"
+                class="picker-cell"
+                :class="{ selected: h - 1 === hour, cursor: h - 1 === cursorHour }"
+                @click="pickTime(h - 1, minute)"
+                @mouseenter="cursorHour = h - 1"
+              >
+                {{ String(h - 1).padStart(2, '0') }}
+              </button>
+            </div>
+          </div>
+          <div class="picker-time-col">
+            <div class="picker-col-title">分</div>
+            <div class="picker-col-scroll">
+              <button
+                v-for="m in 12"
+                :key="m"
+                type="button"
+                class="picker-cell"
+                :class="{ selected: (m - 1) * 5 === minute, cursor: (m - 1) * 5 === cursorMinute }"
+                @click="pickTime(hour, (m - 1) * 5)"
+                @mouseenter="cursorMinute = (m - 1) * 5"
+              >
+                {{ String((m - 1) * 5).padStart(2, '0') }}
+              </button>
+            </div>
           </div>
         </div>
-        <div class="picker-time-col">
-          <div class="picker-col-title">分</div>
-          <div class="picker-col-scroll">
-            <button
-              v-for="m in 12"
-              :key="m"
-              type="button"
-              class="picker-cell"
-              :class="{ selected: (m - 1) * 5 === minute, cursor: (m - 1) * 5 === cursorMinute }"
-              @click="pickTime(hour, (m - 1) * 5)"
-              @mouseenter="cursorMinute = (m - 1) * 5"
-            >
-              {{ String((m - 1) * 5).padStart(2, '0') }}
-            </button>
-          </div>
-        </div>
-      </div>
-      <button class="picker-confirm" type="button" @click="confirmTime">
-        确定 {{ displayTime }}
-      </button>
-    </template>
+        <button class="picker-confirm" type="button" @click="confirmTime">
+          确定 {{ displayTime }}
+        </button>
+      </template>
     </div>
   </Teleport>
 </template>

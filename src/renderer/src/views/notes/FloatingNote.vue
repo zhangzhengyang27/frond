@@ -102,7 +102,7 @@ async function selectNote(id: string): Promise<void> {
     await saveNote()
   }
   try {
-    const note = (await window.api.notes.get(id)) as Note | null
+    const note = await window.api.notes.get(id)
     if (note) {
       currentNote.value = note
       title.value = note.title
@@ -116,7 +116,7 @@ async function selectNote(id: string): Promise<void> {
 
 async function createNewNote(): Promise<void> {
   try {
-    const note = (await window.api.notes.create({ title: '', content: '' })) as Note
+    const note = await window.api.notes.create({ title: '', content: '' })
     currentNote.value = note
     title.value = ''
     content.value = ''
@@ -138,10 +138,10 @@ async function saveNote(): Promise<void> {
   if (!currentNote.value) {
     // 没有当前笔记时自动创建
     try {
-      const note = (await window.api.notes.create({
+      const note = await window.api.notes.create({
         title: title.value,
         content: content.value
-      })) as Note
+      })
       currentNote.value = note
       await loadRecentNotes()
       saveStatus.value = '已保存'

@@ -102,7 +102,7 @@ export function buildPermissionStatuses(
       id,
       label: META[id].label,
       usedBy: META[id].usedBy,
-      state: 'unsupported' as PermissionState,
+      state: 'unsupported',
       canRequest: false,
       note: '当前系统不需要这类授权'
     }))
@@ -229,7 +229,7 @@ export function registerPermissionsIpcHandlers(): void {
   typedHandle('permissions:request', (_e, { id }) =>
     isPermissionId(id)
       ? requestPermission(id)
-      : Promise.resolve({ fired: false, state: 'unknown' as PermissionState, note: '未知权限项' })
+      : Promise.resolve({ fired: false, state: 'unknown', note: '未知权限项' })
   )
   typedHandle('permissions:openSettings', async (_e, { id }) => {
     if (id !== 'privacy' && !isPermissionId(id)) {

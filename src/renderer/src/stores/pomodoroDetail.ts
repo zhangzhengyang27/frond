@@ -1,9 +1,5 @@
 import { ref } from 'vue'
-import type {
-  PomodoroRecord,
-  PomodoroRecordDetail,
-  PomodoroTaskDetail
-} from './pomodoroTypes'
+import type { PomodoroRecordDetail, PomodoroTaskDetail } from './pomodoroTypes'
 
 /**
  * Frond · 番茄钟任务/记录详情域（B60 批C 从 stores/pomodoro.ts 拆出）
@@ -70,10 +66,7 @@ export function usePomodoroDetail(onError: (message: string) => void) {
 
   async function saveRecordNote(recordId: string, note: string): Promise<void> {
     try {
-      const updated = (await window.api.pomodoro.record.updateNote(
-        recordId,
-        note
-      )) as PomodoroRecord | null
+      const updated = await window.api.pomodoro.record.updateNote(recordId, note)
       if (updated && taskDetail.value) {
         taskDetail.value = {
           ...taskDetail.value,

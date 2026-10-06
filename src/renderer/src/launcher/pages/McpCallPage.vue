@@ -81,7 +81,7 @@ async function run(): Promise<void> {
       tool: props.tool,
       // props 是深层响应式代理，读出来的 args 是 Proxy —— 过不了 ipcRenderer.invoke
       // 的结构化克隆（实测报「An object could not be cloned」）。IPC 边界必须交裸对象。
-      args: toRaw(props.args ?? {}) as Record<string, string>
+      args: toRaw(props.args ?? {})
     })
     text.value = r.text
     ignored.value = r.ignoredContent

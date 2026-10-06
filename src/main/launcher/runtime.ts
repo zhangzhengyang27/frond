@@ -143,8 +143,7 @@ export function setDeclaredList(
     if (!item) {
       return {
         ok: false,
-        error:
-          raw === null || typeof raw !== 'object' ? 'bad item' : 'item needs title and actions'
+        error: raw === null || typeof raw !== 'object' ? 'bad item' : 'item needs title and actions'
       }
     }
     list.push(item)
@@ -457,7 +456,10 @@ function applyViewBounds(ctx: PluginViewContext, win: BrowserWindow): void {
   }
   const height = Math.max(
     MIN_PLUGIN_HEIGHT,
-    Math.min(ctx.expandHeight ?? MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT, MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT)
+    Math.min(
+      ctx.expandHeight ?? MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT,
+      MAX_WINDOW_HEIGHT - SEARCH_ROW_HEIGHT
+    )
   )
   ctx.view.setBounds({ x: 0, y: SEARCH_ROW_HEIGHT, width, height })
 }

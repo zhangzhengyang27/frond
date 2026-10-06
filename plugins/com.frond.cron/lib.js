@@ -8,77 +8,77 @@
   if (typeof module === 'object' && module.exports) module.exports = api
   if (root && typeof root === 'object') root.FrondCronLib = api
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-      var FIELD_NAMES = ['分钟', '小时', '日', '月', '星期']
-      var FIELD_RANGES = [
-        [0, 59],
-        [0, 23],
-        [1, 31],
-        [1, 12],
-        [0, 6]
-      ]
-      var MONTH_NAMES = [
-        '',
-        '一月',
-        '二月',
-        '三月',
-        '四月',
-        '五月',
-        '六月',
-        '七月',
-        '八月',
-        '九月',
-        '十月',
-        '十一月',
-        '十二月'
-      ]
-      var WEEK_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  var FIELD_NAMES = ['分钟', '小时', '日', '月', '星期']
+  var FIELD_RANGES = [
+    [0, 59],
+    [0, 23],
+    [1, 31],
+    [1, 12],
+    [0, 6]
+  ]
+  var MONTH_NAMES = [
+    '',
+    '一月',
+    '二月',
+    '三月',
+    '四月',
+    '五月',
+    '六月',
+    '七月',
+    '八月',
+    '九月',
+    '十月',
+    '十一月',
+    '十二月'
+  ]
+  var WEEK_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
-      function parseField(field, min, max) {
-        var result = []
-        var parts = field.split(',')
-        for (var i = 0; i < parts.length; i++) {
-          var part = parts[i]
-          var step = 1
-          var stepMatch = part.match(/\/(\d+)$/)
-          if (stepMatch) {
-            step = parseInt(stepMatch[1], 10)
-            part = part.replace(/\/\d+$/, '')
-          }
-          if (part === '*' || part === '?') {
-            for (var v = min; v <= max; v += step) result.push(v)
-          } else if (part.includes('-')) {
-            var range = part.split('-')
-            var start = parseInt(range[0], 10)
-            var end = parseInt(range[1], 10)
-            for (var v2 = start; v2 <= end; v2 += step) result.push(v2)
+  function parseField(field, min, max) {
+    var result = []
+    var parts = field.split(',')
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i]
+      var step = 1
+      var stepMatch = part.match(/\/(\d+)$/)
+      if (stepMatch) {
+        step = parseInt(stepMatch[1], 10)
+        part = part.replace(/\/\d+$/, '')
+      }
+      if (part === '*' || part === '?') {
+        for (var v = min; v <= max; v += step) result.push(v)
+      } else if (part.includes('-')) {
+        var range = part.split('-')
+        var start = parseInt(range[0], 10)
+        var end = parseInt(range[1], 10)
+        for (var v2 = start; v2 <= end; v2 += step) result.push(v2)
+      } else {
+        var val = parseInt(part, 10)
+        if (!isNaN(val)) {
+          if (step > 1) {
+            for (var v3 = val; v3 <= max; v3 += step) result.push(v)
           } else {
-            var val = parseInt(part, 10)
-            if (!isNaN(val)) {
-              if (step > 1) {
-                for (var v3 = val; v3 <= max; v3 += step) result.push(v)
-              } else {
-                result.push(val)
-              }
-            }
+            result.push(val)
           }
         }
-        return [...new Set(result)].sort(function (a, b) {
-          return a - b
-        })
       }
-      function describeField(field, index) {
-        if (field === '*' || field === '?') return '每' + FIELD_NAMES[index]
-        if (field.startsWith('*/')) return '每 ' + field.slice(2) + ' ' + FIELD_NAMES[index]
-        if (field.includes('/')) {
-          var parts = field.split('/')
-          return '从 ' + parts[0] + ' 开始每 ' + parts[1] + ' ' + FIELD_NAMES[index]
-        }
-        if (field.includes(',')) return FIELD_NAMES[index] + ': ' + field
-        if (field.includes('-')) return FIELD_NAMES[index] + ': ' + field
-        if (index === 3) return MONTH_NAMES[parseInt(field, 10)] || field
-        if (index === 4) return WEEK_NAMES[parseInt(field, 10)] || field
-        return field
-      }
+    }
+    return [...new Set(result)].sort(function (a, b) {
+      return a - b
+    })
+  }
+  function describeField(field, index) {
+    if (field === '*' || field === '?') return '每' + FIELD_NAMES[index]
+    if (field.startsWith('*/')) return '每 ' + field.slice(2) + ' ' + FIELD_NAMES[index]
+    if (field.includes('/')) {
+      var parts = field.split('/')
+      return '从 ' + parts[0] + ' 开始每 ' + parts[1] + ' ' + FIELD_NAMES[index]
+    }
+    if (field.includes(',')) return FIELD_NAMES[index] + ': ' + field
+    if (field.includes('-')) return FIELD_NAMES[index] + ': ' + field
+    if (index === 3) return MONTH_NAMES[parseInt(field, 10)] || field
+    if (index === 4) return WEEK_NAMES[parseInt(field, 10)] || field
+    return field
+  }
 
   /** 解析 5 段 cron → { fields, description } | null（6/7 段取 2-6 段，含秒标记丢失容忍） */
   function parse(expr) {
@@ -116,7 +116,9 @@
     var parsed = typeof expr === 'string' ? parse(expr) : expr
     if (!parsed) return []
     var runs = []
-    var current = new Date((typeof from === 'number' ? new Date(from) : from || new Date()).getTime())
+    var current = new Date(
+      (typeof from === 'number' ? new Date(from) : from || new Date()).getTime()
+    )
     current.setSeconds(0, 0)
     current.setMinutes(current.getMinutes() + 1)
     var safety = 0
@@ -186,7 +188,8 @@
     }
     for (var f = 0; f < 5; f++) {
       items.push({
-        title: FIELD_NAMES[f] + ' [' + parsed.fields5[f] + '] → ' + describeField(parsed.fields5[f], f),
+        title:
+          FIELD_NAMES[f] + ' [' + parsed.fields5[f] + '] → ' + describeField(parsed.fields5[f], f),
         subtitle: '取值范围 ' + FIELD_RANGES[f][0] + '-' + FIELD_RANGES[f][1],
         icon: 'list-settings-line',
         output: parsed.fields5[f],

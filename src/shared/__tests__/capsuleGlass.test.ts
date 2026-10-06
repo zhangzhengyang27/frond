@@ -40,7 +40,7 @@ describe('normalizeGlass', () => {
     expect(normalizeGlass('clear')).toBe('clear')
     expect(normalizeGlass('opaque')).toBe('opaque')
     for (const bad of [undefined, null, '', 'SOFT', 'glass', 1, {}]) {
-      expect(normalizeGlass(bad), `应回落：${String(bad)}`).toBe('opaque')
+      expect(normalizeGlass(bad), `应回落：${JSON.stringify(bad)}`).toBe('opaque')
     }
   })
 

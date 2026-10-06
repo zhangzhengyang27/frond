@@ -75,7 +75,10 @@ async function installPlugin(dir) {
       await window.api.preferences.setOnboardingCompleted()
     }
   })
-  const install = await main.evaluate((apiPath) => window.api.launcher.installFromFolder(apiPath), dir)
+  const install = await main.evaluate(
+    (apiPath) => window.api.launcher.installFromFolder(apiPath),
+    dir
+  )
   expect(install.success).toBe(true)
   return main
 }
@@ -101,15 +104,23 @@ test('colorpicker：tintColor 颜色块 + 分组头渲染', async () => {
     .toBeGreaterThanOrEqual(5)
   // tintColor 透传到 AppIcon 的内联 color 样式（Chromium 把 hex 序列化为 rgb(...)）
   await expect
-    .poll(async () => {
-      const icons = await capsule.locator('.plist-icon i').all()
-      let hits = 0
-      for (const el of icons) {
-        const style = ((await el.getAttribute('style')) || '').toLowerCase()
-        if (style.includes('rgb(51, 102, 153') || style.includes('rgb(51,102,153') || style.includes('#336699')) hits++
-      }
-      return hits
-    }, { timeout: 10000, intervals: [200] })
+    .poll(
+      async () => {
+        const icons = await capsule.locator('.plist-icon i').all()
+        let hits = 0
+        for (const el of icons) {
+          const style = ((await el.getAttribute('style')) || '').toLowerCase()
+          if (
+            style.includes('rgb(51, 102, 153') ||
+            style.includes('rgb(51,102,153') ||
+            style.includes('#336699')
+          )
+            hits++
+        }
+        return hits
+      },
+      { timeout: 10000, intervals: [200] }
+    )
     .toBeGreaterThanOrEqual(1)
 })
 
@@ -117,7 +128,10 @@ test('qrcode：dataUrl 缩略图条目（img.plist-thumb）', async () => {
   const main = await installPlugin(join(ROOT, 'plugins', 'com.frond.qrcode'))
   const capsule = await openAndType(main, 'com.frond.qrcode', 'https://frond.app')
   await expect
-    .poll(async () => capsule.locator('img.plist-thumb').count(), { timeout: 15000, intervals: [300] })
+    .poll(async () => capsule.locator('img.plist-thumb').count(), {
+      timeout: 15000,
+      intervals: [300]
+    })
     .toBeGreaterThanOrEqual(1)
   const src = await capsule.locator('img.plist-thumb').first().getAttribute('src')
   expect(src?.startsWith('data:image/png;base64,')).toBe(true)

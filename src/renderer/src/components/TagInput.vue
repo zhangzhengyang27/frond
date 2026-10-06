@@ -120,7 +120,12 @@ function colorOf(tag: Tag): string {
           <span class="truncate">{{ tag.name }}</span>
         </button>
       </li>
-      <li v-if="query.trim() && !props.suggestions.some((t) => t.name.toLowerCase() === query.trim().toLowerCase())">
+      <li
+        v-if="
+          query.trim() &&
+          !props.suggestions.some((t) => t.name.toLowerCase() === query.trim().toLowerCase())
+        "
+      >
         <button
           type="button"
           class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-brand-500 hover:bg-surface-hover"

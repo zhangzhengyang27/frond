@@ -99,8 +99,10 @@ export function installConsoleBridge(): void {
   if (installed) return
   if (!getAdd()) return // preload 未注入（浏览器/测试裸环境）时不挂
   installed = true
-  const patch = (level: 'debug' | 'info' | 'warn' | 'error', original: (...a: unknown[]) => void) => {
-    // eslint-disable-next-line no-inner-declarations -- 单点工具函数
+  const patch = (
+    level: 'debug' | 'info' | 'warn' | 'error',
+    original: (...a: unknown[]) => void
+  ) => {
     function bridged(...args: unknown[]): void {
       forward(level, args)
       // 原生输出保留：devtools 直看体验不变

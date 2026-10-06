@@ -8,13 +8,7 @@
  */
 
 export type FileIndexRequestType =
-  | 'ensureStarted'
-  | 'getStatus'
-  | 'getScopes'
-  | 'setScopes'
-  | 'rebuild'
-  | 'setHidden'
-  | 'query'
+  'ensureStarted' | 'getStatus' | 'getScopes' | 'setScopes' | 'rebuild' | 'setHidden' | 'query'
 
 export interface FileIndexRequest {
   id: number
@@ -45,11 +39,19 @@ export function makeRequest(
   return { id, type, payload }
 }
 
-export function makeResponse(id: number, ok: boolean, result?: unknown, error?: string): FileIndexResponse {
+export function makeResponse(
+  id: number,
+  ok: boolean,
+  result?: unknown,
+  error?: string
+): FileIndexResponse {
   return ok ? { id, ok, result } : { id, ok, error: error ?? 'unknown' }
 }
 
-export function makeLogEvent(level: FileIndexWorkerLogLevel, message: string): FileIndexWorkerEvent {
+export function makeLogEvent(
+  level: FileIndexWorkerLogLevel,
+  message: string
+): FileIndexWorkerEvent {
   return { event: 'log', level, message }
 }
 

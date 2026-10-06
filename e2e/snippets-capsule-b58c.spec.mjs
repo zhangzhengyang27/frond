@@ -140,9 +140,7 @@ test('2. 多块片段：⌘→ 切块，Enter 复制活动块（读真实剪贴�
   // 块 chips 渲染且默认第一块
   const chips = capsule.locator('[data-testid="snip-blocks"] .snip-block-chip')
   await expect(chips).toHaveCount(2, { timeout: 10000 })
-  await expect(capsule.locator('[data-testid="snip-detail-code"]')).toContainText(
-    'CAPSULE-BLOCK-A'
-  )
+  await expect(capsule.locator('[data-testid="snip-detail-code"]')).toContainText('CAPSULE-BLOCK-A')
 
   // ⌘→ 切到第二块，详情预览跟着切
   await input.press('Meta+ArrowRight')
@@ -153,9 +151,11 @@ test('2. 多块片段：⌘→ 切块，Enter 复制活动块（读真实剪贴�
 
   // Enter 复制活动块（真实剪贴板读回验证）
   await input.press('Enter')
-  await expect.poll(async () => app.evaluate(({ clipboard }) => clipboard.readText()), {
-    timeout: 10000
-  }).toBe('CAPSULE-BLOCK-B')
+  await expect
+    .poll(async () => app.evaluate(({ clipboard }) => clipboard.readText()), {
+      timeout: 10000
+    })
+    .toBe('CAPSULE-BLOCK-B')
 })
 
 test('3. pasteToForeground 接线：不存在 id 返回结构化错误（不注入）', async () => {

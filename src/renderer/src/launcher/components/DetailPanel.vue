@@ -42,7 +42,7 @@ async function render(): Promise<void> {
     return
   }
   try {
-    const html = marked.parse(props.content, { async: false }) as string
+    const html = marked.parse(props.content, { async: false })
     const { default: sanitizeHtml } = await import('@renderer/utils/sanitize-html-wrapper')
     if (seq !== renderSeq) return
     renderedContent.value = sanitizeHtml(html, {

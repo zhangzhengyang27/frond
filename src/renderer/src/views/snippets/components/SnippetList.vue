@@ -180,7 +180,7 @@ async function createSnippet(): Promise<void> {
       isDeleted: false,
       isFavorites: false,
       folderId: props.folderId
-    } as unknown as Parameters<typeof window.api.snippet.addSnippet>[0])
+    })
     await loadSnippets('refresh')
     const fresh = snippets.value.find((x) => x.id === created.id)
     if (fresh) emit('update:selectedSnippet', fresh)
@@ -294,8 +294,8 @@ async function restore(snippet: Snippet): Promise<void> {
   try {
     await window.api.snippet.restoreSnippet(snippet.id)
     await loadSnippets()
-  // B56-5：恢复后条目离开回收站视图——与移回收站/彻底删除同口径清选中
-  if (props.selectedSnippet?.id === snippet.id) emit('update:selectedSnippet', null)
+    // B56-5：恢复后条目离开回收站视图——与移回收站/彻底删除同口径清选中
+    if (props.selectedSnippet?.id === snippet.id) emit('update:selectedSnippet', null)
   } catch (error) {
     console.error('[SnippetList] 恢复片段失败:', error)
   }
@@ -352,9 +352,7 @@ function onListKeydown(e: KeyboardEvent): void {
   const t = e.target as HTMLElement | null
   if (
     t &&
-    (t instanceof HTMLInputElement ||
-      t instanceof HTMLTextAreaElement ||
-      t.isContentEditable)
+    (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t.isContentEditable)
   ) {
     return
   }
@@ -370,7 +368,8 @@ function onListKeydown(e: KeyboardEvent): void {
     return
   }
   const base = idx === -1 ? (e.key === 'ArrowDown' ? -1 : 0) : idx
-  const next = e.key === 'ArrowDown' ? Math.min(base + 1, snippets.value.length - 1) : Math.max(base - 1, 0)
+  const next =
+    e.key === 'ArrowDown' ? Math.min(base + 1, snippets.value.length - 1) : Math.max(base - 1, 0)
   const item = snippets.value[next]
   if (!item) return
   emit('update:selectedSnippet', item)
@@ -510,7 +509,9 @@ onBeforeUnmount(() => {
       <UEmpty
         v-else-if="snippets.length === 0"
         :title="debouncedSearch ? '没有匹配的片段' : '这里还没有片段'"
-        :description="debouncedSearch ? '换个关键词试试' : '点右上角 + 新建一个片段，或从其它文件夹移动过来'"
+        :description="
+          debouncedSearch ? '换个关键词试试' : '点右上角 + 新建一个片段，或从其它文件夹移动过来'
+        "
       >
         <template #icon>
           <AppIcon icon="code-s-slash-line" :size="20" />

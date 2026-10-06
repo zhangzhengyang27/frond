@@ -202,7 +202,7 @@ async function loadNotes(): Promise<void> {
     } else if (currentView.value === 'folder' && currentFolderId.value) {
       filter = { isDeleted: false, folderId: currentFolderId.value }
     }
-    notes.value = (await window.api.notes.list(filter)) as Note[]
+    notes.value = await window.api.notes.list(filter)
   } catch {
     notes.value = []
   }
@@ -210,7 +210,7 @@ async function loadNotes(): Promise<void> {
 
 async function loadFolders(): Promise<void> {
   try {
-    folders.value = (await window.api.notes.folders()) as Folder[]
+    folders.value = await window.api.notes.folders()
   } catch {
     folders.value = []
   }
@@ -240,7 +240,7 @@ function selectFolder(id: string): void {
 
 async function createNote(): Promise<void> {
   try {
-    const note = (await window.api.notes.create({ title: '', content: '' })) as Note
+    const note = await window.api.notes.create({ title: '', content: '' })
     currentView.value = 'all'
     currentFolderId.value = null
     await loadNotes()

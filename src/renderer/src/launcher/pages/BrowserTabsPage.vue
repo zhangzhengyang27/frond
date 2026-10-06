@@ -55,11 +55,7 @@ const filteredTabs = computed(() => {
 async function loadTabs(): Promise<void> {
   loading.value = true
   try {
-    const resp = (await window.api.browserTabs.list()) as {
-      ok: boolean
-      tabs: Tab[]
-      supported: boolean
-    }
+    const resp = await window.api.browserTabs.list()
     supported.value = resp.supported !== false
     tabs.value = resp.tabs ?? []
   } catch {

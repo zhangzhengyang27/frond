@@ -295,18 +295,19 @@ export class SnippetRepository {
   }
 
   /** B56：触发词冲突查询——同触发词的其它在册片段（排除自身与回收站）；无冲突返回 undefined */
-  findTriggerConflict(trigger: string, excludeId: string): { id: string; name: string } | undefined {
+  findTriggerConflict(
+    trigger: string,
+    excludeId: string
+  ): { id: string; name: string } | undefined {
     const trimmed = trigger.trim()
     if (!trimmed) return undefined
-    return (
-      this.db
-        .prepare(
-          `SELECT id, title AS name FROM snip_snippets
+    return this.db
+      .prepare(
+        `SELECT id, title AS name FROM snip_snippets
            WHERE trigger = ? AND id != ? AND deleted_at IS NULL
            ORDER BY updated_at DESC, rowid DESC LIMIT 1`
-        )
-        .get(trimmed, excludeId) as { id: string; name: string } | undefined
-    )
+      )
+      .get(trimmed, excludeId) as { id: string; name: string } | undefined
   }
 
   /**
@@ -383,7 +384,12 @@ export class SnippetRepository {
           ts,
           ts,
           deletedAt,
-          buildSnippetSearchText(snippet.name, snippet.description, snippet.contents, snippet.trigger)
+          buildSnippetSearchText(
+            snippet.name,
+            snippet.description,
+            snippet.contents,
+            snippet.trigger
+          )
         )
       const contentInsert = this.db.prepare(
         `INSERT INTO snip_snippet_contents (id, snippet_id, label, value, language, position, content_type)
@@ -486,9 +492,7 @@ export class SnippetRepository {
   /** 软删除 */
   deleteSnippet(id: string): boolean {
     const ts = now()
-    const r = this.db
-      .prepare(`UPDATE snip_snippets SET deleted_at = ? WHERE id = ?`)
-      .run(ts, id)
+    const r = this.db.prepare(`UPDATE snip_snippets SET deleted_at = ? WHERE id = ?`).run(ts, id)
     return r.changes > 0
   }
 
@@ -504,9 +508,7 @@ export class SnippetRepository {
 
   /** 恢复 */
   restoreSnippet(id: string): boolean {
-    const r = this.db
-      .prepare(`UPDATE snip_snippets SET deleted_at = NULL WHERE id = ?`)
-      .run(id)
+    const r = this.db.prepare(`UPDATE snip_snippets SET deleted_at = NULL WHERE id = ?`).run(id)
     return r.changes > 0
   }
 
@@ -523,9 +525,9 @@ export class SnippetRepository {
   emptyTrash(): number {
     // B56-10：junction 行随库行一起清（同 permanentlyDeleteSnippet）
     const ids = (
-      this.db
-        .prepare(`SELECT id FROM snip_snippets WHERE deleted_at IS NOT NULL`)
-        .all() as Array<{ id: string }>
+      this.db.prepare(`SELECT id FROM snip_snippets WHERE deleted_at IS NOT NULL`).all() as Array<{
+        id: string
+      }>
     ).map((r) => r.id)
     if (ids.length === 0) return 0
     const tx = this.db.transaction(() => {
@@ -563,17 +565,15 @@ export class SnippetRepository {
     return this.addSnippet({
       name: `${orig.name} (副本)`,
       description: orig.description,
-      contents: orig.contents.map(
-        (c): SnippetContent => ({
-          id: uuidv4(),
-          label: c.label,
-          value: c.value,
-          language: c.language,
-          // B56-10：contentType 必须跟随（此前 rich 副本被降级成 text，HTML 源码
-          // 被当纯文本渲染/粘贴）
-          ...(c.contentType ? { contentType: c.contentType } : {})
-        })
-      ),
+      contents: orig.contents.map((c): SnippetContent => ({
+        id: uuidv4(),
+        label: c.label,
+        value: c.value,
+        language: c.language,
+        // B56-10：contentType 必须跟随（此前 rich 副本被降级成 text，HTML 源码
+        // 被当纯文本渲染/粘贴）
+        ...(c.contentType ? { contentType: c.contentType } : {})
+      })),
       folderId: orig.folderId,
       tagIds: [...orig.tagIds],
       isDeleted: false,

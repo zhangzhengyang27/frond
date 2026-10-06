@@ -95,7 +95,7 @@ function formatUptime(hours: number): string {
 
 onMounted(async () => {
   try {
-    info.value = (await window.api.system.hardware()) as HardwareInfo
+    info.value = await window.api.system.hardware()
   } catch (err) {
     console.warn('SystemInfoPage: failed to load', err)
   } finally {

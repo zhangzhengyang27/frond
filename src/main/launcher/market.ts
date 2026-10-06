@@ -258,7 +258,10 @@ export function curatedIndexPath(): string {
 
 export function listMarket(): MarketItem[] {
   const bundled = localMarketEntries().map((e) => ({ ...e, source: 'bundled' as const }))
-  const remote = (readRemoteCache()?.plugins ?? []).map((e) => ({ ...e, source: 'remote' as const }))
+  const remote = (readRemoteCache()?.plugins ?? []).map((e) => ({
+    ...e,
+    source: 'remote' as const
+  }))
   const localAll: Array<MarketEntry & { source: MarketItem['source'] }> = [
     ...bundled,
     ...curatedMarketEntries()
@@ -480,9 +483,8 @@ export async function refreshRemoteIndex(): Promise<{
     ).plugins
     const fetchedAt = Date.now()
     writeRemoteCache({ url, fetchedAt, plugins })
-    const localTyped: Array<MarketEntry & { source: MarketItem['source'] }> = localMarketEntries().map(
-      (e) => ({ ...e, source: 'bundled' })
-    )
+    const localTyped: Array<MarketEntry & { source: MarketItem['source'] }> =
+      localMarketEntries().map((e) => ({ ...e, source: 'bundled' }))
     const remoteTyped: Array<MarketEntry & { source: MarketItem['source'] }> = plugins.map((e) => ({
       ...e,
       source: 'remote'
@@ -530,9 +532,9 @@ export function findManifestDir(root: string): string | null {
       if (existsSync(join(dir, 'plugin.json')) && contained(dir)) return dir
     }
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* ignore）
-      log.debug('market', '* ignore', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* ignore）
+    log.debug('market', '* ignore', e)
+  }
   return null
 }
 

@@ -286,9 +286,9 @@ async function chatStream(
               push({ delta, done: false })
             }
           } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 忽略非 JSON 行）
-      log.debug('aiservice', '* 忽略非 JSON 行', e)
-    }
+            // 批 7b 空 catch 清账（原注释：* 忽略非 JSON 行）
+            log.debug('aiservice', '* 忽略非 JSON 行', e)
+          }
         }
       }
       push({ delta: '', done: true })

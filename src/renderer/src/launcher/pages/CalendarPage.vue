@@ -245,7 +245,7 @@ const formatTime = formatClock
 
 async function loadReminders(): Promise<void> {
   try {
-    reminders.value = (await window.api.reminders.list({ isDeleted: false })) as Reminder[]
+    reminders.value = await window.api.reminders.list({ isDeleted: false })
   } catch (err) {
     console.warn('[Calendar] 加载提醒失败:', err)
   }

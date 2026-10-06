@@ -113,8 +113,14 @@ function sanitizeValue(
   // ReactElement 防御（2026-10-06 白屏实证）：元素误入 props（如把 <ActionPanel> 当
   // actions prop 传给 List.Item）时，序列化产物含不可结构化克隆的 React 元素引用，
   // renderView 在 IPC 层静默失败、视图整屏空白。此处显式拦截：警告 + 置 null。
-  if (value !== null && typeof value === 'object' && typeof (value as { $$typeof?: unknown }).$$typeof === 'symbol') {
-    console.warn(`[frond-sdk] props.${path} 是 React 元素（不可跨 IPC 传输），已置 null——请改用该组件的 children/契约形态`)
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    typeof (value as { $$typeof?: unknown }).$$typeof === 'symbol'
+  ) {
+    console.warn(
+      `[frond-sdk] props.${path} 是 React 元素（不可跨 IPC 传输），已置 null——请改用该组件的 children/契约形态`
+    )
     return null
   }
   const isContainer = Array.isArray(value) || (typeof value === 'object' && value !== null)

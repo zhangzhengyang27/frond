@@ -26,7 +26,6 @@ export interface RecordingHistory {
   recordingId?: string | undefined
 }
 
-
 /** 标记（原 MarkerService 返回形状内联；录屏功能已移除，保留契约类型供旧数据） */
 export interface Marker {
   id: string
@@ -247,7 +246,6 @@ export interface IpcContract {
   'update:check': { req: void; res: UpdateStatus }
   'update:download': { req: void; res: void }
   'update:install': { req: void; res: void }
-
 
   // ─────────── 日志与遥测（log:*）───────────
   'log:getMode': { req: void; res: TelemetryMode }
@@ -930,8 +928,6 @@ export interface IpcContract {
     req: void
     res: Awaited<ReturnType<typeof screenshotIndexService.pasteLatest>>
   }
-
-
 
   // ─────────── 系统信息 / 通知 / 剪贴板历史 / 悬浮窗 / 专注屏蔽 ───────────
   // 两个同名不同义的 SystemInfo（系统路径信息 vs 硬件信息）必须分别起别名，

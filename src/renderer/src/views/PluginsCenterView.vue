@@ -3,7 +3,9 @@
     <header class="pc-head">
       <div>
         <h1 class="pc-title">插件中心</h1>
-        <p class="pc-sub">已装 {{ stats.total }} · 启用 {{ stats.enabled }}——开关启停、卸载需确认</p>
+        <p class="pc-sub">
+          已装 {{ stats.total }} · 启用 {{ stats.enabled }}——开关启停、卸载需确认
+        </p>
       </div>
       <UInput
         v-model="query"
@@ -233,7 +235,10 @@ async function removePlugin(row: PluginRow): Promise<void> {
 }
 
 .pc-item:hover {
-  border-color: var(--color-border-strong, var(--border-strong, var(--color-border-default, transparent)));
+  border-color: var(
+    --color-border-strong,
+    var(--border-strong, var(--color-border-default, transparent))
+  );
 }
 
 .pc-icon {

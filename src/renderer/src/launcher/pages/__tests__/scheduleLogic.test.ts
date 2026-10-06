@@ -42,10 +42,7 @@ describe('groupSchedule', () => {
   })
 
   it('无效时间戳（NaN）整条跳过，不产生 undefined NaN/NaN 分组', () => {
-    const groups = groupSchedule(
-      [ev(new Date(2026, 8, 17, 9, 0)), ev(new Date(NaN))],
-      NOW
-    )
+    const groups = groupSchedule([ev(new Date(2026, 8, 17, 9, 0)), ev(new Date(NaN))], NOW)
     expect(groups).toHaveLength(1)
     expect(groups[0]!.label).toBe('今天')
   })

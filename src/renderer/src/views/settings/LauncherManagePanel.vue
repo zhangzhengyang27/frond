@@ -932,7 +932,7 @@ async function togglePrefs(pluginId: string): Promise<void> {
       const result = await window.api.launcher.getPreference(pluginId, pref.name)
       prefValues.value[key] = (result?.value ?? pref.default ?? '') as string | boolean
     } catch {
-      prefValues.value[key] = (pref.default ?? '') as string | boolean
+      prefValues.value[key] = pref.default ?? ''
     }
   }
   prefsOpen.value = pluginId
@@ -969,7 +969,9 @@ const hotkeyConfig = ref<{
   screenshot: 'Alt+Shift+S',
   commands: {}
 })
-const recording = ref<{ type: 'main' | 'command' | 'screenshot'; key?: string | undefined } | null>(null)
+const recording = ref<{ type: 'main' | 'command' | 'screenshot'; key?: string | undefined } | null>(
+  null
+)
 
 /** 可绑热键的命令（静态命令注册表 → 热键 spec） */
 function specOfCommand(entry: CommandEntryLike): HotkeySpec | null {

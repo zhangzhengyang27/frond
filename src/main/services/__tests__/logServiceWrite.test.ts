@@ -59,9 +59,7 @@ describe('LogService 写入优化（B53-11）', () => {
     prepareMock.mockClear()
     svc.info('t', 'm')
     svc.error('t', 'e')
-    const logInserts = prepareMock.mock.calls.filter(([sql]) =>
-      String(sql).includes('log_entries')
-    )
+    const logInserts = prepareMock.mock.calls.filter(([sql]) => String(sql).includes('log_entries'))
     expect(logInserts).toEqual([])
   })
 

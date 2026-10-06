@@ -92,7 +92,7 @@ describe('AIService（SQLite 存储）', () => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: []
-    } as AIChatSession
+    }
     saveSession(session)
     expect(listSessions()).toHaveLength(1)
     expect(listSessions()[0]!.id).toBe('s1')

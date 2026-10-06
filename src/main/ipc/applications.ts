@@ -7,10 +7,7 @@ import plist from 'plist'
 import { md5 } from 'js-md5'
 import { typedHandle } from '../ipc/typedIpc'
 import { log } from '../services/LogService'
-import {
-  loadApplicationsCacheFile,
-  saveApplicationsCacheFile
-} from './applicationsCacheFile'
+import { loadApplicationsCacheFile, saveApplicationsCacheFile } from './applicationsCacheFile'
 
 export interface AppEntry {
   name: string
@@ -162,9 +159,9 @@ function getAppDisplayName(appPath: string): string {
       }
     }
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：读取失败则回退到文件夹名）
-      log.debug('applications', '读取失败则回退到文件夹名', e)
-    }
+    // 批 7b 空 catch 清账（原注释：读取失败则回退到文件夹名）
+    log.debug('applications', '读取失败则回退到文件夹名', e)
+  }
   return (
     appPath
       .split('/')
@@ -655,7 +652,10 @@ export function registerApplicationsIpcHandlers(): void {
   try {
     const disk = loadApplicationsCacheFile(app.getPath('userData'))
     if (disk && applicationsCache === null) {
-      applicationsCache = { applications: disk.applications as AppEntry[], timestamp: disk.timestamp }
+      applicationsCache = {
+        applications: disk.applications,
+        timestamp: disk.timestamp
+      }
       log.debug(
         'applications',
         `已装载磁盘应用索引（${disk.applications.length} 条，扫描于 ${Math.round((Date.now() - disk.timestamp) / 60000)} 分钟前）`

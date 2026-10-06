@@ -439,9 +439,9 @@ function playExpansionSound(): void {
       ).catch(() => {})
     }
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 音效失败静默）
-      log.debug('text-expansion', '* 音效失败静默', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* 音效失败静默）
+    log.debug('text-expansion', '* 音效失败静默', e)
+  }
 }
 
 /** 打开 macOS 辅助功能授权面板（管理页引导用） */

@@ -96,156 +96,156 @@
     <!-- ═══ 单列主内容（Pomofocus 范式：页签→计时器→主按钮→任务） ═══ -->
     <main class="zf-stage">
       <div class="zf-column">
-      <!-- 2. 会话进度：🍅 + 圆点（本组第 N 个番茄，每 M 个进长休；纯信息非控件） -->
-      <div
-        class="zf-session"
-        :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}——每 ${sessionDots.total} 个番茄进入一次长休息`"
-      >
-        <span class="zf-session-ico" aria-hidden="true">🍅</span>
-        <span class="zf-session-dots">
-          <span
-            v-for="i in sessionDots.total"
-            :key="i"
-            class="zf-session-dot"
-            :class="{ done: i <= sessionDots.completed, next: i === sessionDots.completed + 1 }"
-          />
-        </span>
-      </div>
+        <!-- 2. 会话进度：🍅 + 圆点（本组第 N 个番茄，每 M 个进长休；纯信息非控件） -->
+        <div
+          class="zf-session"
+          :title="`本组循环 ${sessionDots.completed}/${sessionDots.total}——每 ${sessionDots.total} 个番茄进入一次长休息`"
+        >
+          <span class="zf-session-ico" aria-hidden="true">🍅</span>
+          <span class="zf-session-dots">
+            <span
+              v-for="i in sessionDots.total"
+              :key="i"
+              class="zf-session-dot"
+              :class="{ done: i <= sessionDots.completed, next: i === sessionDots.completed + 1 }"
+            />
+          </span>
+        </div>
 
-      <!-- 浮动提示堆栈（恢复 / 切模式确认 / 严格作废） -->
-      <transition name="zf-pop">
-        <div v-if="showLongBreakResumeBanner" class="zf-banner">
-          <div class="zf-banner-text">
-            <strong>长休息结束</strong>
-            <span>准备好下一轮专注吗？</span>
+        <!-- 浮动提示堆栈（恢复 / 切模式确认 / 严格作废） -->
+        <transition name="zf-pop">
+          <div v-if="showLongBreakResumeBanner" class="zf-banner">
+            <div class="zf-banner-text">
+              <strong>长休息结束</strong>
+              <span>准备好下一轮专注吗？</span>
+            </div>
+            <button class="zf-btn zf-btn--filled" type="button" @click="startTimer">
+              开始下一轮
+            </button>
           </div>
-          <button class="zf-btn zf-btn--filled" type="button" @click="startTimer">
-            开始下一轮
+        </transition>
+        <transition name="zf-pop">
+          <div v-if="showModeConfirm" class="zf-banner">
+            <div class="zf-banner-text">
+              <strong>切换模式</strong>
+              <span>计时器正在运行，切换将重置当前计时，确定吗？</span>
+            </div>
+            <div class="zf-banner-actions">
+              <button class="zf-btn zf-btn--icon" type="button" @click="showModeConfirm = false">
+                <AppIcon icon="ri-close-line" />
+              </button>
+              <button class="zf-btn zf-btn--filled" type="button" @click="confirmModeSwitch">
+                确定切换
+              </button>
+            </div>
+          </div>
+        </transition>
+        <transition name="zf-pop">
+          <div v-if="strictFailHint" class="zf-banner zf-banner--warn">
+            <div class="zf-banner-text">
+              <strong>严格模式</strong>
+              <span>检测到离开窗口，本番茄已作废</span>
+            </div>
+          </div>
+        </transition>
+
+        <!-- 3. 计时器 -->
+        <TimerRing
+          :time-left="timeLeft"
+          :duration="duration"
+          :mode="currentMode"
+          :is-running="isRunning"
+          :is-paused="isPaused"
+          :label="currentTask?.title ?? ''"
+          :hint="currentModeLabel"
+          :flowtime="flowtimeWork"
+        />
+
+        <!-- 4. 大号主按钮（页面的唯一主动作） -->
+        <div class="zf-cta-row">
+          <button v-if="!isRunning" type="button" class="zf-cta" @click="startTimer">
+            <AppIcon icon="ri-play-fill" />开始专注
+          </button>
+          <button
+            v-else
+            type="button"
+            class="zf-cta zf-cta--pause"
+            :disabled="strictPauseBlocked"
+            :title="strictPauseBlocked ? '严格模式：不允许暂停' : ''"
+            @click="pauseTimer"
+          >
+            <AppIcon :icon="strictPauseBlocked ? 'ri-lock-line' : 'ri-pause-fill'" />{{
+              strictPauseBlocked ? '严格模式中' : '暂停'
+            }}
+          </button>
+          <button
+            v-if="flowtimeWork && (isRunning || isPaused) && elapsed >= 10"
+            type="button"
+            class="zf-cta zf-cta--ghost"
+            title="结束并记录本次正计时"
+            @click="handleFinishFlowtime"
+          >
+            <AppIcon icon="ri-stop-circle-line" />完成
           </button>
         </div>
-      </transition>
-      <transition name="zf-pop">
-        <div v-if="showModeConfirm" class="zf-banner">
-          <div class="zf-banner-text">
-            <strong>切换模式</strong>
-            <span>计时器正在运行，切换将重置当前计时，确定吗？</span>
-          </div>
-          <div class="zf-banner-actions">
-            <button class="zf-btn zf-btn--icon" type="button" @click="showModeConfirm = false">
-              <AppIcon icon="ri-close-line" />
-            </button>
-            <button class="zf-btn zf-btn--filled" type="button" @click="confirmModeSwitch">
-              确定切换
-            </button>
-          </div>
-        </div>
-      </transition>
-      <transition name="zf-pop">
-        <div v-if="strictFailHint" class="zf-banner zf-banner--warn">
-          <div class="zf-banner-text">
-            <strong>严格模式</strong>
-            <span>检测到离开窗口，本番茄已作废</span>
-          </div>
-        </div>
-      </transition>
 
-      <!-- 3. 计时器 -->
-      <TimerRing
-        :time-left="timeLeft"
-        :duration="duration"
-        :mode="currentMode"
-        :is-running="isRunning"
-        :is-paused="isPaused"
-        :label="currentTask?.title ?? ''"
-        :hint="currentModeLabel"
-        :flowtime="flowtimeWork"
-      />
-
-      <!-- 4. 大号主按钮（页面的唯一主动作） -->
-      <div class="zf-cta-row">
-        <button
-          v-if="!isRunning"
-          type="button"
-          class="zf-cta"
-          @click="startTimer"
-        >
-          <AppIcon icon="ri-play-fill" />开始专注
-        </button>
-        <button
-          v-else
-          type="button"
-          class="zf-cta zf-cta--pause"
-          :disabled="strictPauseBlocked"
-          :title="strictPauseBlocked ? '严格模式：不允许暂停' : ''"
-          @click="pauseTimer"
-        >
-          <AppIcon :icon="strictPauseBlocked ? 'ri-lock-line' : 'ri-pause-fill'" />{{
-            strictPauseBlocked ? '严格模式中' : '暂停'
-          }}
-        </button>
-        <button
-          v-if="flowtimeWork && (isRunning || isPaused) && elapsed >= 10"
-          type="button"
-          class="zf-cta zf-cta--ghost"
-          title="结束并记录本次正计时"
-          @click="handleFinishFlowtime"
-        >
-          <AppIcon icon="ri-stop-circle-line" />完成
-        </button>
-      </div>
-
-      <!-- 5. 当前任务卡 -->
-      <section v-if="currentTask" class="zf-current">
-        <span class="zf-current-tag" :class="{ live: isRunning }">
-          <span class="zf-blink-dot" />
-          {{ isRunning ? '正在专注' : isPaused ? '已暂停' : '待开始' }}
-        </span>
-        <span class="zf-current-title" :title="currentTask.title">{{ currentTask.title }}</span>
-        <span class="zf-current-pomos" title="今日已完成 / 预估番茄">
-          🍅 {{ currentTaskEstimate > 0 ? `${currentTaskPomos}/${currentTaskEstimate}` : currentTaskPomos }}
-        </span>
-        <button
-          type="button"
-          class="zf-btn zf-btn--icon"
-          title="清除当前任务"
-          @click="handleClearCurrentTask"
-        >
-          <AppIcon icon="ri-close-line" />
-        </button>
-      </section>
-      <div v-else class="zf-current zf-current--empty">
-        <span v-if="showProjectSelector">在下方任务清单点选一个任务开始</span>
-        <span v-else>创建项目并添加任务，即可开始专注</span>
-      </div>
-
-      <!-- 6. 任务清单（同列下方，Pomofocus 式） -->
-      <section class="zf-tasks">
-        <header class="zf-tasks-head">
-          <h4 class="zf-tasks-title">任务清单</h4>
-          <span class="zf-tasks-meta">{{ focusedTasks.length }} 个</span>
+        <!-- 5. 当前任务卡 -->
+        <section v-if="currentTask" class="zf-current">
+          <span class="zf-current-tag" :class="{ live: isRunning }">
+            <span class="zf-blink-dot" />
+            {{ isRunning ? '正在专注' : isPaused ? '已暂停' : '待开始' }}
+          </span>
+          <span class="zf-current-title" :title="currentTask.title">{{ currentTask.title }}</span>
+          <span class="zf-current-pomos" title="今日已完成 / 预估番茄">
+            🍅
+            {{
+              currentTaskEstimate > 0
+                ? `${currentTaskPomos}/${currentTaskEstimate}`
+                : currentTaskPomos
+            }}
+          </span>
           <button
             type="button"
-            class="zf-new-task-compact"
-            title="新建任务"
-            @click="openCreateDialog"
+            class="zf-btn zf-btn--icon"
+            title="清除当前任务"
+            @click="handleClearCurrentTask"
           >
-            <AppIcon icon="ri-add-line" />
-            <span>新建任务</span>
+            <AppIcon icon="ri-close-line" />
           </button>
-        </header>
-        <TaskListPanel
-          :tasks="focusedTasks"
-          :projects="projects"
-          :current-task-id="currentTaskId"
-          :work-duration="effective.workDuration"
-          @select="handleSelectTask"
-          @start="handleStartTask"
-          @complete="handleCompleteTask"
-          @edit="handleEditTask"
-          @open-detail="handleOpenTaskDetail"
-          @delete="handleDeleteTask"
-        />
-      </section>
+        </section>
+        <div v-else class="zf-current zf-current--empty">
+          <span v-if="showProjectSelector">在下方任务清单点选一个任务开始</span>
+          <span v-else>创建项目并添加任务，即可开始专注</span>
+        </div>
+
+        <!-- 6. 任务清单（同列下方，Pomofocus 式） -->
+        <section class="zf-tasks">
+          <header class="zf-tasks-head">
+            <h4 class="zf-tasks-title">任务清单</h4>
+            <span class="zf-tasks-meta">{{ focusedTasks.length }} 个</span>
+            <button
+              type="button"
+              class="zf-new-task-compact"
+              title="新建任务"
+              @click="openCreateDialog"
+            >
+              <AppIcon icon="ri-add-line" />
+              <span>新建任务</span>
+            </button>
+          </header>
+          <TaskListPanel
+            :tasks="focusedTasks"
+            :projects="projects"
+            :current-task-id="currentTaskId"
+            :work-duration="effective.workDuration"
+            @select="handleSelectTask"
+            @start="handleStartTask"
+            @complete="handleCompleteTask"
+            @edit="handleEditTask"
+            @open-detail="handleOpenTaskDetail"
+            @delete="handleDeleteTask"
+          />
+        </section>
       </div>
     </main>
 
@@ -314,7 +314,12 @@
       <div v-if="statsOverlay" class="zf-stats-overlay">
         <header class="zf-stats-head">
           <h3 class="zf-stats-title">专注统计</h3>
-          <button type="button" class="zf-btn zf-btn--icon" title="关闭" @click="statsOverlay = false">
+          <button
+            type="button"
+            class="zf-btn zf-btn--icon"
+            title="关闭"
+            @click="statsOverlay = false"
+          >
             <AppIcon icon="ri-close-line" />
           </button>
         </header>
@@ -876,7 +881,6 @@ onBeforeUnmount(() => {
   soundscape.stop()
   unsubStrictFail()
 })
-
 </script>
 
 <style scoped>
@@ -1191,7 +1195,10 @@ onBeforeUnmount(() => {
   height: 7px;
   border-radius: 50%;
   background: var(--pomo-outline-variant);
-  transition: background 0.4s, box-shadow 0.4s, transform 0.4s;
+  transition:
+    background 0.4s,
+    box-shadow 0.4s,
+    transform 0.4s;
 }
 
 .zf-session-dot.done {
@@ -1403,7 +1410,9 @@ onBeforeUnmount(() => {
   font-weight: 600;
   color: var(--pomo-text-muted);
   flex-shrink: 0;
-  transition: background 0.8s ease, color 0.8s ease;
+  transition:
+    background 0.8s ease,
+    color 0.8s ease;
 }
 
 .zf-current-tag.live {

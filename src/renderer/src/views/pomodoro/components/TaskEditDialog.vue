@@ -1,96 +1,90 @@
 <template>
   <UModal :model-value="true" :title="title" @update:model-value="emit('close')">
     <div class="dialog-body">
-        <label class="field">
-          <span class="field-label">标题</span>
-          <input
-            ref="titleInput"
-            v-model="form.title"
-            type="text"
-            maxlength="200"
-            placeholder="要做什么？"
-          />
+      <label class="field">
+        <span class="field-label">标题</span>
+        <input
+          ref="titleInput"
+          v-model="form.title"
+          type="text"
+          maxlength="200"
+          placeholder="要做什么？"
+        />
+      </label>
+
+      <label class="field">
+        <span class="field-label">说明</span>
+        <textarea v-model="form.description" rows="3" placeholder="补充细节（可选）"></textarea>
+      </label>
+
+      <div class="field-row">
+        <label class="field field--third">
+          <span class="field-label">优先级</span>
+          <select v-model.number="form.priority">
+            <option :value="0">无</option>
+            <option :value="1">低</option>
+            <option :value="2">中</option>
+            <option :value="3">高</option>
+          </select>
         </label>
-
-        <label class="field">
-          <span class="field-label">说明</span>
-          <textarea v-model="form.description" rows="3" placeholder="补充细节（可选）"></textarea>
+        <label class="field field--third">
+          <span class="field-label">预估（番茄）</span>
+          <input v-model="form.estimate" type="number" min="0" step="0.5" placeholder="0" />
         </label>
-
-        <div class="field-row">
-          <label class="field field--third">
-            <span class="field-label">优先级</span>
-            <select v-model.number="form.priority">
-              <option :value="0">无</option>
-              <option :value="1">低</option>
-              <option :value="2">中</option>
-              <option :value="3">高</option>
-            </select>
-          </label>
-          <label class="field field--third">
-            <span class="field-label">预估（番茄）</span>
-            <input v-model="form.estimate" type="number" min="0" step="0.5" placeholder="0" />
-          </label>
-          <div class="field field--third">
-            <span class="field-label field-label--split">
-              项目
-              <button type="button" class="link-btn" @click="showNewProject = !showNewProject">
-                <AppIcon icon="add" />
-                新建项目
-              </button>
-            </span>
-            <select v-model="form.projectId">
-              <option value="">无项目</option>
-              <option v-for="project in projects" :key="project.id" :value="project.id">
-                {{ project.name }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <div v-if="showNewProject" class="new-project">
-          <input v-model="newProjectName" type="text" maxlength="40" placeholder="项目名称" />
-          <div class="swatches">
-            <button
-              v-for="color in PROJECT_COLORS"
-              :key="color"
-              type="button"
-              class="swatch"
-              :class="{ active: newProjectColor === color }"
-              :style="{ background: color }"
-              :title="color"
-              @click="newProjectColor = color"
-            />
-          </div>
-          <button type="button" class="btn btn--ghost" @click="createProject">确定</button>
+        <div class="field field--third">
+          <span class="field-label field-label--split">
+            项目
+            <button type="button" class="link-btn" @click="showNewProject = !showNewProject">
+              <AppIcon icon="add" />
+              新建项目
+            </button>
+          </span>
+          <select v-model="form.projectId">
+            <option value="">无项目</option>
+            <option v-for="project in projects" :key="project.id" :value="project.id">
+              {{ project.name }}
+            </option>
+          </select>
         </div>
       </div>
 
-      <template #footer>
-        <button type="button" class="btn btn--ghost" @click="emit('close')">取消</button>
-        <template v-if="isCreate">
-          <button type="button" class="btn" :disabled="!canSubmit" @click="submitCreate(false)">
-            创建
-          </button>
+      <div v-if="showNewProject" class="new-project">
+        <input v-model="newProjectName" type="text" maxlength="40" placeholder="项目名称" />
+        <div class="swatches">
           <button
+            v-for="color in PROJECT_COLORS"
+            :key="color"
             type="button"
-            class="btn btn--primary"
-            :disabled="!canSubmit"
-            @click="submitCreate(true)"
-          >
-            创建并开始
-          </button>
-        </template>
+            class="swatch"
+            :class="{ active: newProjectColor === color }"
+            :style="{ background: color }"
+            :title="color"
+            @click="newProjectColor = color"
+          />
+        </div>
+        <button type="button" class="btn btn--ghost" @click="createProject">确定</button>
+      </div>
+    </div>
+
+    <template #footer>
+      <button type="button" class="btn btn--ghost" @click="emit('close')">取消</button>
+      <template v-if="isCreate">
+        <button type="button" class="btn" :disabled="!canSubmit" @click="submitCreate(false)">
+          创建
+        </button>
         <button
-          v-else
           type="button"
           class="btn btn--primary"
           :disabled="!canSubmit"
-          @click="submit"
+          @click="submitCreate(true)"
         >
-          保存
+          创建并开始
         </button>
       </template>
+      <button v-else type="button" class="btn btn--primary" :disabled="!canSubmit" @click="submit">
+        保存
+      </button>
+    </template>
   </UModal>
 </template>
 
@@ -129,7 +123,14 @@ const emit = defineEmits<{
   'create-project': [payload: { name: string; color: string }]
 }>()
 
-const PROJECT_COLORS = ['var(--palette-project-1)', 'var(--palette-project-2)', 'var(--palette-project-3)', 'var(--palette-project-4)', 'var(--palette-project-5)', 'var(--palette-project-6)']
+const PROJECT_COLORS = [
+  'var(--palette-project-1)',
+  'var(--palette-project-2)',
+  'var(--palette-project-3)',
+  'var(--palette-project-4)',
+  'var(--palette-project-5)',
+  'var(--palette-project-6)'
+]
 
 const isCreate = computed(() => props.mode === 'create')
 const title = computed(() => (isCreate.value ? '新建任务' : '编辑任务'))

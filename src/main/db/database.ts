@@ -75,9 +75,9 @@ class FrondDatabase {
       try {
         db.close()
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 尽力而为）
-      log.debug('database', '* 尽力而为', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 尽力而为）
+        log.debug('database', '* 尽力而为', e)
+      }
       this.db = null
       throw error
     }
@@ -111,9 +111,9 @@ class FrondDatabase {
         try {
           unlinkSync(bak)
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：ignore）
-      log.debug('database', 'ignore', e)
-    }
+          // 批 7b 空 catch 清账（原注释：ignore）
+          log.debug('database', 'ignore', e)
+        }
         console.warn('[database] backup discarded: integrity check failed')
         return
       }
@@ -150,9 +150,9 @@ class FrondDatabase {
         try {
           unlinkSync(join(dir, f))
         } catch (e) {
-      // 批 7b 空 catch 清账（原注释：ignore）
-      log.debug('database', 'ignore', e)
-    }
+          // 批 7b 空 catch 清账（原注释：ignore）
+          log.debug('database', 'ignore', e)
+        }
       }
     } catch (e) {
       // 批 7b 空 catch 清账（原注释：ignore）

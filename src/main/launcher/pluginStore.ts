@@ -135,9 +135,9 @@ function rebuildIndexFromDisk(): InstalledPlugin[] {
       }
     }
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* ignore）
-      log.debug('plugin-store', '* ignore', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* ignore）
+    log.debug('plugin-store', '* ignore', e)
+  }
   if (rebuilt.length > 0) writeIndex(rebuilt)
   return rebuilt
 }
@@ -243,7 +243,7 @@ export function readManifest(dir: string): PluginManifest {
   if (Array.isArray(manifest.commands)) {
     for (const cmd of manifest.commands) {
       if (typeof cmd !== 'object' || cmd === null) continue
-      const c = cmd as PluginCommand
+      const c = cmd
       // 命令形态清洗（fail-closed）：只认 view/action，其余按缺省 view
       const mode = sanitizePluginCommandMode(c.mode)
       if (mode) c.mode = mode
@@ -332,9 +332,13 @@ export function removePlugin(pluginId: string): void {
   try {
     getLauncherDocStore().deleteByPlugin(pluginId)
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空， 此处失败仅残留数据，不影响功能）
-      log.debug('plugin-store', '* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空， 此处失败仅残留数据，不影响功能', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空， 此处失败仅残留数据，不影响功能）
+    log.debug(
+      'plugin-store',
+      '* 数据库未就绪（极早启动）时跳过：卸载重装场景 KV 本就应清空， 此处失败仅残留数据，不影响功能',
+      e
+    )
+  }
 }
 
 export function setPluginEnabled(pluginId: string, enabled: boolean): InstalledPlugin | undefined {

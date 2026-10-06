@@ -70,9 +70,9 @@ export async function listTrash(): Promise<TrashItem[]> {
           type: stat.isDirectory() ? 'folder' : 'file'
         })
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 跳过无法访问的文件）
-      log.debug('trash-service', '* 跳过无法访问的文件', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 跳过无法访问的文件）
+        log.debug('trash-service', '* 跳过无法访问的文件', e)
+      }
     }
     // 按删除时间倒序
     return items.sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))

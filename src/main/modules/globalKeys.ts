@@ -105,7 +105,7 @@ export class GlobalKeyHookService {
     try {
       if (!this.mod) {
         // 惰性 import：原生模块，仅在真正需要全局按键时加载
-        this.mod = (await import('uiohook-napi')) as unknown as HookModule
+        this.mod = await import('uiohook-napi')
         this.mod.uIOhook.on('keydown', (e) => {
           for (const l of this.downListeners) l(e)
         })

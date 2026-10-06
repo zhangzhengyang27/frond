@@ -79,7 +79,7 @@ watch(selectedIndex, (i) => {
 
 async function refresh(): Promise<void> {
   try {
-    processes.value = (await window.api.process.list()) as ProcessRow[]
+    processes.value = await window.api.process.list()
   } catch (err) {
     console.warn('KillProcessPage: list failed', err)
   } finally {
@@ -90,7 +90,7 @@ async function refresh(): Promise<void> {
 async function kill(proc: ProcessRow): Promise<void> {
   killError.value = ''
   try {
-    const res = (await window.api.process.kill(proc.pid)) as { success: boolean; error?: string }
+    const res = await window.api.process.kill(proc.pid)
     if (!res.success) {
       killError.value = res.error ?? '结束进程失败'
       return

@@ -641,15 +641,16 @@ export function sanitizeDataModeListItem(
   const actions: PluginItemAction[] = rec.actions.slice(0, 10).map((a) => {
     const action = (a ?? {}) as Record<string, unknown>
     return {
-      label: String(action.label ?? '执行').slice(0, 60),
+      // 插件载荷不可信：label 非 string 一律落默认值（硬 String 会渲染出 '[object Object]'）
+      label: typeof action.label === 'string' ? action.label.slice(0, 60) : '执行',
       type: (['copy', 'open', 'callback'].includes(String(action.type))
         ? String(action.type)
         : 'callback') as PluginItemAction['type'],
       ...(typeof action.payload === 'string' && { payload: action.payload.slice(0, 2000) }),
       // #11 回调 id 仅 react 模式透传（审查 M7：数据模式不得走 Callback 分支）
       ...(opts.reactMode &&
-      typeof action.callbackId === 'string' &&
-      action.callbackId.trim() !== '' && { callbackId: action.callbackId.slice(0, 64) })
+        typeof action.callbackId === 'string' &&
+        action.callbackId.trim() !== '' && { callbackId: action.callbackId.slice(0, 64) })
     }
   })
   const out: PluginListItem = { title: rec.title.slice(0, 200), actions }

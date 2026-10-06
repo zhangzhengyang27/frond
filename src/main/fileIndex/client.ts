@@ -14,11 +14,7 @@ import { join } from 'path'
 import { app, utilityProcess } from 'electron'
 import type { FileIndexHit, FileSearchMode } from '../modules/fileIndex/db'
 import type { UnavailableRoot } from '../modules/fileIndex/scanner'
-import {
-  isFileIndexResponse,
-  makeRequest,
-  type FileIndexRequestType
-} from './protocol'
+import { isFileIndexResponse, makeRequest, type FileIndexRequestType } from './protocol'
 
 export interface FileIndexStatusShape {
   status: 'disabled' | 'scanning' | 'ready' | 'capped' | 'error'
@@ -79,7 +75,7 @@ function defaultSpawn(): WorkerLike {
     // worker 输出直通主进程 stdio（排查启动问题必需；量极低：仅日志行）
     stdio: 'inherit'
   })
-  return child as unknown as WorkerLike
+  return child
 }
 
 interface PendingEntry {
@@ -154,7 +150,11 @@ export class FileIndexClient {
     }, delay)
   }
 
-  private rpc<T>(type: FileIndexRequestType, payload?: unknown, timeoutMs = RPC_TIMEOUT_MS): Promise<T> {
+  private rpc<T>(
+    type: FileIndexRequestType,
+    payload?: unknown,
+    timeoutMs = RPC_TIMEOUT_MS
+  ): Promise<T> {
     this.ensureWorker()
     const worker = this.worker
     if (!worker) return Promise.reject(new Error('file-index worker unavailable'))
@@ -233,7 +233,11 @@ export class FileIndexClient {
    * 索引查询；未就绪/零就绪态/进程死亡/超时一律返回 null——
    * fileSearch 据此走既有 mdfind/PowerShell 回退（与旧同步语义一致）
    */
-  async query(tokens: string[], mode: FileSearchMode, limit: number): Promise<FileIndexHit[] | null> {
+  async query(
+    tokens: string[],
+    mode: FileSearchMode,
+    limit: number
+  ): Promise<FileIndexHit[] | null> {
     if (this.degraded) return null
     try {
       return await this.rpc<FileIndexHit[]>('query', { tokens, mode, limit })

@@ -73,7 +73,8 @@ export async function assertAiEndpointAllowed(
   if (addrs.every(({ address }) => /^198\.(18|19)\./.test(address))) {
     return {
       ok: false,
-      reason: `检测到 fake-ip 代理环境：${host} 全部解析到 198.18/15 保留段` +
+      reason:
+        `检测到 fake-ip 代理环境：${host} 全部解析到 198.18/15 保留段` +
         '（Clash TUN 等代理的转发机制，网络实际可通）。本守卫按保留段拦截不放行；' +
         '如需 AI 端点，请为该域名关闭 fake-ip 或配置真实解析'
     }

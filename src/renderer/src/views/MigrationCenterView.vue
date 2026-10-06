@@ -279,7 +279,8 @@ function onDeleteArchive(a: ArchiveInfo): void {
     <header class="mb-8">
       <h1 class="text-xl font-semibold tracking-tight text-fg-primary">数据迁移中心</h1>
       <p class="mt-1 text-sm leading-relaxed text-fg-secondary">
-        导出 / 导入整库、多设备轻量同步、恢复出厂，以及旧版 JSON 归档的时间线。危险操作会先在这里二次确认。
+        导出 / 导入整库、多设备轻量同步、恢复出厂，以及旧版 JSON
+        归档的时间线。危险操作会先在这里二次确认。
       </p>
     </header>
 
@@ -321,22 +322,40 @@ function onDeleteArchive(a: ArchiveInfo): void {
     <section class="mb-10">
       <h2 class="mb-3 text-xs font-medium tracking-wider text-fg-muted uppercase">多设备同步</h2>
       <div class="rounded-lg border border-line-subtle bg-surface-1 p-5 shadow-sm">
-        <div v-if="syncStatus" class="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-fg-secondary">
+        <div
+          v-if="syncStatus"
+          class="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-fg-secondary"
+        >
           <span>
             WebDAV：
             <span :class="syncStatus.configured ? 'text-fg-success' : 'text-warning'">
               {{ syncStatus.configured ? '已配置' : '未配置' }}
             </span>
           </span>
-          <span>上次应用：{{ syncStatus.lastAppliedAt ? new Date(syncStatus.lastAppliedAt).toLocaleString() : '从未' }}</span>
+          <span
+            >上次应用：{{
+              syncStatus.lastAppliedAt
+                ? new Date(syncStatus.lastAppliedAt).toLocaleString()
+                : '从未'
+            }}</span
+          >
           <span>本地快照：{{ syncStatus.snapshots }} 份</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <UButton :loading="busyKey === 'sync-push'" :disabled="!syncStatus?.configured" @click="onSyncPush">
+          <UButton
+            :loading="busyKey === 'sync-push'"
+            :disabled="!syncStatus?.configured"
+            @click="onSyncPush"
+          >
             <AppIcon icon="ri-upload-cloud-line" :size="14" />
             <span>推送到云端</span>
           </UButton>
-          <UButton variant="secondary" :loading="busyKey === 'sync-pull'" :disabled="!syncStatus?.configured" @click="onSyncPull">
+          <UButton
+            variant="secondary"
+            :loading="busyKey === 'sync-pull'"
+            :disabled="!syncStatus?.configured"
+            @click="onSyncPull"
+          >
             <AppIcon icon="ri-download-cloud-line" :size="14" />
             <span>从云端拉平</span>
           </UButton>

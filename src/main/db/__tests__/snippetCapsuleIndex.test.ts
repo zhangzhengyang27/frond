@@ -103,9 +103,11 @@ describe('SnippetRepository getIndex / purgeExpiredTrash（B58 批C）', () => {
     expect(repo.getSnippetById(keep.id)).toBeDefined()
     // junction 行已随清（该片段无标签，这里验证 SQL 不炸即可）
     expect(
-      (db.prepare(`SELECT COUNT(*) AS n FROM snip_tags WHERE snippet_id = ?`).get(oldDeleted.id) as
-        | { n: number }
-        | undefined)?.n
+      (
+        db
+          .prepare(`SELECT COUNT(*) AS n FROM snip_tags WHERE snippet_id = ?`)
+          .get(oldDeleted.id) as { n: number } | undefined
+      )?.n
     ).toBe(0)
   })
 

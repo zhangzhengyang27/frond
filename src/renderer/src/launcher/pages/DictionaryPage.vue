@@ -73,7 +73,7 @@ async function queryWord(w: string): Promise<void> {
   }
   loading.value = true
   try {
-    definitions.value = (await window.api.dictionary.query(w.trim())) as DictionaryDefinition[]
+    definitions.value = await window.api.dictionary.query(w.trim())
   } catch (err) {
     console.warn('DictionaryPage: query failed', err)
     definitions.value = []

@@ -13,15 +13,14 @@ import { commandsToEntries } from '../../renderer/src/commands/CommandLoader'
  * `firstparty:ai` 与 `ai:chat`、`module:screenRecorder` 与 `recording:start` 各是两个 id 一件事
  * ——2026-09-23 三处都清了（命令以 Provider 为准，模块行以 MODULES 为准），这条断言就是防止再长回来。
  */
-const entry = (over: Partial<CommandEntry> & { key: string }): CommandEntry =>
-  ({
-    title: over.title ?? over.key,
-    subtitle: '',
-    icon: 'ri-pass-through-line',
-    badge: '',
-    action: { type: 'firstParty', page: 'ai' },
-    ...over
-  }) as CommandEntry
+const entry = (over: Partial<CommandEntry> & { key: string }): CommandEntry => ({
+  title: over.title ?? over.key,
+  subtitle: '',
+  icon: 'ri-pass-through-line',
+  badge: '',
+  action: { type: 'firstParty', page: 'ai' },
+  ...over
+})
 
 describe('mergeCommandEntries 的规则', () => {
   it('key 相同：先到先得，后者丢弃并上报', () => {

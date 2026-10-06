@@ -119,9 +119,9 @@ export class ProjectSettingsRepository {
         }
         if (Object.keys(overrides).length > 0) out[projectId] = overrides
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：跳过异常行）
-      log.debug('project-settings-repository', '跳过异常行', e)
-    }
+        // 批 7b 空 catch 清账（原注释：跳过异常行）
+        log.debug('project-settings-repository', '跳过异常行', e)
+      }
     }
     return out
   }

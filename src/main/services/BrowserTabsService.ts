@@ -108,8 +108,8 @@ async function activateTab(tab: BrowserTab): Promise<boolean> {
   if (
     !Number.isInteger(tab.windowId) ||
     !Number.isInteger(tab.tabIndex) ||
-    (tab.windowId as number) < 1 ||
-    (tab.tabIndex as number) < 1
+    tab.windowId < 1 ||
+    tab.tabIndex < 1
   ) {
     return false
   }

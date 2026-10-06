@@ -23,7 +23,11 @@ describe('assignUniqueIds（B41-2）', () => {
       { appName: 'Code', pid: 42, title: 'Untitled' }
     ]
     const out = assignUniqueIds(rows)
-    expect(out.map((w) => w.id)).toEqual(['Code-42-Untitled', 'Code-42-Untitled#2', 'Code-42-Untitled#3'])
+    expect(out.map((w) => w.id)).toEqual([
+      'Code-42-Untitled',
+      'Code-42-Untitled#2',
+      'Code-42-Untitled#3'
+    ])
     expect(out.map((w) => w.occurrence)).toEqual([1, 2, 3])
   })
 

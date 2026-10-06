@@ -41,12 +41,12 @@ export interface MergeResult {
  */
 function stableSignature(value: unknown, seen = new WeakSet<object>()): string {
   if (value === null || value === undefined) return '·'
-  const t = typeof value
-  if (t === 'string') return `s:${value as string}`
-  if (t === 'number' || t === 'boolean') return `n:${String(value)}`
-  if (t === 'function') return '?'
-  if (typeof value !== 'object') return `o:${String(value)}`
-  const obj = value as object
+  if (typeof value === 'string') return `s:${value}`
+  if (typeof value === 'number' || typeof value === 'boolean') return `n:${value}`
+  if (typeof value === 'function') return '?'
+  if (typeof value === 'bigint' || typeof value === 'symbol') return `o:${String(value)}`
+  // 走到这里 value 必为 object（string/number/boolean/function/undefined 已在上面收掉）
+  const obj = value
   if (seen.has(obj)) return '#循环'
   seen.add(obj)
   if (Array.isArray(value)) {
@@ -54,7 +54,7 @@ function stableSignature(value: unknown, seen = new WeakSet<object>()): string {
     seen.delete(obj)
     return `[${inner}]`
   }
-  const keys = Object.keys(obj as Record<string, unknown>).sort()
+  const keys = Object.keys(obj).sort()
   const inner = keys
     .map((k) => `${k}=${stableSignature((obj as Record<string, unknown>)[k], seen)}`)
     .join(',')
@@ -63,7 +63,7 @@ function stableSignature(value: unknown, seen = new WeakSet<object>()): string {
 }
 
 function actionSignature(entry: CommandEntry): string {
-  return stableSignature(entry.action as unknown)
+  return stableSignature(entry.action)
 }
 
 /**

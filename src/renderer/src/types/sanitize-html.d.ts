@@ -12,7 +12,10 @@ declare module 'sanitize-html' {
     allowedAttributes?: Record<string, string[]>
     allowedSchemes?: string[]
     allowedIframeHostnames?: string[]
-    transformTags?: Record<string, (tagName: string, attribs: Record<string, string>) => Record<string, string>>
+    transformTags?: Record<
+      string,
+      (tagName: string, attribs: Record<string, string>) => Record<string, string>
+    >
     selfClosing?: string[]
     disallowedTagsMode?: 'discard' | 'recursiveEscape'
   }

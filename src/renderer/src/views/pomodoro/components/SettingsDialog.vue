@@ -1,92 +1,92 @@
 <template>
   <UModal :model-value="show" title="番茄钟设置" @update:model-value="emit('close')">
     <div class="dialog-body">
-        <section class="group">
-          <h4 class="group-title">时长（分钟）</h4>
-          <div class="number-grid">
-            <label class="number-field">
-              <span>专注</span>
-              <input v-model.number="form.workDuration" type="number" min="1" max="180" />
-            </label>
-            <label class="number-field">
-              <span>短休</span>
-              <input v-model.number="form.shortBreakDuration" type="number" min="1" max="60" />
-            </label>
-            <label class="number-field">
-              <span>长休</span>
-              <input v-model.number="form.longBreakDuration" type="number" min="1" max="120" />
-            </label>
-            <label class="number-field">
-              <span>长休间隔（番茄）</span>
-              <input v-model.number="form.longBreakInterval" type="number" min="1" max="12" />
-            </label>
-          </div>
-        </section>
+      <section class="group">
+        <h4 class="group-title">时长（分钟）</h4>
+        <div class="number-grid">
+          <label class="number-field">
+            <span>专注</span>
+            <input v-model.number="form.workDuration" type="number" min="1" max="180" />
+          </label>
+          <label class="number-field">
+            <span>短休</span>
+            <input v-model.number="form.shortBreakDuration" type="number" min="1" max="60" />
+          </label>
+          <label class="number-field">
+            <span>长休</span>
+            <input v-model.number="form.longBreakDuration" type="number" min="1" max="120" />
+          </label>
+          <label class="number-field">
+            <span>长休间隔（番茄）</span>
+            <input v-model.number="form.longBreakInterval" type="number" min="1" max="12" />
+          </label>
+        </div>
+      </section>
 
-        <section class="group">
-          <h4 class="group-title">节奏与行为</h4>
-          <div class="switch-list">
-            <label v-for="item in switchItems" :key="item.key" class="switch-row">
-              <span class="switch-text">
-                <strong>{{ item.label }}</strong>
-                <small>{{ item.hint }}</small>
-              </span>
-              <span class="switch">
-                <input
-                  type="checkbox"
-                  :checked="switchValue(item.key)"
-                  @change="onSwitch(item.key, $event)"
-                />
-                <span class="slider" aria-hidden="true" />
-              </span>
-            </label>
-          </div>
-        </section>
+      <section class="group">
+        <h4 class="group-title">节奏与行为</h4>
+        <div class="switch-list">
+          <label v-for="item in switchItems" :key="item.key" class="switch-row">
+            <span class="switch-text">
+              <strong>{{ item.label }}</strong>
+              <small>{{ item.hint }}</small>
+            </span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                :checked="switchValue(item.key)"
+                @change="onSwitch(item.key, $event)"
+              />
+              <span class="slider" aria-hidden="true" />
+            </span>
+          </label>
+        </div>
+      </section>
 
-        <section class="group">
-          <h4 class="group-title">计时风格</h4>
-          <div class="segmented">
-            <button
-              v-for="opt in timerStyleOptions"
-              :key="opt.value"
-              type="button"
-              class="segment"
-              :class="{ active: form.timerStyle === opt.value }"
-              @click="form.timerStyle = opt.value"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-        </section>
+      <section class="group">
+        <h4 class="group-title">计时风格</h4>
+        <div class="segmented">
+          <button
+            v-for="opt in timerStyleOptions"
+            :key="opt.value"
+            type="button"
+            class="segment"
+            :class="{ active: form.timerStyle === opt.value }"
+            @click="form.timerStyle = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </section>
 
-        <section class="group">
-          <h4 class="group-title">声音</h4>
-          <div class="select-row">
-            <label class="select-field">
-              <span>完成铃声</span>
-              <select v-model="form.ringtone">
-                <option v-for="opt in ringtoneOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-            </label>
-            <label class="select-field">
-              <span>声景白噪音</span>
-              <select v-model="form.soundscape">
-                <option v-for="sc in soundscapeOptions" :key="sc.id" :value="sc.id">
-                  {{ sc.label }}
-                </option>
-              </select>
-            </label>
-          </div>
-        </section>
-      </div>
+      <section class="group">
+        <h4 class="group-title">声音</h4>
+        <div class="select-row">
+          <label class="select-field">
+            <span>完成铃声</span>
+            <select v-model="form.ringtone">
+              <option v-for="opt in ringtoneOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+          </label>
+          <label class="select-field">
+            <span>声景白噪音</span>
+            <select v-model="form.soundscape">
+              <option v-for="sc in soundscapeOptions" :key="sc.id" :value="sc.id">
+                {{ sc.label }}
+              </option>
+            </select>
+          </label>
+        </div>
+      </section>
+    </div>
 
-      <template #footer>
-        <span v-if="dirtyCount > 0" class="dirty-hint">{{ dirtyCount }} 项改动</span>
-        <button type="button" class="btn btn--ghost" @click="emit('close')">取消</button>
-        <button type="button" class="btn btn--primary" @click="save">保存</button>
-      </template>
+    <template #footer>
+      <span v-if="dirtyCount > 0" class="dirty-hint">{{ dirtyCount }} 项改动</span>
+      <button type="button" class="btn btn--ghost" @click="emit('close')">取消</button>
+      <button type="button" class="btn btn--primary" @click="save">保存</button>
+    </template>
   </UModal>
 </template>
 
@@ -222,7 +222,6 @@ function save(): void {
   if (Object.keys(patch).length > 0) emit('save', patch)
   emit('close')
 }
-
 </script>
 
 <style scoped>

@@ -23,7 +23,7 @@ export function useSearchHistoryNav(query: Ref<string>) {
     void window.api.searchHistory
       .get()
       .then((history) => {
-        historyCache.value = history as string[]
+        historyCache.value = history
       })
       .catch(() => {})
   }

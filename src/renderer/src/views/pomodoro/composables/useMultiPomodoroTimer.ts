@@ -208,7 +208,7 @@ export function useMultiPomodoroTimer(
   function ensureTimer(projectId: string): TimerState {
     let t = timers.get(projectId)
     if (!t) {
-      t = reactive(DEFAULT_STATE(projectId)) as TimerState
+      t = reactive(DEFAULT_STATE(projectId))
       // 初始化 timeLeft 为当前模式的有效时长（避免显示 00:00）
       t.timeLeft = durationFor(
         t.mode,

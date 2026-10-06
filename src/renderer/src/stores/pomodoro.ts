@@ -286,12 +286,12 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         window.api.pomodoro.timerState.getAll()
       ])
       tasks.value = t as PomodoroTask[]
-      projects.value = p as PomodoroProject[]
-      settings.value = s as PomodoroSettings
-      statistics.value = st as PomodoroStatistics
-      todayRecords.value = (tr as PomodoroRecord[]) || []
-      projectSettings.value = (allSettings as Record<string, ProjectTimerOverrides>) || {}
-      timerStates.value = (allTimerStates as Record<string, PersistedTimerState>) || {}
+      projects.value = p
+      settings.value = s
+      statistics.value = st
+      todayRecords.value = tr || []
+      projectSettings.value = allSettings || {}
+      timerStates.value = allTimerStates || {}
       // M4：自由番茄记录
       void loadFreeRecords().catch(() => {})
       // 焦点项目：仅当用户之前显式选择过且仍有效时才恢复
@@ -346,7 +346,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
   }
 
   async function addProject(name: string, color?: string): Promise<PomodoroProject> {
-    const project = (await window.api.pomodoro.projects.add(name, color)) as PomodoroProject
+    const project = await window.api.pomodoro.projects.add(name, color)
     projects.value.push(project)
     return project
   }
@@ -355,10 +355,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     id: string,
     updates: { name?: string; color?: string; sortOrder?: number }
   ): Promise<void> {
-    const updated = (await window.api.pomodoro.projects.update(
-      id,
-      updates
-    )) as PomodoroProject | null
+    const updated = await window.api.pomodoro.projects.update(id, updates)
     if (updated) {
       const idx = projects.value.findIndex((p) => p.id === id)
       if (idx >= 0) projects.value[idx] = updated
@@ -457,16 +454,13 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     projectId: string,
     overrides: ProjectTimerOverrides
   ): Promise<ProjectTimerOverrides> {
-    const next = (await window.api.pomodoro.projects.settings.save(
-      projectId,
-      overrides
-    )) as ProjectTimerOverrides
+    const next = await window.api.pomodoro.projects.settings.save(projectId, overrides)
     projectSettings.value = { ...projectSettings.value, [projectId]: next }
     return next
   }
 
   async function clearProjectOverride(projectId: string): Promise<boolean> {
-    const ok = (await window.api.pomodoro.projects.settings.delete(projectId)) as boolean
+    const ok = await window.api.pomodoro.projects.settings.delete(projectId)
     if (projectSettings.value[projectId]) {
       const next = { ...projectSettings.value }
       delete next[projectId]
@@ -500,8 +494,8 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
       window.api.pomodoro.getStatistics(),
       window.api.pomodoro.getTodayRecords()
     ])
-    statistics.value = st as PomodoroStatistics
-    todayRecords.value = (tr as PomodoroRecord[]) || []
+    statistics.value = st
+    todayRecords.value = tr || []
   }
 
   async function saveSettings(partial: Partial<PomodoroSettings>): Promise<void> {
@@ -627,10 +621,10 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
         window.api.pomodoro.stats.getTaskCompletionStats(from, to)
       ])
       if (seq !== loadStatsSeq) return // 已有更新的请求，丢弃本次结果
-      dailyTrend.value = trend as DailyTrendPoint[]
-      projectDistribution.value = distribution as ProjectDistributionPoint[]
-      focusHeatmap.value = heatmap as HeatmapCell[]
-      taskStats.value = taskCompletion as TaskCompletionStats
+      dailyTrend.value = trend
+      projectDistribution.value = distribution
+      focusHeatmap.value = heatmap
+      taskStats.value = taskCompletion
       // M8：算出 streak 与最佳 streak
       const streakInfo = computeStreakFromTrend(dailyTrend.value)
       streak.value = streakInfo
@@ -650,7 +644,7 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
 
   async function loadFreeRecords(): Promise<void> {
     try {
-      freeRecords.value = (await window.api.pomodoro.getFreeRecords()) as PomodoroRecord[]
+      freeRecords.value = await window.api.pomodoro.getFreeRecords()
     } catch (err) {
       console.error('[pomodoro store] loadFreeRecords failed:', err)
     }
@@ -662,11 +656,11 @@ export const usePomodoroStore = defineStore('pomodoro', () => {
     to: number,
     projectId: string | null = null
   ): Promise<PomodoroRecord[]> {
-    return (await window.api.pomodoro.getRecordsByRange({
+    return await window.api.pomodoro.getRecordsByRange({
       from,
       to,
       projectId
-    })) as PomodoroRecord[]
+    })
   }
 
   async function loadIntegration(): Promise<void> {

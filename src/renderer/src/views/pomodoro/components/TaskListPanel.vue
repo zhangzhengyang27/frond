@@ -127,7 +127,7 @@ function estimateLabel(task: PomodoroTask): string {
   return pomodoros < 10 ? pomodoros.toFixed(1).replace(/\.0$/, '') : String(Math.round(pomodoros))
 }
 
-  async function removeTask(task: PomodoroTask): Promise<void> {
+async function removeTask(task: PomodoroTask): Promise<void> {
   const ok = await confirm({
     title: `删除任务「${task.title}」？`,
     message: '此操作不可撤销。',

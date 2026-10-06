@@ -19,7 +19,11 @@ const Host = defineComponent({
   emits: ['close'],
   setup(props, { emit, expose }) {
     const container = ref<HTMLElement | null>(null)
-    useDismissablePopup(container, () => props.open, () => emit('close'))
+    useDismissablePopup(
+      container,
+      () => props.open,
+      () => emit('close')
+    )
     expose({ container })
     return { container }
   },

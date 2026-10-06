@@ -2,10 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import {
-  loadApplicationsCacheFile,
-  saveApplicationsCacheFile
-} from '../applicationsCacheFile'
+import { loadApplicationsCacheFile, saveApplicationsCacheFile } from '../applicationsCacheFile'
 
 /**
  * B53-1 应用索引磁盘持久化：此前 applicationsCache 只在内存，每次冷启动首轮
@@ -29,7 +26,7 @@ describe('applicationsCacheFile（B53-1）', () => {
       { name: 'Safari', path: '/Applications/Safari.app', aliases: ['浏览器'] },
       { name: 'Terminal', path: '/System/Applications/Utilities/Terminal.app' }
     ]
-    saveApplicationsCacheFile(dir, apps as never[], 1727900000000)
+    saveApplicationsCacheFile(dir, apps, 1727900000000)
     const loaded = loadApplicationsCacheFile(dir)
     expect(loaded).not.toBeNull()
     expect(loaded!.timestamp).toBe(1727900000000)

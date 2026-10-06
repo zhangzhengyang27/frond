@@ -46,8 +46,7 @@ const getMainWindow = async () => {
   throw new Error('30s 内没等到主窗口')
 }
 
-const dialogCount = () =>
-  page.evaluate(() => document.querySelectorAll('[role="dialog"]').length)
+const dialogCount = () => page.evaluate(() => document.querySelectorAll('[role="dialog"]').length)
 
 /** 点窗口左缘的遮罩区（弹窗面板居中，左缘一定是外点） */
 const clickOutside = async () => {
@@ -57,7 +56,10 @@ const clickOutside = async () => {
 
 /** 走 UI 真实链路建「项目+任务」，返回是否成功 */
 const createTaskWithProjectViaUI = async () => {
-  await page.getByRole('button', { name: /新建任务/ }).first().click({ timeout: 10000 })
+  await page
+    .getByRole('button', { name: /新建任务/ })
+    .first()
+    .click({ timeout: 10000 })
   await page.waitForTimeout(400)
   await page.locator('[role="dialog"] input[type="text"]').first().fill('回归钉任务')
   await page.locator('[role="dialog"] .link-btn').first().click()
@@ -105,7 +107,10 @@ test('计时环 svg 类名 zf-arc 且无 box-shadow（TW4 .ring 工具类碰撞�
 })
 
 test('UModal 新建任务弹窗：外点关闭、内点不误关', async () => {
-  await page.getByRole('button', { name: /新建任务/ }).first().click({ timeout: 10000 })
+  await page
+    .getByRole('button', { name: /新建任务/ })
+    .first()
+    .click({ timeout: 10000 })
   await page.waitForTimeout(400)
   expect(await dialogCount(), '弹窗未打开').toBe(1)
 
@@ -121,7 +126,10 @@ test('UModal 新建任务弹窗：外点关闭、内点不误关', async () => {
 })
 
 test('UModal 面板内 v-if 卸载型按钮（新建项目→确定）不误触外点关闭', async () => {
-  await page.getByRole('button', { name: /新建任务/ }).first().click({ timeout: 10000 })
+  await page
+    .getByRole('button', { name: /新建任务/ })
+    .first()
+    .click({ timeout: 10000 })
   await page.waitForTimeout(400)
   await page.locator('[role="dialog"] .link-btn').first().click()
   await page.locator('[role="dialog"] .new-project input').fill('回归钉项目')

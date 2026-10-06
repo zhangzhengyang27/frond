@@ -45,7 +45,7 @@ export const systemResolver: DnsResolver = async (hostname, family) => {
     verbatim: true,
     ...(family === 4 || family === 6 ? { family } : {})
   })
-  return res as DnsRecord[]
+  return res
 }
 
 /**
@@ -72,7 +72,7 @@ export function createPinningLookup(resolver: DnsResolver = systemResolver): Pin
           callback(err, [], want ?? 4)
           return
         }
-        callback(null, safe as unknown as LookupAddress[], safe[0]?.family)
+        callback(null, safe, safe[0]?.family)
       })
       .catch((err) => callback(err as NodeJS.ErrnoException, [], want ?? 4))
   }

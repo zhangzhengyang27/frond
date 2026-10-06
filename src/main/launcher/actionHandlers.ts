@@ -67,8 +67,7 @@ export function isMainActionPayload(raw: unknown): raw is MainAction {
   if (typeof raw !== 'object' || raw === null) return false
   const a = raw as Record<string, unknown>
   if (typeof a.type !== 'string' || !MAIN_ACTION_TYPES.has(a.type)) return false
-  const strField = (name: string): boolean =>
-    typeof a[name] === 'string' && (a[name] as string) !== ''
+  const strField = (name: string): boolean => typeof a[name] === 'string' && a[name] !== ''
   switch (a.type) {
     case 'system':
       return strField('cmdId')
@@ -93,7 +92,7 @@ export function createDispatchMainAction(
 ): (action: unknown) => Promise<ActionResult> {
   return async (raw: unknown): Promise<ActionResult> => {
     if (!isMainActionPayload(raw)) return { ok: false, error: 'invalid action payload' }
-    const a = raw as MainAction
+    const a = raw
     try {
       switch (a.type) {
         case 'system': {

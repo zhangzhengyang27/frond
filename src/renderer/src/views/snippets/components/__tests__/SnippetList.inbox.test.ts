@@ -12,12 +12,10 @@ import SnippetList from '../SnippetList.vue'
 let lastReq: Record<string, unknown> | null = null
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- 测试域 mock 收型 */
-const listSnippets = vi.fn(
-  (req: Record<string, unknown>): Promise<any> => {
-    lastReq = req
-    return Promise.resolve({ items: [], total: 0 })
-  }
-)
+const listSnippets = vi.fn((req: Record<string, unknown>): Promise<any> => {
+  lastReq = req
+  return Promise.resolve({ items: [], total: 0 })
+})
 
 beforeEach(() => {
   lastReq = null
@@ -27,7 +25,9 @@ beforeEach(() => {
   }
 })
 
-const mountList = (libraryFilter: 'inbox' | 'all' | 'favorites' | 'trash'): ReturnType<typeof mount> =>
+const mountList = (
+  libraryFilter: 'inbox' | 'all' | 'favorites' | 'trash'
+): ReturnType<typeof mount> =>
   mount(SnippetList, {
     props: {
       selectedSnippet: null,
@@ -69,9 +69,42 @@ describe('收件箱过滤契约（B56-2）', () => {
 
 describe('列表键盘导航（B56 键盘）', () => {
   const items = [
-    { id: 'a', name: '第一', description: '', language: 'js', contents: [{ id: 'ca', label: 'l', value: 'A', language: 'js' }], folderId: null, isDeleted: false, isFavorites: false, createdAt: 1, updatedAt: 1 },
-    { id: 'b', name: '第二', description: '', language: 'js', contents: [{ id: 'cb', label: 'l', value: 'B', language: 'js' }], folderId: null, isDeleted: false, isFavorites: false, createdAt: 2, updatedAt: 2 },
-    { id: 'c', name: '第三', description: '', language: 'js', contents: [{ id: 'cc', label: 'l', value: 'C', language: 'js' }], folderId: null, isDeleted: false, isFavorites: false, createdAt: 3, updatedAt: 3 }
+    {
+      id: 'a',
+      name: '第一',
+      description: '',
+      language: 'js',
+      contents: [{ id: 'ca', label: 'l', value: 'A', language: 'js' }],
+      folderId: null,
+      isDeleted: false,
+      isFavorites: false,
+      createdAt: 1,
+      updatedAt: 1
+    },
+    {
+      id: 'b',
+      name: '第二',
+      description: '',
+      language: 'js',
+      contents: [{ id: 'cb', label: 'l', value: 'B', language: 'js' }],
+      folderId: null,
+      isDeleted: false,
+      isFavorites: false,
+      createdAt: 2,
+      updatedAt: 2
+    },
+    {
+      id: 'c',
+      name: '第三',
+      description: '',
+      language: 'js',
+      contents: [{ id: 'cc', label: 'l', value: 'C', language: 'js' }],
+      folderId: null,
+      isDeleted: false,
+      isFavorites: false,
+      createdAt: 3,
+      updatedAt: 3
+    }
   ]
   const press = (w: ReturnType<typeof mount>, key: string): Promise<void> =>
     w.find('.min-h-0.flex-1').trigger('keydown', { key })

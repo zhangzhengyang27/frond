@@ -16,7 +16,7 @@ export function registerFoldersIpcHandlers(
       ...(typeof options.defaultName === 'string' && { defaultPath: options.defaultName }),
       ...(Array.isArray(options.filters) &&
         options.filters.length > 0 && {
-          filters: options.filters as { name: string; extensions: string[] }[]
+          filters: options.filters
         })
     })
     if (result.canceled || !result.filePath) return null

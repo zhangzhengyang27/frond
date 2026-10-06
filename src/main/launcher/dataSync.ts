@@ -34,8 +34,9 @@ import {
   type MergeRow,
   type MergeSummary,
   type StateTable,
-  type SyncTableSpec
-, rowKeyOf } from './syncMerge'
+  type SyncTableSpec,
+  rowKeyOf
+} from './syncMerge'
 import { database } from '../db/database'
 import { prefRepository } from '../db/repos'
 import { log } from '../services/LogService'
@@ -276,9 +277,9 @@ export class DataSyncService {
         const v = JSON.parse(row.value) as unknown
         if (typeof v === 'string' && v) return v.slice(0, 40)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 存量脏值：下面重新生成一个）
-      log.debug('data-sync', '* 存量脏值：下面重新生成一个', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 存量脏值：下面重新生成一个）
+        log.debug('data-sync', '* 存量脏值：下面重新生成一个', e)
+      }
     }
     const id = `${safeAppName()}-${randomBytes(4).toString('hex')}`
     this.db
@@ -292,15 +293,19 @@ export class DataSyncService {
     const rows = readTable(this.db, spec.table)
     const parent = spec.parent
     if (parent) {
+      // 键列只认 string/number（SQLite JSON 列可能塞对象——硬 String 会把
+      // '[object Object]' 混进键里），其余按空串
+      const keyText = (v: unknown): string =>
+        typeof v === 'string' ? v : typeof v === 'number' ? String(v) : ''
       const parents = new Map(
-        (readTable(this.db, parent.table) as Array<Record<string, unknown>>).map((r) => [
-          String(r[parent.parentCol] ?? ''),
+        readTable(this.db, parent.table).map((r) => [
+          keyText(r[parent.parentCol]),
           Number(r[parent.revCol] ?? 0)
         ])
       )
       return rows.map((r) => ({
         ...r,
-        __rev: parents.get(String(r[parent.childCol] ?? '')) ?? 0
+        __rev: parents.get(keyText(r[parent.childCol])) ?? 0
       }))
     }
     const col = revColumn(this.db, spec.table)
@@ -482,7 +487,9 @@ function decryptBundle(buf: Buffer, password: string): SyncBundle {
   const data = buf.subarray(12, buf.length - 16)
   const decipher = createDecipheriv('aes-256-gcm', deriveKey(password), iv)
   decipher.setAuthTag(tag)
-  return JSON.parse(Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8')) as SyncBundle
+  return JSON.parse(
+    Buffer.concat([decipher.update(data), decipher.final()]).toString('utf8')
+  ) as SyncBundle
 }
 
 async function syncClient(config: SyncConfig): Promise<{ client: WebDAVClient; password: string }> {
@@ -495,9 +502,9 @@ async function syncClient(config: SyncConfig): Promise<{ client: WebDAVClient; p
   try {
     await client.createDirectory(dir, { recursive: true })
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 目录可能已存在）
-      log.debug('data-sync', '* 目录可能已存在', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* 目录可能已存在）
+    log.debug('data-sync', '* 目录可能已存在', e)
+  }
   return { client, password: config.password }
 }
 
@@ -522,9 +529,9 @@ function prefSet(key: string, value: string): void {
   try {
     prefRepository.set(key, value)
   } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 写失败静默：下次同步重新决策）
-      log.debug('data-sync', '* 写失败静默：下次同步重新决策', e)
-    }
+    // 批 7b 空 catch 清账（原注释：* 写失败静默：下次同步重新决策）
+    log.debug('data-sync', '* 写失败静默：下次同步重新决策', e)
+  }
 }
 
 export type SyncDecision = 'pull' | 'push' | 'noop'
@@ -579,19 +586,18 @@ export async function pushDataSync(deps: SyncDeps = {}): Promise<{
     ) {
       let remoteExportedAt = 0
       try {
+        // format: 'text' 的返回即字符串体（webdav 类型上宽成联合，这里收窄）
         const latest = JSON.parse(
-          String(
-            await withTimeout(
-              client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }),
-              '同步：读取远端版本'
-            )
-          )
+          (await withTimeout(
+            client.getFileContents(`${remotePath}/latest.json`, { format: 'text' }),
+            '同步：读取远端版本'
+          )) as string
         ) as { exportedAt?: number }
         remoteExportedAt = Number(latest.exportedAt ?? 0)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏）
-      log.debug('data-sync', 'latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏', e)
-    }
+        // 批 7b 空 catch 清账（原注释：latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏）
+        log.debug('data-sync', 'latest 读不到/解析不了：bundle 在就是有要保的数据，走合并不吃亏', e)
+      }
       if (remoteExportedAt > readApplied()) {
         const remoteBuf = (await withTimeout(
           client.getFileContents(`${remotePath}/bundle.json.enc`, { format: 'binary' }),

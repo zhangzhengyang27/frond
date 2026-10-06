@@ -43,7 +43,8 @@
                 v-else
                 class="plist-accessory plist-tag"
                 :class="a.tone && a.tone !== 'default' ? `plist-tag--${a.tone}` : ''"
-              >{{ a.tag }}</span>
+                >{{ a.tag }}</span
+              >
             </template>
           </div>
         </template>
@@ -80,7 +81,7 @@ import { computed, ref, watch } from 'vue'
 import { marked } from 'marked'
 import AppIcon from '@components/AppIcon.vue'
 import CapsulePage from './CapsulePage.vue'
-import type { PluginListItem, PluginListIcon } from '@shared/plugin-protocol'
+import type { PluginListItem } from '@shared/plugin-protocol'
 
 const props = defineProps<{
   pluginId: string
@@ -116,7 +117,7 @@ const rows = computed<Array<{ kind: 'header'; label: string } | { kind: 'item'; 
 )
 
 function iconName(item: PluginListItem): string {
-  const i = item.icon as PluginListIcon | undefined
+  const i = item.icon
   if (typeof i === 'string') return i || 'plug-2'
   return i?.value || 'plug-2'
 }

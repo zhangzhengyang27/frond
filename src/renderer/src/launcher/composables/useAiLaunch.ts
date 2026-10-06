@@ -8,7 +8,7 @@
  */
 import { nextTick, ref, type Ref } from 'vue'
 import type { CommandEntry } from '@shared/commands'
-import { buildEntryAsk, type AiAskSource } from '@shared/aiAsk'
+import { buildEntryAsk } from '@shared/aiAsk'
 
 export interface AiLaunchDeps {
   /** 当前内联页组件实例（AIChatPage 需 expose queueInitial） */
@@ -50,7 +50,7 @@ export function useAiLaunch(deps: AiLaunchDeps) {
 
   /** 把一条结果变成一次可见的提问：复用 AI 内联页的排队发送，不另开一套对话面 */
   function askAIAbout(entry: CommandEntry): void {
-    const text = buildEntryAsk(entry as unknown as AiAskSource)
+    const text = buildEntryAsk(entry)
     deps.pushPage('ai')
     deps.query.value = ''
     deps.searchBarRef.value?.focus()

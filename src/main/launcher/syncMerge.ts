@@ -97,9 +97,15 @@ function sameContent(a: MergeRow, b: MergeRow): boolean {
   return true
 }
 
+/** 行列值文本化（键/标题/id 用）：只认 string/number，对象等按空串——
+ *  硬 String() 会把 '[object Object]' 拼进 rowKey、副本 id 和标题里 */
+function cellText(v: unknown): string {
+  return typeof v === 'string' ? v : typeof v === 'number' ? String(v) : ''
+}
+
 /** rowKey：主键值按 pk 顺序拼，带分隔符避免 (a,bc) 与 (ab,c) 撞成同一个 */
 export function rowKeyOf(spec: SyncTableSpec, row: MergeRow): string {
-  return spec.pk.map((k) => String(row[k] ?? '')).join(SEP)
+  return spec.pk.map((k) => cellText(row[k])).join(SEP)
 }
 
 /**
@@ -122,9 +128,9 @@ function indexRows(spec: SyncTableSpec, rows: MergeRow[]): Map<string, MergeRow>
 function hasCopyOf(candidates: MergeRow[], spec: SyncTableSpec, loser: MergeRow): boolean {
   const idCol = spec.idCol
   if (!idCol) return false
-  const prefix = `${String(loser[idCol] ?? '')}${COPY_INFIX}`
+  const prefix = `${cellText(loser[idCol])}${COPY_INFIX}`
   const rev = revOf(loser)
-  return candidates.some((row) => String(row[idCol] ?? '').startsWith(prefix) && revOf(row) === rev)
+  return candidates.some((row) => cellText(row[idCol]).startsWith(prefix) && revOf(row) === rev)
 }
 
 /** 副本 id 的中缀：`<原 id>~c~<时间>`，`~` 不出我们的业务 id 字母表 */
@@ -144,11 +150,11 @@ export function makeConflictCopy(
   const titleCol = spec.titleCol
   const idCol = spec.idCol
   if (titleCol) {
-    const base = String(loser[titleCol] ?? '')
+    const base = cellText(loser[titleCol])
     copy[titleCol] = `${base}（冲突副本 · ${device} · ${stamp}）`.slice(0, 240)
   }
   if (idCol) {
-    const original = String(loser[idCol] ?? '')
+    const original = cellText(loser[idCol])
     // 只改尾串、保住前缀可读；~ 与 # 都不在业务 id 的字母表里（uuid / nanoid）
     copy[idCol] = `${original}${COPY_INFIX}${stamp.replace(/[^\w-]/g, '')}`.slice(0, 190)
   }

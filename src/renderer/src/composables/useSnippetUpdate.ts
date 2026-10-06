@@ -116,9 +116,7 @@ async function flushQueueKey(key: string): Promise<void> {
  * 已是 DB 最新，后续 payload 构建不再携带陈旧值。
  */
 export async function flushPendingContentWrites(snippetId: string): Promise<void> {
-  const keys = [...updateContentQueue.value.keys()].filter((k) =>
-    k.startsWith(`${snippetId}-`)
-  )
+  const keys = [...updateContentQueue.value.keys()].filter((k) => k.startsWith(`${snippetId}-`))
   if (keys.length === 0) return
   for (const k of keys) {
     const t = updateContentTimers.get(k)

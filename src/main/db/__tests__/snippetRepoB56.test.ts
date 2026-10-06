@@ -50,7 +50,6 @@ describe('SnippetRepository B56 主进程钉', () => {
       ...(trigger ? { trigger } : {})
     })
 
-
   afterAll(() => {
     rmSync(userData, { recursive: true, force: true })
     delete process.env.__FROND_TEST_USER_DATA
@@ -98,7 +97,9 @@ describe('SnippetRepository B56 主进程钉', () => {
   describe('B56-10 duplicateSnippet', () => {
     it('rich 副本保留 contentType（不降级 text）', () => {
       const orig = seed('rich-doc', {
-        contents: [{ id: '', label: 'doc', value: '<b>hi</b>', language: 'html', contentType: 'rich' }]
+        contents: [
+          { id: '', label: 'doc', value: '<b>hi</b>', language: 'html', contentType: 'rich' }
+        ]
       })
       const copy = repo.duplicateSnippet(orig.id)!
       expect(copy.contents[0]!.contentType).toBe('rich')
@@ -174,22 +175,21 @@ describe('SnippetRepository B56 主进程钉', () => {
     })
   })
 
-describe('B56 触发词冲突查询', () => {
-  it('findTriggerConflict：同触发词的其它片段被找出，排除自身与回收站', () => {
-    const a = mk('A', ';sig')
-    mk('B', ';sig')
-    const trashed = mk('T', ';sig')
-    repo.deleteSnippet(trashed.id)
+  describe('B56 触发词冲突查询', () => {
+    it('findTriggerConflict：同触发词的其它片段被找出，排除自身与回收站', () => {
+      const a = mk('A', ';sig')
+      mk('B', ';sig')
+      const trashed = mk('T', ';sig')
+      repo.deleteSnippet(trashed.id)
 
-    // updated_at DESC 排序下后建者在前：排除 A 后命中 B
-    expect(repo.findTriggerConflict(';sig', a.id)?.name).toBe('B')
-    expect(repo.findTriggerConflict(';sig', 'nonexistent')?.name).toBe('B') // 自身不在库中：任一命中
-    // 排除回收站 T 后剩 A/B，updated_at DESC → B 在前
-    expect(repo.findTriggerConflict(';sig', trashed.id)?.name).toBe('B')
-    expect(repo.findTriggerConflict('', a.id)).toBeUndefined()
+      // updated_at DESC 排序下后建者在前：排除 A 后命中 B
+      expect(repo.findTriggerConflict(';sig', a.id)?.name).toBe('B')
+      expect(repo.findTriggerConflict(';sig', 'nonexistent')?.name).toBe('B') // 自身不在库中：任一命中
+      // 排除回收站 T 后剩 A/B，updated_at DESC → B 在前
+      expect(repo.findTriggerConflict(';sig', trashed.id)?.name).toBe('B')
+      expect(repo.findTriggerConflict('', a.id)).toBeUndefined()
+    })
   })
-})
-
 
   describe('B56 updated_at 语义分离', () => {
     it('收藏切换不 bump updated_at（归档动作不进「最近修改」）', () => {
@@ -205,7 +205,9 @@ describe('B56 触发词冲突查询', () => {
       await new Promise((r) => setTimeout(r, 5)) // 跨过同毫秒假绿
       const before = s.updatedAt
       repo.deleteSnippet(s.id)
-      const row = db.prepare(`SELECT updated_at, deleted_at FROM snip_snippets WHERE id = ?`).get(s.id) as {
+      const row = db
+        .prepare(`SELECT updated_at, deleted_at FROM snip_snippets WHERE id = ?`)
+        .get(s.id) as {
         updated_at: number
         deleted_at: number | null
       }

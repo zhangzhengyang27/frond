@@ -2,7 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { computePlacement } from '../dropdownPlacement'
 
 const rect = (
-  o: Partial<{ top: number; bottom: number; left: number; right: number; width: number; height: number }>
+  o: Partial<{
+    top: number
+    bottom: number
+    left: number
+    right: number
+    width: number
+    height: number
+  }>
 ) => ({
   top: 0,
   bottom: 0,

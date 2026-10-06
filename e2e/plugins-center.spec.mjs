@@ -17,7 +17,10 @@ const MAIN_ENTRY = join(ROOT, 'out/main/index.js')
 let app = null
 
 test.beforeAll(async () => {
-  rmSync(join(ROOT, 'test-results', 'e2e-userdata-plugins-center'), { recursive: true, force: true })
+  rmSync(join(ROOT, 'test-results', 'e2e-userdata-plugins-center'), {
+    recursive: true,
+    force: true
+  })
   const env = { ...process.env }
   env.FROND_USER_DATA_DIR = join(ROOT, 'test-results', 'e2e-userdata-plugins-center')
   env.FROND_E2E = '1'
@@ -132,7 +135,10 @@ test('搜「插件中心」→ 独立窗口渲染列表 → 过滤 → 启停', 
 
   // 启停：Base64 的开关切到停用 → 行上出现「已停用」徽章 → 统计联动（启用 1）
   const base64Row = list.locator('.pc-item').filter({ hasText: 'Base64' })
-  await base64Row.locator('.pc-actions input[type="checkbox"], .pc-actions [role="switch"]').first().click()
+  await base64Row
+    .locator('.pc-actions input[type="checkbox"], .pc-actions [role="switch"]')
+    .first()
+    .click()
   await expect(base64Row.locator('.pc-badge-off')).toHaveText('已停用', { timeout: 10000 })
   await expect(page.locator('.pc-sub')).toContainText('启用 1')
 })

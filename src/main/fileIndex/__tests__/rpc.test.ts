@@ -50,7 +50,7 @@ describe('FileIndexClient 生命周期（批5）', () => {
     const spawn = vi.fn((): WorkerLike => {
       const w = new FakeWorker()
       workers.push(w)
-      return w as unknown as WorkerLike
+      return w
     })
     return { spawn, workers }
   }
@@ -147,7 +147,10 @@ describe('FileIndexClient 生命周期（批5）', () => {
       expect(errSpy).not.toHaveBeenCalledWith(expect.stringContaining('rebuild 失败'))
       // 超时上限仍然存在（防 worker 假活挂死 IPC）：REBUILD_RPC_TIMEOUT_MS 处会报
       await vi.advanceTimersByTimeAsync(REBUILD_RPC_TIMEOUT_MS)
-      expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('rebuild 失败'), expect.anything())
+      expect(errSpy).toHaveBeenCalledWith(
+        expect.stringContaining('rebuild 失败'),
+        expect.anything()
+      )
     } finally {
       errSpy.mockRestore()
     }

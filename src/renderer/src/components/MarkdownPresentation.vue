@@ -130,7 +130,7 @@ function renderCodeBlockEditors(): void {
     const container = document.getElementById(blockData.id)
 
     if (container) {
-      const editor = CodeMirror(container as HTMLElement, {
+      const editor = CodeMirror(container, {
         value: blockData.value,
         mode: blockData.language || 'plaintext',
         theme: isDark.value ? 'oceanic-next' : 'neo',
@@ -187,7 +187,8 @@ function toggleLaserPointer(): void {
 }
 
 // 键盘快捷键（只有在有多个片段时才启用）
-watch(left!, (v) => { // useMagicKeys 的键位记录类型上可缺省
+watch(left!, (v) => {
+  // useMagicKeys 的键位记录类型上可缺省
   if (v && showNavigation.value) onPrevNext('prev')
 })
 

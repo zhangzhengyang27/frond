@@ -369,9 +369,9 @@ export class FileIndexService {
       try {
         await rescanDir(this.db, dir, policy, inScope)
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 单目录失败不中断本轮）
-      log('debug', '* 单目录失败不中断本轮', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 单目录失败不中断本轮）
+        log('debug', '* 单目录失败不中断本轮', e)
+      }
     }
     this.filesValue = this.db.count()
   }

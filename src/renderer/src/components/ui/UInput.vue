@@ -37,6 +37,7 @@ const onInput = (e: Event): void => {
   const raw = (e.target as HTMLInputElement).value
   if (props.modelModifiers?.number) {
     const n = parseFloat(raw)
+    // as T 必须保留：eslint 与 vue-tsc 对断言必要性的判定不一致（删过一次，web typecheck 挂）
     emit('update:modelValue', (Number.isNaN(n) ? raw : n) as T)
   } else {
     emit('update:modelValue', raw as T)

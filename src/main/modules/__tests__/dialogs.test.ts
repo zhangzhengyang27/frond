@@ -60,7 +60,7 @@ describe('dialogs helpers', () => {
     const callArgs = firstCall<[OpenDialogOptions]>(dialog.showOpenDialog)
     // 无窗口重载只有一个参数；检查 options 内容
     expect(callArgs.length).toBe(1)
-    expect(callArgs[0]!.filters?.[0]!.name).toBe('图片')
+    expect(callArgs[0].filters?.[0]!.name).toBe('图片')
   })
 
   it('showSaveDialogFor: 使用无窗口重载', async () => {

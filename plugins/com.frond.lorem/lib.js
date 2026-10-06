@@ -7,7 +7,8 @@
   if (typeof module === 'object' && module.exports) module.exports = api
   if (root && typeof root === 'object') root.FrondLoremLib = api
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
-  var LATIN_WORDS = ['lorem',
+  var LATIN_WORDS = [
+    'lorem',
     'ipsum',
     'dolor',
     'sit',
@@ -275,12 +276,36 @@
     'perferendis',
     'doloribus',
     'asperiores',
-    'repellat']
+    'repellat'
+  ]
 
   var ZH_WORDS = [
-    '产品', '设计', '体验', '交互', '视觉', '效率', '工具', '桌面', '启动', '搜索',
-    '片段', '任务', '清单', '灵感', '笔记', '创作', '专注', '节奏', '协作', '分享',
-    '灵感一闪', '随手记录', '高效工作', '极简主义', '沉浸体验', '优雅呈现'
+    '产品',
+    '设计',
+    '体验',
+    '交互',
+    '视觉',
+    '效率',
+    '工具',
+    '桌面',
+    '启动',
+    '搜索',
+    '片段',
+    '任务',
+    '清单',
+    '灵感',
+    '笔记',
+    '创作',
+    '专注',
+    '节奏',
+    '协作',
+    '分享',
+    '灵感一闪',
+    '随手记录',
+    '高效工作',
+    '极简主义',
+    '沉浸体验',
+    '优雅呈现'
   ]
 
   function pick(arr) {

@@ -191,7 +191,8 @@ export function registerFileSearchIpc(): void {
       const tokens = trimmed.split(/\s+/).filter(Boolean)
       // 批5：索引查询已进程隔离，query 为异步 RPC（null = 未就绪/降级 → 走下方系统检索回退）
       let indexed: Awaited<ReturnType<typeof fileIndexClient.query>> = null
-      if (tokens.length > 0) indexed = await fileIndexClient.query(tokens, mode, Number(limit) || 30)
+      if (tokens.length > 0)
+        indexed = await fileIndexClient.query(tokens, mode, Number(limit) || 30)
       if (indexed && indexed.length > 0) {
         return {
           ok: true,

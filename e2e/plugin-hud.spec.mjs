@@ -87,8 +87,7 @@ test('showHud 全链路：通道计数 + 胶囊 HUD 渲染', async () => {
   const capsule = await getCapsuleWindow()
   expect(capsule).toBeTruthy()
   await capsule.waitForLoadState('domcontentloaded')
-  const before =
-    (await capsule.evaluate(() => window.api.e2e.probeCounts()))['plugapi:hud'] ?? 0
+  const before = (await capsule.evaluate(() => window.api.e2e.probeCounts()))['plugapi:hud'] ?? 0
 
   // 触发 mode:'action' 的 hud 命令：插件调 SDK showHud → 主进程 → 胶囊 HUD
   await main.evaluate(() => window.api.launcher.openPlugin('com.frond.example-react', 'hud'))

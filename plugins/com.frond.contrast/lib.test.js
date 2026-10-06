@@ -8,8 +8,14 @@ describe('contrast lib', () => {
     expect(grade(3.5).aa).toBe(false)
   })
   it('parsePair 语法', () => {
-    expect(parsePair('#000/#fff')).toEqual({ fg: { r: 0, g: 0, b: 0 }, bg: { r: 255, g: 255, b: 255 } })
-    expect(parsePair('#000 #fff')).toEqual({ fg: { r: 0, g: 0, b: 0 }, bg: { r: 255, g: 255, b: 255 } })
+    expect(parsePair('#000/#fff')).toEqual({
+      fg: { r: 0, g: 0, b: 0 },
+      bg: { r: 255, g: 255, b: 255 }
+    })
+    expect(parsePair('#000 #fff')).toEqual({
+      fg: { r: 0, g: 0, b: 0 },
+      bg: { r: 255, g: 255, b: 255 }
+    })
   })
   it('convert：主条目 + AA 徽章', () => {
     const r = convert('#000/#fff')

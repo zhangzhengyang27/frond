@@ -8,7 +8,9 @@
         class="segment"
         :class="[{ active: currentMode === opt.value }, `is-${opt.value}`]"
         :disabled="switchLocked && currentMode !== opt.value"
-        :title="switchLocked && currentMode !== opt.value ? '严格模式：专注中不允许切换' : undefined"
+        :title="
+          switchLocked && currentMode !== opt.value ? '严格模式：专注中不允许切换' : undefined
+        "
         @click="emit('switch', opt.value)"
       >
         <AppIcon :icon="opt.icon" />

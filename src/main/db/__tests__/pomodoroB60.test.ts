@@ -77,7 +77,7 @@ describe('B60 批A：数据层正确性', () => {
       consecutiveCount: 2,
       updatedAt: Date.now()
     })
-    ;(prefRepoSet)(`pomodoro_timer_state_legacy`, raw)
+    prefRepoSet(`pomodoro_timer_state_legacy`, raw)
     const restored = pomodoroTimerStateRepository.get('legacy')
     expect(restored?.mode).toBe('work')
     expect(restored?.elapsed).toBeUndefined()
@@ -90,8 +90,7 @@ function prefRepoSet(key: string, value: string): void {
   d?.prepare(
     `INSERT INTO pref_preferences (key, value, updated_at) VALUES (?, ?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value`
-  )
-    .run(key, value, Date.now())
+  ).run(key, value, Date.now())
 }
 
 // ── B60 批B：统计口径 ────────────────────────────────────────

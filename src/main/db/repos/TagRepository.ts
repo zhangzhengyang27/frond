@@ -214,9 +214,9 @@ export class TagRepository {
         stmt.run(r.id, r.name, r.createdAt, r.createdAt)
         n += 1
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 冲突条目跳过）
-      log.debug('tag-repository', '* 冲突条目跳过', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 冲突条目跳过）
+        log.debug('tag-repository', '* 冲突条目跳过', e)
+      }
     }
     return n
   }

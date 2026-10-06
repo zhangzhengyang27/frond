@@ -42,7 +42,7 @@ describe('内置插件清单审计', () => {
 
       // 必填字段
       for (const field of ['id', 'name', 'version', 'description', 'main']) {
-        if (typeof m[field] !== 'string' || !(m[field] as string).trim()) {
+        if (typeof m[field] !== 'string' || !m[field].trim()) {
           problems.push(`${rel}: 缺少必填字段 ${field}`)
         }
       }

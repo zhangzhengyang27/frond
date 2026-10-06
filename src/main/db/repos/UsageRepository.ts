@@ -129,9 +129,9 @@ export class UsageRepository {
       try {
         fn()
       } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 监听者异常不影响写入方）
-      log.debug('usage-repository', '* 监听者异常不影响写入方', e)
-    }
+        // 批 7b 空 catch 清账（原注释：* 监听者异常不影响写入方）
+        log.debug('usage-repository', '* 监听者异常不影响写入方', e)
+      }
     }
   }
 }

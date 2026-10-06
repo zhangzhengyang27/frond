@@ -45,9 +45,9 @@ export const m032_snippet_search_text: Migration = {
           try {
             parts.push(decryptText(c.value))
           } catch (e) {
-      // 批 7b 空 catch 清账（原注释：* 密文不可解：value 不进投影，label 仍可搜）
-      log.debug('032_snippet_search_text', '* 密文不可解：value 不进投影，label 仍可搜', e)
-    }
+            // 批 7b 空 catch 清账（原注释：* 密文不可解：value 不进投影，label 仍可搜）
+            log.debug('032_snippet_search_text', '* 密文不可解：value 不进投影，label 仍可搜', e)
+          }
         }
         updateStmt.run(parts.join('\n'), row.id)
       }

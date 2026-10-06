@@ -2,7 +2,7 @@
  * Frond · macOS 权限面板（P-3.5）
  *
  * 修的是「静默依赖授权」：文本扩展 / 窗口切换 / 专注护盾 / Hyper Key 靠辅助功能，
- * 日历读事件靠 EventKit 授权，录屏靠屏幕录制——没授权时表现是「按了没反应」，
+ * 日历读事件靠 EventKit 授权，截图靠屏幕录制——没授权时表现是「按了没反应」，
  * 用户不会想到要去系统设置里开。这里给三样：真状态、真申请、真跳转。
  *
  * 状态读取都选**无副作用**的那条路：
@@ -62,7 +62,8 @@ const META: Record<PermissionId, { label: string; usedBy: string; pane: string }
   },
   screenRecording: {
     label: '屏幕录制',
-    usedBy: '录屏与区域录制的画面采集',
+    // 录屏模块虽已移除，截图（⌥⇧S）走 ScreenCaptureKit 仍需这条 TCC 授权
+    usedBy: '截图（⌥⇧S）与截图库的画面采集',
     pane: 'Privacy_ScreenCapture'
   }
 }

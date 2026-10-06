@@ -1,11 +1,11 @@
 <!--
   LauncherManagePanel · 启动器管理面板（设置页「启动器」页签内容）
   2026-10-04 自 views/launcher/index.vue 整体迁入（用户决策：独立大页退役，
-  Raycast 式——管理界面归设置窗，主交互面是启动器胶囊）。六段功能
-  （插件 / 插件市场 / Quicklinks / 文本扩展 / 快捷键 / WebDAV）结构原样保留。
+  Raycast 式——管理界面归设置窗，主交互面是启动器胶囊）。五段功能
+  （插件 / Quicklinks / 文本扩展 / 快捷键 / WebDAV）结构原样保留。
 -->
 <template>
-  <div class="mx-auto max-w-3xl px-6 py-8">
+  <div>
     <!-- ═══ 页头 ═══ -->
     <section class="mb-9">
       <div class="rounded-md border border-line-subtle bg-surface-1 shadow-sm">
@@ -121,94 +121,6 @@
                 <UButton size="sm" :loading="prefSaving" @click="savePrefs(p.id)">保存偏好</UButton>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ 插件市场（M3.5 静态市场 v0）═══ -->
-    <section class="mb-9">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="text-xs font-medium tracking-wider text-fg-muted uppercase">插件市场</h2>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-fg-tertiary">{{ indexStatusText }}</span>
-          <UButton size="sm" variant="ghost" :loading="marketLoading" @click="refreshMarket">
-            刷新
-          </UButton>
-        </div>
-      </div>
-      <!-- 远程索引（M3.5 v1）：明文 http 会被主进程侧拒绝（setRemoteIndexUrl fail-closed），
-           界面提示只是转述 —— 拒绝的权威在主进程，e2e market-index 3 钉的就是这一条 -->
-      <div class="mb-3 flex flex-wrap items-center gap-2">
-        <input
-          v-model="marketQuery"
-          class="min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-primary outline-none focus:border-brand-500/40"
-          placeholder="搜索市场（名称 / 描述 / 作者 / 分类）"
-        />
-      </div>
-      <div class="mb-3 flex flex-wrap items-center gap-2">
-        <input
-          v-model="remoteIndexUrl"
-          class="min-w-0 flex-1 rounded-md border border-line-subtle bg-surface-1 px-2.5 py-1.5 text-xs text-fg-primary outline-none focus:border-brand-500/40"
-          placeholder="远程索引 https://…/plugins.json（留空 = 只用打包索引）"
-        />
-        <UButton size="sm" @click="saveRemoteIndex">保存</UButton>
-        <UButton size="sm" variant="ghost" :loading="pullingIndex" @click="pullRemoteIndex">
-          拉取
-        </UButton>
-        <span v-if="remoteIndexMsg" class="text-xs text-fg-tertiary">{{ remoteIndexMsg }}</span>
-      </div>
-      <div class="rounded-md border border-line-subtle bg-surface-1 shadow-sm">
-        <div v-if="market.length === 0" class="p-6">
-          <UEmpty title="市场索引为空" description="未找到 plugins.json 或索引中没有条目" />
-        </div>
-        <div v-else-if="filteredMarket.length === 0" class="p-6">
-          <UEmpty title="没有匹配的插件" description="换个关键词试试" />
-        </div>
-        <div v-else class="divide-y divide-line-subtle">
-          <div v-for="entry in filteredMarket" :key="entry.id" class="flex items-center gap-3 p-4">
-            <div
-              class="flex size-9 shrink-0 items-center justify-center rounded-md border border-line-subtle bg-surface-2 text-fg-tertiary"
-            >
-              <AppIcon icon="store-2-line" :size="17" />
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <span class="truncate text-sm font-medium text-fg-primary">{{ entry.name }}</span>
-                <span class="shrink-0 text-xs text-fg-tertiary">v{{ entry.version ?? '—' }}</span>
-                <UBadge :variant="entry.source === 'bundled' ? 'neutral' : 'brand'">
-                  {{ SOURCE_LABELS[entry.source] }}
-                </UBadge>
-                <UBadge v-if="entry.category" variant="neutral">{{ entry.category }}</UBadge>
-                <UBadge variant="neutral">{{ entry.sha256 ? 'sha256 校验' : '未校验' }}</UBadge>
-                <UBadge v-if="entry.installed && entry.updatable" variant="warning">
-                  可更新 {{ entry.installedVersion }} → {{ entry.version }}
-                </UBadge>
-                <UBadge v-else-if="entry.installed" variant="neutral">已安装</UBadge>
-              </div>
-              <div class="mt-0.5 truncate text-xs text-fg-tertiary">
-                {{ entry.description || entry.id }}
-                <template v-if="entry.author"> · {{ entry.author }}</template>
-              </div>
-            </div>
-            <UButton
-              v-if="entry.installed && entry.updatable"
-              size="sm"
-              :loading="installingId === entry.id"
-              @click="onMarketUpdate(entry)"
-            >
-              更新
-            </UButton>
-            <UButton
-              v-else
-              size="sm"
-              variant="ghost"
-              :disabled="entry.installed"
-              :loading="installingId === entry.id"
-              @click="onMarketInstall(entry)"
-            >
-              {{ entry.installed ? '已安装' : '安装' }}
-            </UButton>
           </div>
         </div>
       </div>
@@ -619,134 +531,6 @@ async function onImport(): Promise<void> {
   }
 }
 
-// ───── 插件市场（M3.5 静态市场 v0）─────
-interface MarketEntry {
-  id: string
-  name: string
-  version?: string | undefined
-  description?: string | undefined
-  author?: string | undefined
-  download: string
-  installed: boolean
-  installedVersion?: string | undefined
-  updatable: boolean
-  /** 远程索引条目才可能有；打包索引是本地目录形态，如实标「未校验」 */
-  sha256?: string | undefined
-  /** 条目来源（批 6）：bundled=内置 / curated=官方精选 / remote=用户自配远程 */
-  source: 'bundled' | 'curated' | 'remote'
-  /** 索引声明的分类标签（可选） */
-  category?: string | undefined
-}
-
-const market = ref<MarketEntry[]>([])
-const marketLoading = ref(false)
-const installingId = ref<string | null>(null)
-const marketQuery = ref('')
-
-const SOURCE_LABELS: Record<MarketEntry['source'], string> = {
-  bundled: '内置',
-  curated: '精选',
-  remote: '远程'
-}
-
-const filteredMarket = computed(() => {
-  const q = marketQuery.value.trim().toLowerCase()
-  if (!q) return market.value
-  return market.value.filter((e) =>
-    [e.name, e.id, e.description ?? '', e.author ?? '', e.category ?? '']
-      .join(' ')
-      .toLowerCase()
-      .includes(q)
-  )
-})
-
-const remoteIndexUrl = ref('')
-const remoteIndexMsg = ref('')
-const pullingIndex = ref(false)
-const indexInfo = ref<{
-  remoteUrl: string
-  remoteCount: number
-  remoteFetchedAt: number | null
-} | null>(null)
-const indexStatusText = computed(() =>
-  indexInfo.value?.remoteUrl ? `索引：远程 ${indexInfo.value.remoteUrl}` : '索引：打包 plugins.json'
-)
-
-async function loadIndexInfo(): Promise<void> {
-  try {
-    indexInfo.value = await window.api.launcher.marketIndexInfo()
-    remoteIndexUrl.value = indexInfo.value.remoteUrl
-  } catch {
-    /* 读不到就保持打包索引口径 */
-  }
-}
-
-async function saveRemoteIndex(): Promise<void> {
-  remoteIndexMsg.value = ''
-  try {
-    const res = await window.api.launcher.marketSetIndexUrl(remoteIndexUrl.value.trim())
-    if (!res.ok) {
-      remoteIndexMsg.value = res.error ?? '保存失败'
-      return
-    }
-    remoteIndexMsg.value = remoteIndexUrl.value.trim() ? '已保存远程索引地址' : '已清除远程索引'
-    await loadIndexInfo()
-    await refreshMarket()
-  } catch (error) {
-    remoteIndexMsg.value = `保存失败：${(error as Error).message}`
-  }
-}
-
-async function pullRemoteIndex(): Promise<void> {
-  pullingIndex.value = true
-  remoteIndexMsg.value = ''
-  try {
-    // 拉取失败绝不清空打包索引：marketRefreshIndex 失败时仅返回错误，不动本地条目
-    const res = (await window.api.launcher.marketRefreshIndex()) as {
-      ok?: boolean
-      error?: string
-      count?: number
-    }
-    remoteIndexMsg.value = res.ok
-      ? `拉取成功：${res.count ?? 0} 条`
-      : `拉取失败：${res.error ?? '未知错误'}`
-    await loadIndexInfo()
-    await refreshMarket()
-  } catch (error) {
-    remoteIndexMsg.value = `拉取失败：${(error as Error).message}`
-  } finally {
-    pullingIndex.value = false
-  }
-}
-
-async function refreshMarket(): Promise<void> {
-  marketLoading.value = true
-  try {
-    market.value = await window.api.launcher.marketList()
-  } catch {
-    /* 索引读取失败保持空 */
-  } finally {
-    marketLoading.value = false
-  }
-}
-
-async function onMarketInstall(entry: MarketEntry): Promise<void> {
-  installingId.value = entry.id
-  try {
-    const result = await window.api.launcher.marketInstall(entry.id)
-    if (result.success) {
-      toast.success(`已安装 ${result.plugin?.name ?? entry.name}`)
-      await Promise.all([refresh(), refreshMarket()])
-    } else {
-      toast.error('安装失败', { description: result.error })
-    }
-  } catch (error) {
-    toast.error('安装失败', { description: (error as Error).message })
-  } finally {
-    installingId.value = null
-  }
-}
-
 // ───── 开发者生态通道（launcher:devPlugins:* / launcher:market:update）─────
 // 注意：这些方法需要配套的 preload 绑定（清单见 docs/PLUGIN_DEVELOPMENT.md「开发模式」）。
 // 绑定就绪前 window.api.launcher 上不存在对应方法，这里统一 cast + 存在性守卫，
@@ -803,31 +587,6 @@ function devChannels(): DevPluginsApi | null {
   return typeof api.devPluginsList === 'function' ? (api as DevPluginsApi) : null
 }
 
-async function onMarketUpdate(entry: MarketEntry): Promise<void> {
-  const api = devChannels()
-  if (!api || typeof api.marketUpdate !== 'function') {
-    toast.error('更新通道未就绪', { description: '需要包含 marketUpdate 绑定的 preload' })
-    return
-  }
-  installingId.value = entry.id
-  try {
-    const result = await api.marketUpdate(entry.id)
-    if (result.success) {
-      toast.success(
-        `已更新 ${result.plugin?.name ?? entry.name}` +
-          (result.plugin?.version ? ` → v${result.plugin.version}` : '')
-      )
-      await Promise.all([refresh(), refreshMarket()])
-    } else {
-      toast.error('更新失败', { description: result.error })
-    }
-  } catch (error) {
-    toast.error('更新失败', { description: (error as Error).message })
-  } finally {
-    installingId.value = null
-  }
-}
-
 const devPlugins = ref<DevPluginRow[]>([])
 const devAdding = ref(false)
 const devReloadingId = ref<string | null>(null)
@@ -857,7 +616,7 @@ async function onAddDevPlugin(): Promise<void> {
     const result = await api.devPluginsAdd(picked.dirPath)
     if (result.ok) {
       toast.success(`已注册开发目录：${result.plugin?.name ?? result.plugin?.id ?? ''}`)
-      await Promise.all([refresh(), refreshDevPlugins(), refreshMarket()])
+      await Promise.all([refresh(), refreshDevPlugins()])
     } else {
       toast.error('注册失败', { description: result.error })
     }
@@ -888,7 +647,7 @@ async function onDevReload(d: DevPluginRow): Promise<void> {
     const result = await api.devPluginsReload(d.pluginId)
     if (result.ok) {
       toast.success(`已重载 ${result.plugin?.name ?? d.name ?? d.pluginId}`)
-      await Promise.all([refresh(), refreshDevPlugins(), refreshMarket()])
+      await Promise.all([refresh(), refreshDevPlugins()])
     } else {
       toast.error('重载失败', { description: result.error })
     }
@@ -1309,7 +1068,6 @@ const syncRestoring = ref(false)
 
 onMounted(async () => {
   void refresh()
-  void refreshMarket()
   void refreshQuicklinks()
   void refreshHotkeys()
   void refreshExpansion()
@@ -1328,7 +1086,6 @@ onMounted(async () => {
       }
       void refresh()
       void refreshDevPlugins()
-      void refreshMarket()
     })
   }
   try {

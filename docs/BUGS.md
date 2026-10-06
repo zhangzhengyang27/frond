@@ -1553,3 +1553,15 @@ PomodoroIntegrationService.ts:178-185——setFocusMode 不走 prefRepository，
 - 门禁：typecheck 0 / lint 0 error / unit 1299 / smoke 12/12 / 新钉 4/4。
   另：用户实例长期不重启会新旧混杂（主进程旧尺寸 + 渲染端 HMR 半更新），
   「边框还在」类反馈先要求完全重启再查。
+
+### B62【P1】e2e launcher.spec 原件丢失，胶囊主链路零整链覆盖（2026-10-06 挂账）
+- 现状：`e2e/launcher.spec.mjs` 只剩一个 `test.skip` 占位，文件头自述「原件丢失
+  （事故恢复期被工具回执覆盖，无副本可回灌）」——2026-10-06 全库排查时确认
+  这条挂账从未进过 BUGS.md，一直只躺在 spec 注释里。
+- 影响：胶囊最核心链路（唤起 → 搜索 → 结果列表 → 回车执行 → 插件/模块打开）
+  没有整链 e2e；现状靠碎片 spec（launch-smoke / capsule-actions / plugin-args /
+  plugin-arg-slots / heavy-module-window 等）各管一段，链路级回归（如结果排序、
+  键盘导航、副输入框接管）可能静默漏网。
+- 重建方向：按现存碎片 spec 的骨架重写——launch → fill → 结果出现 → Enter
+  打开 first-party / plugin / module 三形态 + ESC 关闭 + 搜索历史写入；断言
+  复用 e2eProbe 计数通道（countE2E）。重建完成后本条销账。

@@ -90,8 +90,10 @@ function escapeHtml(text: string): string {
   padding: 16px 18px;
   font-size: 13px;
   line-height: 1.6;
-  line-height: 1.6;
   color: var(--launcher-text);
+  /* 应用路径/Bundle ID 这类长 ASCII token 没有自然断行点，inline code 装不下时
+     会水平溢出被 .launcher-detail overflow:hidden 硬切半字——允许任意断行 */
+  overflow-wrap: anywhere;
 }
 
 .detail-panel :deep(h1),

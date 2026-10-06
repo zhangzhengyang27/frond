@@ -54,7 +54,7 @@
               if (f.openCount > 0) meta.push('打开 ' + f.openCount + ' 次')
               var kids = Lib.childrenOf(folders, f.path)
               var actions = [
-                { label: '打开', type: 'open', payload: f.path, hint: '↵' },
+                { label: '打开', type: 'callback', payload: 'open:' + f.path, hint: '↵' },
                 { label: '复制路径', type: 'copy', payload: f.path, hint: '⌘1' },
                 { label: f.pinned ? '取消置顶' : '置顶', type: 'callback', payload: (f.pinned ? 'unpin:' : 'pin:') + f.path },
                 { label: '移除', type: 'callback', payload: 'remove:' + f.path, hint: '⌘2' }
@@ -94,7 +94,7 @@
                 subtitle: f.path,
                 icon: 'folder-line',
                 actions: [
-                  { label: '打开', type: 'open', payload: f.path, hint: '↵' },
+                  { label: '打开', type: 'callback', payload: 'open:' + f.path, hint: '↵' },
                   { label: '复制路径', type: 'copy', payload: f.path, hint: '⌘1' }
                 ]
               }
@@ -160,6 +160,22 @@
           return
         }
         if (p === 'noop') return
+        if (p.indexOf('open:') === 0) {
+          var openTarget = p.slice('open:'.length)
+          getFolders().then(function (folders) {
+            var next = folders.map(function (f) {
+              if (f.path !== openTarget) return f
+              return { path: f.path, pinned: f.pinned, openCount: (f.openCount || 0) + 1 }
+            })
+            return saveFolders(next)
+          }).then(function () {
+            return api.openPath(openTarget).then(function (ok) {
+              if (ok) api.showHud('已打开')
+              else api.showHud('打开失败')
+            })
+          }).catch(function () { api.showHud('打开失败') })
+          return
+        }
         if (p.indexOf('remove:') === 0) {
           var target = p.slice('remove:'.length)
           getFolders().then(function (folders) {

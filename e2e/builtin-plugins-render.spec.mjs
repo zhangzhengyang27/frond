@@ -123,11 +123,14 @@ test('qrcode：dataUrl 缩略图条目（img.plist-thumb）', async () => {
   expect(src?.startsWith('data:image/png;base64,')).toBe(true)
 })
 
-test.skip('currency：React 视图冒烟（挂账 DevTools 人工调试）', () => {
-  // 2026-10-06：完整实现 bundle（含入口代码，node 模拟宿主可执行到 renderView、
-  // renderView 通道计数=1）在 sandbox BrowserView 中视图提交后渲染为空（items=0、
-  // console 静默、executeJavaScript 探针随之挂起）。同构建管线下 example 内容
-  // bundle 可正常渲染（items=3），管线本身可用；差异点在 main.tsx 内容，需
-  // DevTools 人工调试。诊断链：e2e series 采样 → probeCounts → node 模拟执行，
-  // 完整记录见 2026-10-06 工作报告与审查记录。
-})
+test('currency：React 视图冒烟（列表/错误/缓存态任一渲染完成）', async () => {
+  const main = await installPlugin(join(ROOT, 'plugins', 'com.frond.currency'))
+  await main.evaluate(() => window.api.launcher.openPlugin('com.frond.currency'))
+  const capsule = await getCapsuleWindow()
+  expect(capsule).toBeTruthy()
+  await capsule.waitForLoadState('domcontentloaded')
+  // 网络态不定（实时/离线缓存/失败），断言「React 视图渲染完成」这一层
+  await expect
+    .poll(async () => capsule.locator('.plist-item').count(), { timeout: 30000, intervals: [500] })
+    .toBeGreaterThanOrEqual(1)
+}, 60000)

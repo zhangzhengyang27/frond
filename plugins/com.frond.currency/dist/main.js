@@ -9884,7 +9884,7 @@
         if (root2 && typeof root2 === "object") root2.FrondCurrencyLib = api;
       })(typeof globalThis !== "undefined" ? globalThis : exports, function() {
         var TOP = ["CNY", "USD", "EUR", "JPY", "GBP", "HKD", "KRW", "AUD", "CAD", "SGD"];
-        function parseQuery2(q, prefs) {
+        function parseQuery(q, prefs) {
           prefs = prefs || {};
           var str = String(q || "").trim();
           if (str === "") return null;
@@ -9919,7 +9919,7 @@
           var now = typeof nowMs === "number" ? nowMs : Date.now();
           return now - cache.ts < 24 * 36e5;
         }
-        return { parseQuery: parseQuery2, isCacheFresh: isCacheFresh2, topCurrencies: TOP };
+        return { parseQuery, isCacheFresh: isCacheFresh2, topCurrencies: TOP };
       });
     }
   });
@@ -10016,6 +10016,10 @@
       const id = registerCallback2(value);
       used.add(id);
       return `cb:${key}`;
+    }
+    if (value !== null && typeof value === "object" && typeof value.$$typeof === "symbol") {
+      console.warn(`[frond-sdk] props.${path} \u662F React \u5143\u7D20\uFF08\u4E0D\u53EF\u8DE8 IPC \u4F20\u8F93\uFF09\uFF0C\u5DF2\u7F6E null\u2014\u2014\u8BF7\u6539\u7528\u8BE5\u7EC4\u4EF6\u7684 children/\u5951\u7EA6\u5F62\u6001`);
+      return null;
     }
     const isContainer = Array.isArray(value) || typeof value === "object" && value !== null;
     if (isContainer) {
@@ -10553,8 +10557,10 @@
   // plugins/com.frond.currency/src/main.tsx
   var import_lib = __toESM(require_lib());
   var API_BASE = "https://open.er-api.com/v6/latest/";
+  function bridge() {
+    return globalThis.launcherApi || {};
+  }
   var state = {
-    query: "",
     from: "CNY",
     to: "USD",
     amount: 100,
@@ -10566,43 +10572,52 @@
     const rf = rates[from];
     const rt = rates[to];
     if (!rf || !rt) return null;
-    return amount / rf * rt;
+    return Math.round(amount / rf * rt * 1e4) / 1e4;
   }
   function fmt(n) {
     return n.toLocaleString("zh-CN", { maximumFractionDigits: 4 });
   }
-  function bridge() {
-    return globalThis.launcherApi || {};
+  function currencyName(code) {
+    try {
+      return new Intl.DisplayNames(["zh-CN"], { type: "currency" }).of(code) || code;
+    } catch {
+      return code;
+    }
   }
   async function loadPrefs() {
     try {
       const prefs = bridge().preferences;
-      const g = prefs && prefs.get ? await prefs.get("baseCurrency") : void 0;
-      const t = prefs && prefs.get ? await prefs.get("targetCurrency") : void 0;
+      if (!prefs || !prefs.get) return;
+      const g = await prefs.get("baseCurrency");
+      const t = await prefs.get("targetCurrency");
       if (g && g.ok && typeof g.value === "string") state.from = g.value;
       if (t && t.ok && typeof t.value === "string") state.to = t.value;
     } catch {
     }
   }
   async function loadRates() {
-    const api = bridge();
-    const stored = api.db && api.db.get ? await api.db.get("rates") : null;
-    const cached = stored && stored.data;
+    const db = bridge().db;
+    let cached = null;
+    if (db && db.get) {
+      const stored = await db.get("rates");
+      const data = stored && stored.data;
+      if (data && typeof data === "object" && "rates" in data) cached = data;
+    }
     if (cached && cached.base === state.from && (0, import_lib.isCacheFresh)(cached)) {
       state.cache = cached;
       state.offline = false;
       return;
     }
+    const fetcher = bridge().fetch;
+    if (!fetcher) throw new Error("fetch \u4E0D\u53EF\u7528");
     try {
-      const fetcher = bridge().fetch;
-      if (!fetcher) throw new Error("fetch \u4E0D\u53EF\u7528");
       const res = await fetcher(API_BASE + state.from);
       if (res && res.ok && res.data) {
         const body = JSON.parse(res.data);
         if (body.result === "success" && body.rates) {
           state.cache = { base: state.from, rates: body.rates, ts: Date.now() };
           state.offline = false;
-          if (api.db && api.db.put) await api.db.put("rates", state.cache);
+          if (db && db.put) await db.put("rates", state.cache);
           return;
         }
       }
@@ -10618,36 +10633,26 @@
     }
   }
   async function loadPairs() {
-    const api = bridge();
-    const stored = api.db && api.db.get ? await api.db.get("pairs") : null;
-    state.pairs = stored && stored.data && stored.data.list || [];
+    const db = bridge().db;
+    if (!db || !db.get) return;
+    const stored = await db.get("pairs");
+    const list = stored && stored.data && stored.data.list;
+    state.pairs = Array.isArray(list) ? list : [];
   }
-  function currencyName(code) {
-    try {
-      return new Intl.DisplayNames(["zh-CN"], { type: "currency" }).of(code) || code;
-    } catch {
-      return code;
-    }
+  async function savePairs() {
+    const db = bridge().db;
+    if (db && db.put) await db.put("pairs", { list: state.pairs });
   }
   function RateList() {
     const nav = useNavigation();
     const cache = state.cache;
-    const rates = cache ? cache.rates : {};
-    const items = [];
     if (!cache) {
-      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, { emptyMessage: "\u6CA1\u6709\u53EF\u7528\u6C47\u7387\uFF08\u9996\u6B21\u62C9\u53D6\u5931\u8D25\u8BF7\u91CD\u8BD5\uFF09", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-        List.Item,
-        {
-          title: "\u62C9\u53D6\u6C47\u7387\u5931\u8D25",
-          subtitle: "\u65E0\u6CD5\u8FDE\u63A5 " + API_BASE,
-          icon: "error-warning-line",
-          actions: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionPanel, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u91CD\u8BD5", onAction: () => void run() }) })
-        }
-      ) });
+      return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, { emptyMessage: "\u6CA1\u6709\u53EF\u7528\u6C47\u7387\uFF08\u9996\u6B21\u62C9\u53D6\u5931\u8D25\u8BF7\u91CD\u8BD5\uFF09", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, { title: "\u62C9\u53D6\u6C47\u7387\u5931\u8D25", subtitle: "\u65E0\u6CD5\u8FDE\u63A5 " + API_BASE, icon: "error-warning-line", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionPanel, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u91CD\u8BD5", onAction: () => void run() }) }) }) });
     }
+    const rates = cache.rates;
     const main2 = convertWith(state.amount, state.from, state.to, rates);
-    const cachedTag = state.offline ? "\u79BB\u7EBF \xB7 " + Math.floor((Date.now() - (cache.ts || 0)) / 36e5) + "h \u524D" : new Date(cache.ts || 0).toLocaleTimeString("zh-CN", { hour12: false });
-    items.push(
+    const cachedTag = state.offline ? "\u79BB\u7EBF \xB7 " + Math.max(1, Math.floor((Date.now() - (cache.ts || 0)) / 36e5)) + "h \u524D" : new Date(cache.ts || 0).toLocaleTimeString("zh-CN", { hour12: false });
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(List, { children: [
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
         List.Item,
         {
@@ -10659,11 +10664,9 @@
 
 - \u91D1\u989D\uFF1A${fmt(state.amount)}
 - \u6C47\u7387\uFF1A1 ${state.from} = ${fmt(rates[state.to] || NaN)} ${state.to}
-- \u6570\u636E\u6E90\uFF1Aopen.er-api.com
-
-\u26A0 \u4EC5\u89E3\u7801\u5C55\u793A\uFF0C\u4E0D\u6784\u6210\u4EFB\u4F55\u4EA4\u6613\u5EFA\u8BAE\u3002`,
+- \u6570\u636E\u6E90\uFF1Aopen.er-api.com\uFF08\u6BCF 10 \u5206\u949F\u66F4\u65B0\uFF09`,
           detailFormat: "markdown",
-          actions: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
+          children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               Action,
               {
@@ -10671,12 +10674,18 @@
                 onAction: () => void copyToClipboard(main2 !== null ? `${state.amount} ${state.from} = ${main2} ${state.to}` : "").then(() => showHud("\u5DF2\u590D\u5236")).catch(() => showHud("\u590D\u5236\u5931\u8D25"))
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u6362\u5411\uFF08B\u2192A\uFF09", onAction: () => {
-              const f = state.from;
-              state.from = state.to;
-              state.to = f;
-              void run();
-            } }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              Action,
+              {
+                title: "\u6362\u5411\uFF08B\u2192A\uFF09",
+                onAction: () => {
+                  const f = state.from;
+                  state.from = state.to;
+                  state.to = f;
+                  void run();
+                }
+              }
+            ),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
               Action,
               {
@@ -10694,37 +10703,43 @@
           ] })
         },
         "main"
-      )
-    );
-    if (state.pairs.length > 0) {
-      items.push(
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Section, { title: "\u6536\u85CF\u8D27\u5E01\u5BF9", children: state.pairs.map((p, i) => {
-          const v = convertWith(state.amount, p.from, p.to, rates);
-          return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-            List.Item,
-            {
-              title: v !== null ? `${fmt(state.amount)} ${p.from} = ${fmt(v)} ${p.to}` : `${p.from} \u2192 ${p.to}`,
-              subtitle: p.from + " \u2192 " + p.to,
-              icon: "bookmark-line",
-              actions: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u6362\u7B97", onAction: () => {
-                  state.from = p.from;
-                  state.to = p.to;
-                  void run();
-                } }),
-                /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u53D6\u6D88\u6536\u85CF", onAction: () => {
-                  state.pairs.splice(i, 1);
-                  void savePairs();
-                  void run();
-                } })
-              ] })
-            },
-            "p" + i
-          );
-        }) }, "pairs")
-      );
-    }
-    items.push(
+      ),
+      state.pairs.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Section, { title: "\u6536\u85CF\u8D27\u5E01\u5BF9", children: state.pairs.map((p, i) => {
+        const v = convertWith(state.amount, p.from, p.to, rates);
+        return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+          List.Item,
+          {
+            title: v !== null ? `${fmt(state.amount)} ${p.from} = ${fmt(v)} ${p.to}` : `${p.from} \u2192 ${p.to}`,
+            subtitle: p.from + " \u2192 " + p.to,
+            icon: "bookmark-line",
+            children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                Action,
+                {
+                  title: "\u6362\u7B97",
+                  onAction: () => {
+                    state.from = p.from;
+                    state.to = p.to;
+                    void run();
+                  }
+                }
+              ),
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                Action,
+                {
+                  title: "\u53D6\u6D88\u6536\u85CF",
+                  onAction: () => {
+                    state.pairs.splice(i, 1);
+                    void savePairs();
+                    void run();
+                  }
+                }
+              )
+            ] })
+          },
+          "p" + i
+        );
+      }) }) : null,
       /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Section, { title: "\u5E38\u7528\u8D27\u5E01", children: import_lib.topCurrencies.filter((c) => c !== state.from && c !== state.to).map((c) => {
         const v = convertWith(state.amount, state.from, c, rates);
         return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
@@ -10734,11 +10749,17 @@
             subtitle: currencyName(c),
             icon: "money-cny-box-line",
             accessories: [c],
-            actions: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u6362\u7B97\u5230\u8BE5\u8D27\u5E01", onAction: () => {
-                state.to = c;
-                void run();
-              } }),
+            children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                Action,
+                {
+                  title: "\u6362\u7B97\u5230\u8BE5\u8D27\u5E01",
+                  onAction: () => {
+                    state.to = c;
+                    void run();
+                  }
+                }
+              ),
               /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 Action,
                 {
@@ -10750,35 +10771,25 @@
           },
           c
         );
-      }) }, "top")
-    );
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, { children: items });
+      }) })
+    ] });
   }
   function CurrencyPicker(props) {
     const nav = useNavigation();
     const rates = state.cache ? state.cache.rates : {};
     const codes = Object.keys(rates).sort();
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, { emptyMessage: "\u8BE5\u57FA\u51C6\u4E0B\u6CA1\u6709\u53EF\u7528\u8D27\u5E01", children: codes.map((c) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-      List.Item,
+    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, { emptyMessage: "\u8BE5\u57FA\u51C6\u4E0B\u6CA1\u6709\u53EF\u7528\u8D27\u5E01", children: codes.map((c) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, { title: c, subtitle: currencyName(c), icon: "money-cny-box-line", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionPanel, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+      Action,
       {
-        title: c,
-        subtitle: currencyName(c),
-        icon: "money-cny-box-line",
-        actions: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ActionPanel, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          Action,
-          {
-            title: "\u9009\u62E9",
-            onAction: () => {
-              if (props.picking === "from") state.from = c;
-              else state.to = c;
-              nav.pop();
-              void run();
-            }
-          }
-        ) })
-      },
-      c
-    )) });
+        title: "\u9009\u62E9",
+        onAction: () => {
+          if (props.picking === "from") state.from = c;
+          else state.to = c;
+          nav.pop();
+          void run();
+        }
+      }
+    ) }) }, c)) });
   }
   function AmountForm() {
     const nav = useNavigation();
@@ -10797,38 +10808,26 @@
       }
     );
   }
-  async function savePairs() {
-    const api = bridge();
-    if (api.db && api.db.put) await api.db.put("pairs", { list: state.pairs });
-  }
   function ErrorDetail(props) {
     return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Detail, { markdown: `# \u51FA\u9519\u4E86
 
 ${props.message}` });
   }
-  var booted = false;
   async function run() {
-    try {
-      const q = state.query;
-      const parsed = (0, import_lib.parseQuery)(q, { baseCurrency: state.from, targetCurrency: state.to });
-      if (parsed) {
-        state.amount = parsed.amount;
-        state.from = parsed.from;
-        state.to = parsed.to;
-      }
-      await loadRates();
-      start(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RateList, {}));
-    } catch (e) {
-      start(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ErrorDetail, { message: e instanceof Error ? e.message : String(e) }));
-    }
+    await loadRates();
+    start(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(RateList, {}));
   }
   function main() {
     void (async () => {
-      if (booted) return;
-      booted = true;
+      if (globalThis.__frondCurrencyBooted) return;
+      globalThis.__frondCurrencyBooted = true;
       try {
         const ctx = await getPluginContext();
-        state.query = ctx && ctx.args && ctx.args.q || "";
+        const q = ctx && ctx.args && ctx.args.q;
+        if (q && typeof q === "string") {
+          const m = /^(\d+(?:\.\d+)?)/.exec(q);
+          if (m) state.amount = Number(m[1]);
+        }
         await loadPrefs();
         await loadPairs();
         await run();

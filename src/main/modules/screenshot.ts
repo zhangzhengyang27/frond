@@ -19,6 +19,15 @@ import { log } from '../services/LogService'
  */
 let shots: Screenshots | null = null
 
+/**
+ * 截屏采集能力开关：node-screenshots 只有 darwin-arm64 预编译包（electron-builder.yml
+ * asarUnpack 注释同源），Intel (darwin-x64) 上 electron-screenshots 的采集必然失败。
+ * 门在 triggerScreenshot 单点收口——全局热键与 IPC 两个入口都从这里过。
+ */
+export const SCREEN_CAPTURE_SUPPORTED = !(
+  process.platform === 'darwin' && process.arch === 'x64'
+)
+
 /** 工具栏文案：上游只给了这几个键，缺省是英文，这里补中文 */
 const LANG = {
   magnifier_position_label: '坐标',
@@ -58,6 +67,12 @@ async function persistShot(buffer: Buffer): Promise<string | null> {
  * handler 无论成败都回 `{ success: true }`，UI 上看不出没截屏。
  */
 export async function triggerScreenshot(): Promise<{ ok: boolean; error?: string }> {
+  if (!SCREEN_CAPTURE_SUPPORTED) {
+    const error = 'Intel (x64) 版暂不支持截屏采集，截图库（搜索已有截图）不受影响'
+    new Notification({ title: '截图', body: error }).show()
+    log.warn('screenshot', '截屏采集在 darwin-x64 上不可用')
+    return { ok: false, error }
+  }
   if (!shots) return { ok: false, error: '截图服务未初始化' }
   try {
     await shots.startCapture()

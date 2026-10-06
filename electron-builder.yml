@@ -28,17 +28,20 @@ asarUnpack:
   # 入口解包后其对共享 chunk 的相对 require 也必须落在解包树内，故 chunks 一并解包
   - out/main/file-index-worker.js
   - out/main/chunks/**
-  - node_modules/@ffmpeg-installer/**
   - node_modules/uiohook-napi/**
-  # better-sqlite3 是原生模块（NAPI 预编译 prebuilds/*.node），.node 不能从 asar 内加载
+  # better-sqlite3 是原生模块（NAPI 预编译 prebuilds/*.node，darwin-arm64+x64 双份都在包里），
+  # .node 不能从 asar 内加载
   - node_modules/better-sqlite3/**
   - node_modules/bindings/**
   - node_modules/file-uri-to-path/**
-  # 截图采集侧：node-screenshots 是 NAPI-RS 的按平台预编译包（darwin-arm64 / win32-x64 / linux-*），
-  # 真正的 .node 在平台包里；electron-screenshots 通过 `await import('node-screenshots')` 用它抓屏。
-  # 用 **/ 前缀是因为 pnpm 下这些包挂在 .pnpm 目录里，不在顶层 node_modules。
+  # 截图采集侧：node-screenshots 是 NAPI-RS 的按平台预编译包（只有 darwin-arm64；
+  # Intel 版的截屏入口在 main 侧降级禁用）。用 **/ 前缀是因为 pnpm 下这些包
+  # 挂在 .pnpm 目录里，不在顶层 node_modules。
   - '**/node_modules/node-screenshots/**'
   - '**/node_modules/node-screenshots-*/**'
+  # 文件索引 watcher：Intel (x64) 上后端回退到 @parcel/watcher，其平台原生包
+  # 需解包才能 dlopen（fsevents 同理，靠 electron-builder 对原生模块的自动解包兜底）
+  - '**/node_modules/@parcel/watcher-darwin-*/**'
 extraResources:
   # 静态插件市场索引（M3.5）：打包后位于 resources/plugins.json
   # 批 6：官方精选索引随包分发（curated-index.json）
@@ -67,6 +70,12 @@ nsis:
   createDesktopShortcut: always
 mac:
   icon: build/icon.icns
+  # 双架构（v0.2.1）：arm64 + x64 各出 dmg/zip；x64 上截屏采集降级（见 main/modules/screenshot.ts）
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
   # 主 app 的 hardened runtime 授权：按本应用真实用到的能力逐条给，
   # 每条的依据写在 plist 的注释里（JIT / 原生模块与 ffmpeg / 网络 / 麦克风与摄像头 / 用户选定文件）
   entitlements: build/entitlements.mac.plist
@@ -93,7 +102,8 @@ mac:
   # - 本地：electron-builder 默认走系统 keychain 查找
   #   "Developer ID Application: Your Name (TEAMID)"，故本地通常无需额外配置
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  # ${arch} 必须带上：双架构打包时默认名不带架构，x64 会覆盖 arm64 的同名 dmg
+  artifactName: ${name}-${version}-${arch}.${ext}
 linux:
   target:
     - AppImage

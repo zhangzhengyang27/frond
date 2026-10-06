@@ -20,7 +20,13 @@ export interface WatchBackend {
 }
 
 /** 当前平台可用的后端；null = 没有增量能力（索引仍可用，靠启动补偿与手动重建） */
-export function activeBackend(p: NodeJS.Platform = process.platform): WatchBackend | null {
+export function activeBackend(
+  p: NodeJS.Platform = process.platform,
+  arch: string = process.arch
+): WatchBackend | null {
+  // fsevents 没有 darwin-x64 预编译（arm64 专属），Intel mac 回退 parcel 后端
+  // （@parcel/watcher-darwin-x64 以直接依赖随包分发，见 package.json）
+  if (p === 'darwin' && arch === 'x64') return parcelBackend
   if (p === 'darwin') return fseventsBackend
   if (p === 'win32') return parcelBackend
   return null

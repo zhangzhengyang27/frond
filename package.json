@@ -40,8 +40,8 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@parcel/watcher": "^2.6.0",
+    "@parcel/watcher-darwin-x64": "2.6.0",
     "@vueuse/core": "^14.0.0",
     "axios": "^1.13.2",
     "better-sqlite3": "^13.0.1",

@@ -20,7 +20,9 @@ Frond 是一款本地优先的轻量桌面工具集：**启动器（Alt+Space �
 
 ## 平台支持
 
-- **macOS**：主要支持平台，功能完整（全局热键、文本扩展、专注护盾依赖辅助功能授权）。发布产物目前仅提供 macOS（dmg / zip）。
+- **macOS**：主要支持平台，功能完整（全局热键、文本扩展、专注护盾依赖辅助功能授权）。发布产物提供 macOS 双架构（dmg / zip，Apple Silicon 与 Intel 各一份）。
+  - Apple Silicon (M1+)：功能完整。
+  - Intel (x64)：截屏采集暂不可用（截图采集库无 x64 预编译，入口已禁用并提示），截图库、番茄钟、代码片段等其余功能不受影响。
 - **Windows / Linux**：源码可构建（`pnpm build:win` / `build:linux`），但系统级深度功能未做真机验证，暂不提供官方安装包——跨平台发布策略见 [docs/ROADMAP.md](./docs/ROADMAP.md)。
 
 ## 快速开始

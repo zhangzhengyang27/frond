@@ -275,7 +275,8 @@ export const FIRST_PARTY_COMMANDS: CommandEntry[] = [
   },
   {
     key: 'firstparty:eventform',
-    icon: 'calendar-add-line',
+    // remixicon 没有 calendar-add（missing glyph 渲染成静默空白），用 calendar-event
+    icon: 'calendar-event-line',
     title: '创建日程',
     subtitle: '写入系统日历（标题 / 开始时间 / 时长）',
     badge: '动作',

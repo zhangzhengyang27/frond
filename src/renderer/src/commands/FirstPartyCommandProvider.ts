@@ -30,7 +30,8 @@ export function createFirstPartyCommandProvider(): CommandProvider {
           id: 'ai:translate',
           title: '翻译为中文',
           subtitle: '把剪贴板文本交给 AI 处理',
-          icon: 'translate-2',
+          // translate-2 / text-wrap 是 remixicon 无 -line 后缀的特例类，写全名直通
+          icon: 'ri-translate-2',
           category: 'ai',
           badge: 'AI',
           keywords: ['translate', '翻译', 'fanyi', '中译英', '英译中'],
@@ -40,7 +41,7 @@ export function createFirstPartyCommandProvider(): CommandProvider {
           id: 'ai:summarize',
           title: '总结文本',
           subtitle: '把剪贴板文本交给 AI 处理',
-          icon: 'text-wrap',
+          icon: 'ri-text-wrap',
           category: 'ai',
           badge: 'AI',
           keywords: ['summarize', '总结', 'zongjie', '摘要', 'zhaiyao'],

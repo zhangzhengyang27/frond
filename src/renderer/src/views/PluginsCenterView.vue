@@ -3,7 +3,7 @@
     <header class="pc-head">
       <div>
         <h1 class="pc-title">插件中心</h1>
-        <p class="pc-sub">已装 {{ stats.total }} · 启用 {{ stats.enabled }}——回车打开、开关启停、卸载需确认</p>
+        <p class="pc-sub">已装 {{ stats.total }} · 启用 {{ stats.enabled }}——开关启停、卸载需确认</p>
       </div>
       <UInput
         v-model="query"
@@ -14,45 +14,47 @@
       />
     </header>
 
-    <div v-if="loading" class="pc-loading">
-      <AppIcon icon="loader-4" :size="18" class="pc-spin" />
-      <span>读取插件列表…</span>
-    </div>
-    <UEmpty
-      v-else-if="plugins.length === 0"
-      title="还没有安装插件"
-      description="去「设置 → 插件」从市场安装，或从本地文件夹导入"
-    />
-    <UEmpty
-      v-else-if="filtered.length === 0"
-      title="没有匹配的插件"
-      :description="`「${query}」没有命中任何插件，换个关键词试试`"
-    />
-    <ul v-else class="pc-list" data-testid="plugins-center-list">
-      <li v-for="row in filtered" :key="row.id" class="pc-item">
-        <div class="pc-icon">
-          <AppIcon :icon="row.icon || 'plug-2'" :size="18" />
-        </div>
-        <div class="pc-info">
-          <div class="pc-name">
-            {{ row.name }}
-            <span class="pc-version">v{{ row.version }}</span>
-            <span v-if="!row.enabled" class="pc-badge-off">已停用</span>
+    <div class="pc-body">
+      <div v-if="loading" class="pc-loading">
+        <AppIcon icon="loader-4" :size="18" class="pc-spin" />
+        <span>读取插件列表…</span>
+      </div>
+      <UEmpty
+        v-else-if="plugins.length === 0"
+        title="还没有安装插件"
+        description="去「设置 → 启动器」从市场安装，或从本地文件夹导入"
+      />
+      <UEmpty
+        v-else-if="filtered.length === 0"
+        title="没有匹配的插件"
+        :description="`「${query}」没有命中任何插件，换个关键词试试`"
+      />
+      <ul v-else class="pc-list" data-testid="plugins-center-list">
+        <li v-for="row in filtered" :key="row.id" class="pc-item">
+          <div class="pc-icon">
+            <AppIcon :icon="row.icon || 'plug-2'" :size="18" />
           </div>
-          <div class="pc-desc">{{ row.description || row.id }}</div>
-        </div>
-        <div class="pc-actions">
-          <UButton size="sm" :disabled="!row.enabled" @click="openPlugin(row)">打开</UButton>
-          <USwitch
-            :model-value="row.enabled"
-            size="md"
-            :label="row.enabled ? '已启用' : '已停用'"
-            @update:model-value="toggleEnabled(row)"
-          />
-          <UButton size="sm" variant="ghost" danger @click="removePlugin(row)">卸载</UButton>
-        </div>
-      </li>
-    </ul>
+          <div class="pc-info">
+            <div class="pc-name">
+              {{ row.name }}
+              <span class="pc-version">v{{ row.version }}</span>
+              <span v-if="!row.enabled" class="pc-badge-off">已停用</span>
+            </div>
+            <div class="pc-desc">{{ row.description || row.id }}</div>
+          </div>
+          <div class="pc-actions">
+            <UButton size="sm" :disabled="!row.enabled" @click="openPlugin(row)">打开</UButton>
+            <USwitch
+              :model-value="row.enabled"
+              size="md"
+              :label="row.enabled ? '已启用' : '已停用'"
+              @update:model-value="toggleEnabled(row)"
+            />
+            <UButton size="sm" variant="ghost" danger @click="removePlugin(row)">卸载</UButton>
+          </div>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -148,21 +150,23 @@ async function removePlugin(row: PluginRow): Promise<void> {
 </script>
 
 <style scoped>
+/* 弹窗布局（2026-10-06 用户反馈）：头部/搜索框固定，仅列表区滚动；
+   窗口尺寸由 HEAVY_MODULE_WINDOW_SIZES['plugins-center'] = 640×640 决定 */
 .plugins-center {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 28px 24px 32px;
+  height: 100vh;
+  padding: 22px 20px 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  min-height: 100vh;
+  gap: 14px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .pc-head {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .pc-title {
@@ -180,6 +184,12 @@ async function removePlugin(row: PluginRow): Promise<void> {
 
 .pc-search {
   width: 100%;
+}
+
+.pc-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .pc-loading {

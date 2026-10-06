@@ -39,7 +39,10 @@ export const HEAVY_MODULE_WINDOW_SIZES: Record<string, { width: number; height: 
   snippets: { width: 1040, height: 660 },
   // B61v3：番茄钟改单列布局（页签+会话+环+CTA+任务卡+清单纵向堆叠），
   // 620px 是旧仪表盘布局的调值——单列需要更高的纵向空间
-  pomodoro: { width: 900, height: 820 }
+  pomodoro: { width: 900, height: 820 },
+  // 插件中心（2026-10-06 用户反馈「太宽、左右浪费」）：紧凑弹窗尺寸，
+  // 头部/搜索框固定，仅列表区内部滚动
+  'plugins-center': { width: 640, height: 640 }
 }
 
 /**

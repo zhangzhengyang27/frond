@@ -109,6 +109,12 @@ test('搜「插件中心」→ 独立窗口渲染列表 → 过滤 → 启停', 
   expect(page).toBeTruthy()
   await page.waitForLoadState('domcontentloaded')
 
+  // 窗口尺寸（2026-10-06 用户反馈「太宽」）：HEAVY_MODULE_WINDOW_SIZES 640×640，
+  // 视口宽不得越界（标题栏占高度，innerHeight 略小）
+  const viewport = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))
+  expect(viewport.w).toBeLessThanOrEqual(700)
+  expect(viewport.h).toBeLessThanOrEqual(640)
+
   // 列表渲染：两行 + 头部统计
   const list = page.locator('[data-testid="plugins-center-list"]')
   await expect

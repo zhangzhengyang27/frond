@@ -124,12 +124,6 @@ const sections: SettingsSection[] = [
     ]
   },
   {
-    id: 'extensions',
-    label: '插件',
-    icon: 'ri-plug-2-line',
-    keywords: ['plugin', 'market', '市场', '导入', '扩展', 'store']
-  },
-  {
     id: 'updates',
     label: '更新',
     icon: 'ri-refresh-line',
@@ -1374,33 +1368,6 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                     @blur="saveShieldWebsites"
                   />
                 </div>
-              </div>
-            </div>
-          </section>
-        </template>
-
-        <!-- ═══ 插件 ═══ -->
-        <template v-else-if="activeSection === 'extensions'">
-          <h1 class="mb-1 text-[28px] font-semibold tracking-tight text-fg-primary">插件</h1>
-          <p class="mb-8 text-[14px] text-fg-tertiary">管理已安装的插件与扩展。</p>
-
-          <section class="mb-8">
-            <div class="overflow-hidden rounded-xl bg-surface-1 ring-1 ring-line-subtle">
-              <div class="flex items-center gap-3 px-4 py-3">
-                <div
-                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-accent-purple)]/10 text-[var(--color-accent-purple)]"
-                >
-                  <AppIcon icon="plug-2-line" :size="16" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="text-[14px] font-medium text-fg-primary">插件管理</div>
-                  <div class="mt-0.5 text-[12px] text-fg-tertiary">
-                    查看、安装、卸载插件，管理插件偏好设置
-                  </div>
-                </div>
-                <UButton size="sm" variant="secondary" @click="activeSection = 'launcher'"
-                  >去管理</UButton
-                >
               </div>
             </div>
           </section>

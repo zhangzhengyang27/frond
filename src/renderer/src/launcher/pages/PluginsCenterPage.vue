@@ -6,13 +6,13 @@
     </div>
     <div v-else-if="rows.length === 0" class="pc-empty">还没有安装任何插件</div>
     <div v-else-if="filtered.length === 0" class="pc-empty">没有匹配「{{ query }}」的插件</div>
-    <div v-else class="pc-list" data-testid="plugins-center-list">
+    <div v-else class="pc-list" data-testid="plugins-center-list" @mousemove="onMouseMove">
       <div
         v-for="(row, index) in filtered"
         :key="row.id"
         class="pc-item"
         :class="{ selected: index === selectedIndex, armed: armedId === row.id }"
-        @mouseenter="selectedIndex = index"
+        @mouseenter="onMouseEnter(index)"
         @click="openPlugin(row)"
       >
         <div class="pc-icon">
@@ -100,6 +100,28 @@ watch(filtered, () => {
   selectedIndex.value = 0
 })
 
+/**
+ * 键盘导航抑制（2026-10-06 用户实测 bug）：鼠标悬停在某行时按 ↓/↑，高亮移动一步后
+ * 浏览器会对鼠标下方行重新派发 mouseenter，把选中抢回鼠标所在行——表现为
+ * 「按下键，列表不随着变动」。键盘导航后抑制 mouseenter，直到鼠标真实移动（mousemove）。
+ */
+const keyboardNav = ref(false)
+
+function onMouseEnter(index: number): void {
+  if (keyboardNav.value) return
+  selectedIndex.value = index
+}
+
+function onMouseMove(): void {
+  keyboardNav.value = false
+}
+
+function moveSelection(delta: number): void {
+  keyboardNav.value = true
+  const n = filtered.value.length
+  selectedIndex.value = (selectedIndex.value + delta + n) % Math.max(1, n)
+}
+
 async function refresh(): Promise<void> {
   try {
     plugins.value = (await window.api.launcher.listPlugins()) as InstalledPluginLike[]
@@ -166,14 +188,13 @@ defineExpose({
       }
       return false // 让 LauncherApp 走 popPage
     }
-    // Math.max(1, …)：空列表取模 0 得 NaN（MenuBarPage 同款守卫，B41）
+    // Math.max(1, …) 在 moveSelection 内：空列表不移动（MenuBarPage 同款守卫，B41）
     if (e.key === 'ArrowDown') {
-      selectedIndex.value = (selectedIndex.value + 1) % Math.max(1, filtered.value.length)
+      moveSelection(1)
       return true
     }
     if (e.key === 'ArrowUp') {
-      selectedIndex.value =
-        (selectedIndex.value - 1 + Math.max(1, filtered.value.length)) % Math.max(1, filtered.value.length)
+      moveSelection(-1)
       return true
     }
     if (e.key === 'Enter') {

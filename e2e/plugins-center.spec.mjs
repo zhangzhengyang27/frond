@@ -113,4 +113,24 @@ test('搜「插件中心」→ 页面渲染已装插件列表 → 过滤', async
     })
     .toBe(1)
   await expect(list.locator('.pc-item').first()).toContainText('二维码')
+
+  // 回归（2026-10-06 用户实测 bug）：鼠标悬停某行时按 ↓，选中必须移动而不是被
+  // mouseenter 抢回鼠标所在行。清空过滤回全列表 → hover 第一行 → 按 ↓ →
+  // selected 必须离开第一行（否则是 hover 抢回）
+  await input.fill('')
+  await expect
+    .poll(async () => list.locator('.pc-item').count(), { timeout: 10000, intervals: [200] })
+    .toBeGreaterThanOrEqual(2)
+  await list.locator('.pc-item').first().hover()
+  await input.press('ArrowDown')
+  await expect(list.locator('.pc-item').first(), 'hover 行不得占住选中').not.toHaveClass(
+    /selected/
+  )
+
+  // ESC 语义：⌘U 进入卸载确认 → ESC 取消确认（不退出页面）→ 再 ESC 才返回
+  await input.press('Meta+u')
+  await expect(list.locator('.pc-item.armed')).toHaveCount(1, { timeout: 5000 })
+  await input.press('Escape')
+  await expect(list.locator('.pc-item.armed')).toHaveCount(0)
+  await expect(list).toBeVisible()
 })

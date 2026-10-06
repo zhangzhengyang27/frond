@@ -1087,6 +1087,11 @@ function onKeydown(e: KeyboardEvent): void {
       searchBarRef.value?.focus()
       return
     }
+    // 内联页先处理自己的 ESC 语义（如插件中心的「取消卸载确认」），
+    // 不消费才落到 popPage——否则页内确认态永远收不到 ESC
+    if (firstPartyPage.value && pageRef.value?.handleKey?.(e)) {
+      return
+    }
     onEscape()
     return
   }

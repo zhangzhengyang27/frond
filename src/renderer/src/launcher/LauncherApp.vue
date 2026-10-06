@@ -1873,7 +1873,10 @@ onMounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 0;
+  /* 可收缩 + min-width:0：空间不足时副标题先出自己的省略号；
+     flex-shrink:0 时永远收不动，溢出只能被父容器硬切半字（badge 前无省略） */
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .launcher-result-meta {

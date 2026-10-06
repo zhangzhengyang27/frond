@@ -87,6 +87,14 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue')
     },
     {
+      // 插件中心（2026-10-06）：胶囊搜「插件中心」回车 → 独立沉浸窗。
+      // 管理界面在宽窗里重设计（搜索过滤 / USwitch 启停 / confirm 卸载）。
+      path: '/plugins-center',
+      name: 'pluginsCenter',
+      component: () => import('../views/PluginsCenterView.vue'),
+      meta: { window: 'overlay' }
+    },
+    {
       // 启动器管理页已退役（2026-10-04：内容迁设置页「启动器」页签，
       // Raycast 式——独立大页删除）。旧链接重定向。
       path: '/launcher',

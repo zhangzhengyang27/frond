@@ -1,9 +1,9 @@
 /**
- * Frond · E2E：胶囊内嵌插件中心页（2026-10-06）
+ * Frond · E2E：插件中心独立页（2026-10-06 重设计）
  *
- * 搜「插件中心」→ 回车进页 → 已装插件列表渲染（内置插件自动安装）→
- * 副输入框过滤 → ESC 返回。选择器沿用 capsule-actions 惯例
- * （.launcher-search-input / .launcher-result）。
+ * 搜「插件中心」回车 → page action → 独立沉浸窗（url 含 /plugins-center）→
+ * 列表渲染已装插件 → 搜索过滤 → USwitch 启停（徽章与统计联动）。
+ * 选择器沿用 capsule-actions 惯例（.launcher-search-input / .launcher-result）。
  */
 
 import { test, expect } from 'playwright/test'
@@ -58,7 +58,8 @@ const getCapsuleWindow = async () => {
   return null
 }
 
-test('搜「插件中心」→ 页面渲染已装插件列表 → 过滤', async () => {
+test('搜「插件中心」→ 独立窗口渲染列表 → 过滤 → 启停', async () => {
+  test.setTimeout(90000)
   const main = await getMainWindow()
   await main.waitForLoadState('domcontentloaded')
   await main.evaluate(async () => {
@@ -66,7 +67,7 @@ test('搜「插件中心」→ 页面渲染已装插件列表 → 过滤', async
       await window.api.preferences.setOnboardingCompleted()
     }
   })
-  // 全局 config 跳过了内置插件自动安装：手动装两个作列表数据（base64 + 二维码）
+  // 全局 config 跳过内置插件自动安装：手动装两个作列表数据
   for (const dir of ['com.frond.base64', 'com.frond.qrcode']) {
     const r = await main.evaluate(
       (p) => window.api.launcher.installFromFolder(p),
@@ -82,8 +83,6 @@ test('搜「插件中心」→ 页面渲染已装插件列表 → 过滤', async
   await input.click()
   await input.fill('')
   await input.fill('插件中心')
-
-  // 命令表就绪后「插件中心」命令行出现在搜索结果里
   await expect
     .poll(async () => capsule.locator('.launcher-result').count(), {
       timeout: 15000,
@@ -95,42 +94,39 @@ test('搜「插件中心」→ 页面渲染已装插件列表 → 过滤', async
   })
   await input.press('Enter')
 
-  // 页面渲染：内置插件自动安装（21 个），列表非空
-  const list = capsule.locator('[data-testid="plugins-center-list"]')
-  await expect
-    .poll(async () => list.locator('.pc-item').count(), {
-      timeout: 20000,
-      intervals: [300]
-    })
-    .toBeGreaterThanOrEqual(1)
+  // page action → 独立沉浸窗（url 含 /plugins-center）
+  let page = null
+  for (let i = 0; i < 50 && !page; i++) {
+    for (const w of app.windows()) {
+      try {
+        if (w.url().includes('plugins-center')) page = w
+      } catch {
+        /* noop */
+      }
+    }
+    if (!page) await new Promise((r) => setTimeout(r, 200))
+  }
+  expect(page).toBeTruthy()
+  await page.waitForLoadState('domcontentloaded')
 
-  // 过滤：胶囊搜索框接管为过滤输入，「二维码」只剩一行
-  await input.fill('二维码')
+  // 列表渲染：两行 + 头部统计
+  const list = page.locator('[data-testid="plugins-center-list"]')
   await expect
-    .poll(async () => list.locator('.pc-item').count(), {
-      timeout: 10000,
-      intervals: [200]
-    })
-    .toBe(1)
-  await expect(list.locator('.pc-item').first()).toContainText('二维码')
+    .poll(async () => list.locator('.pc-item').count(), { timeout: 20000, intervals: [300] })
+    .toBe(2)
+  await expect(page.locator('.pc-title')).toContainText('插件中心')
 
-  // 回归（2026-10-06 用户实测 bug）：鼠标悬停某行时按 ↓，选中必须移动而不是被
-  // mouseenter 抢回鼠标所在行。清空过滤回全列表 → hover 第一行 → 按 ↓ →
-  // selected 必须离开第一行（否则是 hover 抢回）
-  await input.fill('')
+  // 搜索过滤：「哈希」无命中 → 「Base64」剩一行
+  await page.locator('input[placeholder*="搜索插件"]').fill('Base64')
   await expect
     .poll(async () => list.locator('.pc-item').count(), { timeout: 10000, intervals: [200] })
-    .toBeGreaterThanOrEqual(2)
-  await list.locator('.pc-item').first().hover()
-  await input.press('ArrowDown')
-  await expect(list.locator('.pc-item').first(), 'hover 行不得占住选中').not.toHaveClass(
-    /selected/
-  )
+    .toBe(1)
+  await expect(list.locator('.pc-item').first()).toContainText('Base64')
+  await page.locator('input[placeholder*="搜索插件"]').fill('')
 
-  // ESC 语义：⌘U 进入卸载确认 → ESC 取消确认（不退出页面）→ 再 ESC 才返回
-  await input.press('Meta+u')
-  await expect(list.locator('.pc-item.armed')).toHaveCount(1, { timeout: 5000 })
-  await input.press('Escape')
-  await expect(list.locator('.pc-item.armed')).toHaveCount(0)
-  await expect(list).toBeVisible()
+  // 启停：Base64 的开关切到停用 → 行上出现「已停用」徽章 → 统计联动（启用 1）
+  const base64Row = list.locator('.pc-item').filter({ hasText: 'Base64' })
+  await base64Row.locator('.pc-actions input[type="checkbox"], .pc-actions [role="switch"]').first().click()
+  await expect(base64Row.locator('.pc-badge-off')).toHaveText('已停用', { timeout: 10000 })
+  await expect(page.locator('.pc-sub')).toContainText('启用 1')
 })

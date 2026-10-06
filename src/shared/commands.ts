@@ -50,8 +50,7 @@ export const FIRST_PARTY_PAGE_VALUES = [
   'notes',
   'reminders',
   'mcpcall',
-  'mcparg',
-  'pluginsCenter'
+  'mcparg'
 ] as const
 
 export type FirstPartyPage = (typeof FIRST_PARTY_PAGE_VALUES)[number]
@@ -211,6 +210,14 @@ export const SYSTEM_PAGES: SystemPage[] = [
     icon: 'settings-3-line'
   },
   {
+    id: 'pluginsCenter',
+    routeName: 'pluginsCenter',
+    path: '/plugins-center',
+    label: '插件中心',
+    description: '管理插件：打开 / 启停 / 卸载',
+    icon: 'plug-2-line'
+  },
+  {
     id: 'migration',
     routeName: 'migration',
     path: '/migration',
@@ -257,14 +264,6 @@ export const FIRST_PARTY_COMMANDS: CommandEntry[] = [
     subtitle: '按图内文字与文件名搜索截图（OCR 索引）',
     badge: '动作',
     action: { type: 'firstParty', page: 'shots' }
-  },
-  {
-    key: 'firstparty:pluginsCenter',
-    icon: 'plug-2',
-    title: '插件中心',
-    subtitle: '管理插件：打开 / 启停 / 卸载（胶囊内直达）',
-    badge: '动作',
-    action: { type: 'firstParty', page: 'pluginsCenter' }
   },
   {
     key: 'firstparty:shotsPaste',

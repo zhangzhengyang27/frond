@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { toRows, filterRows, sortRows, nextUninstallArmed, type PluginRow } from '../pluginsCenterLogic'
+import { toRows, filterRows, sortRows, statsOf, type PluginRow } from '../pluginsCenterLogic'
 
 const raw = [
   { id: 'com.b.zeta', name: 'Zeta 工具', version: '1.0.0', description: '最后一个安装', enabled: true, installedAt: 3 },
@@ -7,7 +7,7 @@ const raw = [
   { id: 'com.a.beta', name: 'Beta 市场', version: '0.9.0', description: '浏览市场索引', enabled: true, installedAt: 2 }
 ]
 
-describe('pluginsCenterLogic（胶囊内嵌插件管理页）', () => {
+describe('pluginsCenterLogic（独立插件中心页）', () => {
   it('toRows：从 InstalledPlugin 形状取渲染所需字段', () => {
     const rows = toRows(raw as never)
     expect(rows).toHaveLength(3)
@@ -31,10 +31,9 @@ describe('pluginsCenterLogic（胶囊内嵌插件管理页）', () => {
     const rows = sortRows(toRows(raw as never))
     expect(rows.map((r) => r.id)).toEqual(['com.a.beta', 'com.b.zeta', 'com.a.alpha'])
   })
-  it('nextUninstallArmed：同 id 再按 = 执行（null），异 id 换目标，空起 = 进入确认', () => {
-    expect(nextUninstallArmed(null, 'com.a.beta')).toBe('com.a.beta')
-    expect(nextUninstallArmed('com.a.beta', 'com.a.beta')).toBeNull()
-    expect(nextUninstallArmed('com.a.beta', 'com.b.zeta')).toBe('com.b.zeta')
+  it('statsOf：头部统计（已装/启用）', () => {
+    expect(statsOf(toRows(raw as never))).toEqual({ total: 3, enabled: 2 })
+    expect(statsOf([])).toEqual({ total: 0, enabled: 0 })
   })
   it('PluginRow 类型可用（编译期契约）', () => {
     const r: PluginRow = { id: 'x', name: 'x', version: '1', description: '', enabled: false }

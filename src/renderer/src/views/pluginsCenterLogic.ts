@@ -54,10 +54,7 @@ export function sortRows(rows: PluginRow[]): PluginRow[] {
   })
 }
 
-/**
- * 卸载二次确认状态机：第一次 ⌘U 进入 armed（显示「再按确认」）；同 id 再按 =
- * 执行（返回 null）；换目标换 armed；ESC 清空。
- */
-export function nextUninstallArmed(current: string | null, id: string): string | null {
-  return current === id ? null : id
+/** 头部统计：已装总数与启用数 */
+export function statsOf(rows: PluginRow[]): { total: number; enabled: number } {
+  return { total: rows.length, enabled: rows.filter((r) => r.enabled).length }
 }

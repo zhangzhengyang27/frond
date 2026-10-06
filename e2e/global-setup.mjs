@@ -20,7 +20,7 @@ export default function setup() {
   for (const dir of PKGS_IN_ORDER) {
     execFileSync('npm', ['run', 'build'], { cwd: dir, stdio: 'ignore' })
   }
-  // currency（React 标杆，2026-10-05）：dist 不入库，构建脚本自带 nodePaths 依赖解析，
-  // 依赖 SDK dist（上一步已就绪），故排在最后
+  // currency（React 标杆，2026-10-05）：dist/main.js 已入库（.gitignore 例外），
+  // global-setup 仍重建以保新鲜；构建脚本自带 nodePaths 依赖解析，依赖 SDK dist（上一步已就绪），故排在最后
   execFileSync('node', [join(ROOT, 'scripts', 'build-currency-plugin.mjs')], { stdio: 'ignore' })
 }

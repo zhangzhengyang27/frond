@@ -166,9 +166,24 @@ function RateList(): ReactElement {
       detailFormat="markdown"
       actions={
         <ActionPanel>
-          <Action title="复制结果" onAction={() => void copyToClipboard(main !== null ? `${state.amount} ${state.from} = ${main} ${state.to}` : '').then(() => showHud('已复制'))} />
+          <Action
+            title="复制结果"
+            onAction={() =>
+              void copyToClipboard(main !== null ? `${state.amount} ${state.from} = ${main} ${state.to}` : '')
+                .then(() => showHud('已复制'))
+                .catch(() => showHud('复制失败'))
+            }
+          />
           <Action title="换向（B→A）" onAction={() => { const f = state.from; state.from = state.to; state.to = f; void run() }} />
-          <Action title="收藏该货币对" onAction={() => { state.pairs.push({ from: state.from, to: state.to }); void savePairs(); void run() }} />
+          <Action
+            title="收藏该货币对"
+            onAction={() => {
+              const dup = state.pairs.some((p) => p.from === state.from && p.to === state.to)
+              if (!dup) state.pairs.push({ from: state.from, to: state.to })
+              void savePairs()
+              void run()
+            }}
+          />
           <Action title="换币种" onAction={() => nav.push(<CurrencyPicker picking="to" />)} />
           <Action title="自定义金额" onAction={() => nav.push(<AmountForm />)} />
         </ActionPanel>
@@ -218,7 +233,14 @@ function RateList(): ReactElement {
               actions={
                 <ActionPanel>
                   <Action title="换算到该货币" onAction={() => { state.to = c; void run() }} />
-                  <Action title="复制" onAction={() => void copyToClipboard(v !== null ? String(v) : '').then(() => showHud('已复制'))} />
+                  <Action
+                    title="复制"
+                    onAction={() =>
+                      void copyToClipboard(v !== null ? String(v) : '')
+                        .then(() => showHud('已复制'))
+                        .catch(() => showHud('复制失败'))
+                    }
+                  />
                 </ActionPanel>
               }
             />

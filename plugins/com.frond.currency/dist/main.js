@@ -10664,18 +10664,31 @@
 \u26A0 \u4EC5\u89E3\u7801\u5C55\u793A\uFF0C\u4E0D\u6784\u6210\u4EFB\u4F55\u4EA4\u6613\u5EFA\u8BAE\u3002`,
           detailFormat: "markdown",
           actions: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ActionPanel, { children: [
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u590D\u5236\u7ED3\u679C", onAction: () => void copyToClipboard(main2 !== null ? `${state.amount} ${state.from} = ${main2} ${state.to}` : "").then(() => showHud("\u5DF2\u590D\u5236")) }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              Action,
+              {
+                title: "\u590D\u5236\u7ED3\u679C",
+                onAction: () => void copyToClipboard(main2 !== null ? `${state.amount} ${state.from} = ${main2} ${state.to}` : "").then(() => showHud("\u5DF2\u590D\u5236")).catch(() => showHud("\u590D\u5236\u5931\u8D25"))
+              }
+            ),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u6362\u5411\uFF08B\u2192A\uFF09", onAction: () => {
               const f = state.from;
               state.from = state.to;
               state.to = f;
               void run();
             } }),
-            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u6536\u85CF\u8BE5\u8D27\u5E01\u5BF9", onAction: () => {
-              state.pairs.push({ from: state.from, to: state.to });
-              void savePairs();
-              void run();
-            } }),
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              Action,
+              {
+                title: "\u6536\u85CF\u8BE5\u8D27\u5E01\u5BF9",
+                onAction: () => {
+                  const dup = state.pairs.some((p) => p.from === state.from && p.to === state.to);
+                  if (!dup) state.pairs.push({ from: state.from, to: state.to });
+                  void savePairs();
+                  void run();
+                }
+              }
+            ),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u6362\u5E01\u79CD", onAction: () => nav.push(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CurrencyPicker, { picking: "to" })) }),
             /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u81EA\u5B9A\u4E49\u91D1\u989D", onAction: () => nav.push(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AmountForm, {})) })
           ] })
@@ -10726,7 +10739,13 @@
                 state.to = c;
                 void run();
               } }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Action, { title: "\u590D\u5236", onAction: () => void copyToClipboard(v !== null ? String(v) : "").then(() => showHud("\u5DF2\u590D\u5236")) })
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                Action,
+                {
+                  title: "\u590D\u5236",
+                  onAction: () => void copyToClipboard(v !== null ? String(v) : "").then(() => showHud("\u5DF2\u590D\u5236")).catch(() => showHud("\u590D\u5236\u5931\u8D25"))
+                }
+              )
             ] })
           },
           c

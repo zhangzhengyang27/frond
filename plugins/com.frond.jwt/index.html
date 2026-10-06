@@ -11,6 +11,7 @@
       var Lib = window.FrondJwtLib
       var lastResults = []
       var lastInput = ''
+      var lastOutput = null
 
       api.onEnter(function () {
         api.setSubInput('粘贴 JWT（eyJ… 格式）…')
@@ -133,7 +134,7 @@
             actions: [{ id: 'ok', title: '清空', style: 'destructive' }, { id: 'cancel', title: '取消', style: 'cancel' }]
           }).then(function (id) {
             if (id !== 'ok') return
-            api.db.put('history', { list: [] }).then(function () { lastOutput = null; lastInput ? process(lastInput) : showEmpty() })
+            api.db.put('history', { list: [] }).then(function () { lastOutput = null; showEmpty() })
           })
         }
       })

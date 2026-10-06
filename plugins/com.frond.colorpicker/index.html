@@ -47,8 +47,6 @@
       }
 
       function pushRecent(hex) {
-        // 键入过程中的中间色（#336）不入「最近」，只收完整 hex（4/7 字符）
-        if (hex !== '#369' && hex.length !== 4 && hex.length !== 7) return Promise.resolve()
         return api.db.get('recent').then(function (res) {
           var d = res && res.data
           var list = d && Array.isArray(d.list) ? d.list : []
@@ -100,6 +98,8 @@
 
       function process(text) {
         lastInput = text
+        // 键入过程中的中间色（#336）不入「最近」，只收完整 hex（#369 缩写 / 6 位）
+        if (!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(text.trim())) return showError(text)
         var results = Lib.convert(text)
         if (!results) return showError(text)
         pushRecent(results[0].output)

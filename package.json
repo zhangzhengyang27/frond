@@ -1,7 +1,7 @@
 {
   "name": "frond-desktop",
   "productName": "Frond",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Frond · 桌面工具集（启动器、番茄钟、代码片段、剪贴板历史…）",
   "license": "MIT",
   "main": "./out/main/index.js",

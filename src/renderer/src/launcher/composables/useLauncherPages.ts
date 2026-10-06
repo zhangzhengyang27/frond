@@ -38,7 +38,8 @@ export const FIRST_PARTY_PAGE_TITLES: Record<FirstPartyPage, string> = {
   trash: '回收站',
   dictionary: '词典',
   notes: '笔记',
-  reminders: '提醒与月历'
+  reminders: '提醒与月历',
+  pluginsCenter: '插件中心'
 }
 
 /** provide/inject 通道：LauncherApp 提供当前页标题，CapsulePage 消费渲染面包屑 */

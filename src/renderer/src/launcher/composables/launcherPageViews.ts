@@ -36,6 +36,7 @@ import WindowSwitcherPage from '../pages/WindowSwitcherPage.vue'
 import KillProcessPage from '../pages/KillProcessPage.vue'
 import EmojiPickerPage from '../pages/EmojiPickerPage.vue'
 import MenuBarPage from '../pages/MenuBarPage.vue'
+import PluginsCenterPage from '../pages/PluginsCenterPage.vue'
 
 /** 表单类页面的提交值（FormPage 的 checkbox 是 boolean，其余是 string） */
 export type FormValues = Record<string, string | boolean>
@@ -219,6 +220,7 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
   dictionary: { component: DictionaryPage, name: 'dictionary', props: queryProps },
   notes: { component: NotesPage, name: 'notes' },
   reminders: { component: ReminderPage, name: 'reminders', props: queryProps },
+  pluginsCenter: { component: PluginsCenterPage, name: 'pluginsCenter', props: queryProps },
   qlform: {
     component: FormPage,
     name: 'qlform',

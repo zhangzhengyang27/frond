@@ -102,18 +102,20 @@ test('带参数的查询能选中命令，表单首格预填、提交后参数�
   const patternField = capsule.locator('#ff-0')
   await expect(patternField).toBeVisible({ timeout: 15000 })
   await expect(patternField).toHaveValue('\\d+')
-  // dropdown 字段展示的是 title（value 提交时才还原）
-  await expect(capsule.locator('.form-select option').first()).toContainText('g（全局）')
+  // dropdown 字段展示的是 title（value 提交时才还原；透明窗画不出原生 select，
+  // FormPage 的 dropdown 已是 PopoverSelect 浮层，触发器文本即当前 title）
+  await expect(capsule.locator('.popover-select-trigger').first()).toContainText('g（全局）')
 
   await capsule.locator('#ff-1').fill('a1 b22 c333')
   await capsule.locator('#ff-1').press('Meta+Enter')
 
-  // 参数真的进了插件 onEnter.args：结果由参数决定（3 个数字匹配），而不是剪贴板流程
-  await expect(capsule.locator('.plist-item', { hasText: '匹配 3 处' }).first()).toBeVisible({
+  // 参数真的进了插件 onEnter.args：输入 'a1 b22 c333' 在 g 标志下应有 3 个匹配
+  // （regex v2 渲染：section「匹配」+ 每条 `#n <文本> 位置 N`；flags 没还原成 g
+  // 就只会出单条 #1 —— 三条齐出同时证明了 pattern/替换文本/flags 全部到位）
+  await expect(capsule.locator('.plist-item', { hasText: '#2 22' }).first()).toBeVisible({
     timeout: 20000
   })
-  // 正则与标志位也按声明传到位（flags dropdown 的 value 'g' 被还原）
-  await expect(capsule.locator('.plist-item').first()).toContainText('/\\d+/g')
+  await expect(capsule.locator('.plist-item', { hasText: '#3 333' }).first()).toBeVisible()
 })
 
 test('长尾查询靠前缀命中选中命令（拼写容错捞不动的那一段）', async () => {

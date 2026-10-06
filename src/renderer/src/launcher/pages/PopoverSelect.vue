@@ -1,5 +1,6 @@
 <template>
-  <div ref="anchorEl" class="popover-select" :data-testid="testid">
+  <!-- tabindex=-1：宿主表单（FormPage）把焦点落在这里做字段导航，不进 Tab 序 -->
+  <div ref="anchorEl" class="popover-select" :data-testid="testid" tabindex="-1">
     <button
       class="popover-select-trigger"
       type="button"
@@ -84,8 +85,8 @@ function move(delta: number): void {
   const opts = props.options
   if (opts.length === 0) return
   const at = opts.findIndex((o) => o.value === cursor.value)
-  cursor.value = (opts[(at === -1 ? 0 : at + delta + opts.length) % opts.length] ?? opts[0])
-    ?.value ?? ''
+  cursor.value =
+    (opts[(at === -1 ? 0 : at + delta + opts.length) % opts.length] ?? opts[0])?.value ?? ''
 }
 
 /** 面板开着时由宿主（LauncherApp 键盘链或自身 keydown）转发到这里 */
@@ -94,6 +95,8 @@ function handleKey(e: KeyboardEvent): boolean {
     if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault()
       open.value = true
+      // 光标对齐当前值：面板可能久未开过，期间值被宿主改掉（←→ 轮转等）
+      cursor.value = props.modelValue || props.options[0]?.value || ''
       return true
     }
     return false
@@ -121,7 +124,14 @@ function handleKey(e: KeyboardEvent): boolean {
   return false
 }
 
-defineExpose({ handleKey, close: () => (open.value = false) })
+// el（Ref，宿主读时经 proxyRefs 解包成根 div）：defineExpose 会挡住 $el，
+// 宿主表单要拿根节点做 focus 目标（tabindex=-1 可编程聚焦）
+defineExpose({
+  handleKey,
+  close: () => (open.value = false),
+  isOpen: () => open.value,
+  el: anchorEl
+})
 
 /** 点外部收起（Teleport 后选项不在组件子树内，监听在 document 上） */
 function onDocMousedown(e: MouseEvent): void {

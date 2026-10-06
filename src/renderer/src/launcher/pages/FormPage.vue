@@ -21,19 +21,20 @@
           </span>
         </div>
 
-        <!-- select：原生下拉 -->
+        <!-- select：PopoverSelect 浮层下拉（透明窗里原生 select popup 画不出来） -->
         <template v-else-if="fieldType(field) === 'select'">
           <label class="form-label" :for="`ff-${index}`">{{ field.label }}</label>
-          <select
+          <PopoverSelect
             :id="`ff-${index}`"
             :ref="(el) => setFieldRef(index, el)"
-            v-model="values[field.key]"
-            class="form-input form-select"
+            :model-value="values[field.key] ?? ''"
+            class="form-select-pop"
+            :options="selectOptions(field)"
+            :aria-label="field.label"
             :data-field-index="index"
-            @keydown="onFieldKeydown($event, index)"
-          >
-            <option v-for="opt in field.options ?? []" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
+            @update:model-value="values[field.key] = $event"
+            @keydown="onSelectKeydown($event, index)"
+          />
         </template>
 
         <!-- textarea：多行文本 -->
@@ -55,7 +56,11 @@
         <!-- text / date / time：单行输入 -->
         <template v-else>
           <label class="form-label" :for="`ff-${index}`">{{ field.label }}</label>
-          <div v-if="isPickerField(field)" :ref="(el) => setPickerWrapRef(field.key, el)" class="form-picker-wrap">
+          <div
+            v-if="isPickerField(field)"
+            :ref="(el) => setPickerWrapRef(field.key, el)"
+            class="form-picker-wrap"
+          >
             <input
               :id="`ff-${index}`"
               :ref="(el) => setFieldRef(index, el)"
@@ -112,12 +117,14 @@
  * Form 基元（M5.2）：胶囊内的字段式表单（Raycast Form 模式）。
  * 字段类型：text（缺省）/ textarea / select / checkbox / date。
  * Tab/↑↓ 在字段间移动，⌘↵ 提交，ESC 取消（ESC 由外层导航栈先处理）；
- * checkbox 用 ↵/Space 切换，select 聚焦时 ←→ 换选项。
+ * checkbox 用 ↵/Space 切换，select ←→ 轮转选项、↵ 开自建下拉面板。
  */
 import { computed, onMounted, ref, watch } from 'vue'
 import AppIcon from '@components/AppIcon.vue'
 import CapsulePage from './CapsulePage.vue'
 import PickerPanel from './PickerPanel.vue'
+import PopoverSelect from './PopoverSelect.vue'
+import type { PopoverOption } from './PopoverSelect.vue'
 import type { FormField, FormFieldType } from '@shared/plugin-protocol'
 
 export type { FormField }
@@ -142,6 +149,13 @@ const values = ref<Record<string, string>>({})
 /** checkbox 的值（独立存放，提交时转 boolean） */
 const checks = ref<Record<string, boolean>>({})
 const fieldRefs = ref<HTMLElement[]>([])
+/** select 字段的 PopoverSelect 实例（按下标对齐 fields），见 setFieldRef */
+type PopoverSelectInst = {
+  isOpen: () => boolean
+  handleKey: (e: KeyboardEvent) => boolean
+  close?: (() => void) | undefined
+}
+const selectInsts = ref<Record<number, PopoverSelectInst | null>>({})
 
 function fieldType(field: FormField): FormFieldType {
   return field.type ?? 'text'
@@ -209,17 +223,39 @@ function submit(): void {
 }
 
 function setFieldRef(index: number, el: unknown): void {
-  if (el) fieldRefs.value[index] = el as HTMLElement
+  if (!el) return
+  // select 字段的 ref 是 PopoverSelect 组件实例：exposed.el（根 div，tabindex=-1）
+  // 才是可 focus 的 DOM；实例本体另存（面板开着时按键要转发给它）
+  const maybeInst = el as {
+    el?: HTMLElement | null
+    $el?: HTMLElement
+    isOpen?: () => boolean
+    handleKey?: (e: KeyboardEvent) => boolean
+    close?: () => void
+  }
+  fieldRefs.value[index] = (maybeInst.el ?? maybeInst.$el ?? el) as HTMLElement
+  if (maybeInst.isOpen && maybeInst.handleKey) {
+    // 显式挑出三个方法存，避免把「可选成员的宽形状」直接塞进严格实例类型
+    selectInsts.value[index] = {
+      isOpen: maybeInst.isOpen,
+      handleKey: maybeInst.handleKey,
+      close: maybeInst.close
+    }
+  } else {
+    delete selectInsts.value[index]
+  }
 }
 
 function focusField(index: number): void {
   fieldRefs.value?.[index]?.focus()
 }
 
-/** 当前焦点所在字段下标（焦点在搜索框/其他区域时返回 -1） */
+/** 当前焦点所在字段下标（焦点在搜索框/其他区域时返回 -1）。
+ *  PopoverSelect 聚焦落点是行内按钮（无 fieldIndex），向上找带标记的行根 */
 function currentFieldIndex(): number {
   const el = document.activeElement as HTMLElement | null
-  const raw = el?.dataset?.fieldIndex
+  const raw =
+    el?.dataset?.fieldIndex ?? el?.closest?.('[data-field-index]')?.getAttribute('data-field-index')
   const parsed = raw !== undefined ? Number(raw) : NaN
   return Number.isInteger(parsed) ? parsed : -1
 }
@@ -237,13 +273,41 @@ function toggleCheckbox(field: FormField): void {
   checks.value[field.key] = checks.value[field.key] !== true
 }
 
-/** select ←→ 换选项（不展开原生下拉，胶囊内直接轮转） */
+/** select ←→ 换选项（面板没开时的键盘快捷路径） */
 function moveSelectOption(field: FormField, delta: number): void {
   const opts = field.options ?? []
   if (opts.length === 0) return
   const at = opts.indexOf(values.value[field.key] ?? '')
   const next = at === -1 ? 0 : (at + delta + opts.length) % opts.length
   values.value[field.key] = opts[next] ?? ''
+}
+
+/** FormField.options 是纯字符串（title），PopoverSelect 要 {value,label} 形状 */
+function selectOptions(field: FormField): PopoverOption[] {
+  return (field.options ?? []).map((o) => ({ value: o, label: o }))
+}
+
+/**
+ * select 字段按键分发：面板开着 → 按键归 PopoverSelect（↑↓↵ESC），没收走的
+ * Tab 先收面板再走字段导航；面板没开 → ↵ 开面板，其余（←→ 轮转、↑↓ 切字段、
+ * ESC 退表单）归 onFieldKeydown。⌘↵ 任何时刻都是提交。
+ */
+function onSelectKeydown(e: KeyboardEvent, index: number): void {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    onFieldKeydown(e, index)
+    return
+  }
+  const inst = selectInsts.value[index]
+  if (inst) {
+    if (inst.isOpen()) {
+      if (inst.handleKey(e)) return
+      if (e.key === 'Tab') inst.close?.()
+    } else if (e.key === 'Enter') {
+      inst.handleKey(e)
+      return
+    }
+  }
+  onFieldKeydown(e, index)
 }
 
 function onFieldKeydown(e: KeyboardEvent, index: number): void {
@@ -452,9 +516,28 @@ function initValues(): void {
   font-family: inherit;
 }
 
-.form-select option {
-  background: var(--gray-950);
-  color: var(--text-primary);
+/* ── select 字段：PopoverSelect 触发器拉成与 .form-input 一致的外观 ── */
+.form-select-pop {
+  display: flex;
+  width: 100%;
+  border-radius: 8px;
+}
+
+.form-select-pop:focus-within :deep(.popover-select-trigger) {
+  border-color: var(--launcher-accent);
+}
+
+.form-select-pop :deep(.popover-select-trigger) {
+  width: 100%;
+  height: 34px;
+  justify-content: space-between;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--launcher-text);
+}
+
+.form-select-pop :deep(.popover-select-trigger:hover) {
+  border-color: var(--launcher-accent);
 }
 
 /* checkbox 开关行 */

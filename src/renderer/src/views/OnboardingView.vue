@@ -78,7 +78,7 @@ const recommendedModules = computed((): ModuleMeta[] => MODULES.slice(0, 9))
 const shortcuts = [
   { keys: 'Alt+Space', desc: '唤起 Frond 胶囊（第一入口：搜索 / 启动 / 一切）' },
   { keys: '⌘K', desc: '唤起命令面板（搜索模块 / 跳转 / 动作）' },
-  { keys: '⌘1-4', desc: '按数字键直接跳到对应模块（片段 / 录屏 / 番茄钟 / 启动器）' },
+  { keys: '⌘1/⌘3', desc: '按数字键直接跳到对应模块（片段 / 番茄钟）' },
   { keys: '⌘,', desc: '打开设置中心' }
 ]
 
@@ -203,7 +203,7 @@ const stepLabel = computed(() => `步骤 ${step.value} / ${TOTAL_STEPS}`)
             </h2>
             <p class="max-w-md text-base leading-relaxed text-fg-secondary">
               <span class="text-fg-primary">你的桌面工具箱</span>
-              —— 把常用功能（录屏 / 番茄钟 / ...）集中在一个轻量 Electron 应用里，
+              —— 把常用功能（片段 / 番茄钟 / ...）集中在一个轻量 Electron 应用里，
               <span class="text-fg-primary">不卡顿、不打扰、不联网</span>。
             </p>
             <div class="mt-8 grid grid-cols-3 gap-3 text-left">

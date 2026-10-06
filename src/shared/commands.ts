@@ -59,7 +59,7 @@ export type FirstPartyPage = (typeof FIRST_PARTY_PAGE_VALUES)[number]
  * 重型模块（阶段C「主窗口降级」）：从启动台 / ⌘K 打开时走独立窗口，
  * 不抢占主窗口当前状态；侧边栏内的窗口内导航行为不变。
  */
-export const WINDOW_MODULES: ReadonlySet<string> = new Set(['snippets', 'screenRecorder'])
+export const WINDOW_MODULES: ReadonlySet<string> = new Set(['snippets'])
 
 /** 命令可执行的动作 */
 export type CommandAction =

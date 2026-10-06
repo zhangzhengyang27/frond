@@ -46,7 +46,7 @@ export function useModuleShortcuts(): void {
     if (!m) return
 
     e.preventDefault()
-    // B59b：重型工作模块（片段/录屏/番茄钟）不再 router.push 挤主窗——
+    // B59b：重型工作模块（片段/番茄钟）不再 router.push 挤主窗——
     // 走 launcher:openModule，主进程按模块开独立小窗（openHeavyModuleWindow）
     if (HEAVY_MODULE_IDS.has(m.id)) {
       void window.api.usage.recordUse(m.id)

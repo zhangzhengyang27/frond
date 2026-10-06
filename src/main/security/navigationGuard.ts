@@ -2,7 +2,7 @@
  * Frond · 导航 / 开窗 / 权限的全局兜底
  *
  * 为什么要有这一层：窗口创建路径不止一条（主窗、胶囊窗、detach 承载窗、插件
- * BrowserView、录屏区域覆盖层、悬浮窗、迷你窗）。此前胶囊窗与 detach 承载窗没有
+ * BrowserView、悬浮窗、迷你窗）。此前胶囊窗与 detach 承载窗没有
  * 守卫 —— 插件 markdown 详情里的链接经 `window.open` 会让新窗口**继承全量 preload
  * 的 window.api** 后加载远程页面。所以兜底必须挂在 `app.on('web-contents-created')`
  * 上，任何创建路径都覆盖得到。窗口自带更严格的 handler（主窗 windows.ts /
@@ -14,18 +14,19 @@
  *
  * ⚠ 两条极易踩的线（改动前务必读）：
  *
- * 1. `frond-region://` 是**内部哨兵**，不是注册协议。录屏的区域覆盖层用
- *    `location.href = 'frond-region://select?...'` 触发，由该窗口自己的
- *    `will-navigate`（RegionOverlay.ts）消费并 `preventDefault()`。它不是导航，
- *    但会走同一个事件 —— 不在这里放行的话，每次框选都会打一条
- *    「blocked navigation to non-first-party url」的误导性 warn（功能不受影响，
- *    因为 preventDefault 不影响后续监听器，但日志噪音会训练人忽略真告警）。
+ * 1. `frond-region://` 是**内部哨兵**，不是注册协议。原录屏的区域覆盖层用
+ *    `location.href = 'frond-region://select?...'` 触发、由该窗口自己的
+ *    `will-navigate` 消费并 `preventDefault()`——录屏已整体移除（2026-10-05），
+ *    目前没有发送方；哨兵暂留作覆盖层类第一方功能的预留位，避免将来重新引入
+ *    时再踩一次下面这条坑：它不是导航，但会走同一个事件 —— 不在这里放行的话，
+ *    每次触发都会打一条「blocked navigation to non-first-party url」的误导性
+ *    warn（功能不受影响，因为 preventDefault 不影响后续监听器，但日志噪音会
+ *    训练人忽略真告警）。
  *
- * 2. `media` 权限**必须**对第一方渲染进程放行。录屏的麦克风与摄像头走渲染端
- *    `navigator.mediaDevices.getUserMedia`（useStreamManager / useSourceSelection /
- *    RecordingSettingsDialog）。Electron 在**没有**注册
+ * 2. `media` 权限对第一方渲染进程放行。原使用方是录屏（已移除，2026-10-05），
+ *    暂无第一方功能再申请；保留白名单项作预留。Electron 在**没有**注册
  *    `setPermissionRequestHandler` 时默认放行权限请求 —— 也就是说加了这个 handler
- *    反而可能把录屏掐死。白名单见 PERMISSION_ALLOWLIST。
+ *    反而可能把依赖默认放行的功能掐死。白名单见 PERMISSION_ALLOWLIST。
  */
 import { app, shell, type Session } from 'electron'
 import { fileURLToPath } from 'node:url'
@@ -90,8 +91,8 @@ export function isAllowedNavigation(url: string, ctx: FirstPartyContext): boolea
 
 /**
  * 第一方可放行的权限白名单。每一条都有明确的使用点，**不要凭感觉加**：
- * - `media`：录屏的麦克风 / 摄像头（useStreamManager.ts、useSourceSelection.ts、
- *   RecordingSettingsDialog.vue）。删了它 = 录屏全废。
+ * - `media`：原录屏的麦克风 / 摄像头（模块已移除，暂无使用方——留作第一方
+ *   媒体功能的预留位，下次清理时若无新使用方可一并收掉）
  * - `clipboard-read`：AI Chat 的「从剪贴板粘贴」（AIChatPage.vue）
  * - `clipboard-sanitized-write`：全应用的复制按钮（7 处 navigator.clipboard.writeText）
  * - `fullscreen`：番茄钟页的全屏专注（views/pomodoro/index.vue）

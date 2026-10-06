@@ -28,11 +28,9 @@
  *   第三梯队 —— 迁移与设置类页面：MigrationCenterView / SourceSelector 等
  *
  * **进度（2026-09-24）**：
- *   - 录屏那一梯队的「数据链路」已由 `e2e/recording-clip.spec.mjs` 覆盖
- *   - 渲染件本身：`ClipTimeline`（`components/__tests__/clipTimeline.test.ts`）与
- *     `ExportDialog`（`components/__tests__/exportDialog.test.ts`）已补 —— 后者尤其要紧，
- *     它的**整个 `<template>` 块是随事故丢失后按 script 反推的**，默认参数全是推断值。
- *   - 仍缺：`ClipEditor`、`PreviewPanel`；第二 / 三梯队未动。
+ *   - 录屏那一梯队：数据链路 e2e（recording-clip.spec.mjs）与渲染件（ClipTimeline /
+ *     ExportDialog）曾补齐；2026-10-05 录屏模块整体移除（含上述文件），本梯队随之清空。
+ *   - 仍缺：第二 / 三梯队未动。
  */
 
 import { describe, it, expect } from 'vitest'

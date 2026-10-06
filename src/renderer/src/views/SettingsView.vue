@@ -67,7 +67,6 @@ const sections: SettingsSection[] = [
       '深色',
       '跟随系统',
       '权限',
-      '录屏',
       '麦克风',
       'theme',
       'appearance',

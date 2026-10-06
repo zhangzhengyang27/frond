@@ -28,9 +28,6 @@ export type {
   EditorSettings,
   Preferences,
   Folder,
-  RecordingHistory,
-  RecordingSettings,
-  Marker,
   TelemetryMode
 } from './index.d'
 

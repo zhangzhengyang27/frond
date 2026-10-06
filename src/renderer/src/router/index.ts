@@ -8,7 +8,7 @@ import { cancelRouteTiming, finishRouteTiming, startRouteTiming } from '../utils
  * 一个路由表只描述三类东西，用 meta.window 区分，不再靠命名约定和硬编码名单：
  * - shell（默认） → 主窗口页面，AppShell 包裹；导航可见性由 MODULES 决定
  *                  （侧边栏/⌘K 只读 MODULES，非模块页面天然不进导航）
- * - overlay       → 主窗口内的沉浸式覆盖层（无壳）：录屏剪辑画布
+ * - overlay       → 主窗口内的沉浸式覆盖层（无壳）：重型工作模块页
  * - floating      → 主进程创建的独立悬浮窗，以 hash 直接加载：
  *                  迷你番茄钟 /mini-timer（miniWindow）
  * - capsule       → 启动台胶囊窗：独立入口 launcher.html，无对应路由，列出仅为语义完整

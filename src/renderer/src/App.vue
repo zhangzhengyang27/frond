@@ -33,11 +33,7 @@ const ROUTE_TITLES: Record<string, string> = {
   pomodoro: '番茄钟',
   migration: '迁移中心',
   about: '关于 Frond',
-  onboarding: '欢迎',
-  screenRecorderRecord: '屏幕录制',
-  screenRecorderHistory: '录屏历史',
-  screenRecorderPlayback: '录屏回放',
-  screenRecorderClip: '录屏剪辑'
+  onboarding: '欢迎'
 }
 watch(
   () => route.name,
@@ -47,15 +43,12 @@ watch(
   { immediate: true }
 )
 
-type LoadingVariant =
-  | 'default'
-  | 'editor'
-  | 'capture'
+type LoadingVariant = 'default' | 'editor' | 'capture'
 
 /**
  * 壳显隐由路由 meta.window 驱动（语义定义见 router/index.ts）：
  * - shell（默认）：AppShell 包裹（顶栏 + 侧边栏）
- * - overlay：无壳直接渲染（设置页 / 重型工作模块 / 录屏剪辑画布）——
+ * - overlay：无壳直接渲染（设置页 / 重型工作模块）——
  *   B59 起 /snippets 也是 overlay：三栏管理面即整个窗口，壳顶栏是噪音
  * - ?immersive=1（IA v2 阶段C）：启动台 / ⌘K 打开的独立模块窗口，
  *   无壳直接渲染模块本身——搜什么就只看什么

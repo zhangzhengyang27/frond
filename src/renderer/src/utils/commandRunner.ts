@@ -148,29 +148,35 @@ export async function executeCommand(entry: CommandEntry, opts: CommandRunOption
       break
     }
     case 'file': {
-      // 文件 / 剪贴板 / 片段结果不做使用记录：它们由搜索词驱动出现，
-      // 不进空态建议与 frecency 排序（与 Raycast 的行为差异文档化接受）
+      // P-3（2026-10-07 拍板，推翻本文件原有的「文档化接受」决策）：文件/剪贴板/片段
+      // /插件搜索条目也进 frecency——虽然由搜索词驱动出现，但「用户真的打开了它」
+      // 就是最强的排序信号（查询态 boost 见 useUnifiedSearch 异步三路）。
+      // 空态建议侧只回收可安全反查的 key（文件从路径合成；clip/snip 防悬空跳过）。
+      void window.api.usage.recordUse(entry.key)
       // 统一混合搜索：文件结果，回车用系统默认程序打开（统一执行端 #4）
       await window.api.action.invoke({ type: 'file', path: a.path })
       close()
       break
     }
     case 'clipboardItem': {
+      void window.api.usage.recordUse(entry.key)
       // 统一混合搜索：剪贴板历史条目，回车再复制到剪贴板（统一执行端 #4）
       await window.api.action.invoke({ type: 'clipboardItem', id: a.id })
       close()
       break
     }
     case 'snippetItem': {
+      void window.api.usage.recordUse(entry.key)
       // 统一混合搜索：代码片段，回车取首个内容块复制（统一执行端 #4）
       await window.api.action.invoke({ type: 'snippetItem', id: a.id })
       close()
       break
     }
     case 'pluginSearch': {
-      // #5 插件双通道：searchable 插件持久化条目（搜索词驱动出现，不进 frecency）。
+      // #5 插件双通道：searchable 插件持久化条目（P-3 起进 frecency）。
       // 动作语义与声明式 List 条目一致（PluginListPage.runItem）：
       // copy=复制后收起；open=http(s) 走浏览器 / 否则按路径打开；callback=打开插件继续交互
+      void window.api.usage.recordUse(entry.key)
       const pa = a.action
       if (pa.type === 'copy') {
         await window.api.action.invoke({ type: 'copyText', text: pa.payload ?? '' })

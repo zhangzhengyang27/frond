@@ -277,6 +277,7 @@ import {
   addDocumentListener,
   addWindowListener,
   digitToIndex,
+  fileEntryFromKey,
   groupResultsForDisplay,
   primaryActionLabel
 } from './composables/launcherInteractions'
@@ -450,6 +451,36 @@ async function fetchNextMeetingEntry(): Promise<CommandEntry | null> {
   }
 }
 
+/** 置顶剪贴板条目（P-3 空态上下文第二批）：list() 置顶在前，取前 limit 个 pinned。
+ *  失败/无置顶返回 []。整列表 IPC 略重但只在唤起时拉一次（与 clips 页同源）。 */
+async function fetchPinnedClipEntries(limit: number): Promise<CommandEntry[]> {
+  try {
+    const items = (await window.api.clipHist.list()) as Array<{
+      id: string
+      pinned?: boolean
+      kind: string
+      text?: string
+      firstPath?: string
+    }>
+    return items
+      .filter((it) => it.pinned === true)
+      .slice(0, limit)
+      .map((it): CommandEntry => ({
+        key: `clip:${it.id}`,
+        icon: it.kind === 'image' ? 'image-line' : 'clipboard-line',
+        title:
+          it.kind === 'files'
+            ? (it.firstPath?.split('/').pop() ?? '文件')
+            : (it.text ?? '').slice(0, 60),
+        subtitle: '剪贴板 · 置顶',
+        badge: '剪贴板',
+        action: { type: 'clipboardItem', id: it.id }
+      }))
+  } catch {
+    return []
+  }
+}
+
 async function refreshSuggestions(): Promise<void> {
   const seen = new Set<string>()
   const list: CommandEntry[] = []
@@ -463,6 +494,18 @@ async function refreshSuggestions(): Promise<void> {
   if (meeting) {
     seen.add(meeting.key)
     list.push(meeting)
+  }
+  // 置顶剪贴板（P-3 空态上下文）：与会更同款限时竞速——cliphist:list 是主进程内存读，
+  // 通常远快于 400ms，但万一挂住同样不许拖空白整屏
+  const pinnedClips = await Promise.race([
+    fetchPinnedClipEntries(3),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), MEETING_WAIT_MS))
+  ])
+  for (const e of pinnedClips ?? []) {
+    if (!seen.has(e.key)) {
+      seen.add(e.key)
+      list.push(e)
+    }
   }
   // 固定命令：第一方内联页（Raycast 根态建议）
   for (const entry of FIRST_PARTY_COMMANDS) {
@@ -483,7 +526,11 @@ async function refreshSuggestions(): Promise<void> {
     let recentTaken = 0
     for (const raw of recentIds) {
       if (recentTaken >= 6) break
-      const e = moduleToEntry(raw)
+      // P-3 frecency 全类型：app/plugin 等同步条目直接在全量条目里反查；文件 key
+      // 从路径合成条目；clip:/snip: 展示数据不在本进程，防悬空跳过（置顶剪贴板
+      // 已走上面的专用段，不靠 usage 反查）
+      const e =
+        entries.value.find((x) => x.key === raw) ?? moduleToEntry(raw) ?? fileEntryFromKey(raw)
       if (!e || seen.has(e.key)) continue
       seen.add(e.key)
       list.push(e)

@@ -38,25 +38,25 @@ export const SNIP_ROW_CAP = 3
 export const RESULT_CAP = 50
 
 /** 文件搜索 → CommandEntry（最多 5 条，避免淹没命令结果） */
-async function searchFilesAsEntries(q: string): Promise<ScoredEntry[]> {
+async function searchFilesAsEntries(q: string, boost: UsageBoost): Promise<ScoredEntry[]> {
   try {
     const resp = (await window.api.fileSearch.query(q, FILE_ROW_CAP, { mode: 'name' })) as {
       ok?: boolean
       items?: Array<{ path: string; name: string; dir?: string }>
     }
     const hits = resp?.items ?? []
-    return hits.map((h) => ({
-      entry: {
+    return hits.map((h) => {
+      const entry: CommandEntry = {
         key: `file:${h.path}`,
         icon: 'file-3-line',
         title: h.name,
         subtitle: h.dir || h.path,
         badge: '文件',
         action: { type: 'file', path: h.path, name: h.name }
-      },
-      highlight: null,
-      score: 50
-    }))
+      }
+      // P-3 frecency 全类型：异步三路不再吃固定分，常用文件/条目可以反超命令行
+      return { entry, highlight: null, score: 50 + boost(entry) }
+    })
   } catch {
     return []
   }
@@ -65,7 +65,7 @@ async function searchFilesAsEntries(q: string): Promise<ScoredEntry[]> {
 /** 剪贴板历史 → CommandEntry（最多 3 条；P0-3：备注关键词参与匹配）
  * B53-3a：过滤下沉主进程（cliphist:search）——此前每击键全量拉 200 条含全文
  * （单条上限 512KB）再在渲染端过滤。 */
-async function searchClipboardAsEntries(q: string): Promise<ScoredEntry[]> {
+async function searchClipboardAsEntries(q: string, boost: UsageBoost): Promise<ScoredEntry[]> {
   try {
     const items = (await window.api.clipHist.search(q, CLIP_ROW_CAP)) as Array<{
       id: string
@@ -74,8 +74,8 @@ async function searchClipboardAsEntries(q: string): Promise<ScoredEntry[]> {
       firstPath?: string
       keywords?: string[]
     }>
-    return items.map((item) => ({
-      entry: {
+    return items.map((item) => {
+      const entry: CommandEntry = {
         key: `clip:${item.id}`,
         icon: item.kind === 'image' ? 'image-line' : 'clipboard-line',
         title:
@@ -85,10 +85,9 @@ async function searchClipboardAsEntries(q: string): Promise<ScoredEntry[]> {
         subtitle: item.kind === 'link' ? '链接' : '剪贴板',
         badge: '剪贴板',
         action: { type: 'clipboardItem', id: item.id }
-      },
-      highlight: null,
-      score: 40
-    }))
+      }
+      return { entry, highlight: null, score: 40 + boost(entry) }
+    })
   } catch {
     return []
   }
@@ -97,25 +96,24 @@ async function searchClipboardAsEntries(q: string): Promise<ScoredEntry[]> {
 /** 代码片段 → CommandEntry（最多 3 条）
  * B53-3b：轻路径 quickSearch——LIMIT 内返回且不解密 contents（此前每击键全库
  * LIKE 无 LIMIT + 逐行 AES 解密全部命中行）。 */
-async function searchSnippetsAsEntries(q: string): Promise<ScoredEntry[]> {
+async function searchSnippetsAsEntries(q: string, boost: UsageBoost): Promise<ScoredEntry[]> {
   try {
     const snips = (await window.api.snippet.quickSearch(q, SNIP_ROW_CAP)) as Array<{
       id: string
       name: string
       language: string
     }>
-    return snips.map((s) => ({
-      entry: {
+    return snips.map((s) => {
+      const entry: CommandEntry = {
         key: `snip:${s.id}`,
         icon: 'file-code-line',
         title: s.name ?? '未命名片段',
         subtitle: s.language ?? '片段',
         badge: '片段',
         action: { type: 'snippetItem', id: s.id }
-      },
-      highlight: null,
-      score: 45
-    }))
+      }
+      return { entry, highlight: null, score: 45 + boost(entry) }
+    })
   } catch {
     return []
   }
@@ -204,19 +202,22 @@ export function useUnifiedSearch(options: {
     // 先展示同步结果（立即可见）
     results.value = hoistFavorites(cmdRows, options.favorites.value)
 
-    // 异步：文件 / 剪贴板 / 片段 并行
+    // 异步：文件 / 剪贴板 / 片段 并行（P-3 起带 frecency boost）
     const [fileRows, clipRows, snipRows] = await Promise.all([
-      searchFilesAsEntries(trimmed),
-      searchClipboardAsEntries(trimmed),
-      searchSnippetsAsEntries(trimmed)
+      searchFilesAsEntries(trimmed, options.usageBoost),
+      searchClipboardAsEntries(trimmed, options.usageBoost),
+      searchSnippetsAsEntries(trimmed, options.usageBoost)
     ])
     // 过期 token（用户已输入新内容）则丢弃
     if (token !== unifiedSearchToken) return
-    // 先置顶再截断：否则收藏项可能被 20 条上限挤掉，置顶就等于没生效
-    results.value = hoistFavorites(
-      [...cmdRows, ...fileRows, ...clipRows, ...snipRows],
-      options.favorites.value
-    ).slice(0, RESULT_CAP)
+    // P-3 frecency 全类型：合并后按 score 统一排序——此前异步三路是固定追加序
+    // （文件→剪贴板→片段），boost 进了 score 也没人消费。稳定排序（ES2019+）保证
+    // 同分不推翻来源内顺序；计算器/单位换算的 MAX_SAFE_INTEGER 仍稳居最前。
+    const merged = [...cmdRows, ...fileRows, ...clipRows, ...snipRows].sort(
+      (a, b) => b.score - a.score
+    )
+    // 先置顶再截断：否则收藏项可能被 50 条上限挤掉，置顶就等于没生效
+    results.value = hoistFavorites(merged, options.favorites.value).slice(0, RESULT_CAP)
   }
 
   /** watch(query) 的搜索侧：debounce 触发；空查询回到建议列表 */

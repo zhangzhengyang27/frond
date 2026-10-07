@@ -9,6 +9,7 @@
  *
  * 全部无副作用、不依赖 DOM / IPC，便于 vitest 覆盖。
  */
+import type { CommandEntry } from '@shared/commands'
 
 /** Pop to Root 空闲阈值（毫秒）：胶囊窗内 60s 无交互自动回根 */
 export const POP_TO_ROOT_TIMEOUT_MS = 60_000
@@ -152,6 +153,27 @@ export function hoistFavorites<T extends { entry: { key: string } }>(
   const rest: T[] = []
   for (const row of rows) (fav.has(row.entry.key) ? head : rest).push(row)
   return head.length === 0 ? rows : [...head, ...rest]
+}
+
+/**
+ * 从 usage key 合成文件建议条目（P-3 frecency 全类型）：`file:<path>` → 可执行条目。
+ * 其余 key 返回 null——clip:/snip: 的展示数据不在渲染端（片段名/剪贴板文本），
+ * 悬空风险高（保留期过期/删除），宁缺勿错。
+ */
+export function fileEntryFromKey(key: string): CommandEntry | null {
+  if (!key.startsWith('file:')) return null
+  const path = key.slice('file:'.length)
+  if (!path) return null
+  const name = path.split(/[\\/]/).pop() ?? path
+  const dir = path.slice(0, Math.max(0, path.length - name.length - 1))
+  return {
+    key,
+    icon: 'file-3-line',
+    title: name,
+    subtitle: dir || path,
+    badge: '文件',
+    action: { type: 'file', path, name }
+  }
 }
 
 /**

@@ -28,6 +28,11 @@ import { database } from '../database'
 import { now } from '../repo'
 import { log } from '../../services/LogService'
 
+/** P-3 frecency 全类型后 file:/clip: 等高基数 key 无上限增长——总量护栏 */
+const USAGE_ROWS_CAP = 4000
+/** 每 N 次写入触发一次修剪（逐次修剪=每次都全表排序，没必要） */
+const PRUNE_EVERY_N_WRITES = 64
+
 export class UsageRepository {
   constructor(private readonly _db?: Database.Database) {}
 
@@ -44,7 +49,35 @@ export class UsageRepository {
            use_count = usage_records.use_count + 1`
       )
       .run(moduleId, now())
+    this.maybePrune()
     this.emitUsageChanged()
+  }
+
+  private writesSincePrune = 0
+
+  private maybePrune(): void {
+    this.writesSincePrune += 1
+    if (this.writesSincePrune < PRUNE_EVERY_N_WRITES) return
+    this.writesSincePrune = 0
+    try {
+      this.pruneUsageRows()
+    } catch (e) {
+      // 修剪是护栏不是关键路径：失败不影响本次记录
+      log.debug('usage-repository', 'usage prune failed', e)
+    }
+  }
+
+  /** 保留最近 keep 条（收藏 key 豁免——收藏的 frecency 数据不因修剪丢失） */
+  pruneUsageRows(keep = USAGE_ROWS_CAP): void {
+    this.db
+      .prepare(
+        `DELETE FROM usage_records
+         WHERE used_at < (
+           SELECT used_at FROM usage_records ORDER BY used_at DESC LIMIT 1 OFFSET ?
+         )
+         AND module_id NOT IN (SELECT module_id FROM usage_favorites)`
+      )
+      .run(keep - 1)
   }
 
   /** 全量使用统计（渲染端排序自学习用）：moduleId → { useCount, usedAt } */

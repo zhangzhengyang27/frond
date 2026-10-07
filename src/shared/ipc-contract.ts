@@ -855,6 +855,19 @@ export interface IpcContract {
     req: void
     res: SnippetImportResult & { ok: boolean; canceled?: boolean; error?: string }
   }
+  /** P-3：从 Espanso match YAML 导入（date/clipboard var 映射，其余降级输入参数并警告） */
+  'snippet:importEspanso': {
+    req: void
+    res: {
+      ok: boolean
+      canceled?: boolean
+      error?: string
+      imported: number
+      skipped: number
+      total: number
+      warnings: string[]
+    }
+  }
   /** B58：触发词冲突查询（编辑器实时提示）；无冲突返回 undefined */
   'snippet:findTriggerConflict': {
     req: { trigger: string; excludeId: string }

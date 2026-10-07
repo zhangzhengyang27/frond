@@ -12,6 +12,11 @@ import {
   partitionForImport,
   type SnippetImportResult
 } from '../services/SnippetTransferService'
+import {
+  espansoItemsToSnippets,
+  parseEspansoYaml,
+  type EspansoParseOutcome
+} from '../services/EspansoImportService'
 import { typedHandle } from './typedIpc'
 
 /** 导入文件大小上限：超大 JSON 在主进程同步 JSON.parse 会冻结全应用 */
@@ -210,6 +215,80 @@ export function registerSnippetIpcHandlers(snippetStore: SnippetDataStore): void
       broadcastSnippetsChanged()
     }
     return { ok: true, imported: toImport.length, skipped, total: parsed.snippets.length }
+  })
+
+  // P-3（2026-10-07）：从 Espanso match YAML 导入（触发词+replace+date/clipboard var 映射，
+  // 其余 var 降级为手动输入参数）。触发词与已装片段撞车即跳过（不覆盖现有扩展）。
+  typedHandle('snippet:importEspanso', async (event: IpcMainInvokeEvent) => {
+    const win: BrowserWindow | null = BrowserWindow.fromWebContents(event.sender)
+    const fail = (
+      error: string
+    ): {
+      ok: boolean
+      error: string
+      imported: number
+      skipped: number
+      total: number
+      warnings: string[]
+    } => ({
+      ok: false,
+      error,
+      imported: 0,
+      skipped: 0,
+      total: 0,
+      warnings: []
+    })
+    const dialogResult = await showOpenDialogFor(win, {
+      title: '从 Espanso 导入片段',
+      filters: [{ name: 'YAML', extensions: ['yml', 'yaml'] }],
+      properties: ['openFile']
+    })
+    if (dialogResult.canceled || dialogResult.filePaths.length === 0) {
+      return { ok: false, canceled: true, imported: 0, skipped: 0, total: 0, warnings: [] }
+    }
+    let yamlText: string
+    try {
+      const filePath = dialogResult.filePaths[0]!
+      const statResult = await stat(filePath)
+      if (statResult.size > SNIPPET_IMPORT_MAX_BYTES) {
+        return fail(`文件超过 ${Math.round(SNIPPET_IMPORT_MAX_BYTES / 1024 / 1024)}MB 上限`)
+      }
+      yamlText = await readFile(filePath, 'utf-8')
+    } catch (error) {
+      return fail(`读取文件失败：${(error as Error).message}`)
+    }
+    let parsed: EspansoParseOutcome
+    try {
+      parsed = parseEspansoYaml(yamlText)
+    } catch (error) {
+      return fail((error as Error).message)
+    }
+    // 触发词幂等：与已装片段（含回收站）撞车跳过；文件内撞车也只收第一条
+    const existingTriggers = new Set(
+      snippetRepository
+        .getSnippets()
+        .map((s) => s.trigger)
+        .filter((t): t is string => !!t)
+    )
+    const seen = new Set<string>()
+    const toImport = parsed.items.filter((item) => {
+      if (existingTriggers.has(item.trigger) || seen.has(item.trigger)) return false
+      seen.add(item.trigger)
+      return true
+    })
+    if (toImport.length > 0) {
+      snippetRepository.importMany(espansoItemsToSnippets(toImport, Date.now()) as Snippet[])
+      // 新片段可能携带触发词，触发词缓存需重建
+      textExpansion.invalidateTriggers()
+      broadcastSnippetsChanged()
+    }
+    return {
+      ok: true,
+      imported: toImport.length,
+      skipped: parsed.items.length - toImport.length,
+      total: parsed.items.length,
+      warnings: parsed.warnings
+    }
   })
 
   // B58：触发词冲突查询——编辑器输入触发词时实时提示重复（此前 repo 方法无任何消费者）

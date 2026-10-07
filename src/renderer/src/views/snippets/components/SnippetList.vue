@@ -225,6 +225,26 @@ async function importFromFile(): Promise<void> {
   }
 }
 
+// P-3：Espanso match YAML 导入（date/clipboard var 映射；降级项以警告列出）
+async function importFromEspanso(): Promise<void> {
+  try {
+    const res = await window.api.snippet.importEspanso()
+    if (res?.ok) {
+      toast.success(`Espanso 导入完成：新增 ${res.imported} · 跳过 ${res.skipped}`, {
+        description:
+          res.warnings.length > 0
+            ? `${res.warnings.length} 条降级警告：${res.warnings[0]}`
+            : undefined
+      })
+      await loadSnippets('refresh')
+    } else if (res && !res.canceled) {
+      toast.error('Espanso 导入失败', { description: res.error })
+    }
+  } catch (error) {
+    toast.error('Espanso 导入失败', { description: (error as Error).message })
+  }
+}
+
 async function openContextMenu(snippet: Snippet, event: MouseEvent): Promise<void> {
   contextTarget.value = snippet
   contextMenuPosition.value = { x: event.clientX, y: event.clientY }
@@ -425,6 +445,16 @@ onBeforeUnmount(() => {
         <h2 class="min-w-0 flex-1 truncate text-sm font-medium text-fg-primary">{{ listTitle }}</h2>
         <span class="shrink-0 text-xs text-fg-tertiary">{{ total }}</span>
         <!-- B58：导入/导出入口（备份与迁移；回收站视图不显示） -->
+        <button
+          v-if="libraryFilter !== 'trash'"
+          type="button"
+          data-testid="snippet-import-espanso"
+          class="shrink-0 text-fg-muted hover:text-brand-500"
+          title="从 Espanso 导入片段（YAML）"
+          @click="importFromEspanso"
+        >
+          <AppIcon icon="ri-file-transfer-line" :size="14" />
+        </button>
         <button
           v-if="libraryFilter !== 'trash'"
           type="button"

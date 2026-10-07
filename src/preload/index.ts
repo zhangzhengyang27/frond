@@ -203,6 +203,8 @@ const api = {
     exportAll: () => typedInvoke('snippet:exportAll'),
     /** B3：从 JSON 文件导入片段（弹出选择对话框，同 id 去重合并） */
     importFile: () => typedInvoke('snippet:importFile'),
+    /** P-3：从 Espanso match YAML 导入（选文件 → 解析映射 → 去触发词冲突落库） */
+    importEspanso: () => typedInvoke('snippet:importEspanso'),
     /** B58：查询与该触发词冲突的其它片段（编辑器实时提示用） */
     findTriggerConflict: (trigger: string, excludeId: string) =>
       typedInvoke('snippet:findTriggerConflict', { trigger, excludeId }),

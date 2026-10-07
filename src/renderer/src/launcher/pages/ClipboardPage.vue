@@ -161,17 +161,27 @@ const emptyText = computed(() => {
   return '还没有历史——复制任意内容后这里就会出现'
 })
 
-/** 详情元数据：来源 / 类型 / 字符数(尺寸|数量) / 复制时间 */
+/** 详情元数据：来源 / 类型 / 格式 / 字符数(尺寸|数量) / 复制时间 */
 const detailRows = computed(() => {
   const it = selected.value
   if (!it) return []
   const sizeLabel = it.kind === 'image' ? '尺寸' : it.kind === 'files' ? '数量' : '字符数'
-  return [
+  // P-3 Paste-as：入账时抓到过富文本 flavor 就如实标注（回放时原样写回）
+  const flavors: string[] = []
+  if (it.html) flavors.push('HTML')
+  if (it.rtf) flavors.push('RTF')
+  const rows = [
     { label: '来源', value: it.sourceApp || '未知' },
-    { label: '类型', value: kindLabelOf(it.kind) },
+    { label: '类型', value: kindLabelOf(it.kind) }
+  ]
+  if ((it.kind === 'text' || it.kind === 'link') && flavors.length > 0) {
+    rows.push({ label: '格式', value: `富文本（${flavors.join('+')}）` })
+  }
+  rows.push(
     { label: sizeLabel, value: sizeSummaryOf(it) },
     { label: '复制时间', value: detailTime(it.createdAt, nowMs.value) }
-  ]
+  )
+  return rows
 })
 
 /** I2：主动作带目标应用名（Raycast「Paste to <app>」语义）；未取到时退回通用文案 */

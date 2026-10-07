@@ -24,6 +24,9 @@ export interface ClipItemLike {
   sourceApp?: string
   /** 图片条目的 OCR 文本（异步回填，可能暂缺） */
   ocrText?: string
+  /** P-3 Paste-as：入账时抓下的富文本 flavor（有其一即原格式回放） */
+  html?: string
+  rtf?: string
   createdAt: number
 }
 

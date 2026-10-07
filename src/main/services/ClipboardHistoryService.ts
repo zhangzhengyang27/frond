@@ -58,6 +58,9 @@ export interface ClipboardHistoryItem {
   ocrText?: string | undefined
   /** P1-6：OCR 处理状态（pending/done/failed），避免重复处理 */
   ocrStatus?: 'pending' | 'done' | 'failed' | undefined
+  /** P-3 Paste-as：入账时同步抓下的富文本 flavor（原格式回放的依据；旧条目无此字段自动降级纯文本） */
+  html?: string | undefined
+  rtf?: string | undefined
 }
 
 const MAX_ITEMS = 200
@@ -307,7 +310,17 @@ export class ClipboardHistoryService {
     const item = this.items.find((i) => i.id === id)
     if (!item) return false
     if ((item.kind === 'text' || item.kind === 'link') && item.text !== undefined) {
-      clipboard.writeText(item.text)
+      // P-3 Paste-as：存过富文本 flavor 就原样写回（text/html/rtf 三 flavor 并写），
+      // 旧条目与纯文本自动退化为 writeText
+      if (item.html || item.rtf) {
+        clipboard.write({
+          text: item.text,
+          ...(item.html ? { html: item.html } : {}),
+          ...(item.rtf ? { rtf: item.rtf } : {})
+        })
+      } else {
+        clipboard.writeText(item.text)
+      }
       this.lastTextFingerprint = this.fingerprintText(item.text)
     } else if (item.kind === 'files' && item.paths?.length) {
       this.writeFilesToClipboard(item.paths)
@@ -375,6 +388,27 @@ export class ClipboardHistoryService {
     }
   }
 
+  /** P-3 Paste-as：读取富文本 flavor（text/html、text/rtf；超过单条文本上限的放弃） */
+  private readRichFlavors(): { html?: string; rtf?: string } {
+    try {
+      const formats = clipboard.availableFormats()
+      const out: { html?: string; rtf?: string } = {}
+      if (formats.includes('text/html')) {
+        const html = clipboard.readHTML()
+        if (html && html.length <= MAX_TEXT_CHARS) out.html = html
+      }
+      if (formats.includes('text/rtf')) {
+        const rtf = clipboard.readRTF()
+        if (rtf && rtf.length <= MAX_TEXT_CHARS) out.rtf = rtf
+      }
+      return out
+    } catch (e) {
+      // 富文本 flavor 读取失败按纯文本入账
+      log.debug('clipboard-history-service', '* 富文本 flavor 读取失败，按纯文本入账', e)
+      return {}
+    }
+  }
+
   /** 读取系统剪贴板里的文件列表；无文件时返回 null */
   private readFilesFromClipboard(): string[] | null {
     try {
@@ -429,6 +463,9 @@ export class ClipboardHistoryService {
           // 解密敏感字段（向后兼容：明文数据 decryptText 原样返回）
           if (i.text) i.text = decryptText(i.text)
           if (i.ocrText) i.ocrText = decryptText(i.ocrText)
+          // P-3 Paste-as：富文本 flavor 与 text 同密级
+          if (i.html) i.html = decryptText(i.html)
+          if (i.rtf) i.rtf = decryptText(i.rtf)
           return i
         })
         .sort((a, b) => b.createdAt - a.createdAt)
@@ -470,7 +507,9 @@ export class ClipboardHistoryService {
       const encrypted = this.items.map((i) => ({
         ...i,
         text: i.text ? encryptText(i.text) : i.text,
-        ocrText: i.ocrText ? encryptText(i.ocrText) : i.ocrText
+        ocrText: i.ocrText ? encryptText(i.ocrText) : i.ocrText,
+        html: i.html ? encryptText(i.html) : i.html,
+        rtf: i.rtf ? encryptText(i.rtf) : i.rtf
       }))
       writeFileSync(tmpFile, JSON.stringify(encrypted))
       rmSync(this.indexPath(), { force: true })
@@ -528,9 +567,14 @@ export class ClipboardHistoryService {
           return
         }
         this.lastTextFingerprint = fingerprint
+        // P-3 Paste-as：网页/Office/Notes 复制时常带富文本 flavor，一并入账；
+        // 回放时原样写回（Notes/Mail 优先取 public.rtf，不能运行时从 HTML 合成）
+        const rich = this.readRichFlavors()
         this.push({
           kind: URL_RE.test(text.trim()) ? 'link' : 'text',
           text,
+          ...(rich.html ? { html: rich.html } : {}),
+          ...(rich.rtf ? { rtf: rich.rtf } : {}),
           sourceApp: frontApp ?? undefined
         })
         return

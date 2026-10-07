@@ -17,6 +17,10 @@ const { clipboardMock, execFileMock } = vi.hoisted(() => {
   const clipboardMock = {
     readText: vi.fn((): string => ''),
     availableFormats: vi.fn((): string[] => []),
+    readHTML: vi.fn((): string => ''),
+    readRTF: vi.fn((): string => ''),
+    write: vi.fn(),
+    writeText: vi.fn(),
     readImage: vi.fn(() => {
       const seq = ++imageSeq
       return {
@@ -64,6 +68,10 @@ beforeEach(() => {
   execFileMock.mockClear()
   clipboardMock.readText.mockReturnValue('')
   clipboardMock.availableFormats.mockReturnValue([])
+  clipboardMock.readHTML.mockReturnValue('')
+  clipboardMock.readRTF.mockReturnValue('')
+  clipboardMock.write.mockClear()
+  clipboardMock.writeText.mockClear()
   clipboardMock.readImage.mockClear()
 })
 
@@ -115,5 +123,52 @@ describe('剪贴板大图 readImage 节流（B41-1）', () => {
     await poll()
     expect(clipboardMock.readImage).toHaveBeenCalledTimes(1)
     expect(svc.list().some((i) => i.kind === 'image')).toBe(true)
+  })
+})
+
+describe('P-3 Paste-as：富文本 flavor 采集与原格式回放', () => {
+  it('带 text/html + text/rtf 的复制入账为富文本条目', async () => {
+    clipboardMock.readText.mockReturnValue('<b>bold</b> 正文')
+    clipboardMock.availableFormats.mockReturnValue(['text/plain', 'text/html', 'text/rtf'])
+    clipboardMock.readHTML.mockReturnValue('<b>bold</b> 正文')
+    clipboardMock.readRTF.mockReturnValue('{\\rtf1\\b bold\\b0}')
+    await poll()
+    const item = svc.list().find((i) => i.kind === 'text')
+    expect(item?.html).toBe('<b>bold</b> 正文')
+    expect(item?.rtf).toBe('{\\rtf1\\b bold\\b0}')
+  })
+
+  it('copy 回放：有 flavor 走 write({text,html,rtf}) 三格式并写；纯文本退化为 writeText', () => {
+    const item = {
+      id: 'rich-1',
+      kind: 'text' as const,
+      text: 'rich body',
+      html: '<p>rich body</p>',
+      rtf: '{\\rtf1 rich}',
+      createdAt: Date.now()
+    }
+    // 直接种一条进内存历史（绕过轮询，专测回放分支）
+    ;(svc as unknown as { items: unknown[] }).items = [item]
+    expect(svc.copy(item.id)).toBe(true)
+    expect(clipboardMock.write).toHaveBeenCalledWith({
+      text: 'rich body',
+      html: '<p>rich body</p>',
+      rtf: '{\\rtf1 rich}'
+    })
+    // 旧条目（无 flavor）：writeText 路径
+    const plain = { id: 'plain-1', kind: 'text' as const, text: 'plain', createdAt: Date.now() }
+    ;(svc as unknown as { items: unknown[] }).items = [plain]
+    expect(svc.copy(plain.id)).toBe(true)
+    expect(clipboardMock.write).toHaveBeenCalledTimes(1)
+  })
+
+  it('纯文本复制时 formats 只有 text/plain：条目不带 flavor 字段', async () => {
+    clipboardMock.readText.mockReturnValue('just text')
+    clipboardMock.availableFormats.mockReturnValue(['text/plain'])
+    await poll()
+    const item = svc.list().find((i) => i.kind === 'text')
+    expect(item?.text).toBe('just text')
+    expect(item?.html).toBeUndefined()
+    expect(item?.rtf).toBeUndefined()
   })
 })

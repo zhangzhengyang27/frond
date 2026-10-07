@@ -1,0 +1,54 @@
+name: Perf
+
+# 性能数字只在 macOS runner 上有对照意义（Linux runner 无 GPU、噪声大）。
+# 手动触发跑一遍基线 spec 并把 JSON 作为产物归档，便于追溯历史变化；
+# 数字解读口径见 docs/PERF_BASELINE.md（权威基准是那里的真机存档，CI 仅趋势参考）。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  perf:
+    name: Perf Baseline (macOS)
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm 版本一律读 package.json 的 packageManager 字段（同 ci.yml 的约定，
+      # 不得再传 version 输入，否则报 Multiple versions of pnpm specified）
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # better-sqlite3 需要按 Electron ABI 重编（同 test/build job）
+      - name: Rebuild native modules
+        run: pnpm run rebuild:native
+
+      - name: Build
+        run: pnpm exec electron-vite build
+
+      - name: Perf baseline (cold start / capsule show / memory)
+        run: pnpm exec playwright test e2e/perf-baseline.spec.mjs
+
+      # 单独一次运行：Playwright 开跑会清 test-results/，上一个 JSON 要先拷走
+      - name: Perf results (typing cost)
+        run: |
+          cp test-results/perf-baseline.json /tmp/perf-baseline.json
+          FROND_PERF_LABEL=ci-${{ github.run_id }} pnpm exec playwright test e2e/perf-results.spec.mjs
+          cp /tmp/perf-baseline.json test-results/perf-baseline.json
+
+      - name: Upload perf data
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-${{ github.run_id }}
+          path: test-results/*.json
+          if-no-files-found: error

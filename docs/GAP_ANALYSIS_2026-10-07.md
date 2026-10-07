@@ -55,7 +55,7 @@
 | 🔴 P0 | 插件平台运营 | 商店 3300+ 扩展、账号/评分/审核、单插件自动更新 | 静态市场 + 可选远程 https JSON 索引（`src/main/launcher/market.ts`）；无账号/评分/审核、**已装插件无版本管理与自动更新** |
 | ✅ 已闭（勘察复核 2026-10-07） | AI 一级动作面 | Quick AI（划词/快捷指令）、AI 问剪贴板、AI 进每个结果的动作面板、AI Credits 计价 | **P-4③ 已于 2026-09-25 落地**：「问 AI：解释这条」一级动作在全部结果类型的动作面板（`useActionPanel.ts:213-225`，`aiReady` 门控；prompt 拼装 `shared/aiAsk.ts`），剪贴板详情 ⌘I「AI 加工」（`ClipboardPage.vue:254-273`），e2e `ai-action.spec.mjs` 钉住。真实剩余仅 Raycast 的系统级划词指令与 Credits 计价形态 |
 | 🟡 P1 | 文本扩展语法厚度 | TextExpander 级：`{cursor}`、日期算术/locale、嵌套、导入器 | 无 `{cursor}`/日期算术/`{calculator}`/嵌套/修饰符管道，无 TextExpander/Espanso 导入（`src/main/modules/expansionTemplate.ts`） |
-| 🟡 P1 | 日历 | 可读可写、交互式建改事件 | **只读**：仅"下一个会议"+自动入会（`src/main/index.ts:398-400`） |
+| 🟡 P1 → 基本已闭 | 日历 | 可读可写、交互式建改事件 | **勘察复核**：创建已全链路存在（31c46d2，2026-09-22：`calendar:createEvent` + eventform 表单 → JXA 写 EventKit），「只读」为文档过期；本批补修改/删除（`updateEvent/deleteEvent` + SchedulePage 详情动作 + eventform 编辑预填） |
 | 🟡 P1 | 脚本命令 | Script Commands 目录自动发现（Raycast/Alfred 均有生态） | 全仓无对应物；对 shell 用户是明显缺口 |
 | 🟡 P1 | Paste-as / 链接预览 | 多格式粘贴（富文本/RTF/HTML 原格式）、链接 favicon/社交卡 | 剪贴板四类已齐，但无多格式原样保存与预览 |
 | 🟡 P1 | 命令级 deep link | `raycast://` 可直达任意命令并带参 | `frond://` 仅 launcher/settings/plugin 三条路由（`src/main/launcher/frondUrl.ts`） |
@@ -186,7 +186,7 @@
 | 3.1 ⏳后移 | **i18n 地基 + 英文**：引入 vue-i18n，抽离字符串只做 `zh-CN`/`en` 两语言；README 英文化 | 语言切换可用；海外用户可安装自用 | L |
 | 3.2 ★主攻 | 日历写操作：事件创建/修改（mac EventKit，对齐只读链路） | 胶囊内建一条带参日历事件 | M |
 | 3.3 ⏳后移 | 插件开发者回路：开发者文档英文化 + `frond-plugin` CLI（init/pack/publish 到自建索引）+ 3 个标杆第三方插件 | 陌生开发者不读源码能 0→1 发布 | L |
-| 3.4 ★主攻 | Paste-as 富文本原格式 + 链接预览 | 四类之外增加 HTML/RTF 原样回放 | M |
+| 3.4 ★主攻 | Paste-as 富文本原格式 + 链接预览（**本批实做原格式采集与回放**；链接预览顺位后移） | 四类之外增加 HTML/RTF 原样回放 | M |
 | 3.5 ⏳后移 | 商业化答案（写进 POSITIONING 即可，不一定要做）：免费开源核心 + 可选托管服务（云同步 P-5/插件托管）的双轨声明 | 文档有明确"我们不收什么费/未来可能收什么费" | S |
 | 3.6 | 云同步（P-5，殿后不变）：依赖数据面收敛，维持最后顺位 | — | L |
 

@@ -994,6 +994,9 @@ async function runEntry(entry: CommandEntry): Promise<void> {
     close: hideWindow,
     openFirstParty: (page) => {
       exitArgSlots() // 内联页覆盖根列表：槽态与它互斥，留着 chip 就是挡住页面的一条填空栏
+      // 命令入口打开 eventform = 创建意图：清掉可能残留的编辑快照（编辑态入口
+      // 走 editScheduleEvent 直压页面，不经这里）
+      if (page === 'eventform') editingEvent.value = null
       pushPage(page)
       query.value = ''
       searchBarRef.value?.focus()
@@ -1041,17 +1044,38 @@ async function runEntry(entry: CommandEntry): Promise<void> {
   }
 }
 
-/** 创建日程表单提交：解析日期+时间+时长 → calendar.createEvent（主进程失败时弹系统通知） */
-async function createCalendarEvent(values: Record<string, string | boolean>): Promise<void> {
+/** 事件表单的编辑快照（P-3：SchedulePage「修改」进来的事件，eventform 据此预填并走更新） */
+const editingEvent = ref<{ id: string; title: string; startMs: number; endMs: number } | null>(null)
+
+/** SchedulePage「修改」：快照进编辑态并压入 eventform（props 侧据它切换预填与按钮文案） */
+function editScheduleEvent(item: unknown): void {
+  const it = item as { id?: string; title: string; startMs: number; endMs: number } | null
+  if (!it?.id) return
+  editingEvent.value = { id: it.id, title: it.title, startMs: it.startMs, endMs: it.endMs }
+  pushPage('eventform')
+}
+
+/** 时长标签 → 分钟（创建表单的四个预设 + 编辑态现造的任意「N 分钟/N 小时」） */
+function parseDurationMinutes(label: string): number {
+  const minutes = /^(\d+)\s*分钟$/.exec(label)
+  if (minutes) return Number(minutes[1])
+  const hours = /^(\d+)\s*小时$/.exec(label)
+  if (hours) return Number(hours[1]) * 60
+  return 60
+}
+
+/** 表单值 → 事件三要素；标题/日期/时间不合法返回 null（留在表单） */
+function parseEventFormValues(
+  values: Record<string, string | boolean>
+): { title: string; startMs: number; endMs: number } | null {
   const title = String(values.title ?? '').trim()
   const date = String(values.date ?? '').trim()
   const time = String(values.time ?? '').trim()
   const durationLabel = String(values.duration ?? '1 小时')
-  if (!title || !date) return // 留在表单
-
+  if (!title || !date) return null
   const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
   const timeMatch = /^(\d{1,2}):(\d{2})$/.exec(time)
-  if (!dateMatch || !timeMatch) return // 日期/时间不合法留在表单
+  if (!dateMatch || !timeMatch) return null
   const start = new Date(
     Number(dateMatch[1]),
     Number(dateMatch[2]) - 1,
@@ -1059,20 +1083,20 @@ async function createCalendarEvent(values: Record<string, string | boolean>): Pr
     Number(timeMatch[1]),
     Number(timeMatch[2])
   )
-  if (Number.isNaN(start.getTime())) return
-  const minutes =
-    durationLabel === '30 分钟'
-      ? 30
-      : durationLabel === '90 分钟'
-        ? 90
-        : durationLabel === '2 小时'
-          ? 120
-          : 60
-  const result = await window.api.calendar.createEvent({
-    title,
-    startMs: start.getTime(),
-    endMs: start.getTime() + minutes * 60 * 1000
-  })
+  if (Number.isNaN(start.getTime())) return null
+  const minutes = parseDurationMinutes(durationLabel)
+  return { title, startMs: start.getTime(), endMs: start.getTime() + minutes * 60 * 1000 }
+}
+
+/** 事件表单提交：编辑态走 updateEvent，创建态走 createEvent（主进程失败时弹系统通知） */
+async function submitEventForm(values: Record<string, string | boolean>): Promise<void> {
+  const parsed = parseEventFormValues(values)
+  if (!parsed) return // 留在表单
+  const snapshot = editingEvent.value
+  editingEvent.value = null
+  const result = snapshot
+    ? await window.api.calendar.updateEvent({ id: snapshot.id, ...parsed })
+    : await window.api.calendar.createEvent(parsed)
   if (result.ok) {
     popToRoot()
   }
@@ -1092,7 +1116,13 @@ const viewCtx: LauncherViewCtx = {
   popPage,
   onSnippetCopied,
   askAIWithText,
-  createCalendarEvent: voidify(createCalendarEvent),
+  // P-3：事件表单（创建/编辑共用 submit；编辑快照见 editingEvent）
+  submitEventForm: voidify(submitEventForm),
+  editingEvent: () => editingEvent.value,
+  editScheduleEvent: (item) => editScheduleEvent(item),
+  clearEditingEvent: () => {
+    editingEvent.value = null
+  },
   saveQuicklinkForm: voidify(saveQuicklinkForm),
   // 注意两个同名接口：viewCtx 这条是 qlarg 表单的**提交**（FormValues）；「打开表单页」
   // 的入口（CommandEntry）在 executeCommand 依赖对象那边，两者曾经共用一个函数名

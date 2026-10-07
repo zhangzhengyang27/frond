@@ -66,7 +66,14 @@ export interface LauncherViewCtx {
   popPage: () => void
   onSnippetCopied: (title: string) => void
   askAIWithText: (text: string) => void
-  createCalendarEvent: (values: FormValues) => void
+  /** 事件表单提交（P-3）：editingEvent() 有快照走 updateEvent，否则 createEvent */
+  submitEventForm: (values: FormValues) => void
+  /** 修改中的日程快照（SchedulePage「修改」→ eventform 预填）；null = 创建态 */
+  editingEvent: () => { id: string; title: string; startMs: number; endMs: number } | null
+  /** SchedulePage「修改」：快照进编辑态并压入 eventform */
+  editScheduleEvent: (item: unknown) => void
+  /** 清编辑快照（表单取消时；退栈仍由 cancel→popPage 统一走） */
+  clearEditingEvent: () => void
   saveQuicklinkForm: (values: FormValues) => void
   openQuicklinkArg: (values: FormValues) => void
   openPluginWithArgs: (values: FormValues) => void
@@ -147,6 +154,37 @@ function todayLabel(): string {
   return `${d.getFullYear()}-${mm}-${dd}`
 }
 
+/** 修改日程的表单字段：初值来自事件快照；时长不在预设里就现造一项（如「45 分钟」） */
+function eventFormFieldsForEdit(snapshot: {
+  title: string
+  startMs: number
+  endMs: number
+}): FormField[] {
+  const start = new Date(snapshot.startMs)
+  const minutes = Math.max(15, Math.round((snapshot.endMs - snapshot.startMs) / 60000))
+  const durationLabel = minutes % 60 === 0 ? `${minutes / 60} 小时` : `${minutes} 分钟`
+  const pad = (n: number): string => String(n).padStart(2, '0')
+  const preset = eventFormFields()
+  const durationOptions = [...(preset[3]?.options ?? [])]
+  if (!durationOptions.includes(durationLabel)) durationOptions.push(durationLabel)
+  return [
+    { key: 'title', label: '标题', initial: snapshot.title },
+    {
+      key: 'date',
+      label: '开始日期',
+      type: 'date',
+      initial: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`
+    },
+    {
+      key: 'time',
+      label: '开始时间',
+      type: 'time',
+      initial: `${pad(start.getHours())}:${pad(start.getMinutes())}`
+    },
+    { key: 'duration', label: '时长', type: 'select', options: durationOptions, initial: durationLabel }
+  ]
+}
+
 /** 添加快捷链接表单 */
 const QL_FORM_FIELDS: FormField[] = [
   { key: 'name', label: '名称', placeholder: 'GitHub' },
@@ -174,15 +212,29 @@ export const LAUNCHER_PAGE_VIEWS: Record<LauncherViewId, LauncherPageDef> = {
   schedule: {
     component: SchedulePage,
     name: 'schedule',
-    on: (ctx) => ({ close: () => ctx.hideWindow() })
+    on: (ctx) => ({
+      close: () => ctx.hideWindow(),
+      edit: (item) => ctx.editScheduleEvent(item)
+    })
   },
   eventform: {
     component: FormPage,
     name: 'eventform',
-    props: () => ({ fields: eventFormFields(), submitLabel: '创建日程' }),
+    // 创建态给默认字段；编辑态（SchedulePage「修改」进来的）用快照预填并把
+    // 提交按钮换成「保存修改」。FormPage 对 fields 内容签名变化会重读初始值。
+    props: (ctx) => {
+      const snapshot = ctx.editingEvent()
+      return snapshot
+        ? { fields: eventFormFieldsForEdit(snapshot), submitLabel: '保存修改' }
+        : { fields: eventFormFields(), submitLabel: '创建日程' }
+    },
     on: (ctx) => ({
-      submit: (v) => ctx.createCalendarEvent((v ?? {}) as FormValues),
-      cancel: () => ctx.popPage()
+      submit: (v) => ctx.submitEventForm((v ?? {}) as FormValues),
+      cancel: () => {
+        // 编辑快照先清（取消不落任何半成品状态）；退栈统一走 popPage
+        ctx.clearEditingEvent()
+        ctx.popPage()
+      }
     })
   },
   shots: {

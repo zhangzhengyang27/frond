@@ -11,6 +11,8 @@ export interface ScheduleEvent {
   endMs: number
   isAllDay: boolean
   meeting: { url: string; provider: string } | null
+  /** 事件标识（P-3 修改/删除用；事件源没给 id 时缺省，UI 据此隐藏写操作） */
+  id?: string | undefined
 }
 
 export interface ScheduleGroup {

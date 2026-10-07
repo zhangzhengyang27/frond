@@ -1143,6 +1143,14 @@ export interface IpcContract {
     req: Parameters<typeof calendarService.createEvent>[0]
     res: Awaited<ReturnType<typeof calendarService.createEvent>>
   }
+  'calendar:updateEvent': {
+    req: Parameters<typeof calendarService.updateEvent>[0]
+    res: Awaited<ReturnType<typeof calendarService.updateEvent>>
+  }
+  'calendar:deleteEvent': {
+    req: { id: string }
+    res: Awaited<ReturnType<typeof calendarService.deleteEvent>>
+  }
   'calendar:schedule': {
     req: void
     res: Awaited<ReturnType<typeof calendarService.getSchedule>>

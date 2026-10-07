@@ -375,7 +375,11 @@ const api = {
     next: () => typedInvoke('calendar:next'),
     schedule: () => typedInvoke('calendar:schedule'),
     createEvent: (input: { title: string; startMs: number; endMs: number }) =>
-      typedInvoke('calendar:createEvent', input)
+      typedInvoke('calendar:createEvent', input),
+    // P-3：修改/删除日程（SchedulePage 详情动作）
+    updateEvent: (input: { id: string; title: string; startMs: number; endMs: number }) =>
+      typedInvoke('calendar:updateEvent', input),
+    deleteEvent: (id: string) => typedInvoke('calendar:deleteEvent', { id })
   },
   // 轻量多设备同步（V4 批次6）
   dataSync: {

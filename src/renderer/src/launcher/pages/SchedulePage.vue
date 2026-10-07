@@ -62,6 +62,22 @@
             >
               入会
             </button>
+            <!-- P-3：写操作（有事件标识才显示）。删除走两步确认——胶囊窗里没有
+                 渲染端 confirm 弹层宿主，按钮自身变文案承担「再次点击才执行」 -->
+            <div v-if="selectedItem.id" class="sched-detail-actions">
+              <button class="sched-ghost-btn" type="button" @click="emit('edit', selectedItem)">
+                修改
+              </button>
+              <button
+                class="sched-ghost-btn"
+                :class="{ 'sched-del-armed': confirmingDelete }"
+                type="button"
+                data-testid="sched-delete"
+                @click="removeSelected(selectedItem)"
+              >
+                {{ confirmingDelete && confirmTarget === selectedItem ? '确认删除？' : '删除' }}
+              </button>
+            </div>
           </template>
           <div v-else class="sched-empty">选择左侧日程查看详情</div>
         </div>
@@ -75,13 +91,13 @@
  * My Schedule 内联页（V4 P0-1 批次4 第二档）：未来 7 天日程按天分组，
  * ↑↓ 选择、回车入会（有会议链接时）；denied / notDetermined 给出授权引导。
  */
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { beginBusy, endBusy } from '../composables/useLauncherBusy'
 import CapsulePage from './CapsulePage.vue'
 import { groupSchedule, timeRange, type ScheduleEvent, type ScheduleGroup } from './scheduleLogic'
 import { isOpenUrlAllowed } from '@shared/openUrl'
 
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; edit: [item: ScheduleEvent] }>()
 
 const loading = ref(true)
 const auth = ref<'authorized' | 'denied' | 'notDetermined' | 'unsupported'>('authorized')
@@ -119,6 +135,32 @@ function openMeeting(item: ScheduleEvent): void {
   if (!isOpenUrlAllowed(item.meeting.url)) return
   void window.api.system.openExternal(item.meeting.url)
   emit('close')
+}
+
+/** P-3：删除当前事件（两步确认：同一条目上再点一次才真正执行；换选中即复位） */
+const confirmingDelete = ref(false)
+const confirmTarget = ref<ScheduleEvent | null>(null)
+watch(selectedItem, () => {
+  confirmingDelete.value = false
+  confirmTarget.value = null
+})
+
+async function removeSelected(item: ScheduleEvent): Promise<void> {
+  if (!item.id) return
+  if (!confirmingDelete.value || confirmTarget.value !== item) {
+    confirmingDelete.value = true
+    confirmTarget.value = item
+    return
+  }
+  confirmingDelete.value = false
+  confirmTarget.value = null
+  beginBusy()
+  try {
+    await window.api.calendar.deleteEvent(item.id)
+    await load()
+  } finally {
+    endBusy()
+  }
 }
 
 function detailTime(item: ScheduleEvent): string {
@@ -296,5 +338,30 @@ onMounted(() => {
   color: var(--text-inverse);
   cursor: pointer;
   font-size: 11px;
+}
+
+.sched-detail-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.sched-ghost-btn {
+  padding: 4px 14px;
+  border: 1px solid var(--launcher-border);
+  border-radius: 6px;
+  background: var(--launcher-bg-elevated);
+  color: var(--launcher-text-dim);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.sched-ghost-btn:hover {
+  border-color: var(--launcher-accent);
+  color: var(--launcher-text);
+}
+
+.sched-del-armed {
+  border-color: var(--launcher-accent);
+  color: var(--launcher-text);
 }
 </style>

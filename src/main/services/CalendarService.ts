@@ -54,6 +54,8 @@ export interface CalendarEventView {
   endMs: number
   isAllDay: boolean
   meeting: MeetingLink | null
+  /** 事件标识（P-3 修改/删除用；事件源不给 id 时缺省，UI 据此隐藏写操作） */
+  id?: string | undefined
 }
 
 /** JXA 查询窗口上限（48h：覆盖「下一个会议」跨天场景，避免全量枚举） */
@@ -85,7 +87,8 @@ for (let i = 0; i < n; i++) {
     allDay: !!(e.allDay && e.allDay.js),
     location: String((e.location && e.location.js) || '').slice(0, 300),
     notes: String((e.notes && e.notes.js) || '').slice(0, 500),
-    url: String((e.URL && e.URL.absoluteString && e.URL.absoluteString.js) || '')
+    url: String((e.URL && e.URL.absoluteString && e.URL.absoluteString.js) || ''),
+    id: String((e.eventIdentifier && e.eventIdentifier.js) || '')
   }))
 }
 JSON.stringify({ status: 3, events: out })
@@ -107,6 +110,7 @@ interface RawEvent {
   location: string
   notes: string
   url: string
+  id: string
 }
 
 function toView(raw: RawEvent): CalendarEventView {
@@ -115,7 +119,8 @@ function toView(raw: RawEvent): CalendarEventView {
     startMs: Math.round(raw.start * 1000),
     endMs: Math.round(raw.end * 1000),
     isAllDay: raw.allDay,
-    meeting: extractMeetingLink(raw)
+    meeting: extractMeetingLink(raw),
+    ...(raw.id ? { id: raw.id } : {})
   }
 }
 
@@ -275,6 +280,77 @@ JSON.stringify({ ok: !!ok })
       return { fired: true }
     } catch {
       return { fired: false }
+    }
+  }
+
+  /**
+   * 修改日程（P-3：标题 + 时间重排；需要 requestFullAccessToEvents 已覆盖的写权限）。
+   * 按事件标识取回（eventWithIdentifier 跨进程稳定），只动这三个字段，其余原样保留。
+   */
+  async updateEvent(input: {
+    id: string
+    title: string
+    startMs: number
+    endMs: number
+  }): Promise<{ ok: boolean; error?: string }> {
+    if (!isMac()) return { ok: false, error: '当前平台不支持' }
+    if (!input.id.trim()) return { ok: false, error: '缺少事件标识' }
+    if (!input.title.trim()) return { ok: false, error: '标题不能为空' }
+    if (!(input.endMs > input.startMs)) return { ok: false, error: '结束时间必须晚于开始时间' }
+    const script = `ObjC.import("EventKit")
+const store = $.EKEventStore.alloc.init
+const status = Number($.EKEventStore.authorizationStatusForEntityType(0))
+if (status !== 3) { JSON.stringify({ ok: false, error: 'calendar-not-authorized:' + status }) } else {
+const ev = store.eventWithIdentifier(${JSON.stringify(input.id.trim())})
+if (!ev) { JSON.stringify({ ok: false, error: 'event-not-found' }) } else {
+ev.title = ${JSON.stringify(input.title.trim())}
+ev.startDate = $.NSDate.alloc.initWithTimeIntervalSince1970(${Math.floor(input.startMs / 1000)})
+ev.endDate = $.NSDate.alloc.initWithTimeIntervalSince1970(${Math.floor(input.endMs / 1000)})
+const ok = store.saveEventSpanError(ev, 0, null)
+JSON.stringify({ ok: !!ok })
+}
+}`
+    return this.runWriteScript(script)
+  }
+
+  /** 删除日程（span 0 = 仅此实例；循环事件按 EventKit 默认语义处理本实例） */
+  async deleteEvent(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isMac()) return { ok: false, error: '当前平台不支持' }
+    if (!id.trim()) return { ok: false, error: '缺少事件标识' }
+    const script = `ObjC.import("EventKit")
+const store = $.EKEventStore.alloc.init
+const status = Number($.EKEventStore.authorizationStatusForEntityType(0))
+if (status !== 3) { JSON.stringify({ ok: false, error: 'calendar-not-authorized:' + status }) } else {
+const ev = store.eventWithIdentifier(${JSON.stringify(id.trim())})
+if (!ev) { JSON.stringify({ ok: false, error: 'event-not-found' }) } else {
+const ok = store.removeEventSpanError(ev, 0, null)
+JSON.stringify({ ok: !!ok })
+}
+}`
+    return this.runWriteScript(script)
+  }
+
+  /** createEvent/updateEvent/deleteEvent 共用的执行与错误映射；成功后清查询缓存 */
+  private async runWriteScript(script: string): Promise<{ ok: boolean; error?: string }> {
+    try {
+      const { stdout } = await execFileAsync('osascript', ['-l', 'JavaScript', '-e', script], {
+        timeout: JXA_TIMEOUT_MS
+      })
+      const parsed = JSON.parse(String(stdout || '{}')) as { ok: boolean; error?: string }
+      if (parsed.ok) {
+        this.cached = null // 写操作都可能改变「下一个会议」，清缓存让空态立即可见
+        return { ok: true }
+      }
+      return {
+        ok: false,
+        error:
+          parsed.error === 'calendar-not-authorized' ||
+          parsed.error?.startsWith('calendar-not-authorized')
+            ? '日历未授权：请先授权日历访问'
+            : (parsed.error ?? '写入失败')
+      }
+    } catch (error) {
+      return { ok: false, error: (error as Error).message }
     }
   }
 

@@ -46,4 +46,43 @@ export function registerCalendarIpc(): void {
     const { auth, events } = await calendarService.getSchedule(7)
     return { auth, events }
   })
+
+  // P-3：修改/删除日程（SchedulePage 详情动作）；失败同样弹系统通知
+  typedHandle('calendar:updateEvent', async (_e, input: unknown) => {
+    const data = (input ?? {}) as {
+      id?: unknown
+      title?: unknown
+      startMs?: unknown
+      endMs?: unknown
+    }
+    const result = await calendarService.updateEvent({
+      id: typeof data.id === 'string' ? data.id : '',
+      title: typeof data.title === 'string' ? data.title : '',
+      startMs: typeof data.startMs === 'number' ? data.startMs : 0,
+      endMs: typeof data.endMs === 'number' ? data.endMs : 0
+    })
+    if (!result.ok && result.error) {
+      try {
+        const { Notification } = await import('electron')
+        new Notification({ title: '修改日程失败', body: result.error }).show()
+      } catch (e) {
+        log.debug('calendar', '* 通知失败静默', e)
+      }
+    }
+    return result
+  })
+
+  typedHandle('calendar:deleteEvent', async (_e, input: unknown) => {
+    const data = (input ?? {}) as { id?: unknown }
+    const result = await calendarService.deleteEvent(typeof data.id === 'string' ? data.id : '')
+    if (!result.ok && result.error) {
+      try {
+        const { Notification } = await import('electron')
+        new Notification({ title: '删除日程失败', body: result.error }).show()
+      } catch (e) {
+        log.debug('calendar', '* 通知失败静默', e)
+      }
+    }
+    return result
+  })
 }

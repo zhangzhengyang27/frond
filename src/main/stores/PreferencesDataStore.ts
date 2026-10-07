@@ -52,6 +52,7 @@ const PREF_KEYS = {
   capsuleGlass: 'launcher:capsuleGlass',
   compactMode: 'launcher:compactMode',
   autoJoin: 'launcher:autoJoin',
+  crashReportOptIn: 'crash:reportOptIn',
   activeTheme: 'theme:activeUser'
 } as const
 
@@ -256,6 +257,15 @@ export class PreferencesDataStore {
 
   setAutoJoinEnabled(enabled: boolean): void {
     prefRepository.set(PREF_KEYS.autoJoin, enabled ? 'true' : 'false')
+  }
+
+  /** 崩溃上报 opt-in（crash:* 家族）：默认关——本地收集本身也要用户点头 */
+  getCrashReportOptIn(): boolean {
+    return prefRepository.get(PREF_KEYS.crashReportOptIn) === 'true'
+  }
+
+  setCrashReportOptIn(enabled: boolean): void {
+    prefRepository.set(PREF_KEYS.crashReportOptIn, enabled ? 'true' : 'false')
   }
 
   getPreferences(): Preferences {

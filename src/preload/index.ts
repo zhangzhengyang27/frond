@@ -300,6 +300,15 @@ const api = {
     }
   },
   /**
+   * 崩溃上报（crash:*，opt-in）：转储只在本机，无服务器自动上传。
+   * 诊断摘要在主进程生成并进剪贴板，这里只暴露开关与打开 Issue 模板。
+   */
+  crash: {
+    getStatus: () => typedInvoke('crash:getStatus'),
+    setOptIn: (enabled: boolean) => typedInvoke('crash:setOptIn', { enabled }),
+    openIssueTemplate: () => typedInvoke('crash:openIssueTemplate')
+  },
+  /**
    * 截图。覆盖层协议（`SCREENSHOT:*` 那一组）随树内自研编辑器一起删了 ——
    * 截图现在是上游 `electron-screenshots`（HANDOFF §11），渲染端只需要「发起/结束」
    * 与「按窗口抓图」这几条。

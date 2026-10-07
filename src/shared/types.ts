@@ -31,3 +31,15 @@ export interface LogExportPayload {
  * 用户在 Settings → 「日志 / 反馈」里切换；持久化到 pref_preferences。
  */
 export type TelemetryMode = 'off' | 'local' | 'remote'
+
+/**
+ * 崩溃上报状态（opt-in）：
+ * 收集只在本机（crashReporter uploadToServer:false），没有服务器自动上传；
+ * 发现新转储时由主进程提醒，用户自己决定要不要去 GitHub 提 Issue。
+ */
+export interface CrashReportStatus {
+  /** 用户是否已开启崩溃收集 */
+  optIn: boolean
+  /** 尚未确认过的崩溃转储份数 */
+  pendingCount: number
+}

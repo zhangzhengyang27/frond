@@ -43,6 +43,7 @@ import {
   registerAutoUpdateIpcHandlers,
   registerSystemInfoIpcHandlers,
   registerLogIpcHandlers,
+  registerCrashIpcHandlers,
   registerMigrationIpcHandlers,
   registerNotesIpc,
   registerCloudBackupIpcHandlers,
@@ -71,6 +72,7 @@ import { snippetRepository, TRASH_RETENTION_DAYS } from './db/repos/SnippetRepos
 import { runDataMigrations } from './db/dataMigrations'
 import { runPomodoroDurationMsMigration } from './db/dataMigrationsPomodoro'
 import { installGlobalLogHandlers, log } from './services/LogService'
+import { crashReport } from './services/CrashReportService'
 // 平台差异集中工具
 import { isMac as isMacRuntime, shouldQuitOnAllWindowsClosed } from './utils/platform'
 // 启动器（胶囊搜索窗 + 插件运行时）
@@ -310,6 +312,9 @@ void app
       log.debug('index', '* ignore', e)
     }
 
+    // 崩溃上报（opt-in）：用户开过才启动本地收集 + 挂进程异常退出观察者
+    crashReport.startup()
+
     // Set app user model id for windows（须与 electron-builder.yml 的 appId 一致，
     // 否则 Windows 通知/任务栏身份与安装包脱节）
     electronApp.setAppUserModelId('com.frond.app')
@@ -338,6 +343,7 @@ void app
     registerAutoUpdateIpcHandlers()
     registerSystemInfoIpcHandlers()
     registerLogIpcHandlers()
+    registerCrashIpcHandlers()
     registerMigrationIpcHandlers(() => mainWindow)
     registerNotesIpc()
     registerCloudBackupIpcHandlers()
@@ -519,6 +525,9 @@ void app
 
     // 注册全局快捷键（showHide 窗口显隐；音乐快捷键已随模块移除）
     registerAppGlobalShortcuts(() => mainWindow)
+
+    // 崩溃上报：发现上次异常退出的新转储时提醒一次（放在托盘/快捷键之后，不抢启动）
+    void crashReport.notifyPendingCrashes()
 
     app.on('activate', function () {
       // Raycast 化：点击 Dock 图标时显示启动器，而不是主窗口

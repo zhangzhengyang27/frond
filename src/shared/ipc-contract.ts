@@ -40,7 +40,7 @@ import type { EditorSettings, Preferences } from '../main/stores/PreferencesData
 import type { PopToRootMode } from './popToRoot'
 import type { Density } from './density'
 import type { CapsuleGlass } from './capsuleGlass'
-import type { TelemetryMode } from './types'
+import type { TelemetryMode, CrashReportStatus } from './types'
 import type { ThemeDefinition } from './themeSchema'
 import type { UserThemeRejection } from '../main/modules/userThemes'
 import type { UpdateStatus } from '../renderer/src/types/update'
@@ -260,6 +260,12 @@ export interface IpcContract {
     }
     res: { ok: boolean }
   }
+
+  // ─────────── 崩溃上报（crash:*，opt-in：仅本地收集转储，无服务器自动上传）───────────
+  'crash:getStatus': { req: void; res: CrashReportStatus }
+  'crash:setOptIn': { req: { enabled: boolean }; res: CrashReportStatus }
+  /** 诊断摘要进剪贴板（不进 URL）+ 打开 GitHub Issue 模板 */
+  'crash:openIssueTemplate': { req: void; res: { ok: boolean; error?: string } }
 
   // ─────────── 自动更新其余通道（update:*）───────────
   'update:getStatus': { req: void; res: UpdateStatus }

@@ -138,7 +138,7 @@ const sections: SettingsSection[] = [
     id: 'advanced',
     label: '高级',
     icon: 'ri-code-s-slash-line',
-    keywords: ['日志', 'log', '遥测', 'telemetry', 'debug', '开发者', '开发模式']
+    keywords: ['日志', 'log', '遥测', 'telemetry', 'debug', '开发者', '开发模式', '崩溃', 'crash', '诊断', 'issue']
   },
   {
     id: 'about',
@@ -151,7 +151,11 @@ const activeSection = ref('general')
 // B44 后主窗开机即落 /settings（Home 已删）：自动化列表只在 onMounted 拉一次的话，
 // 插件后建的任务永远不出现。切到「高级」页签时刷新——顺带治长期开着设置页的数据陈旧
 watch(activeSection, (id) => {
-  if (id === 'advanced') void loadAutomations()
+  if (id === 'advanced') {
+    void loadAutomations()
+    // 崩溃转储可能在设置页开着的时候新增（如刚经历一次异常退出），每次进页都重读
+    void loadCrashStatus()
+  }
 })
 const searchQuery = ref('')
 
@@ -311,6 +315,7 @@ async function loadAIConfig(): Promise<void> {
   } catch {
     /* 读不到就按默认档显示 */
   }
+  await loadCrashStatus()
   await loadAutomations()
 }
 
@@ -354,6 +359,34 @@ async function chooseGlass(g: CapsuleGlass): Promise<void> {
 const density = ref<Density>('comfortable')
 async function chooseDensity(d: Density): Promise<void> {
   density.value = await window.api.preferences.setDensity(d)
+}
+
+// ── 崩溃上报（opt-in：仅本地收集转储，无服务器自动上传）──
+const crashOptIn = ref(false)
+const crashPending = ref(0)
+const crashMsg = ref('')
+async function loadCrashStatus(): Promise<void> {
+  try {
+    const s = await window.api.crash.getStatus()
+    crashOptIn.value = s.optIn
+    crashPending.value = s.pendingCount
+  } catch {
+    /* 状态读不到就按默认关显示 */
+  }
+}
+async function chooseCrashOptIn(on: boolean): Promise<void> {
+  try {
+    const s = await window.api.crash.setOptIn(on)
+    crashOptIn.value = s.optIn
+    crashPending.value = s.pendingCount
+    crashMsg.value = on ? '已开启：只在本机记录崩溃转储，不会自动上传' : '已关闭'
+  } catch {
+    crashMsg.value = '保存失败'
+  }
+}
+async function onOpenCrashIssue(): Promise<void> {
+  const res = await window.api.crash.openIssueTemplate()
+  crashMsg.value = res.ok ? '诊断信息已复制，粘贴到 Issue 正文即可' : `打开失败：${res.error ?? ''}`
 }
 
 // ── MCP 客户端（P-4②）──
@@ -1678,6 +1711,52 @@ const canInstall = (): boolean => updateStatus.value === 'downloaded'
                   </div>
                 </div>
                 <UButton size="sm" variant="secondary" @click="onExportLogs">导出</UButton>
+              </div>
+            </div>
+          </section>
+
+          <!-- 崩溃上报（opt-in）：转储只留本机，发不发由用户在下次启动的提醒里决定 -->
+          <section class="mb-8">
+            <h2 class="mb-3 text-[12px] font-medium uppercase tracking-wider text-fg-tertiary">
+              崩溃上报
+            </h2>
+            <div class="overflow-hidden rounded-xl bg-surface-1 ring-1 ring-line-subtle">
+              <div class="flex items-center gap-3 px-4 py-3">
+                <div
+                  class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-fg-tertiary"
+                >
+                  <AppIcon icon="ri-bug-line" :size="16" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-[14px] font-medium text-fg-primary">收集崩溃转储</div>
+                  <div class="text-[12px] text-fg-tertiary">
+                    仅在本机记录异常退出的转储文件，不会自动上传；下次启动发现新记录时会提醒你
+                  </div>
+                </div>
+                <USwitch
+                  :model-value="crashOptIn"
+                  label="崩溃收集开关"
+                  @update:model-value="chooseCrashOptIn"
+                />
+              </div>
+              <div
+                v-if="crashPending > 0"
+                class="flex items-center gap-3 border-t border-line-subtle px-4 py-3"
+                data-testid="crash-pending"
+              >
+                <div class="min-w-0 flex-1 text-[12px] text-fg-tertiary">
+                  检测到 {{ crashPending }} 份未处理的崩溃记录
+                </div>
+                <UButton size="sm" variant="secondary" @click="onOpenCrashIssue">
+                  打开 Issue 页面
+                </UButton>
+              </div>
+              <div
+                v-if="crashMsg"
+                class="border-t border-line-subtle px-4 py-2 text-[12px] text-fg-tertiary"
+                data-testid="crash-msg"
+              >
+                {{ crashMsg }}
               </div>
             </div>
           </section>

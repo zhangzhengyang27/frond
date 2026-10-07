@@ -85,6 +85,11 @@ export function registerClipboardHistoryIpc(): void {
     }
   })
 
+  // P-3：置顶条目投影（胶囊空态建议专用，B53-3a 同口径不整包拉全文）
+  typedHandle('cliphist:listPinned', (_e, { limit }: { limit?: number }) =>
+    clipboardHistory.listPinned(Number(limit) || 3)
+  )
+
   // 粘贴直达：写回剪贴板 → 收起胶囊（焦点回落目标应用）→ 延迟注入 ⌘V
   typedHandle('cliphist:pasteBack', async (_e, { id }) => {
     if (!clipboardHistory.copy(id)) return { ok: false, error: 'item not found' }

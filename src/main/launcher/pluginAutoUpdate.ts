@@ -11,6 +11,9 @@
  *   来源与版本变化落 audit.jsonl（P-3.4）
  */
 import { computePluginUpdates, installFromMarket, refreshRemoteIndex } from './market'
+import { notifyCommandTableChanged } from './ipc'
+import { reloadPluginView } from './runtime'
+import { getLauncherWindow } from './window'
 import { log } from '../services/LogService'
 import { NotificationService } from '../services/NotificationService'
 
@@ -40,6 +43,10 @@ export async function runPluginUpdateCheck(): Promise<PluginAutoUpdateOutcome> {
       const result = await installFromMarket(u.id, { silent: true })
       if (result.success) {
         outcome.updated.push({ id: u.id, name: u.name })
+        // 与手动更新（launcher:market:update）同一收尾：刷新命令表 + 就地重载
+        // 存活插件视图，否则自动更新后开着插件的视图短暂新旧混载
+        reloadPluginView(u.id, getLauncherWindow())
+        notifyCommandTableChanged('plugins')
       } else if (result.blocked) {
         outcome.blocked.push({
           id: u.id,

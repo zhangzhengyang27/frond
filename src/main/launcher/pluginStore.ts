@@ -271,12 +271,6 @@ export function readManifest(dir: string): PluginManifest {
   } else if (manifest.api !== undefined) {
     delete manifest.api
   }
-  // api 模式归一：仅接受 'react'，其余（含拼错值）一律视为 'data'（fail-closed）
-  if (manifest.api === 'react') {
-    manifest.api = 'react'
-  } else if (manifest.api !== undefined) {
-    delete manifest.api
-  }
   // 偏好声明清洗（fail-closed）：此前 manifest.preferences 是**整段照收**的，
   // 类型写错、label 缺失、select 没有候选都会悄悄流到读取端（插件拿到 undefined，
   // 用户以为自己没填）。清洗器见 sanitizePluginPreferences

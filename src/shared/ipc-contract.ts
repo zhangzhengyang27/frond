@@ -995,6 +995,11 @@ export interface IpcContract {
   'notification:closeAll': { req: void; res: void }
 
   'cliphist:list': { req: void; res: ClipboardHistoryItem[] }
+  /** P-3：置顶条目最小投影（空态建议；主进程内 filter+截断） */
+  'cliphist:listPinned': {
+    req: { limit?: number }
+    res: ReturnType<typeof clipboardHistory.listPinned>
+  }
   /** B53-3a：主进程侧搜索（根搜索每击键）——最小投影，不整包发全文历史 */
   'cliphist:search': {
     req: { query: string; limit?: number }

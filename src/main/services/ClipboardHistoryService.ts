@@ -306,6 +306,23 @@ export class ClipboardHistoryService {
   }
 
   /** 把指定历史条目写回系统剪贴板 */
+  /** P-3：置顶条目最小投影（空态建议专用）——主进程先 filter+截断，
+   *  不把含解密全文的整份历史拉过 IPC（B53-3a 同口径） */
+  listPinned(limit = 3): Array<{ id: string; kind: ClipboardItemKind; title: string }> {
+    return this.items
+      .filter((i) => i.pinned === true)
+      .slice(0, limit)
+      .map((i) => ({
+        id: i.id,
+        kind: i.kind,
+        title:
+          i.kind === 'files'
+            ? (i.paths?.[0]?.split(/[\\/]/).pop() ?? '文件')
+            : (i.text ?? '').slice(0, 60)
+      }))
+  }
+
+  /** 把指定历史条目写回系统剪贴板 */
   copy(id: string): boolean {
     const item = this.items.find((i) => i.id === id)
     if (!item) return false
@@ -561,15 +578,16 @@ export class ClipboardHistoryService {
       if (text) {
         const fingerprint = this.fingerprintText(text)
         if (fingerprint === this.lastTextFingerprint) return
+        // P-3 Paste-as：网页/Office/Notes 复制时常带富文本 flavor，一并入账。
+        // 必须在前台应用的 await **之前**读：readText 与 readHTML/RTF 隔着
+        // osascript（50-150ms）的话，两次不同复制会拼成 text/html 错配条目
+        const rich = this.readRichFlavors()
         const frontApp = await this.getFrontmostAppName()
         if (frontApp && this.isAppBlocked(frontApp)) {
           this.lastTextFingerprint = fingerprint
           return
         }
         this.lastTextFingerprint = fingerprint
-        // P-3 Paste-as：网页/Office/Notes 复制时常带富文本 flavor，一并入账；
-        // 回放时原样写回（Notes/Mail 优先取 public.rtf，不能运行时从 HTML 合成）
-        const rich = this.readRichFlavors()
         this.push({
           kind: URL_RE.test(text.trim()) ? 'link' : 'text',
           text,

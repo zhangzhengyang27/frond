@@ -42,9 +42,15 @@ function listDumps(): CrashDumpInfo[] {
   try {
     return readdirSync(dir)
       .filter(isDumpFile)
-      .map((file) => {
-        const st = statSync(join(dir, file))
-        return { file, sizeBytes: st.size, modifiedAt: st.mtimeMs }
+      .flatMap((file): CrashDumpInfo[] => {
+        // 逐文件容错：单个文件在 readdir 与 stat 之间被清掉，不该清空整份扫描
+        // 结果（整份清空会把 seen 状态一起洗掉，幸存旧转储下次被当新崩溃误报）
+        try {
+          const st = statSync(join(dir, file))
+          return [{ file, sizeBytes: st.size, modifiedAt: st.mtimeMs }]
+        } catch {
+          return []
+        }
       })
   } catch {
     // 目录不存在（从未崩溃过）按空处理
@@ -112,7 +118,8 @@ function setOptIn(enabled: boolean): CrashReportStatus {
 /** 诊断摘要进剪贴板（不进 URL）+ 打开 Issue 模板 */
 function openIssueTemplate(): { ok: boolean; error?: string } {
   try {
-    const summary = diagnosticSummary(listDumps())
+    const dumps = listDumps()
+    const summary = diagnosticSummary(dumps)
     const title = buildIssueTitle({
       appVersion: app.getVersion(),
       platform: process.platform,
@@ -120,6 +127,9 @@ function openIssueTemplate(): { ok: boolean; error?: string } {
     })
     clipboard.writeText(summary)
     void shell.openExternal(buildIssueUrl(ISSUES_BASE_URL, title))
+    // 本批按「已处理」记账（与启动提醒同一语义）：设置页徽标清零，
+    // 下次启动也不把这批再当新转储提醒
+    saveState([...pruneSeen(dumps, loadState().seen), ...dumps.map((d) => d.file)])
     log.info('crash', '已复制诊断摘要并打开 Issue 模板')
     return { ok: true }
   } catch (e) {

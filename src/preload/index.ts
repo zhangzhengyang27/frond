@@ -720,6 +720,8 @@ const api = {
   // 剪贴板历史（阶段B：胶囊内联页数据源；主进程 1s 轮询，会话内有效）
   clipHist: {
     list: () => typedInvoke('cliphist:list'),
+    // P-3：置顶条目投影（空态建议；主进程内 filter+截断）
+    listPinned: (limit?: number) => typedInvoke('cliphist:listPinned', { limit }),
     // B53-3a：主进程侧搜索（根搜索每击键），最小投影
     search: (query: string, limit?: number) => typedInvoke('cliphist:search', { query, limit }),
     copy: (id: IpcRequest<'cliphist:copy'>['id']) => typedInvoke('cliphist:copy', { id }),

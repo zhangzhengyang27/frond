@@ -451,31 +451,23 @@ async function fetchNextMeetingEntry(): Promise<CommandEntry | null> {
   }
 }
 
-/** 置顶剪贴板条目（P-3 空态上下文第二批）：list() 置顶在前，取前 limit 个 pinned。
- *  失败/无置顶返回 []。整列表 IPC 略重但只在唤起时拉一次（与 clips 页同源）。 */
+/** 置顶剪贴板条目（P-3 空态上下文第二批）：走主进程投影（filter+截断在主进程内，
+ *  不把含解密全文的整份历史拉过 IPC——审查 Important #2，对齐 B53-3a 口径）。 */
 async function fetchPinnedClipEntries(limit: number): Promise<CommandEntry[]> {
   try {
-    const items = (await window.api.clipHist.list()) as Array<{
+    const items = (await window.api.clipHist.listPinned(limit)) as Array<{
       id: string
-      pinned?: boolean
-      kind: string
-      text?: string
-      firstPath?: string
+      kind: 'text' | 'image' | 'files' | 'link'
+      title: string
     }>
-    return items
-      .filter((it) => it.pinned === true)
-      .slice(0, limit)
-      .map((it): CommandEntry => ({
-        key: `clip:${it.id}`,
-        icon: it.kind === 'image' ? 'image-line' : 'clipboard-line',
-        title:
-          it.kind === 'files'
-            ? (it.firstPath?.split('/').pop() ?? '文件')
-            : (it.text ?? '').slice(0, 60),
-        subtitle: '剪贴板 · 置顶',
-        badge: '剪贴板',
-        action: { type: 'clipboardItem', id: it.id }
-      }))
+    return items.map((it): CommandEntry => ({
+      key: `clip:${it.id}`,
+      icon: it.kind === 'image' ? 'image-line' : 'clipboard-line',
+      title: it.title || (it.kind === 'image' ? '图片' : '剪贴板'),
+      subtitle: '剪贴板 · 置顶',
+      badge: '剪贴板',
+      action: { type: 'clipboardItem', id: it.id }
+    }))
   } catch {
     return []
   }
@@ -1093,11 +1085,13 @@ async function submitEventForm(values: Record<string, string | boolean>): Promis
   const parsed = parseEventFormValues(values)
   if (!parsed) return // 留在表单
   const snapshot = editingEvent.value
-  editingEvent.value = null
   const result = snapshot
     ? await window.api.calendar.updateEvent({ id: snapshot.id, ...parsed })
     : await window.api.calendar.createEvent(parsed)
+  // 快照只在成功后清：失败时提前清会让 eventform 的 props 经响应式重算成创建态，
+  // 表单重置、重试提交就变成对同一事件重复创建（审查 Important #1）
   if (result.ok) {
+    editingEvent.value = null
     popToRoot()
   }
 }

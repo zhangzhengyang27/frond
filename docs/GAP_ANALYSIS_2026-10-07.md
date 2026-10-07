@@ -175,7 +175,7 @@
 | 2.2 ✅已闭 | **AI 进动作面板（P-4③）**：任意结果动作面板加"问 AI"一级动作；"问剪贴板"进剪贴板详情 | 无需打开聊天页即可完成一次 AI 消费 | **勘察复核：2026-09-25 已全部落地**（`useActionPanel.ts:213-225`、`shared/aiAsk.ts`、`ClipboardPage.vue:254-273`、e2e `ai-action.spec.mjs`），无需开发 |
 | 2.3 | **frecency 全局化**：把 useUsageBoost 的键从 module 动作扩展到应用/插件/文件三类命中，SQLite usage 表已有地基 | 同查询重排可被单测复现 | M |
 | 2.4 ✅执行 | 文本扩展补厚度：`{cursor}` + 日期算术 + Espanso 导入器（三件套一次交付，导入器自带获客） | Espanso 用户可无损迁入 | **勘察复核**：`{cursor}` 早已存在（V4 P-1-6，`expansionTemplate.ts` 码点级定位）；本批实做=日期算术（`{date +7d}`/`{date:YYYY-MM-DD +1M}`/`{time +30m}`）+ Espanso YAML 导入器（date/clipboard var 映射，其余降级输入参数） |
-| 2.5 ⏳后置 | 代码片段搜索重新评估 FTS：以当前 snippet 量级实测 LIKE 延迟，超阈值则恢复 FTS5（评估批维护方案解写放大） | 有实测数据支撑的决策记录 | S |
+| 2.5 ✅实测+改写 | 代码片段搜索重新评估 FTS：以 snippet 量级实测 LIKE 延迟，超阈值则恢复 FTS5 | 有实测数据支撑的决策记录 | **实测结论（内存库、同形查询、1k/5k/20k 行）**：quickSearch 整体 5.5/118/1910ms，其中**标签相关子查询占 95–99%**（去掉后 20k 行仅 ~10ms）。**决策：不回 FTS5**（写放大回归不值），已改写 quickSearch 为两段查询（正文命中填满 → 标签名命中补足，各自排序），改写后 20k 行 ~10ms；语义变化=标签命中排在正文命中之后（`SnippetRepository.quickSearch`） |
 | 2.6 | 空态环境上下文：胶囊空态呈现"下一个会议"（CalendarService 已就绪）+ 置顶剪贴板 | 空态从"收纳"变"信息面" | S |
 | 2.7 ⏳后置 | 脚本命令目录：约定 `~/frond-scripts`（或配置目录）扫描 `.sh/.ps1` 生成命令进注册表 | 落一个脚本，全局热键直达 | M |
 

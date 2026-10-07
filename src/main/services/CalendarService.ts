@@ -102,6 +102,46 @@ const block = ObjC.block("void, BOOL", function() {})
 store.requestFullAccessToEventsWithCompletion(block)
 "requested"`
 
+/**
+ * JXA：按标识取回事件改标题/起止后保存（span 0 = 仅此实例）。
+ * id/title 经 JSON.stringify 嵌成字符串字面量（引号/换行安全）；ms 取秒并向下取整。
+ * 纯函数导出：脚本构造可单测（审查 Minor：updateEvent/deleteEvent 无测试）。
+ */
+export function buildUpdateEventScript(
+  id: string,
+  title: string,
+  startMs: number,
+  endMs: number
+): string {
+  return `ObjC.import("EventKit")
+const store = $.EKEventStore.alloc.init
+const status = Number($.EKEventStore.authorizationStatusForEntityType(0))
+if (status !== 3) { JSON.stringify({ ok: false, error: 'calendar-not-authorized:' + status }) } else {
+const ev = store.eventWithIdentifier(${JSON.stringify(id)})
+if (!ev) { JSON.stringify({ ok: false, error: 'event-not-found' }) } else {
+ev.title = ${JSON.stringify(title)}
+ev.startDate = $.NSDate.alloc.initWithTimeIntervalSince1970(${Math.floor(startMs / 1000)})
+ev.endDate = $.NSDate.alloc.initWithTimeIntervalSince1970(${Math.floor(endMs / 1000)})
+const ok = store.saveEventSpanError(ev, 0, null)
+JSON.stringify({ ok: !!ok })
+}
+}`
+}
+
+/** JXA：按标识删除事件（removeEventSpanError） */
+export function buildDeleteEventScript(id: string): string {
+  return `ObjC.import("EventKit")
+const store = $.EKEventStore.alloc.init
+const status = Number($.EKEventStore.authorizationStatusForEntityType(0))
+if (status !== 3) { JSON.stringify({ ok: false, error: 'calendar-not-authorized:' + status }) } else {
+const ev = store.eventWithIdentifier(${JSON.stringify(id)})
+if (!ev) { JSON.stringify({ ok: false, error: 'event-not-found' }) } else {
+const ok = store.removeEventSpanError(ev, 0, null)
+JSON.stringify({ ok: !!ok })
+}
+}`
+}
+
 interface RawEvent {
   title: string
   start: number
@@ -297,37 +337,16 @@ JSON.stringify({ ok: !!ok })
     if (!input.id.trim()) return { ok: false, error: '缺少事件标识' }
     if (!input.title.trim()) return { ok: false, error: '标题不能为空' }
     if (!(input.endMs > input.startMs)) return { ok: false, error: '结束时间必须晚于开始时间' }
-    const script = `ObjC.import("EventKit")
-const store = $.EKEventStore.alloc.init
-const status = Number($.EKEventStore.authorizationStatusForEntityType(0))
-if (status !== 3) { JSON.stringify({ ok: false, error: 'calendar-not-authorized:' + status }) } else {
-const ev = store.eventWithIdentifier(${JSON.stringify(input.id.trim())})
-if (!ev) { JSON.stringify({ ok: false, error: 'event-not-found' }) } else {
-ev.title = ${JSON.stringify(input.title.trim())}
-ev.startDate = $.NSDate.alloc.initWithTimeIntervalSince1970(${Math.floor(input.startMs / 1000)})
-ev.endDate = $.NSDate.alloc.initWithTimeIntervalSince1970(${Math.floor(input.endMs / 1000)})
-const ok = store.saveEventSpanError(ev, 0, null)
-JSON.stringify({ ok: !!ok })
-}
-}`
-    return this.runWriteScript(script)
+    return this.runWriteScript(
+      buildUpdateEventScript(input.id.trim(), input.title.trim(), input.startMs, input.endMs)
+    )
   }
 
   /** 删除日程（span 0 = 仅此实例；循环事件按 EventKit 默认语义处理本实例） */
   async deleteEvent(id: string): Promise<{ ok: boolean; error?: string }> {
     if (!isMac()) return { ok: false, error: '当前平台不支持' }
     if (!id.trim()) return { ok: false, error: '缺少事件标识' }
-    const script = `ObjC.import("EventKit")
-const store = $.EKEventStore.alloc.init
-const status = Number($.EKEventStore.authorizationStatusForEntityType(0))
-if (status !== 3) { JSON.stringify({ ok: false, error: 'calendar-not-authorized:' + status }) } else {
-const ev = store.eventWithIdentifier(${JSON.stringify(id.trim())})
-if (!ev) { JSON.stringify({ ok: false, error: 'event-not-found' }) } else {
-const ok = store.removeEventSpanError(ev, 0, null)
-JSON.stringify({ ok: !!ok })
-}
-}`
-    return this.runWriteScript(script)
+    return this.runWriteScript(buildDeleteEventScript(id.trim()))
   }
 
   /** createEvent/updateEvent/deleteEvent 共用的执行与错误映射；成功后清查询缓存 */

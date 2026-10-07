@@ -281,17 +281,43 @@ export class SnippetRepository {
    * 的业务入口经 SnippetDataStore 强制 isDeleted:false），直连 repo 的本方法
    * 曾把已删片段泄漏进胶囊搜索，回车还能复制已删内容。
    */
+  /**
+   * P-3（2.5 实测后改写）：两段查询替代相关子查询。原写法对每行跑 tag EXISTS
+   * 相关子查询，实测（内存库、同形查询）1k/5k/20k 行 = 5.5/118/1910ms，其中
+   * 该子查询占 95–99%（去掉后 20k 行仅 ~10ms）。改写后：先按 search_text 命中
+   * 填满限额，不足再按标签名命中补足（两段都走索引化路径，各自排序）。
+   * 语义变化：标签命中排在正文命中之后（原来混在同一排序里）——对 5-10 条的
+   * 胶囊结果可接受；决策记录见 docs/GAP_ANALYSIS_2026-10-07.md 2.5。
+   */
   quickSearch(query: string, limit: number): Array<{ id: string; name: string; language: string }> {
     const like = `%${query.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
-    return this.db
+    const out = this.db
       .prepare(
         `SELECT id, title AS name, language FROM snip_snippets
-         WHERE deleted_at IS NULL AND (search_text LIKE ? ESCAPE '\\' OR EXISTS (
-           SELECT 1 FROM snip_tags stq JOIN tag_tags tq ON tq.id = stq.tag_id
-           WHERE stq.snippet_id = snip_snippets.id AND tq.name LIKE ? ESCAPE '\\'))
+         WHERE deleted_at IS NULL AND search_text LIKE ? ESCAPE '\\'
          ORDER BY updated_at DESC, rowid DESC LIMIT ?`
       )
-      .all(like, like, limit) as Array<{ id: string; name: string; language: string }>
+      .all(like, limit) as Array<{ id: string; name: string; language: string }>
+    if (out.length >= limit) return out
+    // 标签名命中补足剩余位（排除已命中的 id；have 为空时跳过 NOT IN 子句）
+    const have = out.map((r) => r.id)
+    const notIn = have.length > 0 ? `AND s.id NOT IN (${have.map(() => '?').join(',')})` : ''
+    const rows = this.db
+      .prepare(
+        `SELECT s.id, s.title AS name, s.language FROM snip_snippets s
+         WHERE s.deleted_at IS NULL AND s.id IN (
+           SELECT stq.snippet_id FROM tag_tags tq JOIN snip_tags stq ON stq.tag_id = tq.id
+           WHERE tq.name LIKE ? ESCAPE '\\')
+         ${notIn}
+         ORDER BY s.updated_at DESC, s.rowid DESC LIMIT ?`
+      )
+      .all(like, ...have, limit - out.length) as Array<{
+      id: string
+      name: string
+      language: string
+    }>
+    out.push(...rows)
+    return out
   }
 
   /** B56：触发词冲突查询——同触发词的其它在册片段（排除自身与回收站）；无冲突返回 undefined */

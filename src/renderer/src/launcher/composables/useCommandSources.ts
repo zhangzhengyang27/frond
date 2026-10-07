@@ -157,6 +157,13 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
   /** #5 插件双通道：searchable 插件持久化条目（关闭插件后仍可从根搜索命中） */
   const pluginSearchRows = ref<CommandEntry[]>([])
 
+  /** djb2 短哈希（psearch 稳定 key 用）：只求跨会话一致 + 低碰撞，不抗碰撞攻击 */
+  function shortHash(input: string): string {
+    let h = 5381
+    for (let i = 0; i < input.length; i++) h = ((h << 5) + h + input.charCodeAt(i)) | 0
+    return (h >>> 0).toString(36)
+  }
+
   async function loadPluginSearchItems(): Promise<void> {
     try {
       const items = (await window.api.launcher.pluginSearchList()) as Array<{
@@ -168,8 +175,11 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
         action: PluginItemAction
         pluginId: string
       }>
-      pluginSearchRows.value = items.slice(0, 200).map((item, idx) => ({
-        key: `psearch:${item.pluginId}:${idx}`,
+      pluginSearchRows.value = items.slice(0, 200).map((item) => ({
+        // P-3：稳定 usage key——此前是位置下标，插件更新/条目重排后同一 key 指向
+        // 不同条目，frecency 错绑（审查 Minor）。取标题+动作的短哈希：跨会话稳定，
+        // 同插件内重名条目靠动作 payload 区分。
+        key: `psearch:${item.pluginId}:${shortHash(item.title + JSON.stringify(item.action))}`,
         icon: item.icon || 'plug-2',
         title: item.title,
         subtitle: item.subtitle || '插件条目',

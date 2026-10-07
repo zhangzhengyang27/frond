@@ -25,7 +25,9 @@ export type BuiltinInstallDecision = 'install' | 'update' | 'skip'
  * - 未安装 → install
  * - 已安装：只在**内置版本确实更新**时 update（semver 比较）——旧逻辑「版本不等就重装」
  *   会把用户从市场装的更高版本同 id 插件在每次启动时降级覆盖回内置版
- * - 任一侧版本解析不出 semver：退回「不等即更新」（与 market.isUpdatable 同一兜底）
+ * - 任一侧版本解析不出 semver：退回「不等即更新」（与 market.isUpdatable 同一兜底）。
+ *   两者**不可草率合一**：缺失版本的语义刻意不同——这里「已装无版本 + 内置有版本」
+ *   判 update（历史数据早于版本号机制，应升级），isUpdatable 任一侧缺失即 false
  * - 内置件没有 version → 永远 skip（沿用旧规则：无版本号不参与更新）
  */
 export function decideBuiltinInstall(

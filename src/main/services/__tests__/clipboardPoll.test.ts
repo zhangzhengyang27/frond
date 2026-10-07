@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -170,5 +170,33 @@ describe('P-3 Paste-as：富文本 flavor 采集与原格式回放', () => {
     expect(item?.text).toBe('just text')
     expect(item?.html).toBeUndefined()
     expect(item?.rtf).toBeUndefined()
+  })
+
+  it('html/rtf 持久化加密 roundtrip：盘上无明文，读回是明文', () => {
+    const item = {
+      id: 'rich-rt-1',
+      kind: 'text' as const,
+      text: 'secret body',
+      html: '<b>secret</b>',
+      rtf: '{\\rtf1 secret}',
+      createdAt: Date.now()
+    }
+    ;(svc as unknown as { items: unknown[] }).items = [item]
+    ;(svc as unknown as { persist(): void }).persist()
+
+    // 盘上密文不得含明文（text/html/rtf 三字段同密级）
+    const raw = readFileSync(join(dir, 'index.json'), 'utf-8')
+    expect(raw).not.toContain('secret body')
+    expect(raw).not.toContain('<b>secret</b>')
+    expect(raw).toContain('enc:')
+
+    // 重启路径：新实例 loadPersisted 解密还原
+    const svc2 = new ClipboardHistoryService()
+    ;(svc2 as unknown as { dir: string }).dir = dir
+    ;(svc2 as unknown as { loadPersisted(): void }).loadPersisted()
+    const restored = svc2.list().find((i) => i.id === 'rich-rt-1')
+    expect(restored?.text).toBe('secret body')
+    expect(restored?.html).toBe('<b>secret</b>')
+    expect(restored?.rtf).toBe('{\\rtf1 secret}')
   })
 })

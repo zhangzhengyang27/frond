@@ -96,6 +96,9 @@ async function checkOnce(): Promise<void> {
 }
 
 export function startPluginAutoUpdate(): void {
+  // e2e 实例不启动自动更新：市场播种与打包索引常同源同版本，远程索引刷新
+  // 与更新通知在 e2e 里是没有意义的潜在 flake 源（审查 Minor）
+  if (process.env.FROND_E2E === '1') return
   if (timer || firstCheck) return
   firstCheck = setTimeout(() => {
     firstCheck = null

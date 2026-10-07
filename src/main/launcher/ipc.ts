@@ -60,6 +60,7 @@ import {
 import {
   listMarket,
   installFromMarket,
+  computePluginUpdates,
   marketIndexInfo,
   setRemoteIndexUrl,
   refreshRemoteIndex
@@ -214,6 +215,8 @@ export function registerLauncherIpc(): void {
     }
     return result
   })
+  // P-3.2：已装插件 ×（打包+精选+远程缓存）索引 → 可更新清单（插件中心徽标数据源）
+  typedHandle('launcher:pluginUpdates:list', () => computePluginUpdates())
 
   // ─────────── 插件热重载开发模式（对标 ray develop）───────────
   typedHandle('launcher:devPlugins:list', () => listDevPlugins())

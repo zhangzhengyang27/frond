@@ -189,9 +189,12 @@ async function reinstallAndReload(
   }
   try {
     const before = getPlugin(pluginId)
-    const plugin = importFromFolder(dir)
-    // importFromFolder 强制 enabled: true：热重装必须保留用户的启停状态，
-    // 否则一次文件保存会把手动停用的插件重新拉起
+    const plugin = importFromFolder(dir, {
+      origin: { kind: 'dev', ref: dir },
+      isUpdate: !!before
+    })
+    // 双保险：isUpdate 路径已保留启停状态，这里兜一次历史行为
+    // （否则一次文件保存会把手动停用的插件重新拉起）
     if (before && !before.enabled) {
       setPluginEnabled(pluginId, false)
       plugin.enabled = false
@@ -253,7 +256,7 @@ export function addDevPlugin(sourceDir: string): {
   let plugin: InstalledPlugin
   try {
     // importFromFolder 内部走 readManifest 校验 + staging 原子交换（覆盖式安装）
-    plugin = importFromFolder(dir)
+    plugin = importFromFolder(dir, { origin: { kind: 'dev', ref: dir } })
   } catch (error) {
     return { ok: false, error: (error as Error).message }
   }

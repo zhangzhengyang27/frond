@@ -33,7 +33,14 @@ interface Manifest {
   preferences?: unknown
 }
 
-const KNOWN_PERMISSIONS = new Set(['clipboard.read', 'clipboard.write', 'fs.open', 'net'])
+// 与 shared/plugin-protocol.ts 的 PLUGIN_PERMISSIONS 对齐（此前漏 'schedule' 已漂移过一次）
+const KNOWN_PERMISSIONS = new Set([
+  'clipboard.read',
+  'clipboard.write',
+  'fs.open',
+  'net',
+  'schedule'
+])
 const KNOWN_ARG_TYPES = new Set(['text', 'password', 'dropdown'])
 
 const entries = readdirSync(PLUGINS_DIR)

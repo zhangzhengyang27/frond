@@ -31,6 +31,7 @@ import {
 } from '../../shared/plugin-protocol'
 import { getLauncherDocStore } from './docStore'
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -76,11 +77,23 @@ export interface PluginManifest {
   permissions?: string[]
 }
 
+/** P-3.4 来源审计：插件从哪条链装进来的（随 installed.json 持久化；旧数据缺省 = UI 按「未知」处理） */
+export type PluginOriginKind = 'builtin' | 'market' | 'local' | 'dev'
+export interface PluginOrigin {
+  kind: PluginOriginKind
+  /** 细化引用：市场来源（bundled/curated/remote）、导入目录、dev 目录等自由文本 */
+  ref?: string
+}
+
 export interface InstalledPlugin extends PluginManifest {
   enabled: boolean
   /** 导入来源目录（dev 插件指向开发目录） */
   sourcePath?: string
   installedAt: number
+  /** 最近一次更新时间（isUpdate 路径写入；首装无此字段） */
+  updatedAt?: number
+  /** 来源（P-3.4 之前安装的插件无此字段） */
+  origin?: PluginOrigin
 }
 
 let cachedRoot: string | null = null
@@ -149,6 +162,40 @@ function writeIndex(plugins: InstalledPlugin[]): void {
   writeFileSync(tmpFile, JSON.stringify(plugins, null, 2))
   rmSync(indexPath(), { force: true })
   renameSync(tmpFile, indexPath())
+}
+
+// ─────────── 来源审计（P-3.4）：userData/launcher-plugins/audit.jsonl ───────────
+
+export interface PluginAuditEntry {
+  ts: number
+  pluginId: string
+  action: 'install' | 'update' | 'remove'
+  fromVersion?: string
+  toVersion?: string
+  origin?: PluginOrigin
+}
+
+function auditFilePath(): string {
+  return join(pluginsRoot(), 'audit.jsonl')
+}
+
+/** 审计追加失败只记日志：审计是旁路观测，绝不能反过来挡安装/卸载 */
+function appendAudit(entry: PluginAuditEntry): void {
+  try {
+    ensureRoot()
+    appendFileSync(auditFilePath(), `${JSON.stringify(entry)}\n`, 'utf-8')
+  } catch (e) {
+    log.debug('plugin-store', 'audit append failed', e)
+  }
+}
+
+/** 旧安装的来源回填（builtin 启动链用）：只在缺失时写，不覆盖已有 origin */
+export function setPluginOriginIfMissing(pluginId: string, origin: PluginOrigin): void {
+  const index = readIndex()
+  const target = index.find((p) => p.id === pluginId)
+  if (!target || target.origin) return
+  target.origin = origin
+  writeIndex(index)
 }
 
 /** 插件安装目录（协议服务/卸载都以它为根） */
@@ -285,8 +332,14 @@ export function listEnabledPlugins(): InstalledPlugin[] {
 /**
  * 从本地目录导入插件。
  * devServer 插件只拷贝 plugin.json（页面由 dev server 提供）；普通插件整目录拷贝。
+ *
+ * opts.isUpdate（P-3.2 更新路径）：保留用户的启停状态与首次安装时间——
+ * 此前覆盖式更新会把已停用的插件悄悄拉回启用；首装路径维持 enabled:true 不变。
  */
-export function importFromFolder(srcDir: string): InstalledPlugin {
+export function importFromFolder(
+  srcDir: string,
+  opts?: { origin?: PluginOrigin; isUpdate?: boolean }
+): InstalledPlugin {
   const absSrc = resolve(srcDir)
   if (!existsSync(absSrc)) {
     throw new Error('目录不存在')
@@ -309,15 +362,28 @@ export function importFromFolder(srcDir: string): InstalledPlugin {
   rmSync(dest, { recursive: true, force: true })
   renameSync(staging, dest)
 
-  const index = readIndex().filter((p) => p.id !== manifest.id)
+  const index = readIndex()
+  const existing = index.find((p) => p.id === manifest.id)
+  const isUpdate = opts?.isUpdate === true
   const installed: InstalledPlugin = {
     ...manifest,
-    enabled: true,
+    enabled: isUpdate && existing ? existing.enabled : true,
     sourcePath: absSrc,
-    installedAt: Date.now()
+    installedAt: isUpdate && existing ? existing.installedAt : Date.now(),
+    ...(isUpdate ? { updatedAt: Date.now() } : {}),
+    ...(opts?.origin ? { origin: opts.origin } : {})
   }
-  index.push(installed)
-  writeIndex(index)
+  const next = index.filter((p) => p.id !== manifest.id)
+  next.push(installed)
+  writeIndex(next)
+  appendAudit({
+    ts: Date.now(),
+    pluginId: manifest.id,
+    action: isUpdate ? 'update' : 'install',
+    ...(existing?.version ? { fromVersion: existing.version } : {}),
+    ...(manifest.version ? { toVersion: manifest.version } : {}),
+    ...(opts?.origin ? { origin: opts.origin } : {})
+  })
   return installed
 }
 
@@ -325,9 +391,19 @@ export function removePlugin(pluginId: string): void {
   // rmSync recursive 的删除根由 pluginId 拼出：不过 isValidPluginId 的话，
   // 被攻陷渲染端传 '../../..' 就是递归删任意目录（B40）
   if (!isValidPluginId(pluginId)) throw new Error(`非法插件 id，已拒绝卸载: ${pluginId}`)
-  const index = readIndex().filter((p) => p.id !== pluginId)
-  writeIndex(index)
+  const index = readIndex()
+  const removed = index.find((p) => p.id === pluginId)
+  writeIndex(index.filter((p) => p.id !== pluginId))
   rmSync(pluginDir(pluginId), { recursive: true, force: true })
+  if (removed) {
+    appendAudit({
+      ts: Date.now(),
+      pluginId,
+      action: 'remove',
+      ...(removed.version ? { fromVersion: removed.version } : {}),
+      ...(removed.origin ? { origin: removed.origin } : {})
+    })
+  }
   // 卸载即清理插件命名空间 KV（launcher_docs），避免卸载重装后读到旧数据
   try {
     getLauncherDocStore().deleteByPlugin(pluginId)

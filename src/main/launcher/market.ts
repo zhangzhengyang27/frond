@@ -36,9 +36,9 @@ import {
 import { tmpdir } from 'os'
 import { promisify } from 'util'
 import type { InstalledPlugin } from './pluginStore'
-import { importFromFolder, isValidPluginId, listPlugins } from './pluginStore'
+import { getPlugin, importFromFolder, isValidPluginId, listPlugins, readManifest } from './pluginStore'
 import { prefRepository } from '../db/repos'
-import { confirmPluginImport } from './pluginConfirm'
+import { confirmPluginImport, diffPermissions } from './pluginConfirm'
 import fetch from 'node-fetch'
 import { pinningAgentSelector } from './dnsPinning'
 import { isLocalTarget } from './runtime'
@@ -562,10 +562,16 @@ export async function sha256File(path: string): Promise<string> {
 }
 
 /** 从市场条目安装（IPC 入口，返回值与 installFromFolder IPC 一致） */
-export async function installFromMarket(entryId: string): Promise<{
+export async function installFromMarket(
+  entryId: string,
+  opts?: { silent?: boolean }
+): Promise<{
   success: boolean
   plugin?: InstalledPlugin
   error?: string
+  /** silent 模式专属：因新版本新增敏感权限被拒（绝不静默跨越权限闸） */
+  blocked?: boolean
+  addedPermissions?: string[]
 }> {
   let staging: string | null = null
   try {
@@ -599,15 +605,53 @@ export async function installFromMarket(entryId: string): Promise<{
       if (!manifestDir) return { success: false, error: '压缩包中未找到 plugin.json' }
       importDir = manifestDir
     }
-    // 审查 I5：市场安装与本地导入共用确认闸（未来索引联网化后此闸不可绕过）
-    if (!(await confirmPluginImport(importDir))) {
+    const existing = getPlugin(item.id)
+    if (opts?.silent) {
+      // P-3.2 静默更新（自动更新专用）：不弹 dialog，但权限闸换程序化判定——
+      // 新版本比已装版本**多声明任何权限**即拒绝，把决定权交回用户（通知 + 插件中心手动更新）
+      const manifest = readManifest(importDir)
+      const diff = diffPermissions(existing?.permissions, manifest.permissions, !!existing)
+      if (diff.added.length > 0) {
+        return {
+          success: false,
+          blocked: true,
+          addedPermissions: diff.added,
+          error: '新版本新增了敏感权限，需要用户确认'
+        }
+      }
+    } else if (!(await confirmPluginImport(importDir))) {
+      // 审查 I5：市场安装与本地导入共用确认闸（未来索引联网化后此闸不可绕过）
       return { success: false, error: '已取消导入' }
     }
-    const plugin = importFromFolder(importDir)
+    const plugin = importFromFolder(importDir, {
+      origin: { kind: 'market', ref: item.source },
+      isUpdate: !!existing
+    })
     return { success: true, plugin }
   } catch (error) {
     return { success: false, error: (error as Error).message }
   } finally {
     if (staging) rmSync(staging, { recursive: true, force: true })
   }
+}
+
+export interface PluginUpdateInfo {
+  id: string
+  name: string
+  currentVersion?: string
+  newVersion?: string
+  source: MarketItem['source']
+}
+
+/** 已装插件 ×（打包 + 精选 + 远程缓存）索引 → 可更新清单（P-3.2 徽标/自动更新共用数据源） */
+export function computePluginUpdates(): PluginUpdateInfo[] {
+  return listMarket()
+    .filter((m) => m.installed && m.updatable)
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      ...(m.installedVersion ? { currentVersion: m.installedVersion } : {}),
+      ...(m.version ? { newVersion: m.version } : {}),
+      source: m.source
+    }))
 }

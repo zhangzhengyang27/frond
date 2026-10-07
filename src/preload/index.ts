@@ -623,6 +623,8 @@ const api = {
     marketInstall: (entryId: string) => typedInvoke('launcher:market:install', { entryId }),
     /** 市场版本更新：覆盖安装最新版 */
     marketUpdate: (entryId: string) => typedInvoke('launcher:market:update', { entryId }),
+    /** P-3.2：已装插件可更新清单（id → 新版本，来源见 market:list） */
+    pluginUpdatesList: () => typedInvoke('launcher:pluginUpdates:list'),
     /** 插件开发模式（本地目录 link + 文件 watcher 热重载） */
     devPluginsList: () => typedInvoke('launcher:devPlugins:list'),
     devPluginsAdd: (dirPath: string) => typedInvoke('launcher:devPlugins:add', { dirPath }),

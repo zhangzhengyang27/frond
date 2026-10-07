@@ -108,6 +108,8 @@ import {
 } from './modules/automation/store'
 // 内置插件自动安装
 import { autoInstallBuiltinPlugins } from './launcher/builtinPlugins'
+// 插件静默自动更新（P-3.2）
+import { startPluginAutoUpdate, stopPluginAutoUpdate } from './launcher/pluginAutoUpdate'
 // 命令别名（P2-8）
 import { registerAliasIpc } from './services/AliasService'
 // 搜索历史（P2-9）
@@ -454,6 +456,9 @@ void app
     // 内置插件自动安装（开箱即用）
     autoInstallBuiltinPlugins()
 
+    // 插件静默自动更新（P-3.2）：启动后 30s 首查 + 每 24h 一查；新版本多声明权限即拦下待确认
+    startPluginAutoUpdate()
+
     // 命令别名（P2-8）
     registerAliasIpc()
 
@@ -541,6 +546,7 @@ void app
       // MCP 是自己 spawn 的长命子进程：不显式杀就会留成孤儿
       stopAllMcpServers()
       stopAutomationEngine()
+      stopPluginAutoUpdate()
       if (memorySnapshotTimer) {
         clearInterval(memorySnapshotTimer)
         memorySnapshotTimer = null

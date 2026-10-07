@@ -40,9 +40,16 @@
             <div class="pc-name">
               {{ row.name }}
               <span class="pc-version">v{{ row.version }}</span>
+              <span v-if="row.updateVersion" class="pc-badge-update" data-testid="pc-update-badge">
+                可更新 v{{ row.updateVersion }}
+              </span>
               <span v-if="!row.enabled" class="pc-badge-off">已停用</span>
+              <span class="pc-origin">{{ originLabel(row.originKind) }}</span>
             </div>
             <div class="pc-desc">{{ row.description || row.id }}</div>
+            <div v-if="row.permissionLabels.length > 0" class="pc-perms">
+              权限：{{ row.permissionLabels.join('、') }}
+            </div>
           </div>
           <div class="pc-actions">
             <UButton size="sm" :disabled="!row.enabled" @click="openPlugin(row)">打开</UButton>
@@ -52,6 +59,16 @@
               :label="row.enabled ? '已启用' : '已停用'"
               @update:model-value="toggleEnabled(row)"
             />
+            <UButton
+              v-if="row.updateVersion"
+              size="sm"
+              variant="secondary"
+              :loading="updatingId === row.id"
+              data-testid="pc-update-btn"
+              @click="updatePlugin(row)"
+            >
+              更新
+            </UButton>
             <UButton size="sm" variant="ghost" danger @click="removePlugin(row)">卸载</UButton>
           </div>
         </li>
@@ -76,7 +93,14 @@ import UInput from '@components/ui/UInput.vue'
 import USwitch from '@components/ui/USwitch.vue'
 import UEmpty from '@components/ui/UEmpty.vue'
 import { confirm } from '@composables/useConfirm'
-import { filterRows, sortRows, statsOf, toRows, type PluginRow } from './pluginsCenterLogic'
+import {
+  filterRows,
+  sortRows,
+  statsOf,
+  toRows,
+  originLabel,
+  type PluginRow
+} from './pluginsCenterLogic'
 
 interface InstalledPluginLike {
   id: string
@@ -85,16 +109,25 @@ interface InstalledPluginLike {
   description?: string
   enabled: boolean
   icon?: string
+  origin?: { kind: string; ref?: string }
+  permissions?: string[]
 }
 
 const query = ref('')
 const loading = ref(true)
 const plugins = ref<InstalledPluginLike[]>([])
+/** 可更新清单（id → 新版本），来自 launcher:pluginUpdates:list */
+const updates = ref<Record<string, string>>({})
 
-const rows = computed<Array<PluginRow & { icon?: string }>>(() =>
+const rows = computed<Array<PluginRow & { icon?: string; updateVersion?: string }>>(() =>
   sortRows(toRows(plugins.value)).map((r) => {
     const icon = plugins.value.find((p) => p.id === r.id)?.icon
-    return { ...r, ...(icon !== undefined && { icon }) }
+    const updateVersion = updates.value[r.id]
+    return {
+      ...r,
+      ...(icon !== undefined && { icon }),
+      ...(updateVersion !== undefined && { updateVersion })
+    }
   })
 )
 const filtered = computed(() => filterRows(rows.value, query.value))
@@ -105,6 +138,16 @@ async function refresh(): Promise<void> {
     plugins.value = (await window.api.launcher.listPlugins()) as InstalledPluginLike[]
   } catch (err) {
     console.warn('PluginsCenterView: list failed', err)
+  }
+  try {
+    const list = await window.api.launcher.pluginUpdatesList()
+    const map: Record<string, string> = {}
+    for (const u of list) {
+      if (u.newVersion) map[u.id] = u.newVersion
+    }
+    updates.value = map
+  } catch {
+    // 更新清单拉不到就不显示徽标，不影响列表本身
   } finally {
     loading.value = false
   }
@@ -132,6 +175,20 @@ async function toggleEnabled(row: PluginRow): Promise<void> {
     await window.api.launcher.setPluginEnabled(row.id, !row.enabled)
   } catch (err) {
     console.warn('PluginsCenterView: toggle failed', err)
+  }
+}
+
+const updatingId = ref<string | null>(null)
+async function updatePlugin(row: PluginRow): Promise<void> {
+  updatingId.value = row.id
+  try {
+    // 走市场更新通道（含确认 dialog 与「新增权限默认拒绝」问法）；
+    // 成功后主进程推 command-table-changed → refresh() 刷新徽标
+    await window.api.launcher.marketUpdate(row.id)
+  } catch (err) {
+    console.warn('PluginsCenterView: update failed', err)
+  } finally {
+    updatingId.value = null
   }
 }
 
@@ -279,6 +336,25 @@ async function removePlugin(row: PluginRow): Promise<void> {
   border: 1px solid var(--color-border-default, var(--border-default, transparent));
   border-radius: 999px;
   padding: 1px 8px;
+}
+
+.pc-badge-update {
+  font-size: 10px;
+  color: var(--color-brand-500, var(--brand-500, inherit));
+  border: 1px solid var(--color-brand-500, var(--brand-500, transparent));
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.pc-origin {
+  font-size: 10px;
+  color: var(--color-text-tertiary, var(--text-tertiary, inherit));
+}
+
+.pc-perms {
+  font-size: 11px;
+  color: var(--color-text-tertiary, var(--text-tertiary, inherit));
+  margin-top: 2px;
 }
 
 .pc-desc {

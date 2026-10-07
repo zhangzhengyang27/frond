@@ -3,7 +3,15 @@
  *
  * 从 InstalledPlugin IPC 形状到「可渲染行」的映射、查询过滤、排序与卸载确认
  * 状态机。与 SFC 分离以便单测（KillProcessPage 同款拆法）。
+ *
+ * P-3 扩展（2026-10-07）：来源标签（origin）、声明权限标签、可更新版本号——
+ * 权限名只认 shared/plugin-protocol 的已知集合（与运行时 fail-closed 同一口径）。
  */
+import {
+  PLUGIN_PERMISSION_LABELS,
+  isPluginPermission,
+  type PluginPermission
+} from '../../../shared/plugin-protocol'
 
 /** InstalledPlugin（IPC listPlugins 行）的形状子集（避免页面 import 主进程类型） */
 export interface InstalledPluginLike {
@@ -12,6 +20,8 @@ export interface InstalledPluginLike {
   version: string
   description?: string
   enabled: boolean
+  origin?: { kind: string; ref?: string }
+  permissions?: string[]
 }
 
 /** 插件中心的渲染行 */
@@ -21,6 +31,21 @@ export interface PluginRow {
   version: string
   description: string
   enabled: boolean
+  /** 来源种类：builtin/market/local/dev；旧数据缺省 'unknown' */
+  originKind: string
+  /** 声明的敏感权限标签（未知权限已被主进程清洗，这里再兜一道） */
+  permissionLabels: string[]
+}
+
+const ORIGIN_LABELS: Record<string, string> = {
+  builtin: '内置',
+  market: '市场',
+  local: '本地导入',
+  dev: '开发'
+}
+
+export function originLabel(kind: string | undefined): string {
+  return (kind && ORIGIN_LABELS[kind]) || '未知'
 }
 
 export function toRows(plugins: InstalledPluginLike[]): PluginRow[] {
@@ -29,7 +54,11 @@ export function toRows(plugins: InstalledPluginLike[]): PluginRow[] {
     name: p.name,
     version: p.version,
     description: p.description ?? '',
-    enabled: p.enabled === true
+    enabled: p.enabled === true,
+    originKind: p.origin?.kind ?? 'unknown',
+    permissionLabels: [...new Set((p.permissions ?? []).filter(isPluginPermission))].map(
+      (k) => PLUGIN_PERMISSION_LABELS[k as PluginPermission]
+    )
   }))
 }
 

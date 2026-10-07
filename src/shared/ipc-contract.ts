@@ -76,7 +76,8 @@ import type {
   MarketItem,
   installFromMarket,
   marketIndexInfo,
-  refreshRemoteIndex
+  refreshRemoteIndex,
+  computePluginUpdates
 } from '../main/launcher/market'
 import type {
   DevPluginInfo,
@@ -481,6 +482,11 @@ export interface IpcContract {
   'launcher:market:update': {
     req: { entryId: string }
     res: Awaited<ReturnType<typeof installFromMarket>>
+  }
+  /** P-3.2：已装插件可更新清单（插件中心徽标数据源；bundled 来源由启动链自动处理） */
+  'launcher:pluginUpdates:list': {
+    req: void
+    res: ReturnType<typeof computePluginUpdates>
   }
   'launcher:devPlugins:list': { req: void; res: DevPluginInfo[] }
   'launcher:devPlugins:add': {

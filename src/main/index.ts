@@ -44,6 +44,7 @@ import {
   registerSystemInfoIpcHandlers,
   registerLogIpcHandlers,
   registerCrashIpcHandlers,
+  registerScriptCommandsIpc,
   registerMigrationIpcHandlers,
   registerNotesIpc,
   registerCloudBackupIpcHandlers,
@@ -346,6 +347,8 @@ void app
     registerSystemInfoIpcHandlers()
     registerLogIpcHandlers()
     registerCrashIpcHandlers()
+    // 脚本命令目录（P-3 2.7）：userData/scripts 平铺 .sh/.ps1 → 根搜索直达
+    registerScriptCommandsIpc()
     registerMigrationIpcHandlers(() => mainWindow)
     registerNotesIpc()
     registerCloudBackupIpcHandlers()

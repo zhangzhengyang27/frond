@@ -236,5 +236,13 @@ export async function executeCommand(entry: CommandEntry, opts: CommandRunOption
       close()
       break
     }
+    case 'scriptRun': {
+      // P-3 2.7：脚本命令目录——用户自放脚本的执行入口（主进程 30s 超时，
+      // 失败弹系统通知）；记 usage 让常用脚本在根搜索里浮上来
+      void window.api.usage.recordUse(entry.key)
+      await window.api.scriptCmds.run(a.id)
+      close()
+      break
+    }
   }
 }

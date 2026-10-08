@@ -97,6 +97,8 @@ export type CommandAction =
   | { type: 'searchQuery'; query: string }
   /** 浮动笔记：打开浮动笔记窗口 */
   | { type: 'floatingNote' }
+  /** 脚本命令目录（P-3 2.7）：userData/scripts 平铺脚本，id 即文件名（含扩展） */
+  | { type: 'scriptRun'; id: string }
 
 /** 用户自定义 Quicklink（M2.3，存储在主进程 kv）；URL 可含 {query} 占位符（参数化链接） */
 export interface Quicklink {

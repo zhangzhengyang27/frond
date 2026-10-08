@@ -418,6 +418,7 @@ const {
   loadPluginCommands,
   loadMcpCommands,
   loadPluginSearchItems,
+  loadScriptCommands,
   enrichAliases,
   faviconOf,
   iconBg,
@@ -1538,6 +1539,8 @@ onMounted(() => {
         // 连上服务器再回胶囊这条路本来就靠「唤起即重拉」，不靠推送也能对上
         void loadMcpCommands().then(() => enrichAliases())
         void loadPluginSearchItems()
+        // P-3 2.7：脚本目录由用户在盘上改，唤起即重拉（readdir 极便宜）
+        void loadScriptCommands()
         void loadFallbackConfig()
         void refreshSuggestions().then(() => {
           if (!query.value.trim()) resetToSuggestions()

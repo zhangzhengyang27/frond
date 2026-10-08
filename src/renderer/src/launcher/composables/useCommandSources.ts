@@ -197,6 +197,29 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
     }
   }
 
+  /** P-3 2.7：脚本命令目录（userData/scripts 平铺 .sh/.ps1）→ 根搜索条目 */
+  const scriptRows = ref<CommandEntry[]>([])
+
+  async function loadScriptCommands(): Promise<void> {
+    try {
+      const items = (await window.api.scriptCmds.list()) as Array<{
+        id: string
+        name: string
+        description: string
+      }>
+      scriptRows.value = items.map((s) => ({
+        key: `script:${s.id}`,
+        icon: 'terminal-box-line',
+        title: s.name,
+        subtitle: s.description || '脚本命令',
+        badge: '脚本',
+        action: { type: 'scriptRun' as const, id: s.id }
+      }))
+    } catch {
+      scriptRows.value = []
+    }
+  }
+
   /** 别名惰性补齐（M1.1 + P2-8）：拼音首字母 + 用户自定义别名 */
   // B53-6：pinyin-pro 词典 452KB 别挤进胶囊启动窗口——拼音别名延到空闲补齐
   // （requestIdleCallback，无则 1.5s）；用户自定义别名仍即时生效。多次 enrich
@@ -279,6 +302,7 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
       pluginCommands.value,
       mcpCommands.value, // MCP 工具清单缓存
       pluginSearchRows.value, // #5 插件双通道：searchable 插件持久化条目
+      scriptRows.value, // P-3 2.7：脚本命令目录
       dynamicCommands.value
     ])
     if (merged.duplicateKeys.length || merged.duplicateTitles.length) {
@@ -324,6 +348,7 @@ export function useCommandSources(afterTableChange?: () => void, onSlowBatch?: (
     loadDynamicCommands,
     loadPluginCommands,
     loadPluginSearchItems,
+    loadScriptCommands,
     enrichAliases,
     faviconOf,
     iconBg,

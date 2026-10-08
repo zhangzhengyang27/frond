@@ -104,6 +104,10 @@ import type {
   getContextBySender
 } from '../main/launcher/runtime'
 import type { fileIndex } from '../main/modules/fileIndex/service'
+import type {
+  listScriptCommands,
+  runScriptCommand
+} from '../main/modules/scriptCommands'
 import type { SyncConfig, testConnection } from '../main/launcher/sync'
 import type { TagDataStore } from '../main/stores/TagDataStore'
 import type { reminderService } from '../main/services/ReminderService'
@@ -488,6 +492,13 @@ export interface IpcContract {
     req: void
     res: ReturnType<typeof computePluginUpdates>
   }
+  // ─────────── 脚本命令目录（P-3 2.7：userData/scripts 平铺 .sh/.ps1 → 根搜索）───────────
+  'scriptCmds:list': { req: void; res: ReturnType<typeof listScriptCommands> }
+  'scriptCmds:run': {
+    req: { id: string }
+    res: Awaited<ReturnType<typeof runScriptCommand>>
+  }
+  'scriptCmds:openDir': { req: void; res: { ok: boolean; error?: string } }
   'launcher:devPlugins:list': { req: void; res: DevPluginInfo[] }
   'launcher:devPlugins:add': {
     req: { dirPath: string }

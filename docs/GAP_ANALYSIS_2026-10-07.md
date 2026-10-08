@@ -177,7 +177,7 @@
 | 2.4 ✅执行 | 文本扩展补厚度：`{cursor}` + 日期算术 + Espanso 导入器（三件套一次交付，导入器自带获客） | Espanso 用户可无损迁入 | **勘察复核**：`{cursor}` 早已存在（V4 P-1-6，`expansionTemplate.ts` 码点级定位）；本批实做=日期算术（`{date +7d}`/`{date:YYYY-MM-DD +1M}`/`{time +30m}`）+ Espanso YAML 导入器（date/clipboard var 映射，其余降级输入参数） |
 | 2.5 ✅实测+改写 | 代码片段搜索重新评估 FTS：以 snippet 量级实测 LIKE 延迟，超阈值则恢复 FTS5 | 有实测数据支撑的决策记录 | **实测结论（内存库、同形查询、1k/5k/20k 行）**：quickSearch 整体 5.5/118/1910ms，其中**标签相关子查询占 95–99%**（去掉后 20k 行仅 ~10ms）。**决策：不回 FTS5**（写放大回归不值），已改写 quickSearch 为两段查询（正文命中填满 → 标签名命中补足，各自排序），改写后 20k 行 ~10ms；语义变化=标签命中排在正文命中之后（`SnippetRepository.quickSearch`） |
 | 2.6 | 空态环境上下文：胶囊空态呈现"下一个会议"（CalendarService 已就绪）+ 置顶剪贴板 | 空态从"收纳"变"信息面" | S |
-| 2.7 ⏳后置 | 脚本命令目录：约定 `~/frond-scripts`（或配置目录）扫描 `.sh/.ps1` 生成命令进注册表 | 落一个脚本，全局热键直达 | M |
+| 2.7 ✅执行 | 脚本命令目录：约定 `~/frond-scripts`（或配置目录）扫描 `.sh/.ps1` 生成命令进注册表 | 落一个脚本，全局热键直达 | **落地（userData/scripts，首启自动建目录+示例脚本）**：平铺扫描生成根搜索命令（文件名=标题、首个注释行=描述），回车运行（mac/linux 尊重 shebang，无执行位/无 shebang 回落 sh；Windows PowerShell -File；30s 超时强杀、输出截 8KB、失败弹系统通知），进 frecency；目录穿越三层校验。逐脚本独立全局热键未做（主热键→胶囊搜索已达「全局直达」，per-script 热键待接 hotkeys.ts 四类白名单） |
 
 ### Phase 3：中期（2–3 月，打开天花板）
 

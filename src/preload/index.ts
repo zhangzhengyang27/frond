@@ -718,6 +718,12 @@ const api = {
     setHidden: (value: boolean) => typedInvoke('fileIndex:setHidden', { value })
   },
   // 剪贴板历史（阶段B：胶囊内联页数据源；主进程 1s 轮询，会话内有效）
+  // 脚本命令目录（P-3 2.7）：userData/scripts 平铺脚本 → 根搜索
+  scriptCmds: {
+    list: () => typedInvoke('scriptCmds:list'),
+    run: (id: string) => typedInvoke('scriptCmds:run', { id }),
+    openDir: () => typedInvoke('scriptCmds:openDir')
+  },
   clipHist: {
     list: () => typedInvoke('cliphist:list'),
     // P-3：置顶条目投影（空态建议；主进程内 filter+截断）

@@ -1,0 +1,13 @@
+{
+  "name": "frond-plugin-cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scaffold / pack / publish Frond plugins to a self-hosted market index (zero-dependency CLI)",
+  "type": "module",
+  "bin": {
+    "frond-plugin": "./cli.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

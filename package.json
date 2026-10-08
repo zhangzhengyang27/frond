@@ -33,6 +33,7 @@
     "build:linux": "pnpm run build && electron-builder --linux",
     "release:preflight": "node scripts/release-preflight.mjs",
     "release:plugin": "node scripts/make-plugin-release.mjs",
+    "plugin": "node packages/frond-plugin-cli/cli.mjs",
     "typecheck:prodcheck": "tsc -p tsconfig.prodcheck.json",
     "lint:ratchet": "node scripts/unsafe-ratchet.mjs",
     "build:currency": "node scripts/build-currency-plugin.mjs"

@@ -1,0 +1,16 @@
+{
+  "id": "com.third.myip",
+  "name": "My IP",
+  "version": "1.0.0",
+  "description": "查看本机公网 IP 与大致位置，一键复制——最小第三方插件示范：一条命令、一次请求",
+  "author": "Frond Examples",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "show",
+      "title": "My IP",
+      "description": "查询公网 IP 与大致位置（ipapi.co 免费接口，无需 Key）"
+    }
+  ],
+  "permissions": ["net", "clipboard.write"]
+}

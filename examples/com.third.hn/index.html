@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hacker News</title>
+    <script src="lib.js"></script>
+  </head>
+  <body>
+    <script>
+      // 标杆第三方插件 ①：真实公网 API（keyless https）+ 声明式列表。
+      // 网络必须走 api.fetch（宿主代理：SSRF 防护/超时/2MB 上限），permissions 里声明 net。
+      var api = window.launcherApi
+      var lib = window.FrondHnLib
+      var rows = []
+
+      function render(text) {
+        var shown = lib.filterRows(rows, text)
+        if (!shown.length) {
+          api.renderList([
+            { title: rows.length ? '没有匹配的帖子' : '加载中…', icon: 'loader-4-line' }
+          ])
+          return
+        }
+        api.renderList(shown)
+      }
+
+      api.onEnter(function () {
+        api.setSubInput('过滤标题 / 作者…')
+        render('')
+        api
+          .fetch('https://hacker-news.firebaseio.com/v0/topstories.json')
+          .then(function (res) {
+            return lib.parseTopIds(res.ok ? res.body : [], 8)
+          })
+          .then(function (ids) {
+            return Promise.all(
+              ids.map(function (id) {
+                return api.fetch(lib.HN_ITEM_URL + id + '.json').then(function (r) {
+                  try {
+                    return lib.toRow(typeof r.body === 'string' ? JSON.parse(r.body) : r.body)
+                  } catch (e) {
+                    return null
+                  }
+                })
+              })
+            )
+          })
+          .then(function (list) {
+            rows = list.filter(Boolean)
+            render('')
+          })
+          .catch(function (e) {
+            api.renderList([
+              {
+                title: '拉取失败',
+                subtitle: String((e && e.message) || e),
+                icon: 'error-warning-line'
+              }
+            ])
+          })
+      })
+
+      api.onSubInputChange(function (data) {
+        render(data && typeof data.text === 'string' ? data.text : '')
+      })
+    </script>
+  </body>
+</html>

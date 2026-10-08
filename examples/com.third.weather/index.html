@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Weather</title>
+    <script src="lib.js"></script>
+  </head>
+  <body>
+    <script>
+      // 标杆第三方插件 ③：偏好设置 + 网络——坐标来自用户在管理页配的 preferences，
+      // 展示「插件带配置」的完整形态（fetch 前先读偏好，坏坐标给可操作的报错）。
+      var api = window.launcherApi
+      var lib = window.FrondWeatherLib
+
+      function loading() {
+        api.renderList([{ title: '查询中…', icon: 'loader-4-line' }])
+      }
+
+      function failed(msg) {
+        api.renderList([{ title: '查询失败', subtitle: String(msg), icon: 'error-warning-line' }])
+      }
+
+      function load() {
+        loading()
+        api.preferences.all().then(function (res) {
+          var prefs = res && res.ok ? res.values : {}
+          var url = lib.buildForecastUrl(prefs)
+          if (!url) {
+            failed('纬度/经度不是合法数字或超出范围——在插件管理页修正偏好后重进')
+            return
+          }
+          api
+            .fetch(url)
+            .then(function (res) {
+              var rows = lib.toRows(res.ok ? res.body : null)
+              if (rows) api.renderList(rows)
+              else failed('响应结构不完整（HTTP ' + res.status + '）')
+            })
+            .catch(failed)
+        })
+      }
+
+      api.onEnter(load)
+      api.onAction(function (data) {
+        if (data && data.action && data.action.payload === 'refresh') {
+          api.showHud('刷新中…')
+          load()
+        }
+      })
+    </script>
+  </body>
+</html>

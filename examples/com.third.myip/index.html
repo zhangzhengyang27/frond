@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>My IP</title>
+    <script src="lib.js"></script>
+  </head>
+  <body>
+    <script>
+      // 标杆第三方插件 ②：最小形态——一条命令、一次请求、宿主代办的 copy 动作。
+      var api = window.launcherApi
+      var lib = window.FrondMyIpLib
+
+      function loading() {
+        api.renderList([{ title: '查询中…', icon: 'loader-4-line' }])
+      }
+
+      function failed(msg) {
+        api.renderList([{ title: '查询失败', subtitle: String(msg), icon: 'error-warning-line' }])
+      }
+
+      api.onEnter(function () {
+        loading()
+        api
+          .fetch('https://ipapi.co/json/')
+          .then(function (res) {
+            var row = lib.toRow(res.ok ? res.body : null)
+            if (row) api.renderList([row])
+            else failed('响应缺少 ip 字段（HTTP ' + res.status + '）')
+          })
+          .catch(failed)
+      })
+    </script>
+  </body>
+</html>

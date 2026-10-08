@@ -41,6 +41,9 @@ The full host API (`window.launcherApi`: renderList, actions, preferences,
 HUD, storage, proxied fetch…) is documented in
 [PLUGIN_DEV.md](../../PLUGIN_DEV.md) (Chinese) and
 [docs/PLUGIN_DEVELOPMENT.md](../../docs/PLUGIN_DEVELOPMENT.md).
+Runnable exemplars covering the three common shapes (network+list, minimal
+one-command, preferences+network) live in
+[examples/](../../examples/) — each with unit-tested core logic.
 
 ### 3. Pack
 

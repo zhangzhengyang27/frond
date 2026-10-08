@@ -1,0 +1,28 @@
+{
+  "id": "com.third.weather",
+  "name": "Weather",
+  "version": "1.0.0",
+  "description": "Open-Meteo 天气：偏好设置里配城市坐标，展示当前温度与三日预报（免费接口，无需 Key）",
+  "author": "Frond Examples",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "now",
+      "title": "天气",
+      "description": "当前温度与未来三日预报（Open-Meteo）"
+    }
+  ],
+  "preferences": [
+    { "name": "cityLabel", "label": "城市名（仅展示用）", "type": "text", "default": "上海" },
+    { "name": "latitude", "label": "纬度（十进制度，如 31.23）", "type": "text", "default": "31.23" },
+    { "name": "longitude", "label": "经度（十进制度，如 121.47）", "type": "text", "default": "121.47" },
+    {
+      "name": "units",
+      "label": "温度单位",
+      "type": "select",
+      "default": "摄氏度",
+      "options": ["摄氏度", "华氏度"]
+    }
+  ],
+  "permissions": ["net"]
+}

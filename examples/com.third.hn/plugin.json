@@ -1,0 +1,16 @@
+{
+  "id": "com.third.hn",
+  "name": "Hacker News",
+  "version": "1.0.0",
+  "description": "Hacker News 头条：实时拉取当前热帖，回车打开原文、一键复制链接",
+  "author": "Frond Examples",
+  "main": "index.html",
+  "commands": [
+    {
+      "code": "top",
+      "title": "HN 头条",
+      "description": "拉取 Hacker News 当前热帖（官方 API，无需 Key）"
+    }
+  ],
+  "permissions": ["net"]
+}

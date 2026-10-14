@@ -40,6 +40,10 @@ let realFullScan: typeof fullScan
 
 beforeAll(async () => {
   realFullScan = (await vi.importActual<typeof import('../scanner')>('../scanner')).fullScan
+  // B47 状态机与平台无关，但 enabled getter 在 Linux 是 disabled（产品语义：无自建
+  // 索引，回退系统检索）——单测里强制启用，让 Linux CI 也保有这条覆盖
+  // （此前 Linux/Windows CI 红 Twin 的根因之一：enable=false 时 ensureStarted 直接返回）
+  vi.spyOn(FileIndexService.prototype, 'enabled', 'get').mockReturnValue(true)
 })
 
 let root: string
@@ -52,7 +56,12 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
-  rmSync(root, { recursive: true, force: true })
+  try {
+    rmSync(root, { recursive: true, force: true })
+  } catch {
+    // Windows：file-index.db 句柄还开着时 rm 报 EPERM——临时目录留给系统清理，
+    // 不能为删目录让整个 suite 红（CI Windows 红 Twin 根因之二）
+  }
   delete process.env.FROND_FILE_INDEX_SCOPES
 })
 
@@ -70,14 +79,16 @@ describe('FileIndexService watcher 启动竞态（B47-①）', () => {
     // 首启：count=0 → 走 mocked fullScan → ready → startWatcher（watch#1 pending）
     fullScanMock.mockImplementation(async (opts) => realFullScan({ ...opts, roots: [root] }))
     await svc.ensureStarted(root)
-    await vi.waitFor(() => expect(watchCalls.length).toBe(1))
-    expect(watchCalls[0]!.scopes).toEqual([normPath(root)])
+    await vi.waitFor(() => expect(watchCalls.length).toBe(1), { timeout: 4000 })
+    // watch 收到的是 env/入参的**原生路径**（normPath 只做内部身份比较，不过 watch 边界；
+    // Windows 上是反斜杠——断言写原生形态，勿用 normPath 期望值）
+    expect(watchCalls[0]!.scopes).toEqual([root])
 
     // 改范围：stopWatcher（此时 watch#1 仍未 resolve，无处可停）→ rebuild → startWatcher（watch#2 pending）
     const other = join(root, 'gone')
     svc.setScopes([other]) // 同步接口；rebuild 是内部 void 链，下方 waitFor 等它的收尾
-    await vi.waitFor(() => expect(watchCalls.length).toBe(2))
-    expect(watchCalls[1]!.scopes).toEqual([normPath(other)])
+    await vi.waitFor(() => expect(watchCalls.length).toBe(2), { timeout: 4000 })
+    expect(watchCalls[1]!.scopes).toEqual([other])
 
     const stopOld = vi.fn()
     const stopNew = vi.fn()
@@ -94,8 +105,10 @@ describe('FileIndexService watcher 启动竞态（B47-①）', () => {
 
 describe('FileIndexService rearmOnce 补扫失败兜底（B47-②）', () => {
   it('补扫 fullScan 抛错不产生 unhandledRejection，状态保持 ready 且保留重试账', async () => {
-    // 全程假时钟：rearm 定时器必须在假时钟下创建，advance 才推得动（真实 60s 等不起）
-    vi.useFakeTimers()
+    // 全程假时钟：rearm 定时器必须在假时钟下创建，advance 才推得动（真实 60s 等不起）。
+    // shouldAdvanceTime 让假时钟与真实时间同步走——真实 fs I/O（fullScan/DB）照常完成，
+    // 纯假时钟在 Windows CI 上会让「等 ready」永远等不到（CI Windows 红 Twin 根因之三）
+    vi.useFakeTimers({ shouldAdvanceTime: true })
     // 假时钟下的状态等待：advance 会向事件循环让步，真实 fs I/O 的完成回调照常泵入
     const waitUntil = async (cond: () => boolean): Promise<void> => {
       for (let i = 0; i < 500 && !cond(); i++) await vi.advanceTimersByTimeAsync(20)

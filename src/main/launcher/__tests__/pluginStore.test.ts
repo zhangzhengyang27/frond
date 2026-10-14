@@ -52,7 +52,13 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  rmSync(ROOT, { recursive: true, force: true })
+  // Windows：launcher_docs 的 SQLite 句柄还开着时 rm 会 EPERM——临时目录留给系统清理
+  // （CI runner 是一次性的），不能为删目录让整个 suite 红
+  try {
+    rmSync(ROOT, { recursive: true, force: true })
+  } catch {
+    /* 平台文件锁：跳过清理 */
+  }
 })
 
 describe('importFromFolder 首装', () => {

@@ -78,7 +78,9 @@ beforeEach(() => {
 const poll = (): Promise<void> => (svc as unknown as { poll(): Promise<void> }).poll()
 
 describe('剪贴板 poll 指纹先行（B53-2）', () => {
-  it('内容不变：只有第一轮查前台应用，后续轮零 spawn', async () => {
+  // 这两条断言的是「osascript spawn 计数」——getFrontmostAppName 只在 darwin spawn
+  // （其余平台守卫直接返回 null），计数语义只在 mac 上成立（CI Linux/Windows 长期红 Twin 的根因）
+  it.runIf(process.platform === 'darwin')('内容不变：只有第一轮查前台应用，后续轮零 spawn', async () => {
     clipboardMock.readText.mockReturnValue('hello')
     await poll()
     expect(execFileMock).toHaveBeenCalledTimes(1) // 首轮入账需要 frontApp
@@ -87,7 +89,7 @@ describe('剪贴板 poll 指纹先行（B53-2）', () => {
     expect(execFileMock).toHaveBeenCalledTimes(1) // 内容没变：不 spawn
   })
 
-  it('内容变化：spawn 查 frontApp 并作为来源入账', async () => {
+  it.runIf(process.platform === 'darwin')('内容变化：spawn 查 frontApp 并作为来源入账', async () => {
     clipboardMock.readText.mockReturnValue('first')
     await poll()
     clipboardMock.readText.mockReturnValue('second')

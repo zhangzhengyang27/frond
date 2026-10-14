@@ -89,7 +89,8 @@ describe('find:files 并行回退（B53-4）', () => {
     await flush()
     const res = (await p) as { source: string; items: Array<{ path: string }> }
     expect(res.source).toBe('index')
-    expect(res.items[0]!.path).toBe('/x/a.txt')
+    // 输出路径在 Windows 上是原生分隔符——比较前归一（B53-4 的 CI Windows 红 Twin 根因）
+    expect(res.items[0]!.path.replace(/\\/g, '/')).toBe('/x/a.txt')
   })
 
   it('NO_FALLBACK：不 spawn 系统检索', async () => {

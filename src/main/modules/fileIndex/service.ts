@@ -142,6 +142,9 @@ export class FileIndexService {
             scopes = [envScopes]
           }
         }
+        // 与 setScopes 同一口径归一（POSIX 化）：范围身份全库一致——否则首启范围是
+        // 原生分隔符、setScopes 之后变正斜杠，水位/watcher 的身份比较在 Windows 上对不上
+        scopes = [...new Set(scopes.map((s) => normPath(s.trim())))]
         this.db.setMeta(SCOPES_KEY, JSON.stringify(scopes))
         this.scopesCache = scopes // 首启写默认范围走的裸 setMeta，缓存同步跟上
       }

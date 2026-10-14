@@ -80,15 +80,14 @@ describe('FileIndexService watcher 启动竞态（B47-①）', () => {
     fullScanMock.mockImplementation(async (opts) => realFullScan({ ...opts, roots: [root] }))
     await svc.ensureStarted(root)
     await vi.waitFor(() => expect(watchCalls.length).toBe(1), { timeout: 4000 })
-    // watch 收到的是 env/入参的**原生路径**（normPath 只做内部身份比较，不过 watch 边界；
-    // Windows 上是反斜杠——断言写原生形态，勿用 normPath 期望值）
-    expect(watchCalls[0]!.scopes).toEqual([root])
+    // watch 收到的是 normPath 归一后的范围（首启 env 与 setScopes 现在同口径，Windows 上也是正斜杠）
+    expect(watchCalls[0]!.scopes).toEqual([normPath(root)])
 
     // 改范围：stopWatcher（此时 watch#1 仍未 resolve，无处可停）→ rebuild → startWatcher（watch#2 pending）
     const other = join(root, 'gone')
     svc.setScopes([other]) // 同步接口；rebuild 是内部 void 链，下方 waitFor 等它的收尾
     await vi.waitFor(() => expect(watchCalls.length).toBe(2), { timeout: 4000 })
-    expect(watchCalls[1]!.scopes).toEqual([other])
+    expect(watchCalls[1]!.scopes).toEqual([normPath(other)])
 
     const stopOld = vi.fn()
     const stopNew = vi.fn()
